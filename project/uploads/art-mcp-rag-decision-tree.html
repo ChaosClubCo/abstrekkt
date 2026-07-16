@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MCP + RAG Pattern Picker</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif&family=Geist+Mono&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #09090f; --surface: #111118; --surface-2: #1a1a24;
+    --border: #2a2a3a; --purple: #7c3aed;
+    --purple-glow: rgba(124,58,237,0.1);
+    --text: #d4d4d8; --text-dim: #71717a; --text-bright: #fafafa;
+    --green: #22c55e; --orange: #f97316; --red: #ef4444; --cyan: #06b6d4;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:var(--bg); color:var(--text); font-family:'DM Sans',sans-serif; -webkit-font-smoothing:antialiased; }
+
+  .header {
+    text-align:center;
+    padding:2.5rem 1.5rem 2rem;
+    border-bottom:1px solid var(--border);
+  }
+  .header-meta {
+    font-family:'Geist Mono',monospace;
+    font-size:0.7rem;
+    color:var(--purple);
+    text-transform:uppercase;
+    letter-spacing:0.1em;
+    margin-bottom:0.75rem;
+  }
+  .header h1 {
+    font-family:'Instrument Serif',serif;
+    font-size:clamp(1.5rem,4vw,2.2rem);
+    color:var(--text-bright);
+    margin-bottom:0.5rem;
+  }
+  .header p {
+    color:var(--text-dim);
+    font-size:0.9rem;
+    max-width:500px;
+    margin:0 auto;
+  }
+
+  .tabs {
+    display:flex;
+    border-bottom:1px solid var(--border);
+    overflow-x:auto;
+  }
+  .tab {
+    padding:0.75rem 1.25rem;
+    font-family:'Geist Mono',monospace;
+    font-size:0.75rem;
+    color:var(--text-dim);
+    cursor:pointer;
+    border-bottom:2px solid transparent;
+    white-space:nowrap;
+    transition:all 0.15s;
+  }
+  .tab:hover { color:var(--text); }
+  .tab.active { color:var(--purple); border-bottom-color:var(--purple); }
+
+  .content { padding:2rem 1.5rem; max-width:900px; margin:0 auto; }
+
+  .pattern-grid {
+    display:grid;
+    gap:1rem;
+  }
+  .pattern-card {
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:8px;
+    padding:1.5rem;
+    cursor:pointer;
+    transition:all 0.2s;
+  }
+  .pattern-card:hover {
+    border-color:var(--purple);
+    background:var(--surface-2);
+  }
+  .pattern-card.expanded {
+    border-color:var(--purple);
+  }
+  .pattern-header {
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    gap:1rem;
+  }
+  .pattern-number {
+    font-family:'Geist Mono',monospace;
+    font-size:0.65rem;
+    color:var(--purple);
+    background:var(--purple-glow);
+    padding:0.2em 0.5em;
+    border-radius:3px;
+    flex-shrink:0;
+  }
+  .pattern-name {
+    font-weight:600;
+    color:var(--text-bright);
+    font-size:1rem;
+    flex-grow:1;
+  }
+  .pattern-oneliner {
+    color:var(--text-dim);
+    font-size:0.85rem;
+    font-style:italic;
+    margin-top:0.5rem;
+  }
+
+  .pattern-detail {
+    display:none;
+    margin-top:1.25rem;
+    padding-top:1.25rem;
+    border-top:1px solid var(--border);
+  }
+  .pattern-card.expanded .pattern-detail { display:block; }
+
+  .detail-grid {
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:1rem;
+    margin-bottom:1rem;
+  }
+  @media(max-width:600px) { .detail-grid { grid-template-columns:1fr; } }
+  .detail-box h4 {
+    font-family:'Geist Mono',monospace;
+    font-size:0.65rem;
+    text-transform:uppercase;
+    letter-spacing:0.06em;
+    margin-bottom:0.5rem;
+  }
+  .detail-box.use h4 { color:var(--green); }
+  .detail-box.skip h4 { color:var(--red); }
+  .detail-box.kyle h4 { color:var(--cyan); }
+  .detail-box p { font-size:0.85rem; color:var(--text-dim); line-height:1.5; }
+
+  .kyle-take {
+    background:rgba(6,182,212,0.06);
+    border-left:2px solid var(--cyan);
+    padding:1rem 1.25rem;
+    border-radius:0 4px 4px 0;
+    margin-top:0.75rem;
+  }
+  .kyle-take-label {
+    font-family:'Geist Mono',monospace;
+    font-size:0.6rem;
+    color:var(--cyan);
+    text-transform:uppercase;
+    letter-spacing:0.06em;
+    margin-bottom:0.35rem;
+  }
+  .kyle-take p { font-size:0.85rem; color:var(--text-dim); margin:0; }
+
+  .badge {
+    display:inline-block;
+    font-family:'Geist Mono',monospace;
+    font-size:0.6rem;
+    padding:0.15em 0.45em;
+    border-radius:3px;
+    margin-left:0.5rem;
+  }
+  .badge-use { background:rgba(34,197,94,0.15); color:var(--green); }
+  .badge-eval { background:rgba(249,115,22,0.15); color:var(--orange); }
+  .badge-skip { background:rgba(239,68,68,0.15); color:var(--red); }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-meta">FlashFusion · Interactive Reference</div>
+  <h1>MCP + RAG Pattern Picker</h1>
+  <p>12 architecture patterns from the cheatsheets. Which ones matter for real projects — and which ones are academic.</p>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="showTab('mcp')">MCP Server Patterns (7)</div>
+  <div class="tab" onclick="showTab('rag')">RAG Architectures (5)</div>
+</div>
+
+<div class="content">
+  <div id="mcp-content" class="pattern-grid"></div>
+  <div id="rag-content" class="pattern-grid" style="display:none"></div>
+</div>
+
+<script>
+const mcpPatterns = [
+  {
+    num:'01', name:'Tool Wrapper', badge:'use', badgeText:'USE THIS',
+    oneliner:'One service per server. 1:1 API mapping.',
+    use:'Starting out. Single external API. GitHub MCP, Slack MCP, Stripe MCP. Easy to version, easy to debug.',
+    skip:'You need to combine data from multiple services in one call.',
+    kyle:'This is where 80% of real MCP usage lives. I run Tool Wrappers for GitHub, Google Drive, Gmail, Notion. Each one does one thing. When one breaks, I know exactly which server to restart. The cheatsheet is right — start here and don\'t leave until you have a reason to.'
+  },
+  {
+    num:'02', name:'Resource Provider', badge:'use', badgeText:'USE THIS',
+    oneliner:'Reads context, doesn\'t take action.',
+    use:'Feeding files, DB rows, or docs into the context window without giving the agent write access.',
+    skip:'You need the agent to actually do something with the data beyond reading it.',
+    kyle:'Underrated pattern. A Resource Provider that reads your Supabase schema and feeds it as context — without giving the agent permission to write — is a clean separation of concerns. I use this for project knowledge injection.'
+  },
+  {
+    num:'03', name:'Aggregator Gateway', badge:'eval', badgeText:'EVALUATE',
+    oneliner:'One server fronting many services.',
+    use:'Multiple services, shared auth, rate limiting, and observability needed across all of them.',
+    skip:'You\'re still figuring out which services you need. Don\'t build a gateway for two APIs.',
+    kyle:'This is where mcp.flashfusion.co is headed — one server that fronts multiple tools with shared auth and rate limits. But I haven\'t built it yet, and I wouldn\'t recommend it until you\'re running 5+ Tool Wrappers and the management overhead justifies consolidation.'
+  },
+  {
+    num:'04', name:'Stateful Session', badge:'eval', badgeText:'EVALUATE',
+    oneliner:'Holds live state. Browser sessions, DB transactions, open file handles.',
+    use:'Playwright browser automation. Long-running DB transactions. Anything where state persists between calls.',
+    skip:'Your use case is request/response (most are). Stateful servers are harder to scale and harder to debug.',
+    kyle:'Playwright MCP is the canonical example and it works well. Beyond browser automation, I haven\'t found a use case where stateful beats stateless-with-context-passing. The complexity cost is real.'
+  },
+  {
+    num:'05', name:'Sandbox Executor', badge:'eval', badgeText:'EVALUATE',
+    oneliner:'The trust boundary. Code exec in isolation.',
+    use:'Letting an agent run code you don\'t fully trust. E2B sandboxing. Untrusted input processing.',
+    skip:'You control both the agent and the code. If you wrote the skill, you don\'t need a sandbox for it.',
+    kyle:'Important pattern in theory. In practice, if your agent is running code you didn\'t write and don\'t review, you have a bigger problem than sandboxing solves. I use least-privilege permissions in settings.json instead of sandboxes — block the dangerous tools rather than sandbox everything.'
+  },
+  {
+    num:'06', name:'Workflow Orchestrator', badge:'skip', badgeText:'SKIP (usually)',
+    oneliner:'Server orchestrates multi-step workflow. Agent just calls once.',
+    use:'Complex multi-step processes where each step\'s output feeds the next and you want the orchestration logic outside the agent.',
+    skip:'Your workflow is simple enough for the agent to handle sequentially, which most are.',
+    kyle:'n8n already does this better than a custom MCP server would. If your orchestration is "call A, then call B with A\'s output, then call C," put it in n8n. If it\'s more complex than that, you probably need to rethink the workflow, not build a fancier server.'
+  },
+  {
+    num:'07', name:'Subagent', badge:'skip', badgeText:'SKIP (usually)',
+    oneliner:'The MCP server is itself an agent with its own loop and context.',
+    use:'Delegating genuinely complex subtasks that need their own reasoning loop — code review, security audit, deep research.',
+    skip:'The subtask is simple enough to handle with a tool call. Subagents burn tokens fast.',
+    kyle:'Claude Code already has subagent support built in via the agents/ directory. Building a separate MCP server that is itself an agent adds a layer of indirection I haven\'t needed. Use Claude Code\'s native subagent pattern first. Build a server-based subagent only if you need it to run independently of Claude Code.'
+  }
+];
+
+const ragPatterns = [
+  {
+    num:'01', name:'Hybrid RAG', badge:'use', badgeText:'USE THIS',
+    oneliner:'Dense vectors meet sparse keywords. Best of both retrieval worlds.',
+    use:'Your documents have both semantic meaning and specific keywords that matter (technical docs, legal, medical). Reciprocal rank fusion combines both retrieval signals.',
+    skip:'Your corpus is small enough to fit in context, or your queries are purely semantic.',
+    kyle:'This is the production default for any RAG system I\'d build today. Pure vector search misses exact keyword matches. Pure BM25 misses semantic similarity. Hybrid catches both. The implementation isn\'t much harder than pure vector — you\'re adding a BM25 index alongside your vector store and merging results.'
+  },
+  {
+    num:'02', name:'GraphRAG', badge:'eval', badgeText:'EVALUATE',
+    oneliner:'Answers live in the relationships. Knowledge graph + community summaries.',
+    use:'Your data has rich entity relationships that matter for answering questions. Org charts, codebases, supply chains, research literature.',
+    skip:'Your documents are standalone (blog posts, support articles, product descriptions). Graph overhead isn\'t worth it for flat content.',
+    kyle:'Academically interesting. In practice, building and maintaining a knowledge graph is a significant ongoing cost. I\'d use this for a codebase navigator or a relationship-heavy dataset, not for a general-purpose search. The entity extraction step alone can introduce errors that propagate through every query.'
+  },
+  {
+    num:'03', name:'Agentic RAG', badge:'eval', badgeText:'EVALUATE',
+    oneliner:'Retrieval becomes a plan, not a step. Agent decides what to search and when.',
+    use:'Complex questions that require multiple retrieval strategies — some from vectors, some from web, some from SQL. The agent plans the retrieval strategy.',
+    skip:'Your queries are straightforward enough for a single retrieval step. Most are.',
+    kyle:'The concept is sound: let the agent decide whether to search vectors, hit the web, or query a database. The risk: agents make bad retrieval decisions and you don\'t find out until the answer is wrong. I\'d use this with a confidence check — if the agent\'s retrieval plan seems off, fall back to a simpler strategy.'
+  },
+  {
+    num:'04', name:'Corrective RAG (CRAG)', badge:'use', badgeText:'USE THIS',
+    oneliner:'Grade the retrieval before you trust it.',
+    use:'Any RAG system where wrong answers are worse than slow answers. The evaluator checks retrieval quality before generating a response.',
+    skip:'Speed matters more than accuracy for your use case (rare, but real — autocomplete suggestions, etc.).',
+    kyle:'This should be default, not an advanced pattern. A simple relevance check on retrieved chunks — "does this actually answer the question?" — catches the majority of bad RAG outputs. The web search fallback for incorrect retrievals is elegant and practical. If I\'m building a RAG system, CRAG-style grading goes in from day one.'
+  },
+  {
+    num:'05', name:'Multimodal RAG', badge:'skip', badgeText:'SKIP (usually)',
+    oneliner:'One index across text, images, and tables.',
+    use:'Your corpus genuinely contains mixed media that all need to be searchable together — engineering drawings, medical images with reports, product catalogs with photos.',
+    skip:'Your images are decorative, not informational. Most document corpora are text-primary.',
+    kyle:'The shared multimodal embedding model (CLIP/ColPali) approach is real but the tooling is still immature for production use outside large teams. I\'d wait on this unless your use case genuinely requires searching across images and text simultaneously — and most don\'t.'
+  }
+];
+
+function renderPatterns(patterns, containerId) {
+  const container = document.getElementById(containerId);
+  container.innerHTML = patterns.map((p, i) => `
+    <div class="pattern-card" onclick="toggleCard(this)" id="${containerId}-${i}">
+      <div class="pattern-header">
+        <span class="pattern-number">${p.num}</span>
+        <span class="pattern-name">${p.name}<span class="badge badge-${p.badge}">${p.badgeText}</span></span>
+      </div>
+      <div class="pattern-oneliner">${p.oneliner}</div>
+      <div class="pattern-detail">
+        <div class="detail-grid">
+          <div class="detail-box use"><h4>Use when</h4><p>${p.use}</p></div>
+          <div class="detail-box skip"><h4>Skip when</h4><p>${p.skip}</p></div>
+        </div>
+        <div class="kyle-take">
+          <div class="kyle-take-label">What I actually think</div>
+          <p>${p.kyle}</p>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function toggleCard(el) {
+  el.classList.toggle('expanded');
+}
+
+function showTab(tab) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById('mcp-content').style.display = tab === 'mcp' ? 'grid' : 'none';
+  document.getElementById('rag-content').style.display = tab === 'rag' ? 'grid' : 'none';
+}
+
+renderPatterns(mcpPatterns, 'mcp-content');
+renderPatterns(ragPatterns, 'rag-content');
+</script>
+</body>
+</html>

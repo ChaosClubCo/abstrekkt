@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Origin Script — Canonical</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Literata:opsz,wght@7..72,400;7..72,500;7..72,600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0A0A0C; --panel:#131315; --low:#1c1b1d; --card:#201f21; --high:#2a2a2c;
+    --ivory:#e5e1e4; --warm:#d4c5ab; --outline:#9c8f78; --ghost:rgba(80,69,50,.4);
+    --amber:#ffbf00; --amberSoft:#ffe2ab; --blue:#a9c7ff; --error:#ffb4ab;
+    --gar:'EB Garamond',Georgia,serif; --lit:'Literata',Georgia,serif; --mono:'JetBrains Mono',ui-monospace,monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html,body{background:var(--bg);color:var(--ivory);font-family:var(--lit);}
+  .grain{position:fixed;inset:0;opacity:.04;pointer-events:none;mix-blend-mode:overlay;z-index:0;}
+  .wrap{position:relative;z-index:1;max-width:840px;margin:0 auto;padding:56px 40px 120px;}
+  .kicker{font-family:var(--mono);font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--outline);}
+  h1{font-family:var(--gar);font-weight:500;font-size:46px;line-height:1.04;letter-spacing:-.02em;margin:14px 0 12px;}
+  .deck{font-family:var(--gar);font-style:italic;font-size:19px;color:var(--warm);max-width:660px;line-height:1.45;}
+  .meta{display:flex;gap:24px;flex-wrap:wrap;font-family:var(--mono);font-size:11px;color:var(--outline);margin-top:22px;padding-top:18px;border-top:1px solid var(--ghost);}
+  .meta b{color:var(--amber);font-weight:500;}
+  /* tabs */
+  .tabs{display:flex;flex-wrap:wrap;gap:8px;margin:36px 0 28px;position:sticky;top:0;background:var(--bg);padding:14px 0;z-index:5;border-bottom:1px solid var(--ghost);}
+  .tab{font-family:var(--mono);font-size:11px;letter-spacing:.08em;color:var(--outline);background:transparent;border:1px solid var(--ghost);padding:9px 14px;cursor:pointer;border-radius:3px;transition:.18s;}
+  .tab:hover{color:var(--warm);}
+  .tab.active{color:#000;background:var(--amber);border-color:var(--amber);}
+  .tab.safe.active{background:var(--blue);border-color:var(--blue);}
+  .tab:focus-visible{outline:2px solid var(--amber);outline-offset:2px;}
+  .panel{display:none;}
+  .panel.active{display:block;animation:fade .25s ease;}
+  @keyframes fade{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:none;}}
+  .phead{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;margin-bottom:18px;}
+  .phead h2{font-family:var(--gar);font-weight:600;font-size:28px;letter-spacing:-.01em;}
+  .phead .pmeta{font-family:var(--mono);font-size:10.5px;color:var(--outline);text-align:right;line-height:1.7;white-space:nowrap;}
+  .script-bar{display:flex;justify-content:space-between;align-items:center;padding:9px 14px;background:var(--low);border:1px solid var(--ghost);border-bottom:none;}
+  .script-bar .lbl{font-family:var(--mono);font-size:10px;letter-spacing:.16em;color:var(--outline);}
+  .copy-btn{font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:var(--amber);background:transparent;border:1px solid var(--ghost);padding:6px 12px;cursor:pointer;border-radius:3px;transition:.2s;}
+  .copy-btn:hover{background:var(--amber);color:#000;border-color:var(--amber);}
+  .copy-btn:focus-visible{outline:2px solid var(--amber);outline-offset:2px;}
+  .script{background:var(--low);border:1px solid var(--ghost);padding:28px 30px;font-family:var(--lit);font-size:16px;line-height:1.7;color:var(--ivory);}
+  .script p{margin-bottom:15px;}
+  .script p.beat{color:var(--amberSoft);font-family:var(--gar);font-size:19px;font-style:italic;}
+  .script p.close{color:var(--amber);font-weight:600;font-style:normal;font-family:var(--gar);font-size:21px;margin-top:6px;}
+  .aside{margin-top:20px;background:var(--bg);border:1px solid var(--ghost);border-left:2px solid var(--outline);padding:16px 20px;}
+  .aside h3{font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;color:var(--outline);margin-bottom:10px;}
+  .aside ul{list-style:none;display:flex;flex-direction:column;gap:8px;}
+  .aside li{font-family:var(--lit);font-size:13.5px;line-height:1.5;color:var(--warm);padding-left:16px;position:relative;}
+  .aside li::before{content:'·';position:absolute;left:3px;color:var(--amber);}
+  .aside li b{color:var(--ivory);font-weight:600;}
+  .pulled{margin-top:20px;background:rgba(147,0,10,.1);border:1px solid rgba(255,180,171,.25);padding:16px 20px;}
+  .pulled h3{font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;color:var(--error);margin-bottom:10px;}
+  .pulled li{color:var(--warm);}
+  .pulled li::before{content:'\2212';color:var(--error);}
+  .flag{margin-bottom:14px;background:rgba(255,191,0,.08);border:1px solid rgba(255,191,0,.28);padding:14px 18px;font-family:var(--lit);font-size:14px;line-height:1.55;color:var(--ivory);}
+  .flag b{font-family:var(--mono);font-size:10px;letter-spacing:.12em;color:var(--amber);display:block;margin-bottom:5px;}
+  .vlist{display:grid;grid-template-columns:1fr 1fr;gap:7px 22px;margin-top:8px;}
+  .vlist span{font-family:var(--mono);font-size:11.5px;color:var(--warm);padding-left:16px;position:relative;line-height:1.5;}
+  .vlist span::before{content:'\2713';position:absolute;left:0;color:var(--blue);}
+  .notes-sec{margin-bottom:30px;}
+  .notes-sec h3{font-family:var(--gar);font-size:20px;font-weight:600;margin-bottom:8px;color:var(--ivory);}
+  .notes-sec p{font-family:var(--lit);font-size:14.5px;line-height:1.6;color:var(--warm);}
+  .notes-sec p b{color:var(--amberSoft);}
+  .red{color:var(--error);font-family:var(--mono);font-size:.85em;}
+  nav.top{position:sticky;top:0;z-index:9;display:flex;justify-content:space-between;align-items:center;padding:13px 40px;background:rgba(10,9,7,.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--ghost);}
+  nav.top a{font-family:var(--mono);font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--outline);text-decoration:none;}
+  nav.top a:hover{color:var(--amber);}
+  nav.top .b{font-family:var(--gar);font-size:15px;color:var(--ivory);} nav.top .b em{font-style:italic;color:var(--amber);}
+  @media(max-width:680px){.wrap{padding:36px 20px 80px;}h1{font-size:33px;}.vlist{grid-template-columns:1fr;}.tabs{top:0;}}
+</style>
+</head>
+<body>
+<svg class="grain" aria-hidden="true"><filter id="g"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" stitchTiles="stitch"/></filter><rect width="100%" height="100%" filter="url(#g)"/></svg>
+
+<nav class="top">
+  <span class="b">Abstrekkt&nbsp;<em>Origin</em></span>
+  <a href="Abstrekkt Voice.html">← Voice spec</a>
+</nav>
+
+<main class="wrap">
+  <div class="kicker">Origin Story · Canonical Script</div>
+  <h1>Construction over recovery.</h1>
+  <div class="deck">The locked v2 scripts, plus a public-safe cut for posting while employed. No fabrication, no employer named, recovery language out.</div>
+  <div class="meta">
+    <span>LOCKED · <b>v2 (HeyGen)</b></span>
+    <span>SUPERSEDES · v4 (deleted)</span>
+    <span>SIGN-OFF · <b>Construction over recovery</b></span>
+  </div>
+
+  <div class="tabs" role="tablist">
+    <button class="tab active" data-p="yt" role="tab">CANONICAL · YOUTUBE</button>
+    <button class="tab" data-p="li" role="tab">CANONICAL · LINKEDIN</button>
+    <button class="tab" data-p="short" role="tab">CANONICAL · SHORT</button>
+    <button class="tab safe" data-p="safe" role="tab">PUBLIC-SAFE CUT</button>
+    <button class="tab" data-p="notes" role="tab">NOTES &amp; VERIFY</button>
+  </div>
+
+  <!-- YOUTUBE -->
+  <section class="panel active" id="yt" role="tabpanel">
+    <div class="phead"><h2>YouTube — Full Origin</h2><div class="pmeta">7–9 MIN · AVATAR #1<br>PASTE-READY</div></div>
+    <div class="script-bar"><span class="lbl">PASTE INTO HEYGEN</span><button class="copy-btn" data-copy="yt-text">COPY</button></div>
+    <div class="script" id="yt-text">
+      <p>I want to tell you who I am.</p>
+      <p>Not the version that fits on a résumé. The actual one.</p>
+      <p>I spent about sixteen years running from something I couldn't name.</p>
+      <p>It started as marijuana. Then benzos — prescribed, then not. Then opiates. Then cocaine. Then heroin.</p>
+      <p>That's not a confession. That's just the sequence.</p>
+      <p>What was underneath all of it was trauma I didn't have the tools to deal with. So I dealt with it the only way I knew how. And that worked — until it didn't. And then it really didn't.</p>
+      <p>I lost time. I lost relationships. I lost my family's trust. I was homeless. I lived in a Salvation Army. I lived in hotels I couldn't afford the next night on.</p>
+      <p>And I have a daughter. Kinsley.</p>
+      <p>She was born in 2018. The day she arrived, I stopped smoking marijuana. Just stopped. Over twenty years. All day. Every day. And then she existed. And I stopped.</p>
+      <p class="beat">That was the first construction. Before I knew what construction meant.</p>
+      <p>In 2021, I overdosed four times.</p>
+      <p>The first time I was driving. I did heroin in a dealer's car, and he had to pull me out of the front seat.</p>
+      <p>The second time, a woman named Mackenzie climbed onto a roof, jimmied a window open, and called an ambulance. She saved my life.</p>
+      <p>By the last one — I woke up in a hospital in pajama bottoms soaked in my own piss. Both my parents were on either side of me.</p>
+      <p class="beat">Neither of them would look at me.</p>
+      <p>That was the fall of 2021. For about a year after that, I was trying to figure out how to still be alive.</p>
+      <p>Then my mom found Amen Clinics. She sent me. They did a SPECT scan. Cognitive testing. The results came back.</p>
+      <p>Processing speed: ninety-ninth percentile. Recall memory: twelfth percentile.</p>
+      <p class="beat">The engine was intact. The storage was gone.</p>
+      <p>I didn't find out what those numbers actually meant until four years later. When I read them, I sobbed. Not because of what I'd lost. Because I finally understood what I'd been building against.</p>
+      <p>I didn't recover from that. You can't recover what you can't verify was there to begin with.</p>
+      <p>What I did was bartend at O'Toole's for three and a half years. Walk five miles a shift. Read rooms. Read people. Keep the diagnostic instinct running on a brain that couldn't hold what it learned.</p>
+      <p>And somewhere in there — I found AI. Not because I was looking for a career. Because I needed tools that could remember what I couldn't.</p>
+      <p>I taught myself. No CS degree. No peers to bounce ideas off. No one to tell me if what I was doing was real. Just a method I worked out alone — screenshot it, copy it, build it, break it, repeat.</p>
+      <p>The tools weren't productivity hacks. They were external memory for a brain I couldn't trust internally.</p>
+      <p>After my injury, I decided to learn piano. I'd tried as a kid — nine, ten, eleven years old — and could never get both hands to work together.</p>
+      <p>I found the most patient teacher I've ever met. A man named Jason.</p>
+      <p>I learned one song. Nuvole Bianche. White Clouds. By Ludovico Einaudi. Learned it entirely by ear. Took about a year. Never learned to read a single note of music.</p>
+      <p>It was beautiful.</p>
+      <p>When I found AI, I stopped playing. I can't remember the song anymore.</p>
+      <p>I don't know exactly what that means. But I know it's true.</p>
+      <p>Before O'Toole's ended, I'd already started building. Tools. Systems. A method for working with a brain I couldn't trust.</p>
+      <p>When I left the bar, I took a QC role — inspecting products, designing defect standards. The same pattern: find what's broken before the system catches it. Different room.</p>
+      <p>That lasted about six months. And then last fall, I applied for a customer service job at an MSP.</p>
+      <p>I had no idea support was done by email. I thought it was phone. Didn't matter. I got to work.</p>
+      <p>Before the first interview, I used agent mode to crawl their entire website. Every page. Affiliates. Clients. Partners. Case studies. I pulled employee names. Then I went to LinkedIn and pulled their partners' employee names too.</p>
+      <p>I used Gemini to build realistic personas — real people, at real companies, at real levels, facing real problems — the kinds of tickets that would actually come into a support desk from that specific client base.</p>
+      <p>Then I used Claude to reverse-engineer their tech stack. And started learning it. For a customer service job.</p>
+      <p>The process was four rounds over a month and a half. All video calls.</p>
+      <p>At some point I was on a call with the president of the company. And I walked him through everything I'd built. What I'd gathered. How. What tools. Who I'd mapped. I even mentioned the college he went to. Because I'd looked.</p>
+      <p>Around week four, I started spiraling. Convinced myself I'd imagined being good at something I wasn't actually good at. It got dark.</p>
+      <p>That's what happens when you've been building alone with no one to reflect it back at you. No peers. No institution. No benchmark. Just you, and the work, and the question of whether any of it is real.</p>
+      <p>I didn't have an answer. I just kept going.</p>
+      <p>They didn't hire me for the CSR role. They hired me for a different position — one I hadn't applied for — because of how I thought about the problem.</p>
+      <p>My boss later put it in my performance review. In writing. Company AI subject matter expert. I was technically still an L1.</p>
+      <p>I've been reading rooms my whole life. At O'Toole's. Inspecting products. In that interview. Same instinct. Every time. The tools gave it somewhere to go.</p>
+      <p>I was minutes from dying. Not once. Not twice. Four times.</p>
+      <p>Kinsley almost grew up without me ever getting to know her. I'm still here. She knows who I am. And I'm just getting started.</p>
+      <p class="close">Construction over recovery.</p>
+    </div>
+    <div class="aside">
+      <h3>DELIVERY — KEY BEATS</h3>
+      <ul>
+        <li><b>"Neither of them would look at me."</b> Full stop. No explanation. Let it breathe.</li>
+        <li><b>The SPECT numbers</b> — slow. 99th, pause. 12th, pause. The gap is the whole story.</li>
+        <li><b>"I didn't recover. I built something different."</b> Flat. Not defiant. Just true.</li>
+        <li><b>"I can't remember the song anymore."</b> Say it simply. Don't comfort the audience through it.</li>
+        <li><b>"Construction over recovery."</b> Quiet ownership. Let it sit. No fanfare.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- LINKEDIN -->
+  <section class="panel" id="li" role="tabpanel">
+    <div class="phead"><h2>LinkedIn — 90 sec</h2><div class="pmeta">90 SEC · AVATAR #1<br>PASTE-READY</div></div>
+    <div class="script-bar"><span class="lbl">PASTE INTO HEYGEN</span><button class="copy-btn" data-copy="li-text">COPY</button></div>
+    <div class="script" id="li-text">
+      <p>I spent sixteen years running from something I couldn't name.</p>
+      <p>Substances. Homelessness. Four overdoses in 2021.</p>
+      <p>The last one — I woke up in a hospital. Both parents beside me. Neither would look at me.</p>
+      <p>About a year later, my mom sent me to get a brain scan.</p>
+      <p>Processing speed: ninety-ninth percentile. Recall memory: twelfth percentile.</p>
+      <p class="beat">The engine was fine. The storage was gone.</p>
+      <p>I didn't recover from that. I built something different. External memory for a brain I couldn't trust. Tools that could hold what I couldn't.</p>
+      <p>Last fall, I applied for a customer service job at an MSP.</p>
+      <p>Before the first interview I crawled their entire website. Built AI personas of their actual client base. Reverse-engineered their tech stack. For a CSR role.</p>
+      <p>Four rounds. Month and a half. All video. Made it to a call with the president. Walked him through everything I'd gathered. Even mentioned the college he went to. Because I'd looked.</p>
+      <p>They didn't hire me for the CSR role. Different position. Because of how I think. Boss put it in my performance review: AI subject matter expert. Still technically an L1.</p>
+      <p>I was minutes from dying. Not once. Not twice. Four times.</p>
+      <p>Kinsley almost grew up without me ever getting to know her. I'm still here. She knows who I am. And I'm just getting started.</p>
+      <p class="close">Construction over recovery.</p>
+    </div>
+  </section>
+
+  <!-- SHORT -->
+  <section class="panel" id="short" role="tabpanel">
+    <div class="phead"><h2>Short / Reel — 45 sec</h2><div class="pmeta">45 SEC · AVATAR #4<br>PASTE-READY</div></div>
+    <div class="script-bar"><span class="lbl">PASTE INTO HEYGEN</span><button class="copy-btn" data-copy="short-text">COPY</button></div>
+    <div class="script" id="short-text">
+      <p>I had four overdoses in 2021.</p>
+      <p>The last one — I woke up in a hospital. Both parents beside me. Neither would look at me.</p>
+      <p>Brain scan showed my memory in the twelfth percentile.</p>
+      <p>Taught myself AI anyway. No degree. No one to ask. The tools were external memory for a brain I couldn't trust.</p>
+      <p>Last fall, applied for a customer service job. Built an intelligence tool on the company before the first interview. They hired me for something else entirely. AI subject matter expert. In writing.</p>
+      <p>I was minutes from dying. Four times.</p>
+      <p>And I'm just getting started.</p>
+      <p class="close">Construction over recovery.</p>
+    </div>
+    <div class="aside"><h3>CAPTION</h3><ul><li>"Four overdoses. Brain damage. No degree. This is what I built anyway. 👇"</li></ul></div>
+  </section>
+
+  <!-- PUBLIC-SAFE -->
+  <section class="panel" id="safe" role="tabpanel">
+    <div class="phead"><h2>Public-Safe Cut</h2><div class="pmeta">~75 SEC<br>POSTABLE WHILE EMPLOYED</div></div>
+    <div class="flag"><b>WHY THIS EXISTS</b>The canonical interview section names how you mapped your current employer's site, clients, and partners' staff, and quotes your review. Posted publicly while employed there, they recognize themselves — and two of those builds are disclosed to them as ask-permission-before-public. This cut keeps the spine and the proof, minus the identifiable intelligence-gathering.</div>
+    <div class="script-bar"><span class="lbl">PASTE-READY</span><button class="copy-btn" data-copy="safe-text">COPY</button></div>
+    <div class="script" id="safe-text">
+      <p>I spent sixteen years running from something I couldn't name.</p>
+      <p>Substances. Homelessness. Four overdoses in 2021.</p>
+      <p>The last one — I woke up in a hospital. Both parents beside me. Neither would look at me.</p>
+      <p>About a year later, my mom sent me to get a brain scan.</p>
+      <p>Processing speed: ninety-ninth percentile. Recall memory: twelfth percentile.</p>
+      <p class="beat">The engine was fine. The storage was gone.</p>
+      <p>I didn't recover from that. I built something different. External memory for a brain I couldn't trust — tools that could hold what I couldn't.</p>
+      <p>I taught myself. No CS degree. No one to tell me if what I was doing was real. Just a method I worked out alone, and the work itself as the only proof.</p>
+      <p>Last fall I applied for a support job and did the homework most people skip. They didn't hire me for the role I applied for. They hired me for a different one — because of how I thought about the problem. My boss put it in my review, in writing: company AI subject matter expert. I was technically still an L1.</p>
+      <p>I was minutes from dying. Not once. Four times.</p>
+      <p>Kinsley almost grew up without me ever getting to know her. I'm still here. She knows who I am. And I'm just getting started.</p>
+      <p class="close">Construction over recovery.</p>
+    </div>
+    <div class="pulled">
+      <h3>WHAT WAS PULLED — AND WHY</h3>
+      <ul>
+        <li>Crawling the employer's <b>website, clients, partners, case studies</b> + LinkedIn staff pulls — names their client base by implication</li>
+        <li><b>Gemini personas of their actual client base</b> / reverse-engineering their stack — the disclosed, permission-gated builds</li>
+        <li><b>Mentioning the president's college</b> + quoting the review verbatim — directly identifying</li>
+      </ul>
+      <p style="font-family:var(--lit);font-size:13.5px;color:var(--warm);margin-top:12px;line-height:1.55;">Replaced with <em style="color:var(--amberSoft);font-style:normal;">"did the homework most people skip"</em> — true, still earns the hire, names no one.</p>
+    </div>
+  </section>
+
+  <!-- NOTES -->
+  <section class="panel" id="notes" role="tabpanel">
+    <div class="phead"><h2>Notes &amp; Verify</h2><div class="pmeta">v2 CANONICAL</div></div>
+
+    <div class="flag"><b>RESOLVED · QUIT DURATION</b>The Kinsley beat reads <b>"Over twenty years"</b> — confirmed. (An earlier paste-ready draft said "Eleven years"; corrected across canonical.)</div>
+
+    <div class="notes-sec">
+      <h3>Sign-off</h3>
+      <p><b>"Construction over recovery."</b> is the consistent closer in every version — not a tagline, the thesis spoken aloud. It loops back to "That was the first construction" in the YouTube cut.</p>
+    </div>
+    <div class="notes-sec">
+      <h3>Employer handling</h3>
+      <p>The day-job firm is <b>"an MSP"</b> — never named. The QC role stays generic; the former employer is <b>not named anywhere</b>. Pronunciations for HeyGen: <span style="font-family:var(--mono);font-size:.85em;color:var(--warm)">Nuvole Bianche → Noo-vo-leh Bee-ahn-keh · Ludovico Einaudi → Loo-doh-VEE-koh Ay-NOW-dee</span>.</p>
+    </div>
+    <div class="notes-sec">
+      <h3>Facebook (native upload)</h3>
+      <p>Burn in captions — FB autoplays muted. First frame = your face, no title card. Upload natively, no YouTube link. Reply to early comments fast. Pin: <em>"If any of this sounds familiar — that's why I'm saying it out loud."</em></p>
+    </div>
+    <div class="notes-sec">
+      <h3>Verified claims <span style="font-family:var(--mono);font-size:11px;color:var(--outline);">[SOURCED]</span></h3>
+      <div class="vlist">
+        <span>Four overdoses, 2021</span>
+        <span>Amen Clinics, ~1 yr post-injury (Jul 2022)</span>
+        <span>SPECT 99th / 12th percentile</span>
+        <span>O'Toole's, ~3.5 years</span>
+        <span>QC specialist role, ~6 months</span>
+        <span>MSP application last fall; hired Oct 2025</span>
+        <span>SME designation in writing (review)</span>
+        <span>Hired for a different role than applied</span>
+        <span>Kinsley born 2018; marijuana stopped same day</span>
+        <span>Mackenzie, the roof, the rescue</span>
+        <span>Piano / Jason / learned by ear / ~1 yr</span>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script>
+  const tabs = document.querySelectorAll('.tab');
+  const panels = document.querySelectorAll('.panel');
+  tabs.forEach(t => t.addEventListener('click', () => {
+    tabs.forEach(x => x.classList.remove('active'));
+    panels.forEach(p => p.classList.remove('active'));
+    t.classList.add('active');
+    document.getElementById(t.dataset.p).classList.add('active');
+    window.scrollTo({top:0, behavior:'instant'});
+  }));
+  document.querySelectorAll('.copy-btn').forEach(b => b.addEventListener('click', async () => {
+    const text = document.getElementById(b.dataset.copy).innerText.trim();
+    try { await navigator.clipboard.writeText(text); b.textContent = 'COPIED ✓'; setTimeout(()=>b.textContent='COPY',1600); }
+    catch(e){ b.textContent = 'SELECT + COPY'; }
+  }));
+  /* smoke test: 5 tabs switch panels; each COPY writes that script's plain text to clipboard and flips to COPIED ✓ */
+</script>
+</body>
+</html>

@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Kyle — Blind Spot Map v9</title>
+<style>
+:root{
+  --base:#09090f;--s1:#111118;--s2:#1a1a24;--di:#2a2a38;
+  --v:#A855F7;--c:#22D3EE;--br:#c9a96e;
+  --tx:#E2E2F0;--mu:#6B6B80;
+  --red:#EF4444;--amb:#F59E0B;--grn:#10B981;--sky:#38BDF8;--rose:#F43F5E;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--base);color:var(--tx);font-family:Geist,'Segoe UI',sans-serif;padding:20px 24px;font-size:13px;line-height:1.5}
+h1{font-size:19px;font-weight:600;letter-spacing:-.01em}
+.sub{color:var(--mu);font-size:11px;margin-bottom:20px;margin-top:3px}
+.alert{border-radius:10px;padding:12px 15px;margin-bottom:9px;display:flex;gap:11px;align-items:flex-start}
+.a-red{background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.3)}
+.a-v{background:rgba(168,85,247,.06);border:1px solid rgba(168,85,247,.27)}
+.a-amb{background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.27)}
+.a-rose{background:rgba(244,63,94,.07);border:1px solid rgba(244,63,94,.28)}
+.alert-icon{font-size:15px;flex-shrink:0;margin-top:1px}
+.at{font-size:12px;font-weight:700;margin-bottom:2px}
+.at-red{color:#F87171}.at-v{color:#C084FC}.at-amb{color:#FCD34D}.at-rose{color:#FB7185}
+.alert p{font-size:11px;color:var(--tx);line-height:1.55}
+.alert ul{padding-left:16px;margin-top:4px;font-size:11px;color:var(--tx)}
+.alert li{margin-bottom:3px;line-height:1.5}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:13px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:13px}
+@media(max-width:820px){.grid3{grid-template-columns:1fr 1fr}}
+@media(max-width:560px){.grid2,.grid3{grid-column:1fr}}
+.card{background:var(--s1);border:1px solid var(--di);border-radius:10px;padding:12px 14px}
+.card.full{grid-column:1/-1}
+.ct{font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--mu);margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--di)}
+.row{display:flex;gap:8px;align-items:flex-start;padding:5px 0;border-bottom:1px solid rgba(42,42,56,.6)}
+.row:last-child{border-bottom:none}
+.dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;margin-top:5px}
+.d-r{background:var(--red)}.d-a{background:var(--amb)}.d-g{background:var(--grn)}
+.d-v{background:var(--v)}.d-c{background:var(--c)}.d-b{background:var(--br)}
+.d-s{background:var(--sky)}.d-m{background:var(--mu)}.d-rz{background:var(--rose)}
+.rb{flex:1;min-width:0}
+.rl{font-size:12px;color:var(--tx);line-height:1.4}
+.rs{font-size:11px;color:var(--mu);margin-top:2px;line-height:1.45}
+.badge{font-size:9px;padding:1px 6px;border-radius:8px;font-weight:700;margin-left:4px;vertical-align:middle;white-space:nowrap}
+.bf{background:rgba(239,68,68,.15);color:#F87171;border:1px solid rgba(239,68,68,.3)}
+.bw{background:rgba(245,158,11,.12);color:#FCD34D;border:1px solid rgba(245,158,11,.25)}
+.bg{background:rgba(16,185,129,.12);color:#34D399;border:1px solid rgba(16,185,129,.25)}
+.bv{background:rgba(168,85,247,.15);color:#C084FC;border:1px solid rgba(168,85,247,.3)}
+.bc{background:rgba(34,211,238,.1);color:#67E8F9;border:1px solid rgba(34,211,238,.2)}
+.bb{background:rgba(201,169,110,.12);color:#D4AA6E;border:1px solid rgba(201,169,110,.22)}
+.brz{background:rgba(244,63,94,.12);color:#FB7185;border:1px solid rgba(244,63,94,.28)}
+.shead{font-size:14px;font-weight:600;margin:17px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--di);display:flex;align-items:center;gap:8px}
+.dl{margin-left:auto;font-size:11px;font-weight:700;color:var(--red)}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{color:var(--mu);font-size:10px;text-transform:uppercase;letter-spacing:.05em;padding:5px 8px;border-bottom:1px solid var(--di);text-align:left;white-space:nowrap}
+td{padding:6px 8px;border-bottom:1px solid rgba(42,42,56,.5);vertical-align:top;font-size:11.5px;line-height:1.5}
+td:first-child{color:var(--mu);min-width:130px}
+.stamp{font-size:10px;color:var(--di);text-align:right;margin-top:16px}
+code{font-family:'JetBrains Mono',monospace;font-size:10px;padding:1px 5px;border-radius:3px}
+.cr{background:rgba(239,68,68,.1);color:#F87171}.cg{background:rgba(16,185,129,.1);color:#34D399}
+.verdict{font-weight:700;font-size:11px;margin-right:4px}
+.v-fail{color:#F87171}.v-warn{color:#FCD34D}.v-pass{color:#34D399}
+</style>
+</head>
+<body>
+
+<h1>Kyle Rosebrook — Blind Spot Map <span style="color:var(--v)">v9</span></h1>
+<p class="sub">Adversarial audit + red team · June 11 2026 · canonical project fully indexed · v8 critique + corrections</p>
+
+<!-- RED TEAM FINDINGS — WHAT V8 GOT WRONG -->
+<div class="shead" style="margin-top:0">🔴 Red team — what v8 got wrong or missed</div>
+
+<div class="alert a-rose">
+  <div class="alert-icon">🚩</div>
+  <div>
+    <div class="at at-rose">Butler contamination: v8 said 1 artifact. Actual: 5+ artifacts across this project.</div>
+    <p>art-15-dependency-map.html (#3 case study = "Chris Butler 5-skill suite example"), content-strategy.html ("Case studies once Chris Butler and Ryan Anderskow close"), context-capsule-skills-library.jsx (b3 = "Five-skill suite for INT Inc.'s Business Development Specialist"), memoir-project-hub.docx ("Skills Library: Chris Butler 5-skill suite done"), PROJECT_STATE.md ("Chris Butler — completed Enablement Sprint; 5-skill suite done; case study pending permission"). All must be cleaned before any of these artifacts inform real planning.</p>
+  </div>
+</div>
+
+<div class="alert a-rose">
+  <div class="alert-icon">🚩</div>
+  <div>
+    <div class="at at-rose">Ryan rate: $3K or free? v8 picked "free" without flagging the contradiction. Arc contradicts itself.</div>
+    <p>Multiple artifacts say $3K: PROJECT_STATE.md ("Ryan Anderskow $3,000 case-study trade is the only documented exception"), art-15-dependency-map #9 ("$3,000 with public case study permission"), the arc's own claims footer ("Ryan's $3K case-study trade is the second documented exception"). The arc's narrative body says "free trade." Both framings live in the same file. v8 adopted "free" without noting this. Needs explicit resolution from Kyle: is the rate $0 or $3K?</p>
+  </div>
+</div>
+
+<div class="alert a-rose">
+  <div class="alert-icon">🚩</div>
+  <div>
+    <div class="at at-rose">PROJECT_STATE.md in this project is severely stale — described as "authoritative snapshot."</div>
+    <p>Still contains: Lafu = technical co-founder (wrong — client/contact), Kelan = sales/ops co-founder candidate (stale), Chris Butler = real completed client (fictional), old ChaosClubCo identity (now fully retired under Abstrekkt). This doc cannot be used as authoritative for anything until it's rewritten from current memory state.</p>
+  </div>
+</div>
+
+<div class="alert a-rose">
+  <div class="alert-icon">🚩</div>
+  <div>
+    <div class="at at-rose">M1 gate: June 11 = 37% of June elapsed. 6 of 7 M1 gate items are not done.</div>
+    <p>M1 gate per the arc: LLC filed ❌ · E&O in motion ❌ · Art scoped + locked ✅ · Ryan boundary doc signed IN WRITING ❌ · CLC email sent ❌ · Union message sent ❌ · CCA-F blocks on calendar ❓. 19 days remain. The two overdue outreach items (ID 3 and 4 in lane blockers) have been flagged "today" since June 10.</p>
+  </div>
+</div>
+
+<div class="alert a-rose">
+  <div class="alert-icon">🚩</div>
+  <div>
+    <div class="at at-rose">Three items v8 missed entirely: public INT repos, skills deployment workstream, exception doc circular gap.</div>
+    <ul>
+      <li><strong>16 public INT repos</strong> — github-repo-audit.md flags these as "immediate risk." Any public INT repo violates lane-separation. Must be made private or archived.</li>
+      <li><strong>INT skills deployment workstream</strong> — 50 skills built, 4 compliance gaps blocking deployment to Intinc team (Daniel, Dave, Gwen, Jackie). Fix-before-expand rule active. Entirely absent from v8.</li>
+      <li><strong>Exception doc doesn't exist yet</strong> — The arc says Ryan's exception is "documented as a one-time exception in a separate file." That file is the boundary doc that's still owed. The exception relies on documentation that doesn't exist. Circular reference.</li>
+    </ul>
+  </div>
+</div>
+
+<div class="alert a-v">
+  <div class="alert-icon">⚠️</div>
+  <div>
+    <div class="at at-v">Two v8 framing errors: $222K label and "exception #2."</div>
+    <p><strong>$222K:</strong> v8 labeled it "GENERATED — not revalidated." The arc's own claims footer defends it as calculated math (12 audits × $4.5K + 8 sprints × $5K + 6 retainer-months × $2K + vCAIO buffer = $178K–$244K, midpoint $222K). More accurate label: <em>calculated projection assuming specific cadence and service mix — validate at Q1 retro.</em> Not "GENERATED."<br><br><strong>Exception #2:</strong> v8 called Ryan "exception #2" following the wrong chain. The arc says Ryan's $3K trade is the ONLY documented exception. The $3K personal-scope and the free/case-study trade are different framings of the same engagement at different stages, not two separate exceptions. Enumeration was wrong.</p>
+  </div>
+</div>
+
+<!-- HARD DEADLINES -->
+<div class="shead">🔴 Hard deadlines <span class="dl">June 15 = T–4 · July 20 = T–39</span></div>
+<div class="grid2">
+  <div class="card">
+    <div class="ct">June 15 — model string deprecation</div>
+    <div class="row"><div class="dot d-r"></div><div class="rb"><div class="rl"><code class="cr">claude-sonnet-4-20250514</code> → <code class="cg">claude-sonnet-4-6</code> everywhere</div><div class="rs">Known files: WorkstreamMapper.jsx L153 · voice_map.jsx L255 · EPB cost router (INT). Grep all repos first — assume more instances exist.</div></div></div>
+  </div>
+  <div class="card">
+    <div class="ct">July 20 — CCA-F exam</div>
+    <div class="row"><div class="dot d-r"></div><div class="rb"><div class="rl">Exam owns all of M2 (July)</div><div class="rs">No delivery scheduled exam week. No credential claims until passed. D1 27% / D3 20% / D4 20% focus. Known gaps: Agent SDK, CLAUDE.md hierarchy, MCP scoping, Batches API. If failed: retake path at M2 retro, delivery continues unaffected.</div></div></div>
+  </div>
+</div>
+
+<!-- P0 CROSS-GATES -->
+<div class="shead">🚨 P0 gates — must clear before first paid contract</div>
+<div class="grid2">
+  <div class="card">
+    <div class="ct">LLC formation — gates every signature</div>
+    <div class="row"><div class="dot d-r"></div><div class="rb"><div class="rl">IL Articles of Organization <span class="badge bf">not filed</span></div><div class="rs">$150, ilsos.gov, 5–10 business days. Annual report $75, due May 31 2027. EIN same day IRS.gov (10 min, free). Business bank account immediately after — do not commingle. File FlashFusion LLC first. Gates all three proposals (AI Grant, Anthropic Partner, NSF SBIR) and every client contract.</div></div></div>
+  </div>
+  <div class="card">
+    <div class="ct">E&O insurance — gates first paid dollar</div>
+    <div class="row"><div class="dot d-r"></div><div class="rb"><div class="rl">Affirmative-AI rider required <span class="badge bf">not bound</span></div><div class="rs">Standard Tech E&O = absolute AI exclusions since Jan 1 2026 (Chubb, Travelers, CNA, ISO forms CG 40 47/48). A standard policy does not cover this business. Providers: Munich Re aiSure, Armilla (Lloyd's), Mayflower Specialty, Embroker ($2M–$50M limits). Budget $2K–$3.5K/yr. Underwriters want documented AI risk posture. Bind before Art or Ryan become paid. [SOURCED: Jun 10 2026]</div></div></div>
+  </div>
+</div>
+
+<!-- M1 GATE STATUS -->
+<div class="shead">📅 M1 gate status — June 2026 (19 days remaining)</div>
+<div class="card full">
+  <table>
+    <thead><tr><th>M1 gate item</th><th>Status</th><th>Action</th></tr></thead>
+    <tbody>
+      <tr><td>LLC filed</td><td><span class="verdict v-fail">❌ NOT DONE</span></td><td>$150, ilsos.gov, do this week</td></tr>
+      <tr><td>E&O broker outreach with AI rider requirement</td><td><span class="verdict v-fail">❌ NOT DONE</span></td><td>Email 3 brokers this week specifying affirmative-AI coverage</td></tr>
+      <tr><td>Art deliverable set scoped + locked</td><td><span class="verdict v-pass">✅ DONE</span></td><td>Champion capability map + working tool confirmed</td></tr>
+      <tr><td>Ryan boundary doc IN WRITING (scope, deliverables, conversion gate, exclusions)</td><td><span class="verdict v-fail">❌ OWED</span></td><td>Write this week. It's also the exception documentation the arc claims exists.</td></tr>
+      <tr><td>CLC email sent (verbal → written confirmation)</td><td><span class="verdict v-fail">❌ OVERDUE</span></td><td>Send today. Contact: Charles Kellogg ckellogg@clcillinois.edu</td></tr>
+      <tr><td>Union VP message sent</td><td><span class="verdict v-fail">❌ OVERDUE</span></td><td>Send today. Largest pipeline potential, board cycle 30–90 days.</td></tr>
+      <tr><td>CCA-F study blocks protected on calendar</td><td><span class="verdict v-warn">❓ UNKNOWN</span></td><td>Confirm exam prep is calendar-blocked before M2 client delivery fills the gap</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ARTIFACT CONTAMINATION MAP -->
+<div class="shead">☣️ Artifact contamination — stale references requiring cleanup</div>
+<div class="card full">
+  <table>
+    <thead><tr><th>Artifact</th><th>Stale reference</th><th>Correct state</th></tr></thead>
+    <tbody>
+      <tr><td>PROJECT_STATE.md</td><td>Lafu = technical co-founder, Kelan = co-founder candidate, Butler = real client with completed engagement, ChaosClubCo peer-support identity</td><td>Lafu = client/contact, Kelan = stale non-entity, Butler = fictional, Abstrekkt replaces ChaosClubCo. Full rewrite needed before this doc is used as authoritative.</td></tr>
+      <tr><td>the-flashfusion-arc.jsx (M2 W1)</td><td>"Chris Butler permission request for case study"</td><td>Replace with "Ryan permission conversation for case study" — Ryan is the live case-study trade.</td></tr>
+      <tr><td>the-flashfusion-arc.jsx (claims footer)</td><td>"Ryan's $3K case-study trade" AND narrative says "free trade"</td><td>Contradicts itself. Kyle must decide: $0 or $3K. Both appear in the same file.</td></tr>
+      <tr><td>art-15-dependency-map.html (#3, #9)</td><td>#3 = "Chris Butler 5-skill suite example" · #9 = "Ryan Anderskow $3,000 case-study trade"</td><td>This April 2026 artifact is now severely stale. Butler is fictional; map structure no longer reflects current lane or pipeline.</td></tr>
+      <tr><td>content-strategy.html</td><td>"Case studies once Chris Butler and Ryan Anderskow close. Permission-gated."</td><td>Butler is fictional. Replace with Art (anonymous) and Ryan (case-study trade, conversion-gated).</td></tr>
+      <tr><td>context-capsule-skills-library.jsx (b3)</td><td>"Chris Butler 5-Skill Suite" described as a real client proof-of-concept</td><td>Butler is fictional. The suite still exists as a template/example but should not be described as a real client deliverable.</td></tr>
+      <tr><td>memoir-project-hub.docx</td><td>"Skills Library: Chris Butler 5-skill suite done"</td><td>Replace with accurate skills state: 50 skills, 4 compliance gaps, deployment pending.</td></tr>
+      <tr><td>funding_dashboard.html</td><td>Kelan references, April 2026 framing, Sole Revival app references</td><td>Stale April artifact. Not current-state.</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- LIVE ENGAGEMENTS -->
+<div class="shead">🤝 Active engagements — verified state</div>
+<div class="grid3">
+  <div class="card">
+    <div class="ct">Art — Champion delivery</div>
+    <div class="row"><div class="dot d-g"></div><div class="rb"><div class="rl">Scope locked <span class="badge bg">confirmed</span></div><div class="rs">Champion capability map + working tool. RE owner teaching AI to agents. GUI/web only. Anonymous publicly. Both hard constraints.</div></div></div>
+    <div class="row"><div class="dot d-a"></div><div class="rb"><div class="rl">M2 W4 gate</div><div class="rs">Validate tool in a live RE showing. Case study = anonymized, vertical-described, never named.</div></div></div>
+    <div class="row"><div class="dot d-m"></div><div class="rb"><div class="rl">Unpaid</div><div class="rs">Free delivery → champion model proof. No audit sold.</div></div></div>
+  </div>
+  <div class="card">
+    <div class="ct">Ryan / Iron Horse — Case-study trade</div>
+    <div class="row"><div class="dot d-a"></div><div class="rb"><div class="rl">Rate unresolved <span class="badge brz">$0 or $3K?</span></div><div class="rs">Arc narrative says "free." Arc claims footer + PROJECT_STATE.md + dependency map say "$3K." Kyle must decide and lock in boundary doc.</div></div></div>
+    <div class="row"><div class="dot d-r"></div><div class="rb"><div class="rl">Boundary doc <span class="badge bf">still owed</span></div><div class="rs">This doc IS the exception documentation the arc claims already exists. Without it: no exception is formally documented, scope creep is undefended, floor integrity is unverified.</div></div></div>
+    <div class="row"><div class="dot d-c"></div><div class="rb"><div class="rl">Conversion gate</div><div class="rs">After delivery: what does Iron Horse get as a paying client that the trade doesn't include? State this lightly in every update.</div></div></div>
+  </div>
+  <div class="card">
+    <div class="ct">Pipeline — outreach overdue</div>
+    <div class="row"><div class="dot d-r"></div><div class="rb"><div class="rl">CLC — email not sent <span class="badge bf">overdue</span></div><div class="rs">ckellogg@clcillinois.edu. Verbal go → written confirmation. Workshop scoping only after written.</div></div></div>
+    <div class="row"><div class="dot d-r"></div><div class="rb"><div class="rl">Union VP — message not sent <span class="badge bf">overdue</span></div><div class="rs">Board cycle 30–90 days. Every day of delay costs pipeline time on the longest-fuse prospect.</div></div></div>
+    <div class="row"><div class="dot d-a"></div><div class="rb"><div class="rl">Concurrent cap — decide before both land</div><div class="rs">Arc recommends 3 max. Art + Ryan = 2 now. CLC + Union arriving together = 4 without a cap decision.</div></div></div>
+  </div>
+</div>
+
+<!-- MISSED IN V8 -->
+<div class="shead">🆕 Found in this sweep — not in v8</div>
+<div class="grid2">
+  <div class="card">
+    <div class="ct">INT skills deployment workstream (entirely missing from v8)</div>
+    <div class="row"><div class="dot d-s"></div><div class="rb"><div class="rl">50 skills built — deployment blocked</div><div class="rs">4 compliance gaps block Intinc deployment. Fix-before-expand rule active.</div></div></div>
+    <div class="row"><div class="dot d-r"></div><div class="rb"><div class="rl">Gap 1: "Use when…" trigger phrases missing</div><div class="rs">Description is the only discovery mechanism on claude.ai. Skills without trigger phrases won't activate.</div></div></div>
+    <div class="row"><div class="dot d-r"></div><div class="rb"><div class="rl">Gap 2: version not nested under metadata</div><div class="rs">Top-level version: fields are invalid per 2025 spec. Run grep -r '^version:' to find all violations.</div></div></div>
+    <div class="row"><div class="dot d-r"></div><div class="rb"><div class="rl">Gap 3: triggers/hooks on claude.ai-targeted skills</div><div class="rs">Claude Code-only fields. Cause silent failure on claude.ai upload.</div></div></div>
+    <div class="row"><div class="dot d-r"></div><div class="rb"><div class="rl">Gap 4: allowed-tools not least-privilege</div><div class="rs">Security-sensitive skills (Bash, Write, WebFetch) must declare minimum required tools.</div></div></div>
+    <div class="row"><div class="dot d-a"></div><div class="rb"><div class="rl">Target: Daniel, Dave, Gwen, Jackie at Intinc</div><div class="rs">Persona-specific packages needed per team member. Pilot with one before full deployment.</div></div></div>
+    <div class="row"><div class="dot d-m"></div><div class="rb"><div class="rl">INT crossover rule</div><div class="rs">Anything built at INT that becomes externally publishable: surfaces under Load-Bearing only, zero Intinc attribution. That is the only crossover path.</div></div></div>
+  </div>
+  <div class="card">
+    <div class="ct">Security, stale artifacts, and framing gaps</div>
+    <div class="row"><div class="dot d-r"></div><div class="rb"><div class="rl">16 public INT repos <span class="badge bf">security risk</span></div><div class="rs">github-repo-audit.md flags these as "immediate risk." Public INT repos violate lane-separation. Make private or archive — 30-minute task.</div></div></div>
+    <div class="row"><div class="dot d-a"></div><div class="rb"><div class="rl">Reading Room voice ≠ Memoir voice</div><div class="rs">Same fonts (Fraunces/Crimson Pro), different registers. Reading Room = operational thinking-in-public, sharper, faster. Memoir = literary excavation, slow, declarative, letter to Kinsley. M5 voice audit in Reading Room arc is the structural test. If an essay could appear in the memoir, the lane has bled.</div></div></div>
+    <div class="row"><div class="dot d-a"></div><div class="rb"><div class="rl">$222K: calculated projection, not GENERATED</div><div class="rs">Arc defends the math: 12 audits × $4.5K + 8 sprints × $5K + 6 retainer-months × $2K + vCAIO buffer = $178K floor / $244K stretch. $222K is the midpoint. The projection assumes a specific cadence that must be validated at Q1 retro — but calling it "GENERATED" was v8's error.</div></div></div>
+    <div class="row"><div class="dot d-a"></div><div class="rb"><div class="rl">Enablement suite bug (00-suite-hub.jsx)</div><div class="rs">useState() inside .map() violates React hook rules. Two fix options exist: centralized hoverMap or component extraction. Smoke test sequence built. Blocks production deployment of the Claude Enablement Suite.</div></div></div>
+    <div class="row"><div class="dot d-a"></div><div class="rb"><div class="rl">Load-Bearing platform decision</div><div class="rs">Beehiiv / Substack / Ghost / custom. 8/8 foundation essays complete with nowhere to compound. Write criteria before choosing — migration cost is real.</div></div></div>
+  </div>
+</div>
+
+<!-- FULL OPEN ITEMS TABLE -->
+<div class="shead">⚠️ Complete open item register</div>
+<div class="card full">
+  <table>
+    <thead><tr><th>Item</th><th>State</th><th>Priority</th></tr></thead>
+    <tbody>
+      <tr><td>LLC formation (FlashFusion first)</td><td>Not filed. $150 ilsos.gov. Gates every contract.</td><td><span class="badge bf">P0</span></td></tr>
+      <tr><td>E&O insurance (affirmative-AI rider)</td><td>Not bound. Standard policy has absolute AI exclusion. Bind before first paid contract.</td><td><span class="badge bf">P0</span></td></tr>
+      <tr><td>Ryan rate decision</td><td>$0 or $3K — arc contradicts itself. Kyle must decide and lock in writing.</td><td><span class="badge brz">unresolved</span></td></tr>
+      <tr><td>Ryan boundary doc</td><td>Still owed. Is also the exception documentation the arc claims exists. Write this week.</td><td><span class="badge bf">P0</span></td></tr>
+      <tr><td>CLC email</td><td>Overdue since June 10. ckellogg@clcillinois.edu</td><td><span class="badge bf">overdue</span></td></tr>
+      <tr><td>Union VP outreach</td><td>Overdue since June 10. Board cycle 30–90 days.</td><td><span class="badge bf">overdue</span></td></tr>
+      <tr><td>Concurrent cap decision</td><td>Decide before CLC + Union land simultaneously. Arc recommends 3 max.</td><td><span class="badge bw">M1</span></td></tr>
+      <tr><td>Model string deprecation</td><td>WorkstreamMapper.jsx L153, voice_map.jsx L255, EPB router. June 15.</td><td><span class="badge bf">T–4 days</span></td></tr>
+      <tr><td>PROJECT_STATE.md rewrite</td><td>Lafu/Kelan/Butler/ChaosClubCo all stale. Cannot be used as authoritative.</td><td><span class="badge brz">stale doc</span></td></tr>
+      <tr><td>16 public INT repos</td><td>Make private or archive. Lane-separation violation risk.</td><td><span class="badge bf">security</span></td></tr>
+      <tr><td>INT skills compliance (4 gaps)</td><td>Fix-before-expand. Blocks deployment to Daniel, Dave, Gwen, Jackie.</td><td><span class="badge bw">deployment blocked</span></td></tr>
+      <tr><td>Enablement suite bug</td><td>useState() inside .map() in 00-suite-hub.jsx. Fix options documented.</td><td><span class="badge bw">blocked deploy</span></td></tr>
+      <tr><td>Butler cleanup (5 artifacts)</td><td>arc, art-15-dependency-map, content-strategy, context-capsule, memoir-project-hub, PROJECT_STATE</td><td><span class="badge bw">cleanup</span></td></tr>
+      <tr><td>Load-Bearing platform decision</td><td>8/8 essays with no distribution home. Criteria before choice.</td><td><span class="badge bw">M1</span></td></tr>
+      <tr><td>CCA-F exam prep</td><td>July 20 hard date. 39 days. Calendar protect M2.</td><td><span class="badge bw">39 days</span></td></tr>
+      <tr><td>Fusionomics n8n credentials</td><td>0/7 set. Pipeline not running.</td><td><span class="badge bw">blocked</span></td></tr>
+      <tr><td>audit.flashfusion.co noindex</td><td>Meta noindex/nofollow. Zero organic. Zero real submissions.</td><td><span class="badge bw">funnel dead</span></td></tr>
+      <tr><td>TESSA B44 deletion</td><td>Harmful UGC. Manual Base44 dashboard only.</td><td><span class="badge bw">manual</span></td></tr>
+      <tr><td>Session 3 Tool Archaeology</td><td>Highest-leverage memoir action. Unblocks 3 chapters.</td><td><span class="badge bw">memoir P0</span></td></tr>
+      <tr><td>Schopp character excavation</td><td>Best friend from shelter. New character, no session yet.</td><td><span class="badge bw">memoir</span></td></tr>
+      <tr><td>Memory #1 INTeract</td><td>Still says "ChaosClubCo holding" — stale naming.</td><td><span class="badge bb">low risk</span></td></tr>
+    </tbody>
+  </table>
+</div>
+
+<p class="stamp">Blind Spot Map v9 · Adversarial audit complete · June 11 2026 · v8 red-teamed · 5 new findings · 3 v8 errors corrected</p>
+</body>
+</html>
