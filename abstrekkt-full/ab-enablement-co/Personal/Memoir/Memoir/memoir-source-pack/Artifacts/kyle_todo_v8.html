@@ -1,0 +1,2136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kyle — Master To-Do v8</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0B0B14;color:#e2e2e8;padding:20px;max-width:880px;margin:0 auto}
+h1{font-size:17px;font-weight:500;margin-bottom:4px;color:#fff}
+.subtitle{font-size:12px;color:#555;margin-bottom:18px}
+.section{margin-bottom:12px;border:1px solid rgba(139,92,246,0.15);border-radius:12px;background:#13131F;overflow:hidden}
+.sec-hdr{display:flex;align-items:center;gap:8px;padding:11px 14px;cursor:pointer;background:rgba(139,92,246,0.06);user-select:none}
+.sec-hdr h2{font-size:13px;font-weight:500;flex:1;color:#e2e2e8}
+.badge{font-size:10px;padding:2px 7px;border-radius:20px}
+.b-fire{background:rgba(239,68,68,0.15);color:#f87171;border:1px solid rgba(239,68,68,0.3)}
+.b-rev{background:rgba(34,197,94,0.12);color:#4ade80;border:1px solid rgba(34,197,94,0.25)}
+.b-day{background:rgba(59,130,246,0.12);color:#60a5fa;border:1px solid rgba(59,130,246,0.25)}
+.b-info{background:rgba(168,85,247,0.12);color:#c084fc;border:1px solid rgba(168,85,247,0.25)}
+.b-warn{background:rgba(245,158,11,0.12);color:#fbbf24;border:1px solid rgba(245,158,11,0.25)}
+.b-gray{background:rgba(148,163,184,0.1);color:#94a3b8;border:1px solid rgba(148,163,184,0.2)}
+.b-memoir{background:rgba(236,72,153,0.12);color:#f472b6;border:1px solid rgba(236,72,153,0.25)}
+.sec-count{font-size:11px;color:#555}
+.progress{height:2px;background:rgba(255,255,255,0.05)}
+.pbar{height:100%;background:linear-gradient(90deg,#A855F7,#EC4899);transition:width 0.3s}
+.tasks{padding:8px;display:none}
+.tasks.open{display:block}
+.task{border:1px solid rgba(139,92,246,0.1);border-radius:8px;margin-bottom:5px;background:#0d0d1a}
+.task-hdr{display:flex;align-items:flex-start;gap:8px;padding:9px 10px;cursor:pointer}
+.chk{width:17px;height:17px;border:1.5px solid #333;border-radius:4px;flex-shrink:0;margin-top:1px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all 0.15s}
+.chk.done{background:rgba(34,197,94,0.2);border-color:#4ade80}
+.chk.done::after{content:"✓";font-size:10px;color:#4ade80}
+.ttl{font-size:13px;font-weight:500;flex:1;line-height:1.4;color:#e2e2e8}
+.ttl.done{text-decoration:line-through;color:#444}
+.tag{font-size:10px;padding:2px 6px;border-radius:20px;flex-shrink:0;margin-left:4px}
+.t-now{background:rgba(239,68,68,0.15);color:#f87171}
+.t-soon{background:rgba(245,158,11,0.15);color:#fbbf24}
+.t-later{background:rgba(100,116,139,0.15);color:#94a3b8}
+.t-blocked{background:rgba(236,72,153,0.15);color:#f472b6}
+.t-decide{background:rgba(139,92,246,0.15);color:#c084fc}
+.task-body{padding:0 10px 10px 34px;display:none}
+.task-body.open{display:block}
+.steps{counter-reset:sc;margin-bottom:8px}
+.step{font-size:12px;color:#aaa;padding:3px 0 3px 18px;position:relative;line-height:1.5;counter-increment:sc}
+.step::before{content:counter(sc);position:absolute;left:0;font-size:10px;color:#555;top:4px;min-width:14px}
+.tip{font-size:12px;background:rgba(245,158,11,0.07);color:#fbbf24;border-radius:6px;padding:6px 10px;margin-top:6px;border-left:3px solid rgba(245,158,11,0.35)}
+.pro{font-size:12px;background:rgba(59,130,246,0.07);color:#60a5fa;border-radius:6px;padding:6px 10px;margin-top:5px;border-left:3px solid rgba(59,130,246,0.35)}
+.alert{font-size:12px;background:rgba(239,68,68,0.07);color:#f87171;border-radius:6px;padding:6px 10px;margin-top:5px;border-left:3px solid rgba(239,68,68,0.35)}
+.prompt-box{margin-top:8px;border-radius:8px;overflow:hidden;border:1px solid rgba(139,92,246,0.15)}
+.prompt-label{font-size:10px;padding:5px 10px;font-weight:600;letter-spacing:0.4px;display:flex;align-items:center;justify-content:space-between}
+.prompt-label.here{background:rgba(168,85,247,0.15);color:#c084fc}
+.prompt-label.code{background:rgba(34,197,94,0.12);color:#4ade80}
+.prompt-text{font-size:11px;font-family:'SF Mono',Monaco,'Cascadia Code',monospace;background:#070710;color:#9090b0;padding:10px 12px;line-height:1.6;white-space:pre-wrap;border-top:1px solid rgba(139,92,246,0.1);max-height:220px;overflow-y:auto}
+.copy-btn{font-size:10px;padding:2px 8px;border-radius:4px;border:1px solid currentColor;background:transparent;color:inherit;cursor:pointer;opacity:0.7;transition:opacity 0.15s}
+.copy-btn:hover{opacity:1}
+.copy-btn.copied{color:#4ade80}
+.chevron{font-size:11px;color:#444;transition:transform 0.2s;flex-shrink:0}
+.chevron.open{transform:rotate(180deg)}
+.filter-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+.fchip{font-size:11px;padding:4px 10px;border-radius:20px;border:1px solid rgba(139,92,246,0.2);cursor:pointer;background:transparent;color:#777;transition:all 0.15s}
+.fchip.active{background:rgba(168,85,247,0.18);color:#c084fc;border-color:rgba(168,85,247,0.4)}
+.summary{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:16px}
+.stat{background:#13131F;border:1px solid rgba(139,92,246,0.12);border-radius:8px;padding:9px 8px;text-align:center}
+.stat-n{font-size:18px;font-weight:500}
+.stat-l{font-size:10px;color:#555;margin-top:2px}
+.note{font-size:11px;color:#666;background:#0f0f1c;border:1px solid rgba(139,92,246,0.12);border-radius:8px;padding:8px 12px;margin-bottom:16px;line-height:1.6}
+</style>
+</head>
+<body>
+<h1>Kyle Rosebrook — Master To-Do v8</h1>
+<p class="subtitle">Audited + context-engineered prompts · May 2026 · <span id="total-done">0</span> of <span id="total-all">0</span> complete</p>
+<div class="note">Jul 13: resynced against Todoist (70 tasks) + project knowledge. Added 12 new tasks pulled from Todoist not yet reflected here (Flash-n-Frame Bearer-cred consolidation now 11 workflows not 7, WIR-01 orphans, client.flashfusion.co, Fusion AI activation, uv sync hardening, Snyk audit, skills staleness review, Backlog project triage, Startup Battlefield 200). Corrected 2 factual errors found via project knowledge cross-check: (1) memoir session3 task was wrongly describing the card table scene as unexcavated — it has been locked since April 2026; real Session 3 target is software-tool cognitive mapping for Ch.8 Arsenal, and a synthesis doc with real progress already exists. (2) skills count corrected to 39 (verified filesystem count, Apr 16) — the “~50” figure used throughout was itself a prior over-claim, and a newer Todoist task citing 330 is unverified and likely wrong. Subscription audit scope corrected from 5 to ~25 vendors (recurring monthly, currently overdue since May 21).</div>
+<div class="summary">
+  <div class="stat"><div class="stat-n" id="s-now" style="color:#f87171">0</div><div class="stat-l">Now</div></div>
+  <div class="stat"><div class="stat-n" id="s-soon" style="color:#fbbf24">0</div><div class="stat-l">Soon</div></div>
+  <div class="stat"><div class="stat-n" id="s-blocked" style="color:#f472b6">0</div><div class="stat-l">Blocked</div></div>
+  <div class="stat"><div class="stat-n" id="s-decide" style="color:#c084fc">0</div><div class="stat-l">Decide</div></div>
+  <div class="stat"><div class="stat-n" id="s-done" style="color:#4ade80">0</div><div class="stat-l">Done</div></div>
+</div>
+<div class="filter-row">
+  <span class="fchip active" onclick="setFilter('all',this)">All</span>
+  <span class="fchip" onclick="setFilter('now',this)">🔴 Now</span>
+  <span class="fchip" onclick="setFilter('soon',this)">🟡 Soon</span>
+  <span class="fchip" onclick="setFilter('blocked',this)">🔒 Blocked</span>
+  <span class="fchip" onclick="setFilter('decide',this)">🟣 Decide</span>
+  <span class="fchip" onclick="setFilter('later',this)">⬜ Later</span>
+</div>
+<div id="app"></div>
+<script>
+const DATA=[
+{id:"fileaudit",label:"📋 Project file audit \u2014 Jul 12 findings",badge:"b-fire",badgeTxt:"Compliance",tasks:[
+{id:"audit-pitch-gen",title:"Delete stray pitch_generator.html \u2014 cleanup miss",priority:"now",
+ steps:["Marked ARCHIVE_ONLY in DISPOSITION_MANIFEST.csv (superseded by outreach-console-v4.html) but still sitting live in /mnt/project/","Contains deprecated model string claude-sonnet-4-20250514 (verified via grep, not just CSV label)","Contains unnamed daughter/custody reference: 'father to my daughter (Friday custody)' and 'father to one daughter' \u2014 no literal name, but still a family reference in a business press-pitch tool","Its sibling files (pitch_console.html, pitch_console_bak.html) were correctly removed \u2014 this one alone survived","Simple delete \u2014 no rebuild needed for this file specifically"],
+ alert:"This is the one file that escaped the Jul 6 cleanup sweep. Low complexity, but it's a live loose end in exactly the lane (press outreach) where exposure risk is highest.",
+ tip:"Verify against ground truth before trusting CSV markers \u2014 the manifest's marker column is a snapshot from scan time, not current state. This file is a real example: it doesn't contain the literal name 'Kinsley' despite the NameRef marker, but it does have the deprecated model string.",
+ promptType:"code",
+ prompt:`# Delete stray pitch_generator.html from project knowledge
+
+# Context: DISPOSITION_MANIFEST.csv marked this ARCHIVE_ONLY (superseded by
+# outreach-console-v4.html) during the Jul 6 corpus regen, but it was never
+# actually removed from the live project. Verified via direct content check:
+# - Contains claude-sonnet-4-20250514 (deprecated model string)
+# - Contains unnamed daughter/custody reference ("father to my daughter, Friday custody")
+# - Its siblings (pitch_console.html, pitch_console_bak.html) were correctly removed
+
+# This file needs to be removed from Claude Project Knowledge (via the
+# claude.ai project files UI — Settings > Knowledge > remove pitch_generator.html)
+# There is no bash-deletable path since /mnt/project/ is a read-only mount
+# of project knowledge in this session.
+
+# Verification after removal:
+# 1. Confirm pitch_generator.html no longer appears in project file list
+# 2. Confirm no other file references it as a dependency
+# 3. Proceed to rebuild task (audit-outreach-gap) since removing this
+#    leaves ZERO press-outreach tools in the project`
+},
+{id:"audit-outreach-gap",title:"Rebuild clean outreach console \u2014 real gap, no clean tool exists",priority:"now",
+ steps:["outreach-console-v4.html (the 'winning' duplicate over pitch_console.html/pitch_generator.html) was ALSO archived \u2014 it had the actual named daughter-reference violation","Net effect confirmed via manifest's own contradiction note: there is currently NO clean press-outreach tool anywhere in the project","This blocks tracked work: journalist pitches to Lindzon/Pletz/Aten, Load-Bearing platform launch sequencing","Rebuild from the clean parts: contact list, pitch templates, angle-fit logic \u2014 strip ALL family references (named or unnamed) per hard rule 1/10","Reference the full backup zip if Kyle still has it locally (abstrekkt-full-backup.zip) to recover the non-violating content (contacts, templates, scrubbed bio)"],
+ alert:"This is a real capability gap, not just file hygiene. Any press outreach right now has no clean tool behind it.",
+ pro:"This is also your chance to fix the bio paragraph properly \u2014 the founder story (bartender to engineer, self-taught, building solo) is compelling without needing any family reference at all.",
+ promptType:"here",
+ prompt:`You are my FlashFusion outreach tooling assistant. Rebuild a clean press outreach console.
+
+CONTEXT:
+- The prior tool (outreach-console-v4.html) was archived during a Jul 6 corpus cleanup for containing an unnamed daughter/custody reference in the founder bio section — a hard-rule violation for external-facing business content
+- Its predecessor duplicates (pitch_console.html, pitch_console_bak.html, pitch_generator.html) are also gone or being removed
+- Net result: zero clean press-outreach tools currently exist in the project
+- This blocks already-tracked outreach work (Lindzon, Pletz, Aten — angle-fit tier; Breen, Sherry — revenue-beat tier, held until first paid audit)
+
+HARD RULES TO ENFORCE IN THE REBUILD:
+- No reference to Kyle's daughter — named OR unnamed (no "father to my daughter," no "custody," nothing)
+- No "Staff Engineer" / "Senior Engineer" / "Principal Engineer" / "Enterprise Architect" title inflation
+- No "240+" tools as an active-use claim — use "~30–40 hands-on tools" or "dozens"
+- No credential claims before CCA-F passes (target Jul 20, 2026)
+- Day job ceiling: "a managed IT firm" — never name the employer
+
+TASK:
+1. Draft the founder bio paragraph WITHOUT any family reference — lead with the self-taught/bartender-to-engineer arc, the diagnostic instinct thread, the AI enablement consultancy
+2. Rebuild the pitch generator structure: contact list (Lee Chong Ming, journalists), angle-fit logic, templates per outlet
+3. Flag any other biographical detail that might need the same scrub (health history, specific dates that could identify family members)
+4. Output as a single clean HTML artifact matching the void-dark FlashFusion brand system`
+},
+{id:"audit-voice-gen-lane",title:"Decide: voice-generator-v4.html lane design \u2014 split or keep as-is?",priority:"decide",
+ steps:["New file (added after the Jul 6 scan, never audited) \u2014 a multi-format content generator spanning LinkedIn/newsletter/essay/short-form AND memoir-letter modes in one tool","Uses Kinsley's name + custody/court details as shared voice-context for ALL output modes, not just the letter mode \u2014 the instructions explicitly say 'don't clean up the lanes, let them bleed together'","This is different from the memoir-only tools (memoir-hub-v3.jsx etc.) which are single-lane and correctly whitelisted","Question: is a business-content generator carrying her name in its context payload \u2014 even if the GENERATED business posts don't surface her name \u2014 an acceptable design, or does it need to split into two separate tools (memoir-only vs business-only)?"],
+ tip:"This is exactly the kind of ambiguous call the manifest's own README flagged as needing human eyes rather than a script. Not flagging this as a violation \u2014 flagging it as a decision.",
+ promptType:"here",
+ prompt:`Help me decide on a lane-design question for voice-generator-v4.html.
+
+THE TOOL: A single content generator that produces output in 4 formats — LinkedIn thread, short-form post, Load-Bearing newsletter section, Foundation Series essay — PLUS a 5th mode: "Letter" (addressed to Kinsley, second person, for the memoir).
+
+THE DESIGN: One shared system prompt feeds ALL 5 modes. It includes my daughter's name and custody/court details as biographical context that shapes voice and tone across every mode — not just the letter mode. The instructions explicitly say not to separate the lanes ("let them bleed together").
+
+THE TENSION:
+- Hard rule: daughter never appears in any deliverable outside the memoir lane
+- This tool's OUTPUT in business modes (LinkedIn, newsletter, essay) likely doesn't literally name her — but the shared context that generates that output does carry her name and legal situation
+- Is "context contains it, output doesn't surface it" an acceptable design, or does contamination risk (a bad generation, a copy-paste error, model drift) make this too risky?
+
+OPTIONS:
+A. Keep as one tool — the shared voice context is intentional and the risk is low since business-mode outputs are reviewed before publishing anyway
+B. Split into two tools — memoir-generator (with her name, letter mode only) and business-generator (without her name, LinkedIn/newsletter/essay/short-form only)
+C. Keep one tool but strip her name from the shared context, and inject it ONLY when letter mode is selected
+
+Give me a direct recommendation — which option, and why — not just a list of tradeoffs.`
+},
+{id:"audit-chaosclub-refs",title:"Clean 8 files still referencing retired ChaosClubCo/Chaos Collective",priority:"soon",
+ steps:["Ground-truth verified (grepped actual content, not CSV labels) \u2014 exactly 8 live files: origin-stories.docx, the-flashfusion-arc.jsx, the-memoir-arc.jsx, llc-formation-kit-v2.html, tool-ecosystem-map.jsx, lane-allocator.jsx, the-abstrekkt-products-arc.jsx, WorkstreamMapper.jsx","llc-formation-kit-v2.html is worth flagging separately \u2014 it's LLC formation material, and 'Chaos Club Co. LLC' appearing in legal-adjacent content is the specific stale reference memory already flagged as obsolete","Excludes false positives: abstrekkt-identity-sheet.html, claude_abstrekkt-*.md, DISPOSITION_MANIFEST.csv, README_START_HERE.md all mention the name ONLY as 'don't use this' warning text \u2014 those are correct as-is"],
+ tip:"Hard rule 4: ChaosClubCo/Chaos Collective are retired names, never in new external copy. These 8 are old copy that needs the retirement applied retroactively.",
+ promptType:"code",
+ prompt:`# Clean retired ChaosClubCo / Chaos Collective references from 8 live files
+
+# Ground-truth verified via direct grep (not CSV markers, which are stale
+# scan-time snapshots). These 8 files genuinely still contain the retired
+# brand name as of Jul 12:
+
+FILES=(
+  "origin-stories.docx"
+  "the-flashfusion-arc.jsx"
+  "the-memoir-arc.jsx"
+  "llc-formation-kit-v2.html"
+  "tool-ecosystem-map.jsx"
+  "lane-allocator.jsx"
+  "the-abstrekkt-products-arc.jsx"
+  "WorkstreamMapper.jsx"
+)
+
+# Step 1: Show context for each occurrence before deciding the fix
+for f in "\${FILES[@]}"; do
+  echo "=== $f ==="
+  grep -n -B1 -A1 "ChaosClubCo\\|Chaos Collective" "$f"
+  echo ""
+done
+
+# Step 2: llc-formation-kit-v2.html needs special attention — check if
+# "Chaos Club Co. LLC" appears as an actual legal entity name anywhere
+# (vs. just historical narrative) since this is LLC formation material
+grep -n -B2 -A2 "Chaos Club Co" llc-formation-kit-v2.html
+
+# Step 3: For narrative/historical mentions (e.g. "formerly ChaosClubCo"),
+# decide: remove entirely, or keep as one past-tense mention for continuity?
+# For structural/active mentions (branding, active naming), remove and
+# replace with Abstrekkt/FlashFusion per the locked brand decision.
+
+# Step 4: Apply str_replace per file after reviewing context above —
+# do not blind find-replace, since "the-flashfusion-arc.jsx" in particular
+# may have narrative reasons to reference the retired name historically`
+},
+{id:"audit-retired-color",title:"Fix retired color #e11d48 in lane-allocator.jsx",priority:"soon",
+ steps:["Ground-truth verified: only 1 live file, lane-allocator.jsx","#e11d48 was ChaosClubCo's rose \u2014 permanently retired per brand lock","Replace with the correct system: Abstrekkt brass #C8A86A or FlashFusion violet #A855F7 depending on which lane this file actually serves"],
+ tip:"Small, contained fix. Check which brand system the file belongs to before picking the replacement color.",
+ promptType:"code",
+ prompt:`# Fix retired color #e11d48 in lane-allocator.jsx
+
+# Step 1: See where the color is used
+grep -n -B2 -A2 "e11d48" lane-allocator.jsx
+
+# Step 2: Determine which brand lane this file serves
+# - Abstrekkt (personal/parent): ink #1C1917, brass #C8A86A
+# - FlashFusion (revenue/consulting): void-dark #0B0B14, violet #A855F7, magenta #EC4899, cyan #22D3EE
+# Check surrounding context/imports for which system is otherwise in use
+
+# Step 3: Replace #e11d48 with the correct lane's accent color
+# Do NOT default to one system without confirming — lane-allocator.jsx
+# by its name may need to represent BOTH systems, in which case the retired
+# color should be removed as an option, not just recolored`
+},
+{id:"audit-240-tools",title:"Manual pass: 31 files contain '240+' \u2014 mostly likely false positives",priority:"soon",
+ steps:["Ground-truth verified via grep \u2014 31 live files contain the literal substring '240+'","Hard rule 8 is specifically about tool-count inflation claims ('never 240+ as an active-use claim'), NOT about the substring appearing at all","Vast majority of hits are in memoir/tracking files (tool-archaeology-*, memoir-*, PITCH_KANBAN.md, KANBAN_BOARD.md, TEMPLATE_02/03) where '240+' likely refers to something else entirely \u2014 word counts, hour estimates, item counts","Cannot be blind-fixed \u2014 needs a human pass per file, exactly as the original manifest's README warned"],
+ alert:"Do not run a blind find-replace on this. The manifest's own authors explicitly flagged this pattern as too context-dependent for a script.",
+ tip:"Realistic scope: probably 2-5 of these 31 are genuine tool-count violations (business/pitch content), the rest are unrelated numbers in memoir or tracking docs.",
+ promptType:"code",
+ prompt:`# Manual review pass: '240+' across 31 files — context-dependent, no blind fix
+
+FILES=(
+  "tool-archaeology-apr2026-comprehensive.md" "sudowrite_story_bible.docx"
+  "memoir-project-hub.docx" "memoir-title-card.docx" "cross_doc_connection_map.jsx"
+  "QUICK_START_GUIDE.txt" "memoir-title-card.jsx" "memoir_engine.html"
+  "tool-ecosystem-map.jsx" "memoir-project-hub.jsx" "pitch-kanban-final.jsx"
+  "memoir-hub-v3.jsx" "tool-archaeology-apr2026-FINAL.md" "TEMPLATE_03_AUTOMATION_AUDIT.md"
+  "memoir-command-center.jsx" "memoir-session2.docx" "PITCH_KANBAN.md"
+  "the-abstrekkt-products-arc.jsx" "memoir_material_bank_storyteller_pro_mining.md"
+  "KANBAN_BOARD.md" "memoir-explorer.jsx" "memoir-project-instructions.md"
+  "kyle_memoir_framework.html" "chapter11_session_handoff.html"
+  "Anthropic_Academy_Cert_Guide.docx" "TEMPLATE_02_STAKEHOLDER_MAP.md" "memoir-blind-spots.html"
+)
+# Note: pitch_generator.html also matches but is being deleted separately (audit-pitch-gen)
+
+# For each file, show context to classify: TOOL-COUNT CLAIM (needs fix) vs UNRELATED (leave alone)
+for f in "\${FILES[@]}"; do
+  echo "=== $f ==="
+  grep -n -B1 -A1 "240+" "$f" 2>/dev/null
+  echo ""
+done
+
+# Classify each hit as:
+# - TOOL_COUNT: describes tools/skills/capabilities as "240+" — fix to "~30-40 hands-on" or "dozens"
+# - UNRELATED: word count, hour estimate, dollar figure, page count, item count — leave alone
+# Only fix the TOOL_COUNT category. Report the classified list before making any edits.`
+},
+{id:"audit-butler-followup",title:"Verify 2 residual Butler mentions in memoir-project-hub files",priority:"later",
+ steps:["Original 5 memory-flagged Butler-contamination files: CONFIRMED all resolved (4 archived/removed correctly, PROJECT_STATE.md already gone)","2 new low-priority hits found: memoir-project-hub.docx and memoir-project-hub.jsx","These are memoir-lane files \u2014 likely a different, coincidental 'Butler' (a name in an unrelated context) rather than the fictional-client contamination pattern","Quick verify, not urgent \u2014 confirm it's not a second instance of the same fictional-client issue"],
+ tip:"Low stakes. The real Butler purge (business-lane fictional client) is done. This is just due diligence on 2 stragglers.",
+ promptType:"code",
+ prompt:`# Verify residual "Butler" mentions in 2 memoir files are unrelated to the fictional-client contamination
+
+grep -n -B2 -A2 "Butler" memoir-project-hub.docx
+echo "---"
+grep -n -B2 -A2 "Butler" memoir-project-hub.jsx
+
+# Confirm: is this a coincidental name (unrelated person/reference) or a
+# residual mention of the fictional "Butler" client template that was
+# supposed to be fully purged? If residual, remove. If coincidental
+# (e.g. a real person's surname, a literary reference), leave as-is.`
+}
+]},
+{id:"fire",label:"🚨 Production fires",badge:"b-fire",badgeTxt:"Fix now",tasks:[
+{id:"subs",title:"Full subscription audit — ~25 active vendors, monthly recurring, currently overdue",priority:"now",
+ steps:["SCOPE CORRECTION: this is a full ~25-vendor audit, not just the 5 highest-risk ones — this is a recurring MONTHLY Todoist task (due date already passed, currently overdue)","Known highest-risk 6 first: Cloudflare (all DNS) → Supabase → Notion → Zapier → Slack → Lovable (bacf6efc chargeback flag)","After the top 6: work through the remaining ~19 vendors — cancel anything genuinely unused","Update payment method or confirm card on file for each","This should become an actual monthly habit, not a recurring overdue task — the recurrence exists, it's just not being executed on schedule"],
+ alert:"If Cloudflare lapses, all 17 flashfusion.co subdomains go offline simultaneously. This task has been overdue since May 21 — it's a recurring monthly task that isn't being run monthly.",
+ tip:"Do the top 6 first (below), then batch through the rest in one sitting rather than letting it drag.",
+ promptType:"here",
+ prompt:`You are my operational assistant. Run the full monthly subscription audit — approximately 25 active vendors.
+
+TOP 6 (do first, highest risk):
+1. Cloudflare — all 17 flashfusion.co subdomains die if this lapses
+2. Supabase — refs: mlqebvxmavrzousuqyjr, suihrwqpljkswdbhekms
+3. Notion — Production Hub DB 323ea14f-b167-8173-9ff1-de503b7947a3
+4. Zapier — active workflows
+5. Slack — comms
+6. Lovable — project bacf6efc (AffordableStuffStore), potential chargeback flag
+
+REMAINING ~19: work through every other active subscription (dev tools, AI/API services, hosting, SaaS) not already covered above.
+
+For each vendor: billing status | outstanding amount | what breaks if it lapses | cancel candidate (yes/no) | minimum action.
+Output as a prioritized table, highest-risk first.
+Flag anything that looks like a clear cancel candidate (unused, redundant, or superseded by another tool already in the stack).`
+},
+{id:"reconnect",title:"Reconnect n8n, Notion, Craft (auth failures)",priority:"now",
+ steps:["All 3 failing auth in Claude MCP","Reconnect each via OAuth flow","Verify n8n: trigger test webhook to krosebrook.app.n8n.cloud","Verify Notion: read Production Hub DB","Verify Craft: list recent documents"],
+ tip:"Daily routines depend on these. Broken auth = silent failures you won't notice until something is missing.",
+ promptType:"here",
+ prompt:`I need to reconnect three MCP connectors that are failing authentication.
+
+1. n8n — krosebrook.app.n8n.cloud. Post-reconnect: trigger a test webhook call.
+2. Notion — Production Hub DB 323ea14f-b167-8173-9ff1-de503b7947a3. Post-reconnect: list recent pages.
+3. Craft — Post-reconnect: list documents.
+
+Walk me through OAuth reconnect for each, then confirm each connection is live.`
+},
+{id:"n8n-wf04",title:"Fix n8n WF-04 Feed Health Monitor — broken since April 23",priority:"now",
+ steps:["Workflow ID: eQp8c1Y0uM7I9dY7 — monitors 12 RSS feeds daily, Slack alerts on failure","Root cause: IF node 'Any Broken?' right-hand value is string '0' not number 0","n8n strict-type regression hit April 23","Fix: open IF node → change '0' (string) to 0 (number) → save → test"],
+ alert:"Daily monitoring workflow broken. 12 RSS feeds running unmonitored every day this stays broken.",
+ tip:"Single character fix. April 23 was when n8n changed strict type comparison behavior.",
+ promptType:"code",
+ prompt:`# Fix n8n WF-04 Feed Health Monitor
+# Workflow ID: eQp8c1Y0uM7I9dY7
+# n8n instance: krosebrook.app.n8n.cloud
+# Problem: IF node comparison value is string "0" — should be number 0
+# Regression date: April 23 (n8n strict-type change)
+
+# 1. GET workflow JSON for eQp8c1Y0uM7I9dY7
+# 2. Find IF node where name contains "Any Broken"
+# 3. Find the right-hand condition value — currently "0" (string)
+# 4. Change to 0 (integer)
+# 5. PATCH workflow back
+# 6. Activate workflow
+# 7. Trigger manual test run — confirm HEALTHY status`
+},
+{id:"affordable",title:"AffordableStuffStore — fix broken OpenAI key (4,665 visitors/mo)",priority:"now",
+ steps:["Lovable project bacf6efc — NOT a FlashFusion asset, separate project","Local: D:\\03_Development\\Projects\\AffordableStuffStoreAndroidReady","Domain: affordablestuffstore.com — 4,665 monthly visitors","OpenAI key broken — AI features non-functional for all those visitors","Fix: fresh OpenAI key → env config → test → deploy","Also verify domain is routed to correct project"],
+ alert:"4,665 monthly visitors hitting a broken AI feature. Lost trust daily.",
+ tip:"Standalone fix. Don't conflate with FlashFusion work.",
+ promptType:"code",
+ prompt:`# Fix AffordableStuffStore broken OpenAI key
+# Project: Lovable ID bacf6efc
+# Local: D:\\03_Development\\Projects\\AffordableStuffStoreAndroidReady
+# Domain: affordablestuffstore.com
+
+# 1. Find OpenAI key config location:
+#    grep -r "OPENAI_API_KEY\\|openai" D:\\03_Development\\Projects\\AffordableStuffStoreAndroidReady --include="*.env" --include="*.env.*" --include="*.config.*"
+# 2. Replace with fresh key from platform.openai.com
+# 3. Test the AI-dependent feature locally
+# 4. Deploy via Lovable
+# 5. Verify affordablestuffstore.com routes to this project`
+}
+]},
+{id:"int-p0",label:"🔴 INT P0 blockers",badge:"b-fire",badgeTxt:"Day job urgent",tasks:[
+{id:"epb-router",title:"EPB cost router — replace hardcoded models with 4-tier routing",priority:"now",
+ steps:["Current: hardcoded model strings throughout EPB","Target: 4-tier router (low/medium/high/max) mapped to models","Low/Medium = claude-haiku-4-5-20251001, High/Max = claude-sonnet-4-6","Also: kill any claude-sonnet-4-20250514 here — deprecated June 15","~1 day of work"],
+ alert:"claude-sonnet-4-20250514 retires June 15, 2026. Hardcoded references will break production.",
+ tip:"Document the router pattern — it belongs in Orchestrator AI as a shared component.",
+ promptType:"code",
+ prompt:`# EPB Cost Router — replace hardcoded model strings with 4-tier routing
+# Deadline: claude-sonnet-4-20250514 retires June 15, 2026
+
+# Routing logic:
+# LOW (classification, lookup): claude-haiku-4-5-20251001
+# MEDIUM (summarization): claude-haiku-4-5-20251001
+# HIGH (analysis, multi-step): claude-sonnet-4-6
+# MAX (full doc generation): claude-sonnet-4-6
+
+# Step 1: Find all model references
+grep -r "claude-" . --include="*.js" --include="*.ts" --include="*.py" --include="*.json"
+
+# Step 2: Map each call site to a tier based on what it does
+# Step 3: Build central MODEL_ROUTER config
+# Step 4: Replace all hardcoded strings with router calls
+# Step 5: Find and replace any claude-sonnet-4-20250514 — DEPRECATED
+# Step 6: Test each tier with a sample call
+# Step 7: Document routing logic for handoff`
+},
+{id:"invelo-w4",title:"InVelo Week 4 — reframe governance doc as live skills deployment",priority:"now",
+ steps:["Current Week 4 deliverable: governance policy document","Reframe to: live org-wide skills deployment — the working system, not a document","Anti-lock-in pitch: skills are open standard, portable across Claude/ChatGPT/Cursor","Clients own the capability, not a dependency on INT","~1 day. Agenda context: AI-Disruption-Cross-Reference.docx §4.3"],
+ tip:"A live deployment is proof. A governance document is a promise. Lead with proof.",
+ pro:"Portability is your moat against 'what if we switch tools' objections. Lead with it.",
+ promptType:"here",
+ prompt:`You are an AI enablement strategist at INT. Reframe the InVelo Week 4 deliverable.
+
+FROM: governance policy document
+TO: live org-wide skills deployment — the actual working system
+
+CONTEXT:
+- InVelo = time-boxed, outcome-based AI engagements
+- Skills are open standard (SKILL.md) — portable across Claude, ChatGPT, Cursor
+- Clients OWN the capability — no INT lock-in
+- Agenda context: AI-Disruption-Cross-Reference.docx §4.3
+
+DELIVER:
+1. Rewritten Week 4 deliverable description (client-facing, 1 paragraph)
+2. 3 bullet points on portability/anti-lock-in value prop
+3. Talking points for presenting this reframe to Dave/Jackie/Daniel`
+},
+{id:"leadership-meeting",title:"Reschedule Dave/Jackie/Daniel alignment meeting",priority:"now",
+ steps:["Meeting was rescheduled — has not happened yet","Agenda in AI-Disruption-Cross-Reference.docx §4.3","Review §4.3 before proposing a new date","Confirm all three available: Dave Linderman, Jackie Miles, Daniel Bell","Send calendar invite with agenda attached"],
+ tip:"Read §4.3 before the meeting. The agenda was designed for a specific moment in INT's AI journey.",
+ promptType:"here",
+ prompt:`You are my INT AI enablement PM. Prepare for the rescheduled leadership alignment meeting.
+
+ATTENDEES: Dave Linderman, Jackie Miles (VP Ops), Daniel Bell
+AGENDA: AI-Disruption-Cross-Reference.docx §4.3 — reference this doc
+STATUS: Previously scheduled, rescheduled, not yet held
+
+TASK:
+1. Summarize key §4.3 agenda items — flag any that may be stale
+2. Draft the calendar invite message (3-4 sentences)
+3. List 3 things I need ready before walking in
+4. Per-attendee framing: Dave (governance/competitive), Jackie (ops/efficiency), Daniel (technical)`
+}
+]},
+{id:"deprecated",label:"⏰ June 15 deprecation deadline",badge:"b-fire",badgeTxt:"Hard deadline",tasks:[
+{id:"model-strings",title:"Find-replace claude-sonnet-4-20250514 → claude-sonnet-4-6 across all files",priority:"now",
+ steps:["Known: WorkstreamMapper.jsx line 153, voice_map.jsx line 255","Assume more exist — scan before patching","Replace ALL with claude-sonnet-4-6","Also scan for claude-3-* and claude-2-* legacy strings","Test each file after replacement"],
+ alert:"Hard deadline June 15. After that, these model strings stop working and live features break silently.",
+ tip:"Two known files but scan everything. One grep, then batch replace.",
+ promptType:"code",
+ prompt:`# Find and replace deprecated model string
+# DEPRECATED: claude-sonnet-4-20250514  →  REPLACEMENT: claude-sonnet-4-6
+# DEADLINE: June 15, 2026
+
+# Full scan
+grep -rn "claude-sonnet-4-20250514" /mnt/project/ --include="*.jsx" --include="*.js" --include="*.ts" --include="*.html" --include="*.json" --include="*.md"
+
+# Also scan legacy strings
+grep -rn "claude-3-\\|claude-2-\\|claude-instant" /mnt/project/
+
+# Apply replacement to each file found:
+# sed -i 's/claude-sonnet-4-20250514/claude-sonnet-4-6/g' <filename>
+
+# Verify zero results remain:
+grep -rn "claude-sonnet-4-20250514" /mnt/project/
+
+# Spot-check known locations:
+sed -n '150,156p' /mnt/project/WorkstreamMapper.jsx
+sed -n '252,258p' /mnt/project/voice_map.jsx`
+}
+]},
+{id:"skills",label:"🛠 Skills Library — gates Intinc deploy",badge:"b-day",badgeTxt:"30-day DOD",tasks:[
+{id:"skills-compliance",title:"Fix 4 compliance gaps (fix-before-expand rule active)",priority:"now",
+ steps:["Gap 1: Add 'Use when...' trigger phrases to ALL description fields","Gap 2: Nest version under metadata in YAML frontmatter","Gap 3: Remove triggers/hooks from claude.ai-targeted skills","Gap 4: Implement least-privilege allowed-tools on Bash/Write/network skills","NUMBER CORRECTION: ground-truth filesystem count (Apr 16) is 39 skills, not ~50 — that figure was itself an over-claim, corrected once already. A separate Todoist task cites 330, which is almost certainly wrong (possibly conflated with the 240+ MCP-tool-catalog figure). Recount before trusting any of these numbers."],
+ alert:"Three different skill counts are floating around (39 / ~50 / 330). Only 39 has a verified source (direct filesystem count, Apr 16 2026). Re-run the count before using any number in external communication.",
+ tip:"Scripts at D:\\03_Development\\Skills — skill_validator.py, fix-skills-unified.py, sync-skills.py",
+ pro:"Run grep -r '^version:' D:\\03_Development\\Skills first. Batch-fix with fix-skills-unified.py. Don't hand-edit files one at a time.",
+ promptType:"code",
+ prompt:`# Skills Library compliance batch fix
+# Path: D:\\03_Development\\Skills
+
+# GATE 1: Missing "Use when..." trigger phrases
+grep -rL "Use when" D:\\03_Development\\Skills --include="SKILL.md"
+
+# GATE 2: version fields not nested under metadata:
+grep -rn "^version:" D:\\03_Development\\Skills --include="SKILL.md"
+
+# GATE 3: claude.ai skills with triggers/hooks (causes silent failures)
+grep -rn "triggers:\\|hooks:" D:\\03_Development\\Skills --include="SKILL.md"
+
+# GATE 4: Bash/Write/network tools missing allowed-tools constraints
+grep -rn "allowed-tools:" D:\\03_Development\\Skills --include="SKILL.md"
+
+# Batch fix:
+python D:\\03_Development\\Skills\\fix-skills-unified.py
+
+# Validate all 50:
+python D:\\03_Development\\Skills\\skill_validator.py --all`
+},
+{id:"skills-staleness-review",title:"Review skills library for stale/broken skills — recount first",priority:"later",
+ steps:["Before reviewing content, recount the library — three different figures are circulating (39 verified / ~50 claimed / 330 in a newer Todoist task), only 39 has a documented source (direct filesystem count, Apr 16 2026)","Once count is confirmed: check for skills needing updates after recent stack/convention changes","Verify: gerund naming convention, CLAIMS/COUNTEREXAMPLES/CONTRADICTIONS footers present, 500-line ceiling respected","This is a staleness/quality pass — separate from the skills-compliance task's 4 specific gating gaps"],
+ tip:"Don't trust the 330 figure without re-deriving it. Recount before auditing content.",
+ promptType:"code",
+ prompt:`# Recount and review the skills library for staleness
+
+# Step 1: Ground-truth recount (three conflicting figures exist: 39 / ~50 / 330)
+find /mnt/skills/user -maxdepth 1 -type d | wc -l
+# or wherever the actual current skills directory lives — confirm path first
+
+# Step 2: List all skills with basic metadata
+find /mnt/skills/user -name "SKILL.md" -exec dirname {} \\;
+
+# Step 3: Check gerund naming convention (folder names should be verb-ing pattern)
+find /mnt/skills/user -maxdepth 1 -type d -exec basename {} \\; | grep -vE '^[a-z]+ing-|^[a-z]+ing$'
+
+# Step 4: Check for CLAIMS/COUNTEREXAMPLES/CONTRADICTIONS and GAPS/BLINDSPOTS footers
+grep -rL "CLAIMS" /mnt/skills/user --include="SKILL.md"
+
+# Step 5: Check 500-line ceiling
+find /mnt/skills/user -name "SKILL.md" -exec wc -l {} \\; | awk '$1>500'
+
+# Step 6: Cross-reference against recent stack/convention changes (e.g. any skills still
+# referencing deprecated model strings, retired brand names, or superseded tool patterns)
+grep -rl "claude-sonnet-4-20250514\\|ChaosClubCo\\|kylerosebrook\\.com" /mnt/skills/user
+
+# Report: verified total count, gerund-naming violations, missing footers, oversized files, stale references`
+},
+{id:"skills-deploy",title:"Deploy Skills Library — pilot Daniel first",priority:"blocked",
+ steps:["Blocked until all 50 pass compliance","Deploy targets: Daniel, Dave, Gwen, Jackie","Pilot with Daniel ONLY first","Persona packages: Jackie/Gwen (ops/comms) vs Daniel/Dave (technical/strategic)","After Daniel confirms: send fortnightly update to Jackie"],
+ tip:"A bad deploy to Jackie breaks trust faster than a delayed one.",
+ promptType:"here",
+ prompt:`You are my INT AI enablement PM. Prepare the Skills Library deployment.
+
+50 production-ready skills, compliance-validated.
+Pilot: Daniel Bell first.
+Then: Dave, Gwen, Jackie Miles (VP Ops).
+
+DELIVER:
+1. Deployment message to Daniel (what he's receiving, how to install, what to try first)
+2. Persona packages: Daniel/Dave skill types vs Jackie/Gwen skill types
+3. Validation checklist for Daniel to confirm skills are activating
+4. Fortnightly update email template for Jackie (2 paragraphs max)
+5. Flag any skills that should NOT be in the first deploy`
+},
+{id:"skills-bundle",title:"Package first client bundle — Chris Butler suite as template",priority:"later",
+ steps:["Chris Butler 5-skill suite = proof of concept, refine as template","Define 3 pricing tiers for skill bundle delivery","Write SOW section covering skill bundle scope and timeline","Target: Tech/SaaS, $300-500K Y1 potential"],
+ tip:"The bundle is the product. The SOW covers the engagement. Build both before pitching.",
+ promptType:"here",
+ prompt:`You are my FlashFusion product strategist. Package the first client skills bundle.
+
+TEMPLATE: Chris Butler (Business Development Specialist) 5-skill suite
+TARGET: Tech/SaaS companies via the Invoke funnel ($4,500 retainer tier)
+
+DELIVER:
+1. Product description for "Customization Service Skills Bundle" (3-4 sentences, B2B)
+2. 3 pricing tiers (Starter / Standard / Enterprise) with price ranges and inclusions
+3. SOW section: scope, timeline, deliverables, out-of-scope for skill bundle delivery
+4. Top 5 skill types from Chris Butler's suite that translate to other B2B clients
+5. Scope creep risks specific to custom skill development`
+}
+]},
+{id:"continuum",label:"🔧 Continuum (blocked)",badge:"b-fire",badgeTxt:"Blocked",tasks:[
+{id:"continuum-supabase",title:"Pay overdue Supabase bill — Continuum blocked",priority:"now",
+ steps:["Supabase bill overdue ~2 weeks","Pay or dispute outstanding balance","Project ref: mlqebvxmavrzousuqyjr","Confirm database accessible after payment","No Supabase-dependent features until resolved"],
+ alert:"Project-wide rule: no Supabase-dependent features until bill resolved.",
+ tip:"Highest-leverage dollar in your ~$1K available budget.",
+ promptType:"here",
+ prompt:`Connect to my Supabase account and check billing status.
+
+Project refs:
+- mlqebvxmavrzousuqyjr (Continuum — primary, overdue)
+- suihrwqpljkswdbhekms (secondary)
+
+Report:
+1. Billing status for both projects
+2. Overdue amount and due date
+3. Whether database access is still active or suspended
+4. Minimum payment to restore full access
+5. After I confirm payment: verify mlqebvxmavrzousuqyjr database is intact`
+},
+{id:"continuum-vercel",title:"Reconnect Vercel GitHub App + fix Node 24→22",priority:"now",
+ steps:["Go to vercel.com/flash-fusion/continuum/settings/git — reconnect GitHub App","Fix Node: Settings → Node.js Version → 22.x → Save → Redeploy","Last good deploy: dpl_6G5v9RpMSend3Ckh4eZJfCf4ZTL9 (PR #112, Mar 23)","Check PR #115 (privacy docs) once build is green"],
+ tip:"Project: prj_suXzxaQd6dxVDeEiR0LgFZOTB6IG · Team: team_hPVeJgH0h1nCrogiaMvD6fxu",
+ promptType:"code",
+ prompt:`# Fix Continuum Vercel deployment
+# Project: prj_suXzxaQd6dxVDeEiR0LgFZOTB6IG
+# Team: team_hPVeJgH0h1nCrogiaMvD6fxu
+# Last good deploy: dpl_6G5v9RpMSend3Ckh4eZJfCf4ZTL9 (PR #112, Mar 23)
+
+# Via Vercel MCP:
+# 1. Check current Node.js version (should be 22.x, currently set to 24.x)
+# 2. Update to 22.x
+# 3. Check GitHub connection status — report reconnect URL if broken
+# 4. Trigger new deployment
+# 5. Check build logs — report errors
+# 6. Confirm deployment healthy
+# 7. Check PR #115 (privacy docs) — mergeable once build is green?`
+}
+]},
+{id:"flashfusion",label:"⚡ FlashFusion infrastructure",badge:"b-info",badgeTxt:"Platform",tasks:[
+{id:"invoke-launch",title:"Complete Invoke funnel launch — 3 remaining blockers",priority:"now",
+ steps:["App: audit.flashfusion.co — ID 69c440b10249984f1114bc4b (24 entities)","Blocker 1: Calendly event type with $1,500 Stripe pricing","Blocker 2: n8n workflow JSON import","Blocker 3: resource PDF creation and hosting","Funnel: free scorecard (10Q) → $1,500 audit (25Q, 5 dims) → $4,500 retainer","AuditSubmission has 0 records — first real submission = launch milestone"],
+ tip:"Three specific wiring tasks. No new builds needed.",
+ pro:"FreeAssessment already uses claude-sonnet-4-6. The funnel is built — just needs these 3 wired.",
+ promptType:"here",
+ prompt:`You are my FlashFusion product assistant. Complete the Invoke funnel launch.
+
+App: audit.flashfusion.co — Base44 ID 69c440b10249984f1114bc4b (24 entities)
+Funnel: Free scorecard (10Q, email optional) → $1,500 full audit (25Q, 5 dims) → $4,500 retainer
+Booking CTA: mailto:hello@flashfusion.co?subject=Audit%20Booking
+Model: claude-sonnet-4-6
+
+3 REMAINING BLOCKERS:
+1. Calendly event type with $1,500 Stripe pricing wired
+2. n8n workflow JSON import (have the JSON, need import steps)
+3. Resource PDF for audit deliverable (what should it contain?)
+
+DELIVER:
+1. Exact steps for each of the 3 blockers
+2. Calendly event description copy (3-4 sentences, outcome-focused)
+3. What the resource PDF should contain for a $1,500 AI readiness audit
+4. Post-submission confirmation email template
+5. Definition of "launch" — what does success look like in 30 days?`
+},
+{id:"n8n-wf05",title:"Build n8n WF-05 Morning Briefing (unblocked, ship first)",priority:"now",
+ steps:["Endpoint: https://krosebrook.app.n8n.cloud/webhook/flashfusion-synthesis","Contents: blocked tasks, calendar, email digest, workflow health","Wire through Orchestrator AI (orchestrator.flashfusion.co, 89 entities)","No OAuth needed — fully unblocked","Test with manual trigger before scheduling"],
+ tip:"Only fully unblocked workflow. Ship it before touching WF-06-09.",
+ promptType:"code",
+ prompt:`# Build n8n WF-05 Morning Briefing
+# Instance: krosebrook.app.n8n.cloud
+# Webhook: https://krosebrook.app.n8n.cloud/webhook/flashfusion-synthesis
+# Model: claude-sonnet-4-6
+
+# Workflow:
+# TRIGGER: Schedule 7am daily (+ manual webhook for testing)
+# STEP 1: Pull blocked tasks from Orchestrator AI API (orchestrator.flashfusion.co)
+# STEP 2: Pull today's Google Calendar events
+# STEP 3: Pull last 24h Gmail digest
+# STEP 4: Check n8n workflow health (which ran/failed since yesterday)
+# STEP 5: Claude summarizer node → structured markdown briefing
+# STEP 6: Send to Slack #daily-briefing
+
+# Requirements:
+# - Error handling: partial briefing if any step fails (not silence)
+# - claude-sonnet-4-6 model string (not the deprecated one)
+
+# Output: complete n8n workflow JSON ready to import`
+},
+{id:"n8n-blocked",title:"Research multi-OAuth workaround for WF-06-09",priority:"blocked",
+ steps:["WF-06-09 blocked by multi-OAuth MCP limitation","Options: separate credential sets | wait for n8n update | Orchestrator AI middleware","Don't let this block WF-05 or the 7 OAI workflows"],
+ promptType:"here",
+ prompt:`Research: what are the current workarounds for multi-OAuth in n8n MCP nodes?
+
+Context:
+- n8n instance: krosebrook.app.n8n.cloud
+- WF-06-09 need multiple OAuth providers in the same MCP node
+- WF-05 ships independently — don't block it on this
+
+Options to evaluate:
+A. Separate credential sets per workflow
+B. Wait for n8n MCP OAuth update (roadmap/ETA?)
+C. Route OAuth calls through Orchestrator AI as middleware
+
+For each: pros, cons, implementation complexity, which workflows it unblocks.
+Recommend lowest-risk path.`
+},
+{id:"unmapped-apps",title:"Audit 29 unmapped Base44 apps",priority:"soon",
+ steps:["46 total apps — 17 wired — 29 unmapped","Includes: Chaos Club, INTeract, INTelligence.ai, Nexus Copilot, TESSA duplicate","For each: assign subdomain | archive | deprecate","Use flashfusion-app-registry tool (already built)"],
+ tip:"Some of the 29 may be launch-ready. Audit before assuming work is needed.",
+ promptType:"here",
+ prompt:`Using Base44 MCP, audit all 46 apps. For each of the 29 unmapped:
+
+1. Name, entity count, last modified date
+2. Classify: Active-build / Parked / Duplicate / Archive-candidate / Launch-ready
+3. Recommended action: assign subdomain | archive | deprecate | investigate
+4. Flag TESSA duplicates explicitly
+
+Output as a table sorted by entity count descending.
+After audit: identify top 3 unmapped apps most likely launch-ready with minimal work.`
+}
+]},
+{id:"enablement",label:"🎓 AI enablement consulting",badge:"b-rev",badgeTxt:"Revenue",tasks:[
+{id:"sow",title:"Write SOW template — 3 tiers + paid discovery phase",priority:"now",
+ steps:["Tier 1: individual coaching, Tier 2: workshop, Tier 3: automation build","Each tier: included, out-of-scope, timeline, deliverable","Paid discovery phase: $99-199 (AI Friction Audit framing)","Scope creep clause. IP ownership sentence. One page max."],
+ tip:"Use the SOW on the first 2 free engagements. It teaches you what to ask.",
+ pro:"Sell the discovery session to enterprise as 'AI Friction Audit' — $99-199 feels like nothing against a $4,500 retainer.",
+ promptType:"here",
+ prompt:`Write a one-page SOW template for FlashFusion/Invoke AI enablement engagements.
+
+CLIENT: SMB tech/ops leader, already using AI tools
+FUNNEL: free scorecard → $1,500 audit → $4,500 retainer
+
+THREE TIERS (one template covers all):
+- Tier 1: Individual coaching (1-on-1, custom instructions, workflow setup)
+- Tier 2: Team workshop (group session, AI usage guide, team Claude project)
+- Tier 3: Automation build (n8n or Base44 workflow, delivered + documented)
+
+FOR EACH TIER: what's included | what's NOT | timeline | deliverable | price [TBD]
+
+ALSO INCLUDE:
+- Paid discovery option ($99-199) framed as "AI Friction Audit"
+- Scope creep clause (non-threatening language)
+- One sentence on IP ownership
+
+Format: professional, one page, not a legal document.`
+},
+{id:"security-client",title:"5-session security cert curriculum",priority:"now",
+ steps:["S1: prompting basics, hallucinations, Claude limits","S2: prompt injection, jailbreaks, red teaming (ties to cert)","S3: custom instructions, Claude projects setup","S4: Claude web/Code basics, MCP connections","S5: build one automation for cert study workflow"],
+ tip:"Adversarial framing lands with security professionals. Frame every session as how attackers use AI vs defenders.",
+ pro:"Document every session as template. Client 2 pays for what you built free for client 1.",
+ promptType:"here",
+ prompt:`Build a 5-session curriculum for a security certification professional learning Claude.
+
+CLIENT: Technical background, working toward SecAI+/CAISP cert, wants AI as study + productivity tool
+
+S1: Foundations — prompting mechanics, hallucination patterns, trust calibration
+S2: Adversarial AI — prompt injection, jailbreaks, red teaming, attackers vs defenders
+S3: Personal setup — custom instructions, Claude projects, knowledge bases
+S4: Practical tools — Claude.ai, Claude Code basics, MCP connections
+S5: Build session — one automation for their cert study workflow
+
+FOR EACH SESSION: learning objective | 3-5 exercises | homework | materials I need to prepare
+ALSO: reusable template notes for running this curriculum with future clients`
+},
+{id:"ryan-audit",title:"Ryan Anderskow — first free audit outreach",priority:"soon",
+ steps:["Already using Claude — hardest part done","Scope: ironhorseseating.com + workflow audit + automations","Outreach draft exists — send when ready","Ask for 20-min scoping call, no slide deck"],
+ tip:"Pitch: 'let me see your setup and I'll find 3 things that would make it 10x better.' That's it.",
+ promptType:"here",
+ prompt:`Draft outreach to Ryan Anderskow for a free AI workflow audit.
+
+Ryan is already using Claude. Business: ironhorseseating.com.
+Offer: free 20-minute AI workflow audit — I review his Claude usage, identify 3 improvements.
+Tone: informal, peer-to-peer (he knows me), no pitch deck, no formality.
+
+DELIVER:
+1. Short outreach (text or email, ~3-4 sentences)
+2. 3 backup opening lines if the first feels off
+3. Follow-up message if no response in 5 days`
+},
+{id:"clc",title:"Register for CLC courses — 5 minutes",priority:"now",
+ steps:["Go to College of Lake County (CLC) website","Find AI/IT courses with available seats","Register for relevant cert track","Identify institutional champion (math professor contact)","Longer play: CLC partnership + Anthropic community ambassador"],
+ tip:"Five-minute task you keep deferring. Open a browser and do it.",
+ promptType:"here",
+ prompt:`Search CLC (College of Lake County, Mundelein IL) current course catalog.
+
+Find: AI, machine learning, data science, Python, IT certification courses.
+Identify: courses most relevant to an AI enablement consultant (practitioner/strategist, not developer).
+Check: workforce development or professional certificate programs.
+
+DELIVER:
+1. Relevant courses with names and registration links
+2. Current/upcoming term registration deadline
+3. 3-sentence email to my math professor contact — asking if they know the right person for a potential AI workshop partnership`
+},
+{id:"union-pitch",title:"Build enterprise pitch — augmentation not replacement",priority:"soon",
+ steps:["Core: AI handles volume, humans handle judgment","Frame: employees become AI managers — direct and review agent work","ROI: hours saved/week × headcount × loaded rate","Governance section for Dave/Jackie framing","Data: 25-40% time saved; risk is being the person who refused the tools"],
+ tip:"Lead with augmentation, not efficiency. Ops/union audiences need job-preservation language first.",
+ pro:"CLC credential + INT proof-of-concept make this 10x more credible. Finish CLC registration first.",
+ promptType:"here",
+ prompt:`Build an enterprise pitch for AI enablement — augmentation, not replacement.
+
+AUDIENCE: VP of Ops, COO, union-adjacent environments
+MY CONTEXT: Kyle Rosebrook, AI enablement consultant, Staff Engineer at Intinc (proof point)
+
+BUILD:
+1. Executive summary (3 sentences)
+2. The problem: what's happening in the market right now (real stats)
+3. Augmentation model: AI manager concept with role-specific examples
+4. ROI: hours saved/week/employee × headcount × $85/hr loaded rate
+5. Governance: controls, human-in-the-loop, what humans must approve
+6. The ask: workshop, audit, or retainer
+
+Tone: confident, data-grounded, not evangelical. This audience has seen hype.`
+}
+]},
+{id:"flashframe",label:"⚡ Flash-n-Frame — active P1 issues",badge:"b-fire",badgeTxt:"In progress",tasks:[
+{id:"n8n-bearer-consolidated",title:"Activate Base44 Bearer creds — 11 blocked workflows (4 WIR + 7 OAI)",priority:"now",
+ steps:["Consolidated count as of this session: 11 total blocked workflows — 4 WIR + 7 OAI (supersedes any earlier '7 OAI only' scoping)","All 11 need the same fix: Base44 Bearer token + SCH-02 lane field set before they can run","Get token from 1Password","Apply as Header Auth on HTTP Request nodes across all 11 workflows","Set SCH-02 lane field correctly on each (separate from the auth fix — verify both before calling a workflow done)"],
+ alert:"This is bigger than previously scoped — 11 workflows, not 7. Confirm the WIR-4 workflows use the same credential pattern as OAI before batch-applying.",
+ tip:"One token unlocks all 11, but SCH-02 lane field is a per-workflow check, not a batch fix.",
+ promptType:"code",
+ prompt:`# Activate Base44 Bearer credentials across 11 blocked n8n workflows
+# Instance: krosebrook.app.n8n.cloud
+# Scope: 4 WIR workflows + 7 OAI workflows = 11 total
+# Each needs: Base44 Bearer token (Header Auth) + SCH-02 lane field set correctly
+
+# Step 1: List all workflows, identify the 11 blocked ones (4 WIR-prefixed, 7 OAI-prefixed)
+# Step 2: For each, find HTTP Request nodes calling Base44 APIs — confirm missing/expired auth
+# Step 3: I will provide the Base44 API token from 1Password, then:
+#   a. Create/update a named credential "Base44-API" with Bearer token
+#   b. Apply to all HTTP Request nodes across all 11 workflows
+# Step 4: For EACH workflow individually — check and correct the SCH-02 lane field
+#   (this is NOT part of the auth fix, verify separately per workflow)
+# Step 5: Activate each workflow, trigger a test run
+# Step 6: Report status table: workflow name | auth fixed | SCH-02 correct | test run result`
+},
+{id:"wir01-orphans",title:"Resolve 4 orphan WIR-01 duplicate workflows in n8n",priority:"soon",
+ steps:["4 orphan duplicates of WIR-01 exist in the n8n instance","Identify which one is canonical (most recent, most complete, actually referenced elsewhere)","Archive or delete the other 3","Do this AFTER the Bearer-cred fix, since duplicates may currently be masking which ones are even functional"],
+ tip:"Don't guess at canonical — check execution history per duplicate to see which one has actually been running.",
+ promptType:"code",
+ prompt:`# Resolve 4 orphan WIR-01 duplicate workflows in n8n
+# Instance: krosebrook.app.n8n.cloud
+
+# Step 1: List all workflows matching "WIR-01" or similar naming
+# Step 2: For each duplicate, pull execution history — which has actually run successfully most recently?
+# Step 3: Compare node structure — which is most complete / has the Bearer cred fix already applied?
+# Step 4: Identify the canonical version based on execution history + completeness
+# Step 5: Archive (don't hard-delete yet) the other 3 — rename with "-ARCHIVED-[date]" suffix first
+# Step 6: Confirm nothing else in the workflow graph references the archived versions
+# Step 7: Report which is canonical and why`
+},
+{id:"client-ops-app",title:"Set up consulting ops on client.flashfusion.co",priority:"soon",
+ steps:["B44 app ID: 6a02ac1bad2b4e37732ef382","Validate current state of the client-facing ops app — intake, quoting, delivery tracking","This is the operational backbone for actual client engagements (Art, future clients) — check it's ready before scaling client volume"],
+ tip:"Art is your first real client — this app should already be handling his engagement. Verify it actually is, not just that it exists.",
+ promptType:"here",
+ prompt:`You are my FlashFusion operations assistant. Validate the client.flashfusion.co ops app.
+
+Base44 app ID: 6a02ac1bad2b4e37732ef382
+
+TASK:
+1. Query the Base44 MCP for this app's entity schema — what's actually built? (intake, quoting, delivery tracking, invoicing?)
+2. Check for real records vs demo/seed data — is Art's engagement actually tracked in this app, or is it being managed elsewhere (email, notes)?
+3. If Art's engagement ISN'T in this app yet: what's the minimum setup to get it tracked here going forward?
+4. Identify any missing pieces before this can handle a second concurrent client
+5. Report current state honestly — built-but-unused is different from broken`
+},
+{id:"fusion-ai-activate",title:"Activate Fusion AI platform on app.flashfusion.co",priority:"soon",
+ steps:["B44 app ID: 68dd8e79ca073475565c8e16","~101 entities per last audit (April 16) — validate this is still current","Confirm agent catalog is current, not stale","This is a distinct app from audit.flashfusion.co (the Invoke funnel) and SparkAcademy — don't conflate them"],
+ tip:"101-entity number is from an April audit — re-verify via live MCP query rather than trusting the historical figure.",
+ promptType:"here",
+ prompt:`You are my FlashFusion platform assistant. Validate and activate the Fusion AI platform.
+
+Base44 app ID: 68dd8e79ca073475565c8e16
+Domain: app.flashfusion.co
+Historical entity count: ~101 (as of April 16 audit — needs re-verification)
+
+TASK:
+1. Query Base44 MCP for the live entity count and schema — confirm or correct the ~101 figure
+2. Confirm the agent catalog within this app is current (not referencing deprecated model strings or stale tool lists)
+3. Identify what "activate" actually requires here — is this app built-but-dormant, or already live with no traffic?
+4. Distinguish clearly from audit.flashfusion.co (Invoke funnel, separate app) and spark.flashfusion.co (SparkAcademy, separate app) — confirm no cross-wiring confusion
+5. Report current live state and the specific next action to bring it fully active`
+},
+{id:"gitflow-timeout",title:"Diagnose & fix Cloudflare Worker GitFlow timeout",priority:"now",
+ steps:["Sync LLM call exceeds CF Worker execution limit (50ms CPU / 30s wall)","Option A: Convert to async pattern with waitUntil + response streaming","Option B: Offload to Durable Object or Cloudflare Queue","Diagnose first: confirm which call is hanging and its average duration","Rebuild GitFlow prompt is blocked until this is resolved"],
+ alert:"P1, in-progress. GitFlow is broken until execution model is fixed.",
+ tip:"CF Worker sync limit is the constraint. If the LLM call is >30s wall time, Queues is the clean path.",
+ promptType:"here",
+ prompt:`You are my Flash-n-Frame infrastructure engineer. Diagnose and fix the Cloudflare Worker GitFlow timeout.
+
+CONTEXT:
+- Flash-n-Frame: flashnframe.com, Cloudflare Workers + Supabase stack
+- Problem: Sync LLM call in the GitFlow handler exceeds Cloudflare Worker execution limits
+- CF Worker limits: 50ms CPU time (paid) or 30s wall time — sync calls to LLM exceed this
+- Prior diagnosis session exists — reference it if available
+
+OPTIONS TO EVALUATE:
+A. Async pattern with waitUntil() — fire LLM call async, return immediate response, write result to Supabase
+B. Durable Object — maintain long-running state, handle the LLM call there
+C. Cloudflare Queue — queue the request, process via a separate Consumer Worker
+
+TASK:
+1. Identify which specific call is timing out (add timing logs if needed)
+2. Measure average LLM call duration for the GitFlow handler
+3. Recommend the cleanest fix given the existing architecture
+4. Write the async pattern implementation (waitUntil approach) as the first candidate
+5. Write the Queue-based implementation if waitUntil won't work
+6. Include rollback steps if the fix breaks other endpoints`
+},
+{id:"gitflow-prompt",title:"Rebuild GitFlow prompt post-timeout fix",priority:"blocked",
+ steps:["Blocked until CF Worker timeout is resolved","Prompt was broken during the timeout investigation","Full rebuild needed once execution model is fixed","Reference the prior working prompt from git history"],
+ tip:"Don't rebuild the prompt until the execution model is confirmed working. Prompt quality won't matter if the transport is broken.",
+ promptType:"code",
+ prompt:`# Rebuild GitFlow prompt for Flash-n-Frame
+
+# BLOCKED: do this after CF Worker timeout fix is confirmed working
+
+# Step 1: Find the last working prompt version in git history
+cd /path/to/flashnframe  # update with actual path
+git log --oneline --all -- "*gitflow*" "*git-flow*" "*prompt*" | head -20
+
+# Step 2: Checkout the last good version to review it
+git show <commit>:path/to/gitflow-prompt.ts  # update with actual path
+
+# Step 3: Rebuild with current requirements:
+# - Must work within the async execution model (waitUntil or Queue)
+# - Include: commit message generation, PR description, branch naming
+# - Output: structured JSON for downstream handlers
+# - Model: claude-sonnet-4-6 (not the deprecated string)
+
+# Step 4: Test end-to-end with a dummy git diff
+# Step 5: Verify the rebuilt prompt works in the fixed Worker execution context`
+},
+{id:"flashframe-audit",title:"Audit all remaining broken Flash-n-Frame features",priority:"now",
+ steps:["GitFlow and WAF Maintenance Mode were diagnosed — other features may still be broken","Do a full feature audit before building anything new","Map: feature name | broken/working | root cause if known | priority","Consolidate into a single repair backlog"],
+ tip:"Don't fix features one-by-one without knowing the full scope. Audit first, prioritize, then fix in order.",
+ promptType:"here",
+ prompt:`You are my Flash-n-Frame product engineer. Run a full feature audit.
+
+CONTEXT:
+- Flash-n-Frame: flashnframe.com, Cloudflare Workers + Supabase stack
+- Known broken: GitFlow handler (CF Worker timeout), WAF Maintenance Mode (diagnosed)
+- Known working: basic auth, Supabase connection (per last audit)
+- Goal: complete feature inventory before any more repairs
+
+TASK:
+1. List all features that were built for Flash-n-Frame (reference any available documentation or git history)
+2. For each feature, classify: Working | Broken | Unknown | Deprecated
+3. For broken features: identify likely root cause category (timeout / auth / schema / model string / missing config)
+4. Priority score each broken feature: P1 (blocks users) | P2 (degrades experience) | P3 (nice to have)
+5. Output as a repair backlog sorted by priority
+6. Flag which features share the same root cause and can be fixed together`
+}
+]},
+{id:"interactt",label:"🖥 INTeract — INT companion app",badge:"b-fire",badgeTxt:"P1 in-progress",tasks:[
+{id:"interact-ui",title:"Complete INTeract narrow-panel UI audit",priority:"now",
+ steps:["Companion app reframed as narrow-panel tool — open alongside Base44, not full-screen","152 entities in B44 app 691e3ae3bd4916f2e05ae35e","Light surfaces are now baseline (INT-Light profile) — dark mode was the prior default","Audit: artifact vs live B44 platform comparison","Flag any components still assuming full-width or dark-first layout"],
+ alert:"P1, in-progress. UI assumptions are wrong — narrow-panel and light-first changes multiple layout decisions.",
+ promptType:"here",
+ prompt:`You are my INTeract UI architect. Complete the narrow-panel UI audit.
+
+CONTEXT:
+- INTeract: INT's companion AI app
+- Base44 app ID: 691e3ae3bd4916f2e05ae35e (152 entities)
+- Reframe: narrow-panel tool meant to sit open alongside Base44, not take over the screen
+- Profile change: INT-Light is now baseline — dark surfaces are the anti-pattern
+
+AUDIT SCOPE:
+1. Identify all components that assume full-width layout — flag each
+2. Identify all components with dark-first or dark-only styling — flag each
+3. Test the narrow-panel assumption: at 320-400px width, what breaks?
+4. Compare artifact (local design) vs live B44 app — list discrepancies
+5. Output: component-by-component audit table (component | width issue | light/dark issue | priority fix)
+
+After audit: write the top 3 most impactful CSS/layout changes that fix the most issues with the least code`
+},
+{id:"interact-darkmode",title:"Fix INTeract default dark mode anti-pattern",priority:"now",
+ steps:["INT-Light profile is now the baseline — light surfaces, not dark","Apply Default Mode Rule across all INTeract components","Do NOT flip dark/light globally — apply INT-Light design tokens specifically","Test in context of narrow-panel use case"],
+ tip:"This is a token-level change, not a component-level rewrite. Apply the INT-Light profile tokens and let the cascade do the work.",
+ promptType:"code",
+ prompt:`# Fix INTeract dark mode anti-pattern — apply INT-Light as default
+
+# CONTEXT: INT-Light profile is now the baseline. Dark was the prior default (wrong).
+# Rule: Default Mode = light surfaces. Dark mode = opt-in, not default.
+# App: Base44 app 691e3ae3bd4916f2e05ae35e (152 entities)
+
+# Step 1: Find all hardcoded dark color values in INTeract components
+grep -rn "background.*#0\\|background.*#1\\|background.*#2\\|bg-gray-9\\|bg-zinc-9\\|bg-slate-9\\|dark:" .   --include="*.jsx" --include="*.tsx" --include="*.css" | head -40
+
+# Step 2: Find INT-Light design token definitions
+# (Reference: flashfusion-landing-v3.html has v3 tokens as SOT)
+# INT-Light: light background, INT brand colors, no void-dark surfaces
+
+# Step 3: Replace dark-default surfaces with INT-Light tokens
+# - Background: #FFFFFF or #F8F9FA (not #0B0B14)
+# - Cards: white with subtle border (not dark glass)
+# - Text: #1A1A2E or similar dark-on-light
+
+# Step 4: Verify in narrow-panel context (320-400px)
+# Step 5: Check contrast ratios pass WCAG AA for all text/background combos`
+},
+{id:"interact-pipeline",title:"Validate Claude-in-Claude pipeline for INTeract",priority:"now",
+ steps:["Confirm model string: was claude-sonnet-4-20250514 — must change to claude-sonnet-4-6 before June 15","Check API headers and auth are correct","Verify MCP server wiring for INTeract agent","Confirm structured JSON response parsing works end-to-end"],
+ alert:"This task overlaps with the June 15 deprecation deadline — model string must be updated here too.",
+ tip:"This is the most direct overlap between the INT workstream and the June 15 deadline. Fix both at once.",
+ promptType:"code",
+ prompt:`# Validate INTeract Claude-in-Claude pipeline
+
+# CRITICAL: claude-sonnet-4-20250514 retires June 15 — change NOW
+
+# Step 1: Find model string in INTeract codebase
+grep -rn "claude-sonnet-4-20250514\\|claude-" .   --include="*.js" --include="*.ts" --include="*.jsx" --include="*.tsx" | head -20
+
+# Step 2: Replace with claude-sonnet-4-6
+sed -i 's/claude-sonnet-4-20250514/claude-sonnet-4-6/g' <files found above>
+
+# Step 3: Verify API headers (Base44 app 691e3ae3bd4916f2e05ae35e)
+# Check: Authorization header format, Content-Type: application/json
+# Check: claude.ai API base URL is correct
+
+# Step 4: Test structured JSON response parsing
+# INTeract expects: structured JSON from Claude API
+# Confirm: response.content[0].text is parsed as JSON (not treated as plain text)
+# Confirm: field names match what INTeract components expect
+
+# Step 5: End-to-end smoke test
+# Send a test prompt → confirm structured response → confirm UI renders the response`
+},
+{id:"interact-b44",title:"Build live B44 read/write data layer in INTeract",priority:"now",
+ steps:["Claude-in-Claude with Base44 MCP wired to app 691e3ae3bd4916f2e05ae35e (152 entities)","This is the live data path — INTeract needs to read/write real B44 data via Claude","Confirm entity binding: which entities INTeract needs to read and write","Verify live data path: Claude → Base44 MCP → B44 entities → back to INTeract"],
+ alert:"P1, in-progress. INTeract is not useful until it can read and write real B44 data.",
+ tip:"Entity binding is the key decision. Don't connect everything — pick the 5-10 entities INTeract actually needs to be useful.",
+ promptType:"here",
+ prompt:`You are my INTeract full-stack engineer. Build the live B44 read/write data layer.
+
+CONTEXT:
+- INTeract: INT's companion AI app
+- Base44 app ID: 691e3ae3bd4916f2e05ae35e (152 entities)
+- Architecture: Claude-in-Claude with Base44 MCP as the data layer
+- Goal: INTeract agents can read and write real B44 data in real-time
+
+TASK:
+1. Identify the 5-10 most important B44 entities INTeract needs access to (query B44 MCP to list entities)
+2. Design the entity binding: for each entity, what operations? (read / write / query / subscribe)
+3. Write the MCP configuration for Base44 in the INTeract agent context
+4. Write the data access layer: functions for reading and writing to the 5-10 selected entities
+5. Write a smoke test: create one entity record via INTeract → verify it appears in B44 live
+6. Handle errors: what happens if B44 is unreachable? (graceful degradation, not silent failure)`
+},
+{id:"art-followup",title:"Art (real estate) — follow up after Jun 7 first meeting",priority:"now",
+ steps:["FIRST REAL PAYING CLIENT — meeting Jun 7 done (listening mode only)","Send meeting summary + capability-mapping output","Propose next session: identify top 3 AI use cases for his real estate business","Scope Phase 2 of room configurator: HSV color wheel + texture upload on iPad","Document engagement pattern — this becomes the client template"],
+ alert:"This is your first real client engagement. The follow-up sets the tone for the entire relationship.",
+ tip:"Listening mode worked. Don't pivot to selling in session 2 — stay in diagnostic mode. Let the use cases emerge.",
+ pro:"Room configurator Phase 2 (HSV color wheel + texture upload) is the concrete next build. Scope it in the follow-up call.",
+ promptType:"here",
+ prompt:`You are my FlashFusion client success manager. Help me run the Art client follow-up.
+
+CONTEXT:
+- Art: real estate owner, first real FlashFusion client
+- Jun 7: first meeting completed — listening mode only, engagement kit delivered
+- Kit included: facilitator guide, intake form, summary template
+- Phase 1 room configurator: built and delivered (iPad artifact)
+
+NEXT STEPS:
+1. Draft the post-meeting summary email (~200 words)
+   - Key observations from the first meeting
+   - 2-3 capability areas identified
+   - Propose next session date + agenda
+2. Identify the top 3 AI use cases for a real estate agent based on the listening session
+3. Scope Phase 2 of the room configurator:
+   - HSV color wheel for paint/material selection
+   - Texture upload for flooring/countertop visualization
+   - Timeline estimate and what I need from Art to proceed
+4. What should I NOT do in session 2 to protect the relationship?
+5. Write the internal engagement notes (this becomes the template for all future clients)`
+},
+{id:"load-bearing",title:"Load-Bearing — pick a platform and launch (8 essays done)",priority:"now",
+ steps:["8 essays complete — all production-ready HTML","Voice: AI tools tested under load, no hype, no sales pitch","Single remaining gate: platform decision","Substack = distribution + discovery, Ghost = brand control, self-hosted = full ownership","CCA-F exam July 20 — Load-Bearing content supports exam prep AND client credibility"],
+ tip:"The essays are done. Every day without a platform decision is a day the content generates nothing.",
+ pro:"Load-Bearing is the credibility layer for the FlashFusion consulting funnel. Launch it before the first paying client conversation gets stale.",
+ promptType:"here",
+ prompt:`Help me decide the Load-Bearing platform and write the launch plan.
+
+THE BRAND:
+- Load-Bearing: AI tools tested under load — no hype, no sales pitch, just what holds
+- 8 essays complete: Your Backend Is One API Call, The Agent Doesn't Know Your Files Are a Mess, Your AI Stack Has a Carrying Cost, The QA Loop Nobody Runs, Personal OS: What I Actually Built, The Claude Code Blueprint Nobody Posts, Fifty Skills and What They Actually Taught Me, Prosthetics Not Amplifiers (thesis, intentionally last)
+- Audience: technical practitioners, builders, AI-adjacent engineers
+
+PLATFORM OPTIONS:
+A. Substack — distribution, network effects, discovery, built-in monetization
+B. Ghost — brand control, custom domain, no Substack tax, harder to grow
+C. Self-hosted (Next.js on flashfusion.co) — full ownership, zero distribution
+
+DECISION CRITERIA:
+- I already have flashfusion.co — does Load-Bearing live under it or stand alone?
+- The essays are the SEO surface — which platform preserves full HTML/metadata control?
+- Monetization is NOT the goal for v1 — credibility and discovery are
+
+DELIVER:
+1. Recommendation with rationale (be direct, one choice)
+2. Launch checklist: what needs to happen in the first 48 hours after platform decision
+3. First 3 essays to publish (order matters — which one hooks the right audience first?)
+4. The launch post: 2-paragraph announcement for LinkedIn`
+}
+]},
+{id:"int",label:"🏢 INT Inc Claude engagement",badge:"b-day",badgeTxt:"Day job",tasks:[
+{id:"uv-sync-harden",title:"Harden uv sync pre-warm via Task Scheduler",priority:"soon",
+ steps:["Durable fix for cold uv cache crash on MCP spawn","Set up Task Scheduler to run uv sync on login (pre-warms the cache before it's needed)","Confirm Snyk, Windows-MCP, ToolUniverse bundles are stable after the fix"],
+ tip:"This is a one-time Task Scheduler setup, not a recurring manual chore.",
+ promptType:"code",
+ prompt:`# Harden uv sync pre-warm via Windows Task Scheduler
+# Problem: cold uv cache causes a crash when MCP servers spawn
+
+# Step 1: Identify the uv sync command currently run manually (check existing scripts/docs)
+# Step 2: Create a Task Scheduler task:
+#   - Trigger: At log on (any user, or specifically Kyle's account)
+#   - Action: run "uv sync" in the relevant project directory
+#   - Settings: run whether user is logged in or not (if applicable), highest privileges if needed
+
+schtasks /create /tn "UvSyncPrewarm" /tr "uv sync --directory C:\path\to\project" /sc onlogon /rl highest
+
+# Step 3: Test by simulating a cold cache (clear uv cache dir) then logging in fresh
+# Step 4: Confirm Snyk, Windows-MCP, and ToolUniverse MCP bundles spawn correctly post-fix
+# Step 5: Document the fix in case it needs to be reapplied on a new machine`
+},
+{id:"snyk-audit",title:"Audit Snyk MCP spec version mismatch",priority:"later",
+ steps:["Snyk running on spec version 2025-03-26 vs current spec 2025-11-25","Confirm compatibility or identify upgrade path","Plaintext SNYK_TOKEN risk remains open — should be addressed alongside the version audit, not separately"],
+ alert:"Plaintext SNYK_TOKEN is a real credential-exposure risk sitting alongside this version-mismatch issue — fix both together.",
+ promptType:"code",
+ prompt:`# Audit Snyk MCP spec version mismatch + plaintext token risk
+
+# Step 1: Confirm current Snyk MCP spec version in use
+# Check config/connection settings for Snyk MCP server
+
+# Step 2: Compare against current spec (2025-11-25) — what changed between 2025-03-26 and now?
+# Look for breaking changes in the MCP spec that could affect Snyk's tool calls
+
+# Step 3: Find where SNYK_TOKEN is currently stored
+grep -rn "SNYK_TOKEN" . --include="*.json" --include="*.env*" --include="*.yaml" --include="*.yml" 2>/dev/null
+
+# Step 4: If found in plaintext (config file, env file committed to a repo, etc.):
+#   - Move to a proper secrets manager (Windows Credential Manager, 1Password CLI, or equivalent)
+#   - Rotate the token after moving it (assume prior exposure)
+#   - Confirm no other tooling still references the old plaintext location
+
+# Step 5: Upgrade Snyk MCP to current spec if an upgrade path exists, or document why staying on 2025-03-26 is acceptable`
+},
+{id:"claude-int",title:"Build proper Claude setup package for Intinc team",priority:"soon",
+ steps:["Draft team custom instructions template","Write AI usage guide: green/yellow/red light framework","Set up team Claude project with shared context","Write non-technical staff onboarding doc","Workshop proposal for Dave — governance + competitive framing"],
+ tip:"Jackie's only instruction is 'no em dashes.' That's your opening to show what real setup looks like.",
+ promptType:"here",
+ prompt:`Build the Claude team setup package for Intinc.
+
+KEY PEOPLE: Dave Linderman (leadership), Jackie Miles (VP Ops — current Claude instruction: only "no em dashes"), Daniel Bell, Gwen
+CONTEXT: Ad-hoc usage, no shared setup, no usage guide
+
+BUILD 4 DELIVERABLES:
+
+1. TEAM CUSTOM INSTRUCTIONS (template)
+   - Intinc professional tone and context
+   - Output format preferences
+   - What NOT to share with Claude (client PII, credentials)
+   - Sections: Role | Communication style | Format | Guardrails
+
+2. AI USAGE GUIDE (1 page)
+   - Green: use freely | Yellow: use with review | Red: never
+
+3. ONBOARDING CHECKLIST (non-technical staff, weeks 1-2)
+
+4. WORKSHOP PROPOSAL for Dave (half-page)
+   - Frame: governance + competitive positioning
+   - Format: 2-hour working session
+   - Outcomes: team setup + AI usage policy draft + 3 immediate use cases`
+},
+{id:"kelan",title:"Kelan co-founder conversation — formalize",priority:"soon",
+ steps:["Ran all of Sole Revival solo (sales, supply, events) — strong operator","Knows something is brewing, hasn't seen full scope","Demo: Fusion AI (101 entities) → Sole Customizer → 244-plugin catalog → live Sole Revival app","Define roles and equity structure","Co-founder bridge artifact already started"],
+ tip:"Formalize the conversation, don't cold pitch. Trust already exists.",
+ pro:"He has solemuchbetter.com — he's already building in the same lane. This is alignment.",
+ promptType:"here",
+ prompt:`Prepare me for the Kelan co-founder conversation.
+
+KELAN: Former colleague. Ran all sales/supply/events for Sole Revival solo. Has solemuchbetter.com. Knows something is brewing but hasn't seen the full scope.
+
+DEMO SEQUENCE:
+1. Fusion AI — Base44 app, 101 entities (shows scale)
+2. Sole Customizer — 7-entity schema (directly relevant to his world)
+3. claude-code-plugins-plus — 244 plugins (the asset library)
+4. Live Sole Revival Base44 app (his specific use case, already built)
+
+DELIVER:
+1. 5-minute verbal pitch: what FlashFusion is, why Kelan, what the co-founder role would be
+2. Role split: what I bring vs what he brings
+3. 3 questions to ask before any equity/structure proposal
+4. What to show FIRST given his operator background
+5. What NOT to lead with`
+},
+{id:"int-deploy-kit",title:"Deploy Intinc Deployment Kit",priority:"now",
+ steps:["Kit is ready — needs deployment","Confirm target environment","Run deployment steps","Validate post-deploy state"],
+ alert:"P1, in-progress in Todoist. Kit is built — deploying is the only remaining step.",
+ tip:"Don't re-scope or re-design. The kit exists. Deploy it.",
+ promptType:"here",
+ prompt:`You are my INT deployment lead. Help me deploy the Intinc Deployment Kit.
+
+CONTEXT:
+- The kit is built and ready
+- This is a deployment task, not a build task
+- I need to confirm target environment and execute deployment steps
+
+TASK:
+1. What does the Intinc Deployment Kit contain? (help me confirm what I'm deploying)
+2. What is the target environment?
+3. Walk me through the deployment steps in order
+4. What should I verify post-deploy to confirm success?
+5. What's the rollback plan if something goes wrong?`
+},
+{id:"int-copilot-kb",title:"Build Intinc Copilot Agent — KB article surfacing + SOP walkthroughs",priority:"soon",
+ steps:["Via Agent Builder (claude_agent_builder.html)","Scope: KB article surfacing (L1 triage: 'do we have an article for this?'), SOP walkthroughs","Also: L1 triage assist — first line of diagnosis before escalation","Target: Daniel Bell's service desk team","This is the gateway agent for the INT AI enablement rollout"],
+ tip:"The KB surfacing use case is the easiest win — Daniel's team already has articles, they just don't surface them fast enough.",
+ pro:"This agent is the strongest proof point for the InVelo pitch. Build it, dog-food it with Daniel's team, then show Dave.",
+ promptType:"here",
+ prompt:`You are my INT AI architect. Build the Intinc Copilot Agent for the service desk.
+
+CONTEXT:
+- Target users: Daniel Bell's L1 service desk team at Intinc
+- Three scopes: KB article surfacing, SOP walkthroughs, L1 triage assist
+- Platform: Claude Agent Console (YAML: managed-agents-2026-04-01)
+- KB lives in: FreshService (Intinc's ticketing system)
+
+AGENT 1: KB ARTICLE SURFACER
+- Trigger: tech support question from service desk
+- Action: search KB and return the top 3 relevant articles with confidence score
+- Output: article title + URL + 1-sentence summary + confidence
+
+AGENT 2: SOP WALKTHROUGH
+- Trigger: "walk me through the SOP for [process]"
+- Action: retrieve SOP, present step-by-step with confirmation prompts between steps
+- Output: interactive walkthrough, one step at a time
+
+AGENT 3: L1 TRIAGE ASSIST
+- Trigger: incoming ticket content
+- Action: classify issue, suggest KB articles, recommend escalation path
+- Output: issue category + KB suggestions + L1/L2/L3 routing recommendation
+
+For each agent: write the full YAML (managed-agents-2026-04-01 schema)`
+}
+]},
+{id:"certs",label:"📜 Certifications",badge:"b-info",badgeTxt:"Credibility",tasks:[
+{id:"claude-cert",title:"Close Claude Certified Architect study gaps",priority:"now",
+ steps:["Passing: 720/1000 — Exam target: July 20, 2026","Gaps: Agent SDK hooks, subagent context isolation, tool_choice","Also: CLAUDE.md hierarchy, MCP scoping, Message Batches API","Study tool: ai103-study-tool.jsx (in /mnt/project/)","NotebookLM audio overview for commute"],
+ tip:"You built the study tool. Use it.",
+ promptType:"here",
+ prompt:`Run a targeted study session on my Claude Certified Architect exam gaps.
+
+PASSING SCORE: 720/1000
+MY GAPS:
+1. Agent SDK hooks — how they fire, what they intercept, when to use vs not
+2. Subagent context isolation — how context is scoped between parent and child agents
+3. tool_choice — forced/auto/none modes and when each applies
+4. CLAUDE.md hierarchy — how multiple CLAUDE.md files interact in nested directories
+5. MCP scoping — per-agent vs global access control
+6. Message Batches API — use cases, limits, polling pattern
+
+FOR EACH GAP: 2-sentence concept summary | most common exam trap | 1 practice question with answer
+Then: 10-question mock exam covering only these 6 topics.`
+},
+{id:"secai",title:"Send SecAI+ / CAISP reimbursement email to Daniel",priority:"now",
+ steps:["Draft already exists — just send it","Covers SecAI+, CAISP, Google ML Engineer (~$1,600)","Daniel is supportive — formality not negotiation","CC yourself for the paper trail"],
+ tip:"Already drafted. Open email and send it.",
+ promptType:"here",
+ prompt:`Write the final reimbursement request email to Daniel Bell at Intinc.
+
+CERTS: SecAI+, CAISP, Google Professional ML Engineer (~$1,600 total)
+Daniel is supportive. This is a formality.
+
+DELIVER:
+1. Final email: subject + body (~150 words max)
+   - 1-sentence context (why these certs)
+   - Specific certs and estimated costs
+   - Clear ask: approval + process
+2. Should I CC anyone besides myself for the paper trail?
+3. Anything to NOT include that might cause friction?`
+},
+{id:"google-ml",title:"Google ML Engineer — 90-day study plan",priority:"later",
+ steps:["Real gap: Microsoft-heavy stack, minimal GCP","Start: Google Cloud Skill Boost free tier","Focus: Vertex AI, BigQuery ML, TFX pipelines","Build 2 real GCP projects before scheduling exam"],
+ tip:"Don't schedule the exam until you've shipped two real GCP projects.",
+ promptType:"here",
+ prompt:`Build a 90-day Google Professional ML Engineer study plan.
+
+MY BACKGROUND: Strong Microsoft/Azure, Python, general ML. Weak on GCP-specific services.
+TIME: ~1 hour/day. Full-time Staff Engineer + consulting.
+TOOLS: Google Cloud Skill Boost (free tier).
+CONSTRAINT: Must build 2 real GCP projects before scheduling exam.
+
+DELIVER:
+- Week 1-4: GCP + Vertex AI basics (specific Skill Boost paths + one mini-project)
+- Week 5-8: BigQuery ML + data pipelines (one mini-project)
+- Week 9-12: TFX, MLOps, production ML (one mini-project)
+- Week 13+: Exam prep, practice tests, scheduling
+For each phase: course names, estimated hours, one hands-on deliverable useful for consulting work.`
+}
+]},
+{id:"memoir",label:"📖 Memoir — Construction Not Recovery",badge:"b-memoir",badgeTxt:"Active",tasks:[
+{id:"session3",title:"Memoir Session 3: Tool Archaeology — resolve open items (NOT the card table)",priority:"now",
+ steps:["CORRECTED SCOPE: the card table SCENE is already locked (April 2026) — this task was previously mis-describing that as the target. It isn't.","Real Session 3 target: Chapter 8 'The Arsenal' — map each software tool to the cognitive function it replaces (n8n → memory offload, Notion → external hippocampus, GitHub → decision version control, etc.)","A synthesis doc already exists (claude_memoir_session3-tool-archaeology-synthesis.md) — real prior progress, not a cold start","Open question #1 from Apr 16 still stands: when was the Java class? Decides whether it's Ch 11 material or earlier thread.","Footnote-level verification list (doesn't block drafting): Google AI Studio count, Figma count, Cloudflare deployments, Wix, Notion page count, exact n8n workflow count","This is the single highest-leverage excavation gap — blocks 3 chapters (per genre-fit-report.html excavation-gaps table)","Window: Tuesday/Wednesday 9pm"],
+ alert:"Do not re-excavate the card table — it's locked, confirmed, and rewriting it without instruction violates the locked-scene rule.",
+ tip:"Pick up the synthesis doc's open thread (Java class timing) rather than starting fresh.",
+ pro:"Tuesday/Wednesday 9pm is your primed memoir window.",
+ promptType:"here",
+ prompt:`You are my memoir excavation partner. Run a Tool Archaeology session — Chapter 8, "The Arsenal."
+
+MEMOIR: Construction, Not Recovery — a letter to my daughter Kinsley
+SPINE: diagnostic instinct (reading rooms → reading processes → reading systems)
+THESIS: construction not recovery — rebuilding agency through constructing what never existed
+VOICE RULE: no epiphanies. If a section ends with a realization, it's wrong.
+
+IMPORTANT — WHAT THIS SESSION IS NOT: the card table scene (Phillis → Sedona → Bear → card table → screenshot method → Chaos Club) is already LOCKED as of April 2026. Do not re-excavate it. That scene is done.
+
+WHAT THIS SESSION IS: Chapter 8 "The Arsenal" needs its own excavation — mapping each SOFTWARE TOOL Kyle uses to the specific cognitive function it replaces or offloads. Examples already identified: n8n → memory offload, Notion → external hippocampus, GitHub → decision version control.
+
+PRIOR PROGRESS EXISTS: a synthesis document already covers part of this. One open question from that synthesis stands unresolved: when was the Java class (dropped CS classes, pivoted to self-teaching)? This determines whether that material belongs in Chapter 11 or an earlier thread.
+
+PROTOCOL:
+- Ask one question at a time. Wait for my answer before the next.
+- Start with physical/sensory details — not meaning.
+- If I generalize, push back to specifics.
+- If I say I don't remember, note the gap explicitly — it's material.
+- Don't interpret. Only excavate.
+
+First question: resolve the Java class timing — when did you drop the CS classes and start self-teaching? What year, and what was happening around it?`
+},
+{id:"kortex",title:"Install Kortex Chrome extension for NotebookLM merging",priority:"now",
+ steps:["Chrome Web Store → 'Kortex NotebookLM' (4.6 stars)","Also check 'NotebookLM Tools' (4.3)","Test merge on 2-3 small notebooks first","Back up critical notebooks as JSON before merging"],
+ tip:"NotebookLM has no native merge. Kortex is the current best workaround.",
+ promptType:"here",
+ prompt:`I need to merge several NotebookLM notebooks for memoir research. Help me set up Kortex.
+
+Context: Multiple notebooks with source material. No native NotebookLM merge. Kortex extension (4.6 stars) advertises notebook-level merging.
+
+DELIVER:
+1. Current install and setup steps for Kortex (search for recent updates)
+2. Safest backup process before merging
+3. Step-by-step merge process
+4. What Kortex does NOT preserve during a merge
+5. Any better alternative that emerged since Kortex (as of May 2026)?`
+},
+{id:"memoir-chapter",title:"Decide: which chapter gets written first",priority:"decide",
+ steps:["Options: 'Before the Break' vs 'The Rupture'","Multiple excavation sessions done — no full chapters drafted","Pick based on available raw material, not importance","Draft order: skeleton → flesh → polish","Voice rule: no epiphanies"],
+ tip:"Don't pick on importance. Pick on available raw material. Which one has more excavated specifics?",
+ promptType:"here",
+ prompt:`Help me decide which memoir chapter to write first.
+
+MEMOIR: Construction, Not Recovery — a letter to my daughter Kinsley
+SPINE: diagnostic instinct | THESIS: construction not recovery
+VOICE RULE: no epiphanies. Start in a room or a moment.
+
+THE CHOICE:
+A: "Before the Break" — the period before the event that changed things
+B: "The Rupture" — the event itself and immediate aftermath
+
+Ask me 3 questions about each chapter's current excavation status.
+Then: recommend which to write first with one-paragraph rationale.
+Then: write the opening 2 sentences for the recommended chapter.
+
+Remember: if the opening contains a realization or insight, it's wrong. Start in a room.`
+}
+]},
+{id:"brand",label:"🌐 Personal brand + sites",badge:"b-gray",badgeTxt:"Brand",tasks:[
+{id:"robots",title:"Fix robots.txt — both sites invisible to Google",priority:"now",
+ steps:["kylerosebrook.com: WP Admin → Settings → Reading → uncheck Discourage search engines","flashfusion.co: Wix Dashboard → Settings → SEO → Robots.txt Editor → remove Disallow: /","Submit both to Google Search Console","Verify indexing after 48h"],
+ tip:"~10 minutes total. Both sites currently invisible to Google.",
+ promptType:"here",
+ prompt:`Walk me through fixing robots.txt on two sites.
+
+SITE 1: kylerosebrook.com (WordPress.com)
+Fix: WP Admin → Settings → Reading → uncheck "Discourage search engines"
+
+SITE 2: flashfusion.co (Wix, Site ID: 4cad8458-937c-4a7a-8936-2a670f2883fd)
+Fix: Wix Dashboard → Settings → SEO → Robots.txt Editor → remove Disallow: /
+
+AFTER BOTH:
+1. Submit both to Google Search Console — walk me through each step
+2. How to verify crawling has started (what to look for, when)
+3. Any other quick SEO wins while I'm already in these settings panels?`
+},
+{id:"woo",title:"Verify WooCommerce ghost cart — contradictory records",priority:"now",
+ steps:["PROJECT_STATE.md: lists as open blocker","Other notes: WooCommerce may already be deactivated + 5 plugins deleted","Check WP Admin → Plugins — is WooCommerce active?","If active: deactivate. If already gone: update records."],
+ tip:"Contradictory state. Verify before acting — don't re-do resolved work.",
+ promptType:"here",
+ prompt:`Resolve contradictory state about WooCommerce ghost cart on kylerosebrook.com.
+
+CONFLICT:
+- PROJECT_STATE.md: lists WooCommerce ghost cart as open blocker on homepage
+- Other notes: suggest WooCommerce already deactivated + 5 plugins deleted
+
+TASK:
+1. Check whether WooCommerce is currently active (via WP MCP or walk me through WP Admin)
+2. If active: steps to safely deactivate it
+3. If already inactive: confirm ghost cart symptom is gone (may be caching or residual shortcode)
+4. What to update in PROJECT_STATE.md based on actual finding
+5. Check for other plugin conflicts while I'm in the plugin panel`
+},
+{id:"brand-name",title:"Decide brand name — off personal name",priority:"decide",
+ steps:["Decided: don't use personal name","Generate options: AI enablement + memoir + consulting + platform scale","Check domain (.com) and handles (LinkedIn, X, Threads) for top 3","Commit to one — don't over-optimize"],
+ tip:"Consistency beats cleverness. Pick something you won't hate in 3 years.",
+ pro:"If building toward YC: pick a name that scales beyond solo consulting.",
+ promptType:"here",
+ prompt:`Help me name my personal brand.
+
+ANTI-PATTERNS: no "Kyle", no "AI" in name, no "-ify"/"-ly" suffixes, not corporate, not hype-y
+WHAT I DO: AI enablement consulting (FlashFusion/Invoke), memoir writing, staff engineering
+SCALE GOAL: needs to work on a memoir book cover AND a consulting firm homepage. YC-eventual.
+
+PROCESS:
+1. Generate 10 name candidates (concept, metaphor, and invented approaches)
+2. For each: one-line rationale
+3. Eliminate anti-pattern violations
+4. Check domain availability (.com) for top 3
+5. Check handle availability (LinkedIn, X, Threads) for top 3
+6. Recommend one with short explanation`
+},
+{id:"kyr-content",title:"kylerosebrook.com — content calendar + SEO baseline",priority:"later",
+ steps:["Site live (Blog ID 253504189, Assembler theme), A11y audit done","3 pillar topics: memoir process + AI (personal) + brain injury angle","1 post/month minimum — maintainable over sustainable","Strict lane: personal brand only, no FlashFusion cross-promotion"],
+ tip:"1 post/month consistently beats 5 posts/month for 2 months then nothing.",
+ promptType:"here",
+ prompt:`Build a 6-month content calendar for kylerosebrook.com.
+
+AUDIENCE: Interested in memoir + AI (personal) + brain injury/recovery. NOT enterprise buyers.
+LANE: Strictly personal brand. No FlashFusion cross-promotion.
+VOICE: Same as memoir — no epiphanies, specific over general, letter-like.
+CONSTRAINT: 1 post/month minimum. Maintainable alongside full-time work.
+
+3 PILLARS:
+1. Memoir process — writing Construction Not Recovery, excavation sessions
+2. AI (personal angle) — how I use AI as an individual, not a consultant pitch
+3. Brain injury / cognitive recovery — the diagnostic instinct thread
+
+DELIVER:
+- 6 post titles with 2-sentence descriptions
+- Suggested publish month for each
+- 3 SEO long-tail keywords per pillar
+- Internal linking structure between pillars`
+}
+]},
+{id:"drive",label:"💾 D drive — BRICKED at 100%",badge:"b-fire",badgeTxt:"Emergency",tasks:[
+{id:"drive-triage",title:"Emergency triage — find what filled D drive and free space NOW",priority:"now",
+ steps:["Step 1: Run WinDirStat or PowerShell du to find the biggest folders — do this BEFORE deleting anything","Step 2: Quick wins (no-risk deletes): Recycle Bin, %TEMP%, Windows Temp, Downloads dupes","Step 3: Node modules — D:\\\\03_Development is likely full of node_modules folders eating GBs","Step 4: Build artifacts — .next/, dist/, build/, out/ folders across all projects","Step 5: Large files — check for accidental video/ISO/zip dumps","Target: free at least 10-15GB to get Windows functional again"],
+ alert:"D drive at 100% = Windows cannot write temp files. Everything is unstable until you free space. Do this before anything else.",
+ tip:"node_modules is almost always the culprit in a dev machine. One find command shows you every copy across all projects.",
+ promptType:"code",
+ prompt:`# EMERGENCY: D drive at 100% — find and kill the biggest space hogs
+
+# Step 1: Find largest folders (run in PowerShell as Admin)
+Get-ChildItem D:\\ -Directory -ErrorAction SilentlyContinue | ForEach-Object {
+    $size = (Get-ChildItem $_.FullName -Recurse -ErrorAction SilentlyContinue | Measure-Object -Property Length -Sum).Sum
+    [PSCustomObject]@{ Folder = $_.FullName; SizeGB = [math]::Round($size/1GB, 2) }
+} | Sort-Object SizeGB -Descending | Select-Object -First 20 | Format-Table -AutoSize
+
+# Step 2: Find ALL node_modules folders (guaranteed space hog)
+Get-ChildItem D:\\ -Recurse -Directory -Filter "node_modules" -ErrorAction SilentlyContinue |
+    Select-Object FullName, @{N="SizeGB";E={[math]::Round((Get-ChildItem $_.FullName -Recurse -ErrorAction SilentlyContinue | Measure-Object -Property Length -Sum).Sum/1GB,2)}} |
+    Sort-Object SizeGB -Descending
+
+# Step 3: Find build artifact folders
+Get-ChildItem D:\\ -Recurse -Directory -ErrorAction SilentlyContinue |
+    Where-Object { $_.Name -in @('.next','dist','build','out','.turbo','.cache','__pycache__','.pytest_cache') } |
+    Select-Object FullName
+
+# Step 4: Clear safe quick-wins (run each line separately, confirm before executing)
+# Clear Recycle Bin:
+Clear-RecycleBin -DriveLetter D -Force
+
+# Clear Windows temp:
+Remove-Item "$env:TEMP\\*" -Recurse -Force -ErrorAction SilentlyContinue
+
+# Step 5: After identifying node_modules — delete inactive project ones:
+# Remove-Item "D:\\03_Development\\Projects\\<project>\\node_modules" -Recurse -Force`
+},
+{id:"drive-node-modules",title:"Delete node_modules from inactive/parked projects",priority:"now",
+ steps:["node_modules can be 500MB-2GB per project — 20 projects = 10-40GB","Any project not actively running can have its node_modules deleted safely","npm install / pnpm install regenerates it in <2 min when you need it","Target: AffordableStuffStore, parked FlashFusion experiments, old Continuum branches","DO NOT delete from: AffordableStuffStoreAndroidReady if actively debugging, Continuum if mid-deploy"],
+ tip:"node_modules is never source code. It is always regenerable. Delete without guilt.",
+ pro:"Run the PowerShell find first so you know the size of each before deleting — pick biggest first.",
+ promptType:"code",
+ prompt:`# Safely nuke node_modules from inactive projects on D drive
+# These are regenerable with npm/pnpm install — not source code
+
+# Find all node_modules with sizes (PowerShell)
+$results = Get-ChildItem D:\\ -Recurse -Directory -Filter "node_modules" -ErrorAction SilentlyContinue |
+    ForEach-Object {
+        $size = (Get-ChildItem $_.FullName -Recurse -File -ErrorAction SilentlyContinue | Measure-Object Length -Sum).Sum
+        [PSCustomObject]@{
+            Path = $_.FullName
+            SizeGB = [math]::Round($size/1GB, 2)
+            Parent = $_.Parent.Name
+        }
+    } | Sort-Object SizeGB -Descending
+
+$results | Format-Table -AutoSize
+
+# Total space recoverable:
+$total = ($results | Measure-Object SizeGB -Sum).Sum
+Write-Host "Total node_modules space: $total GB"
+
+# To delete a specific one (confirm path first):
+# Remove-Item "D:\\03_Development\\Projects\\<ProjectName>\\node_modules" -Recurse -Force
+
+# To delete ALL node_modules under a specific parent folder (use with caution):
+# Get-ChildItem "D:\\03_Development\\Projects" -Recurse -Directory -Filter "node_modules" |
+#   Remove-Item -Recurse -Force`
+},
+{id:"drive-artifacts",title:"Delete build artifacts — .next, dist, build, .cache folders",priority:"now",
+ steps:["Build artifacts are safe to delete — regenerated on next build","Targets: .next/ (Next.js), dist/, build/, out/, .turbo/, .cache/, __pycache__","Each can be 200MB-1GB per project","Continuum alone may have a massive .next/ cache","Run the PowerShell find first to see sizes before deleting"],
+ tip:"Build artifacts are not source code. They regenerate on next npm run build.",
+ promptType:"code",
+ prompt:`# Find and delete build artifacts across D drive
+
+# Find all build artifact directories with sizes
+$artifactNames = @('.next','dist','build','out','.turbo','.cache','__pycache__','.pytest_cache','.parcel-cache','.vite')
+
+$artifacts = Get-ChildItem D:\\ -Recurse -Directory -ErrorAction SilentlyContinue |
+    Where-Object { $_.Name -in $artifactNames } |
+    ForEach-Object {
+        $size = (Get-ChildItem $_.FullName -Recurse -File -ErrorAction SilentlyContinue | Measure-Object Length -Sum).Sum
+        [PSCustomObject]@{
+            Type = $_.Name
+            Path = $_.FullName
+            SizeMB = [math]::Round($size/1MB, 0)
+        }
+    } | Sort-Object SizeMB -Descending
+
+$artifacts | Format-Table -AutoSize
+$total = ($artifacts | Measure-Object SizeMB -Sum).Sum
+Write-Host "Total recoverable: $([math]::Round($total/1024, 1)) GB"
+
+# Delete all found artifacts (review the list above first):
+# $artifacts | ForEach-Object { Remove-Item $_.Path -Recurse -Force -ErrorAction SilentlyContinue }`
+},
+{id:"drive-large-files",title:"Hunt large accidental files — video, ISO, zip dumps",priority:"now",
+ steps:["Find files >500MB that shouldn't be on a dev drive","Common culprits: downloaded ISOs, recordings, VM snapshots, large zip exports","PowerShell find command shows all files over your threshold","Delete or move to external storage / cloud"],
+ tip:"One accidental 10GB recording or ISO can be 30% of a 30GB drive. Find it first.",
+ promptType:"code",
+ prompt:`# Find large files on D drive — spot accidental dumps
+
+# Files over 500MB sorted by size
+Get-ChildItem D:\\ -Recurse -File -ErrorAction SilentlyContinue |
+    Where-Object { $_.Length -gt 500MB } |
+    Select-Object FullName,
+        @{N="SizeGB";E={[math]::Round($_.Length/1GB,2)}},
+        @{N="Extension";E={$_.Extension}},
+        LastWriteTime |
+    Sort-Object SizeGB -Descending |
+    Format-Table -AutoSize
+
+# Files over 100MB if nothing shows above
+Get-ChildItem D:\\ -Recurse -File -ErrorAction SilentlyContinue |
+    Where-Object { $_.Length -gt 100MB } |
+    Select-Object FullName,
+        @{N="SizeMB";E={[math]::Round($_.Length/1MB,0)}},
+        LastWriteTime |
+    Sort-Object SizeMB -Descending |
+    Select-Object -First 30 |
+    Format-Table -AutoSize`
+},
+{id:"drive-verify",title:"Verify D drive healthy after cleanup — check free space and Windows stability",priority:"now",
+ steps:["After deleting: check free space is at least 10-15% of total (target 15GB+ free on 30GB drive)","Run chkdsk if drive was at 100% for a while — filesystem may have errors","Confirm Windows Temp writes work again","Reboot if system was unstable during the full-disk period","Then and only then: proceed with the original tree/taxonomy audit"],
+ tip:"chkdsk /f /r on next reboot catches any corruption from the full-disk event.",
+ promptType:"code",
+ prompt:`# Verify D drive health after emergency cleanup
+
+# Check current free space
+Get-PSDrive D | Select-Object Name,
+    @{N="UsedGB";E={[math]::Round($_.Used/1GB,1)}},
+    @{N="FreeGB";E={[math]::Round($_.Free/1GB,1)}},
+    @{N="TotalGB";E={[math]::Round(($_.Used+$_.Free)/1GB,1)}},
+    @{N="UsedPct";E={[math]::Round($_.Used/($_.Used+$_.Free)*100,1)}}
+
+# Schedule chkdsk on next reboot (catches filesystem errors from full-disk event)
+chkdsk D: /f /r /x
+
+# Confirm Windows Temp dir is writable
+$testFile = "$env:TEMP\\write_test_$(Get-Random).tmp"
+[System.IO.File]::WriteAllText($testFile, "test")
+if (Test-Path $testFile) {
+    Write-Host "Temp writes: OK"
+    Remove-Item $testFile
+} else {
+    Write-Host "Temp writes: STILL BROKEN — reboot required"
+}
+
+# After confirming health: proceed with the taxonomy audit
+# Next step: Run tree /F > D:\\structure.txt for the proper cleanup`
+},
+{id:"drive-map",title:"Run full structure audit after recovery — taxonomy cleanup",priority:"soon",
+ steps:["BLOCKED until triage tasks above are done and drive has 15%+ free space","Run tree /F > D:\\\\structure.txt","Open in VS Code — mark where organization degrades","Paste sections here for taxonomy suggestions","Target taxonomy: active-build / parked / archive / client"],
+ tip:"Don't reorganize while the drive is in crisis. Triage first, taxonomy second.",
+ promptType:"code",
+ prompt:`# D drive structure audit (run AFTER recovery — drive must have 15%+ free)
+
+cd D:\\
+tree /F > D:\\structure.txt
+Write-Host "Structure saved to D:\\structure.txt — open in VS Code"
+
+# Then paste the contents back into Claude with this prompt:
+# "Here is my D drive structure after emergency cleanup.
+# Identify: (1) remaining bloat candidates, (2) obvious duplicates,
+# (3) recommended folder taxonomy for: Intinc / FlashFusion / Memoir / Personal / Archive.
+# Active projects in D:\\03_Development\\Projects that I know about:
+# - AffordableStuffStoreAndroidReady (active)
+# - Continuum (active, do not touch)
+# Flag anything that looks like it should be moved to cloud or deleted.
+# Do NOT suggest moving anything yet — map and annotate first."`
+},
+{id:"batch-clean",title:"Organize in small themed batches via CoWork",priority:"later",
+ steps:["Only after drive is recovered and mapped","One category at a time: Intinc | FlashFusion | Memoir | Personal","Zip that folder only — NOT the whole drive","Upload to CoWork → Claude reorganizes in session → download + manually replace"],
+ tip:"Whole-drive uploads hit memory limits. One category per session.",
+ pro:"Start with FlashFusion — most active, highest ROI.",
+ promptType:"here",
+ prompt:`I'll zip and upload one D drive folder category for reorganization.
+
+TAXONOMY: active-build / parked / archive / client
+RULE: don't rename files inside projects — folder level only
+
+When I upload a zip:
+1. List contents (folder names, rough depth)
+2. Suggest reorganized structure using the taxonomy
+3. Flag duplicates or orphans
+4. Show before/after as a tree diff
+5. Produce a PowerShell script to apply locally
+
+Uploading FlashFusion folder first.`
+}
+]},
+{id:"superclaude",label:"⚙️ SuperClaude Framework",badge:"b-day",badgeTxt:"OSS framework",tasks:[
+{id:"sc-verify",title:"Re-verify status — docs stale (Oct 2025 vs v4.1.9 README)",priority:"now",
+ steps:["STATUS/ROADMAP/TASKS all dated 2025-10-14, v4.1.5","README says v4.1.9 with 30 commands — newer","Run: git log --oneline -20 to see what shipped","Update PROJECT_STATUS.md before planning further work"],
+ alert:"Every progress % in this section is from Oct 2025. Unverified.",
+ tip:"Same stale-state pattern as PROJECT_STATE.md and InVelo dates.",
+ promptType:"code",
+ prompt:`# Reconcile SuperClaude status vs actual repo
+cd /path/to/superclaude  # update with actual path
+
+# Check actual version
+grep -i "version\\|v4\\." README.md
+
+# What shipped since stale docs (Oct 14, 2025)
+git log --oneline --since="2025-10-14" --format="%h %as %s"
+
+# Phase 1 docs exist?
+ls -la docs/
+git log --oneline -- "docs/pm-agent-integration.md" 2>/dev/null
+
+# Phase 2 implementation?
+ls -la superclaude/Core/ 2>/dev/null
+
+# Output: current version | commits since Oct 14 | Phase 1 doc status | Phase 2 file status
+# Then: draft updated PROJECT_STATUS.md`
+},
+{id:"sc-phase1",title:"Close Phase 1 — write pm-agent-integration.md + commit",priority:"now",
+ steps:["Phase 1 was 66% per Oct 2025","Remaining: pm-agent-integration.md (final Phase 1 doc)","Commit Phase 1 docs as foundation checkpoint","Commit PM Agent Mode improvements (Commands/pm.md, Agents/pm-agent.md)"],
+ tip:"Phase 1 is docs only — closeable in one session.",
+ pro:"Check git log first. If already committed, this collapses to just updating the dashboard.",
+ promptType:"code",
+ prompt:`# Close SuperClaude Phase 1
+
+# Check if already done
+find . -name "pm-agent-integration.md" 2>/dev/null
+git log --oneline -- "docs/pm-agent-integration.md" 2>/dev/null
+
+# If not done, create pm-agent-integration.md covering:
+# - How PM Agent integrates with Claude Code sessions
+# - PDCA cycle as implemented
+# - Session lifecycle: start → work → review → close
+# - Memory operations flow
+# - Integration points with other SuperClaude commands
+
+# Reference existing design docs:
+cat Commands/pm.md 2>/dev/null
+cat Agents/pm-agent.md 2>/dev/null
+
+# Commit Phase 1
+git add docs/
+git commit -m "docs: complete Phase 1 — add pm-agent-integration.md"
+
+# Update PROJECT_STATUS.md to mark Phase 1 complete`
+},
+{id:"sc-phase2",title:"Phase 2: implement PM Agent core — 3 modules + tests",priority:"soon",
+ steps:["Build superclaude/Core/session_lifecycle.py","Build superclaude/Core/pdca_engine.py","Build superclaude/Core/memory_ops.py","Unit tests for each (currently 0% coverage)","Integration test full PM Agent flow"],
+ tip:"Design is done. No-placeholder rule — full implementations only.",
+ pro:"ReflexionMemory already works — wire memory_ops.py to it, don't reinvent persistence.",
+ promptType:"code",
+ prompt:`# Build SuperClaude Phase 2 — PM Agent core modules
+# Design complete. Pure implementation.
+
+# MODULE 1: session_lifecycle.py
+# start_session() | get_current_session() | close_session()
+# State: .superclaude/sessions/ directory
+
+# MODULE 2: pdca_engine.py
+# create_plan() | record_action() | check_outcome() | adapt_plan()
+# Output: structured PDCA log per session
+
+# MODULE 3: memory_ops.py
+# store_learning() | retrieve_relevant() | update_error_pattern()
+# Wire to ReflexionMemory — do NOT reinvent persistence
+
+# Steps:
+# 1. Read Commands/pm.md and Agents/pm-agent.md for interface contracts
+# 2. Build each module with full type hints + docstrings
+# 3. Write pytest unit tests (target 80%+ coverage)
+# 4. Write one integration test across all 3 modules
+# 5. Update User-Guide/pm-agent.md with usage examples`
+},
+{id:"sc-serena",title:"Phase 3: configure Serena MCP — single critical blocker",priority:"blocked",
+ steps:["Serena MCP NOT configured — blocks all of Phase 3","Phase 3 = memory ops + cross-session persistence","Configure Serena MCP server","Build serena_client.py wrapper + think_operations.py (3 hooks)","Test cross-session persistence and multi-project memory isolation"],
+ tip:"7/8 MCPs already work. Serena is one connection from unblocking an entire phase.",
+ promptType:"code",
+ prompt:`# Configure Serena MCP and build Phase 3 client
+
+# Step 1: Add Serena to Claude Code config (.claude/settings.json):
+# "serena": { "command": "uvx", "args": ["--from", "serena", "serena-mcp-server"], "env": {"PROJECT_ROOT": "."} }
+
+# Step 2: Verify Serena responds (test: list project symbols)
+
+# Step 3: Build superclaude/Core/serena_client.py
+# get_symbols() | search_code() | get_context_for_file()
+# Handle: connection errors, timeouts, empty responses
+
+# Step 4: Build superclaude/Core/think_operations.py
+# think_before_action() — pre-action reasoning capture
+# think_during_review() — mid-task state assessment
+# think_after_outcome() — post-action learning extraction
+
+# Step 5: Integration tests
+# - Close session, reopen, verify memory persists
+# - Two projects, verify memories don't leak between them`
+},
+{id:"sc-phase5",title:"Phase 5: research auto-activation hook feasibility",priority:"decide",
+ steps:["Goal: PM Agent auto-activates at every Claude Code session start","Unknown: does Claude Code support init hooks?","This is a research task, not implementation","If hooks don't exist: find alternative mechanism or park the goal"],
+ tip:"Don't roadmap Phase 5 implementation until this is answered.",
+ promptType:"here",
+ prompt:`Research: does Claude Code support init hooks or session-start automation?
+
+GOAL: PM Agent auto-activates at the beginning of every Claude Code session — no manual invocation
+CURRENT: manual activation only
+
+RESEARCH:
+1. Does Claude Code have any init/startup hook or session lifecycle event?
+2. Does CLAUDE.md support any directive that fires at session start?
+3. Is there a hooks system in the Claude Code plugin/skill architecture?
+4. Community workarounds for auto-activation (alias, shell script, IDE integration)?
+5. How do Cursor/Copilot handle persistent agent activation?
+
+DELIVER:
+- Finding: hooks exist / don't / partial
+- If they exist: how to use for auto-activation
+- If they don't: 3 alternative approaches with tradeoffs
+- Recommendation for Phase 5 given findings`
+}
+]},
+{id:"agents",label:"🤖 Claude Agents Console",badge:"b-info",badgeTxt:"Platform",tasks:[
+{id:"agents-ready",title:"Deploy ~30 immediately-deployable agents",priority:"now",
+ steps:["40 total templates — ~30 MCPs connected and ready","Priority: Weekly Status Report Builder, Deal Stall Detector, Code Review Automator","Deploy via platform.claude.com (YAML: managed-agents-2026-04-01)","Validate ONE end-to-end before batch deploying","Read-only → always_allow. Write/delete → always_ask."],
+ tip:"agent_toolset_20260401 must be FIRST in tools array. mcp_servers name must exactly match mcp_toolset reference — binds silently wrong if they differ.",
+ promptType:"here",
+ prompt:`Help me deploy the first batch of agents from my Claude Agents Console library.
+
+40 agent templates — ~30 deployable now (MCPs connected).
+YAML schema: managed-agents-2026-04-01
+Critical: agent_toolset_20260401 must be FIRST in tools array
+Critical: mcp_servers name must exactly match mcp_toolset reference
+
+PRIORITY FIRST:
+1. Weekly Status Report Builder
+2. Deal Stall Detector
+3. Code Review Automator
+4. Deployment Monitor
+
+DELIVER:
+1. Full YAML for Weekly Status Report Builder (no placeholders)
+2. Step-by-step deploy at platform.claude.com
+3. Validation test to confirm it works end-to-end
+4. After confirmation: next 5 highest-leverage agents to batch-deploy
+5. Permission model for each (read-only → always_allow, write/delete → always_ask)`
+},
+{id:"agents-blocked",title:"Connect GitLab / Datadog / Mailchimp — unblock 6 agents",priority:"blocked",
+ steps:["6 agents blocked: need GitLab, Datadog, Mailchimp MCPs","GitLab: https://gitlab.com/api/v4/mcp","Datadog: https://mcp.datadoghq.com/api/unstable/mcp-server/mcp","Mailchimp: https://ai-inc.mailchimp.com/claude/mcp/v2","Skip Monday.com, Similarweb, Close, Tropic — not in use"],
+ promptType:"here",
+ prompt:`Connect 3 MCP servers to unblock 6 agents.
+
+1. GitLab — https://gitlab.com/api/v4/mcp
+2. Datadog — https://mcp.datadoghq.com/api/unstable/mcp-server/mcp
+3. Mailchimp — https://ai-inc.mailchimp.com/claude/mcp/v2
+
+For each:
+1. Connection process in Claude settings
+2. Credentials/tokens needed before connecting
+3. Verification after setup
+4. Which of the 6 blocked agents does this unlock?
+
+After all 3: re-run deployability check.`
+},
+{id:"agents-callable",title:"Request callable_agents research preview access",priority:"soon",
+ steps:["callable_agents = multi-agent orchestration, research preview","Requires separate access request","Chains to design: Lead Enrichment → Deal Stall Detector → Weekly Status","Hold orchestration design until access granted"],
+ promptType:"here",
+ prompt:`Help me request callable_agents research preview access and design the first agent chain.
+
+CHAINS I WANT TO BUILD:
+- Lead Research → Lead Enrichment → Deal Stall Detector (sales)
+- Code Review → Deployment Monitor → Weekly Status Report (engineering)
+
+DELIVER:
+1. Current access request path for callable_agents
+2. Draft access request message
+3. Estimated timeline to access
+4. While waiting: design the data handoff contract for Lead Research → Lead Enrichment chain`
+},
+{id:"agents-skills-map",title:"Map SKILL.md → agents skills: field",priority:"soon",
+ steps:["Open gap: how does a Cowork SKILL.md attach to an agent's skills array?","Test with one known-good skill from the 50-skill library","Document the mapping — then all 50 skills become agent capabilities","This bridges the two biggest built assets"],
+ tip:"One documented mapping unlocks both the skills library and the agents console.",
+ promptType:"here",
+ prompt:`Map my Cowork SKILL.md format to the Claude Agents Console skills: field.
+
+MY SKILL.MD: frontmatter (name, description, version under metadata, triggers) + body (activation conditions, decision tree, instructions)
+
+QUESTIONS:
+1. What does the skills: field in a managed agent YAML expect?
+2. Is it reference-based or value-based?
+3. Can I point directly at a SKILL.md path, or does it need transformation?
+4. Show minimum viable mapping using "generating-social-posts" skill as the example
+5. Write the documented pattern so I can batch-apply to all 50 skills`
+},
+{id:"agents-builder",title:"Ship Agent Builder as a productized tool",priority:"later",
+ steps:["claude_agent_builder.html works — generates deployable agent configs from description","Features: seed templates, system-prompt improver, MCP suggester, JSON export","Decide distribution: client deliverable | FlashFusion product | InVelo component | open source"],
+ tip:"Another built asset waiting on a go-to-market decision.",
+ pro:"Builder + 40-template library + skills mapping = complete 'agent factory' offering. Stronger as a bundle.",
+ promptType:"here",
+ prompt:`Help me decide how to distribute the Agent Builder and write the product description.
+
+THE TOOL: claude_agent_builder.html — user describes an automation, AI generates a full deployable Claude agent config. Features: seed templates, system-prompt improver, MCP suggester, JSON export.
+
+OPTIONS:
+A. Client deliverable — in the $4,500 Invoke retainer
+B. FlashFusion product — standalone paid tool
+C. InVelo component — part of AIaaS delivery stack
+D. Open source — GitHub + hosted version upsell
+
+DELIVER:
+1. Evaluate each option: pros, cons, revenue, effort
+2. Recommend primary + secondary path
+3. Product description for the recommended path (3-4 sentences)
+4. Landing page headline + sub-headline
+5. Single thing needed before any distribution path can launch`
+}
+]},
+{id:"invelo",label:"🚀 InVelo / AIaaS leadership track",badge:"b-rev",badgeTxt:"Strategy",tasks:[
+{id:"invelo-pitch-outcome",title:"Confirm InVelo leadership pitch outcome",priority:"decide",
+ steps:["Planning docs reference a Wednesday pitch — that date has passed","Reconstruct: did it happen? What was approved?","Daniel's ask had 3 parts: pitch approval + HumanX budget + governance authority","Update PROJECT_STATE.md before planning further"],
+ tip:"The whole InVelo roadmap branches off this answer. Don't plan on a question mark.",
+ promptType:"here",
+ prompt:`Help me reconstruct the InVelo leadership pitch outcome.
+
+CONTEXT:
+- Pitch planned for Dave Linderman, Jackie Miles, Gwen — date has passed
+- Daniel Bell's ask had 3 parts: (1) approval to pitch, (2) HumanX budget ($10-12K, April 7-9 — this happened), (3) authority to build governance framework
+
+DELIVER:
+1. Questions to ask myself to determine which of 3 parts landed
+2. Next 3 steps if approved
+3. Revised approach if not approved/rescheduled
+4. PROJECT_STATE.md update template for each outcome`
+},
+{id:"humanx-debrief",title:"HumanX debrief — 3 deliverables owed to leadership",priority:"now",
+ steps:["HumanX was April 7-9 (Kyle + Dave) — has happened","3 deliverables: Market Positioning Report, Upgrade Path Blueprint, Strategy Validation","These justify the $10-12K spend — leadership will expect them","Use CSUITE_DECK_GENERATOR_METAPROMPT.md for the Market Positioning Report"],
+ alert:"$10-12K spent. Three deliverables owed. Undelivered = damaged credibility for next budget ask.",
+ promptType:"here",
+ prompt:`You are my INT AI strategist. Help me produce the three HumanX post-conference deliverables.
+
+CONTEXT: HumanX April 7-9, 2026, Moscone Center SF. I attended with Dave Linderman. Budget: $10-12K.
+AUDIENCE: Daniel Bell, Dave Linderman, INT leadership.
+
+THREE DELIVERABLES:
+
+1. MARKET POSITIONING REPORT (1-2 page exec brief)
+   Where does INT sit in the AI enablement market after HumanX?
+
+2. UPGRADE PATH BLUEPRINT (visual, 3-4 stages)
+   INT clients' path from current AI usage to advanced agentic capability
+
+3. STRATEGY VALIDATION (1-page decision memo)
+   Does InVelo's time-boxed model match what the market wants? What adjustments?
+
+For each: ask me 3 questions to gather raw material, then draft.
+Start with: Market Positioning Report — first question now.`
+},
+{id:"invelo-governance",title:"Build InVelo governance framework (Strict Mode + Exit Code 2)",priority:"soon",
+ steps:["Strict Mode: strict typing/null checks on all agent-produced code","Exit Code 2: blocking error — agents can't fake test passes or edit test scripts","Document safe-deployment boundary (always_allow | always_ask | prohibited)","Part 3 of Daniel's ask — authority to build this framework","Package as reusable doc for InVelo client engagements"],
+ tip:"Build once, reuse across InVelo AND enablement consulting clients.",
+ pro:"Strict Mode + Exit Code 2 is your moat. Sellable as responsible deployment vs browser-use cowboys.",
+ promptType:"here",
+ prompt:`Build the InVelo governance framework document.
+
+COMPONENTS:
+
+1. STRICT MODE PROTOCOL
+   - Definition, technical enforcement (linter config, CI gate), rationale
+
+2. EXIT CODE 2 POLICY
+   - Definition, rule (agents cannot edit test scripts or skip tests), CI pipeline enforcement, rationale
+
+3. SAFE DEPLOYMENT BOUNDARY
+   - always_allow tier | always_ask tier | prohibited tier
+   - Human-in-the-loop checkpoints
+
+4. CLIENT-FACING SUMMARY (1 page)
+   - What governance means in an InVelo engagement
+   - Client vs INT responsibilities
+   - How to audit for governance compliance
+
+Format: internal reference doc + client-facing one-pager`
+},
+{id:"invelo-beta",title:"InVelo beta launch — Tier-1 enterprise clients",priority:"later",
+ steps:["Prereqs: 500+ skills, governance framework done, HumanX validation in hand","Time-boxed engagements: days-to-weeks, not retainers","Delivery docs: PRD + architecture.md + feature.json per engagement","First beta client from existing enablement pipeline"],
+ tip:"Low-risk discrete wins first. Prove before committing.",
+ promptType:"here",
+ prompt:`Design the InVelo beta launch package.
+
+MODEL: Time-boxed, discrete AI engagements. Differentiator: governance-first, portable skills, anti-lock-in.
+
+DELIVER:
+1. Beta offer: what a Tier-1 client gets, timeline, price range, expected outcome
+2. Week 1-4 engagement structure
+3. 3 delivery docs per engagement: PRD | architecture.md | feature.json — what goes in each
+4. Selection criteria for first 3 beta clients
+5. Beta client pitch email (3 paragraphs: problem, solution, the ask)`
+}
+]},
+{id:"training",label:"🎓 Anthropic certification curriculum",badge:"b-info",badgeTxt:"Learning",tasks:[
+{id:"cert-path",title:"Follow 4-course cert path in order — don't skip to Claude Code",priority:"soon",
+ steps:["Course 1: Claude API Fundamentals","Course 2: Intro to MCP","Course 3: Advanced MCP Topics — enterprise security, session mgmt, firewall","Course 4: Claude Code in Action","Rule: API mastery is the prerequisite — it's what lets you debug Claude Code behavior"],
+ tip:"You'll want to skip to Course 4. Do them in order.",
+ pro:"This path IS your enablement curriculum spine — security cert client + INT team can follow the same progression.",
+ promptType:"here",
+ prompt:`Build a completion roadmap for the 4-course Anthropic certification path.
+
+COURSES (required order):
+1. Claude API Fundamentals
+2. Intro to Model Context Protocol
+3. Advanced MCP Topics (enterprise security, session mgmt, firewall config)
+4. Claude Code in Action
+
+MY CONSTRAINTS: ~1hr/day. Full-time SE + consulting. Strong on prompting; gaps on programmatic API + MCP implementation.
+
+DELIVER:
+1. Time-to-complete estimate per course given my background
+2. Top 3 must-not-skip concepts per course (given my use cases)
+3. 8-week schedule completing all 4
+4. One practical project per course that doubles as a consulting asset
+5. Where curriculum overlaps with Claude Certified Architect exam gaps (consolidate study)`
+},
+{id:"epb-tool",title:"Operationalize the EPB Use Case Discovery tool",priority:"soon",
+ steps:["EPB v3 built — generates use cases by role/industry/maturity + Shadow AI risk score","Shadow AI >= 50 already links to InVelo SafeStart","Wire into Invoke funnel as free top-of-funnel entry","Test end-to-end with one real prospect profile"],
+ tip:"Built asset doing nothing. Natural top-of-funnel for Invoke and InVelo.",
+ pro:"Shadow AI score quantifies a fear the buyer already has, then routes to your offer.",
+ promptType:"here",
+ prompt:`Help me operationalize the EPB Use Case Discovery tool into the Invoke funnel.
+
+EPB v3: generates Anthropic use cases by role/industry/maturity + Shadow AI risk score
+Shadow AI >= 50 already links to "InVelo SafeStart" CTA
+Invoke funnel: free EPB → FreeAssessment → $1,500 audit → $4,500 retainer
+
+INTEGRATION:
+EPB becomes the free entry point → routing based on score
+
+DELIVER:
+1. Score routing thresholds:
+   - Shadow AI < 30: route to FreeAssessment
+   - Shadow AI 30-50: route to $1,500 audit booking
+   - Shadow AI > 50: route to InVelo SafeStart
+2. Copy for each routing outcome (what user sees after their score)
+3. Changes needed in Base44 app 69c440b10249984f1114bc4b to enable routing
+4. End-to-end test script: fake prospect profile → confirm right CTA fires`
+}
+]},
+{id:"decisions",label:"🟣 Open decisions — resolve to unblock",badge:"b-info",badgeTxt:"Decide",tasks:[
+{id:"d-backlog-batch",title:"Backlog project — decide status on 4 parked items",priority:"decide",
+ steps:["Ascend AI (deal sourcing platform) — was active alongside other B44 builds. Continue, park, or archive?","WebnfloW (AI website builder) — hosting architecture work was in progress. Continue or park?","FlashFusion Agent Stack v1.9.9 — ff-agent-stack-v199 skill is active. Which phase (0-4) is next, resume when capacity allows.","Vibe coding workshop (90-min sessions, non-technical audiences) — was in development. Active or parked?","All 4 sitting at P4 in Todoist — genuinely low urgency, but each is an open question with no resolution date"],
+ tip:"This doesn't need deep analysis — a fast yes/no/park pass on all 4 clears real mental overhead for cheap.",
+ promptType:"here",
+ prompt:`Help me triage 4 parked Backlog-project items with a fast continue/park/archive call on each.
+
+1. ASCEND AI — deal sourcing platform. Was active alongside other Base44 builds. What's the current relevance given everything else now shipping (Invoke, SparkAcademy, INTeract)? Continue, park, or archive?
+
+2. WEBNFLOW — AI website builder. Hosting architecture work was in progress. Given Flash-n-Frame and other active platform work, does this still have a distinct lane? Continue or park?
+
+3. FLASHFUSION AGENT STACK v1.9.9 — a phased build pipeline (Phase 0-4), with an active skill (ff-agent-stack-v199) already built to support it. Which phase is genuinely next, and does it still fit priority-wise against Claude Agents Console work already underway?
+
+4. VIBE CODING WORKSHOP — 90-minute private-pilot sessions for non-technical audiences. Was in development. Does this still fit the current consulting funnel (Invoke/SOW work), or has that consolidated elsewhere?
+
+For each: one paragraph max — current relevance, recommended status (continue/park/archive), and if continue, the single next action.`
+},
+{id:"d-battlefield",title:"Startup Battlefield 200 — resolve remaining partial blockers",priority:"decide",
+ steps:["Submission kit built (battlefield-submission-kit.html)","4 blockers moved from ✗ blocked to ~ partial as of Jun 10 — meaning progress happened but they're not fully cleared","Need to identify: what specifically remains on each of the 4 partial blockers, and whether the submission window is still open","This whole workstream isn't tracked anywhere else in this list — surfaced fresh from the session-handoff project"],
+ tip:"Partial isn't done. Get the specific remaining gap on each of the 4 before deciding whether to push for submission.",
+ promptType:"here",
+ prompt:`You are my startup competitions strategist. Help me resolve the remaining Startup Battlefield 200 blockers.
+
+CONTEXT:
+- Submission kit already built: battlefield-submission-kit.html
+- As of Jun 10, 4 blockers moved from fully blocked to partially resolved — not done
+- This needs: current-state assessment, verified alt-competition windows, and an actionable sequencing roadmap (Q3 2026 → Q4 → Q1 2027 Battlefield, per the kit's own structure)
+
+TASK:
+1. Ask me what the 4 original blockers were and what "partial" means for each right now
+2. For each: what's the SPECIFIC remaining gap to close it fully?
+3. Confirm whether the Startup Battlefield 200 submission window is still open, or if Q1 2027 is now the realistic target
+4. If the window is closed or unrealistic: what's the next-best alt-competition from the kit's table?
+5. Give me a sequencing recommendation — is this worth prioritizing against everything else on the plate right now, or should it stay parked until other P1 items clear?`
+},
+{id:"d-lee",title:"Lee Chong Ming pitch — killed vs still live?",priority:"decide",
+ steps:["Status genuinely unclear — clarify before any action","He is HE/HIM (corrected)","If alive: prereqs = kylerosebrook.com live + playbook URL published","If killed: update records and close"],
+ promptType:"here",
+ prompt:`Resolve the status of a potential pitch to Lee Chong Ming.
+
+HE/HIM. Status unclear — I don't know if this is being pursued or was abandoned.
+Prerequisites if alive: kylerosebrook.com live and indexed + playbook URL published.
+
+DELIVER:
+1. 3 questions to clarify if this pitch is alive or dead
+2. If alive: pitch approach (the ask, the value, how to open)
+3. If killed: 2-sentence record update
+4. Minimum prereq check before spending any time on this`
+},
+{id:"d-demo",title:"Confirm FlashFusion Demo Day (Apr 18) outcome",priority:"decide",
+ steps:["Demo Day was April 18 — outcome unknown in records","Sprint v1.9.9 closed Apr 13","Reconstruct: was demo env tested? Discovery calls booked?","Update PROJECT_STATE.md"],
+ tip:"Backward-looking gap. Don't build on a question mark.",
+ promptType:"here",
+ prompt:`Help me reconstruct and document the FlashFusion Demo Day outcome.
+
+Demo Day was April 18, 2026. Sprint v1.9.9 closed April 13 (prep done). Outcome not documented.
+
+3 possible outcomes:
+A: Demo ran, discovery calls booked
+B: Demo ran, no calls booked
+C: Demo didn't run
+
+DELIVER:
+1. Questions to determine which outcome occurred
+2. PROJECT_STATE.md update template for each outcome
+3. Next sprint goal for each outcome
+4. What pattern is causing these backward-looking gaps — suggest a 2-minute closing ritual to prevent it`
+},
+{id:"d-chaos",title:"Chaos Club — PWA micro-app vs B2B/EAP",priority:"decide",
+ steps:["Lane locked: peer support only — NOT music/lyrics","Option A: consumer PWA — faster, lower revenue ceiling","Option B: B2B/EAP — slower, higher ceiling, compliance required","Solo operator, limited time, ~$1K budget — pick one"],
+ tip:"Don't build both. The lane is clear. The business model is the open question.",
+ promptType:"here",
+ prompt:`Build the decision brief for Chaos Club product direction.
+
+LANE LOCKED: mental health / peer support. NOT music.
+
+OPTION A: Consumer PWA
+- Mobile-first peer support app, freemium, subscriptions
+- Faster to build (Base44 MVP first, React 19/Firebase/Cloudflare R2 later)
+
+OPTION B: B2B/EAP (Employee Assistance Program)
+- White-label peer support sold to employers per-seat
+- Slower, needs compliance, clinical validation pathway
+- Entrenched competitors (Lyra, Modern Health, Spring Health)
+
+MY CONSTRAINTS: Full-time job + consulting + memoir. ~$1K. Solo operator.
+
+DELIVER: 1-page decision brief, pros/cons for each, recommended path with rationale. Don't hedge.`
+},
+{id:"d-plugins",title:"claude-code-plugins-plus — distribution strategy",priority:"decide",
+ steps:["244-plugin Claude Code catalog — already built (github.com/Krosebrook/claude-code-plugins-plus)","Options: marketplace | bundle into consulting | open source + upsell | InVelo component","Built asset waiting on go-to-market decision — not more building"],
+ promptType:"here",
+ prompt:`Decide distribution strategy for claude-code-plugins-plus (244 Claude Code plugins).
+
+GitHub: github.com/Krosebrook/claude-code-plugins-plus
+
+OPTIONS:
+A. skills.sh or equivalent marketplace — per-install revenue
+B. Bundle into Invoke retainer as deliverable
+C. Open source + hosted managed install upsell
+D. InVelo component
+
+DELIVER:
+1. Does a skills.sh equivalent marketplace exist for Claude Code plugins as of May 2026? (search if needed)
+2. Evaluate each option: revenue, effort, fit
+3. Recommend primary + secondary path
+4. README header for the recommended path (3-4 sentences, developer-audience)
+5. Single thing needed before any path can launch`
+},
+{id:"d-songs",title:"8 completed songs — distribution path",priority:"decide",
+ steps:["8 tracks completed","Lane rule: NOT a Chaos Club product","Options: DistroKid/DSP release | separate artist name | shelve | kylerosebrook.com content","Keep separation from consulting/memoir brand"],
+ promptType:"here",
+ prompt:`Decide what to do with 8 completed original songs.
+
+LANE RULE: These are NOT Chaos Club products (Chaos Club = peer support).
+BRAND CONCERN: Need to consider fit with consulting/memoir personal brand.
+
+OPTIONS:
+A. DistroKid release under my own name
+B. Separate artist name (decoupled from consulting brand)
+C. Shelve indefinitely
+D. kylerosebrook.com content strategy
+E. Chaos Club ambient content (without Chaos Club branding)
+
+DELIVER:
+1. Minimum viable release path if I wanted one song live in 30 days
+2. Own name vs artist name vs anonymous — recommendation
+3. Does releasing music help or hurt the consulting/memoir brand? (be direct)
+4. Recommended path with one-sentence rationale
+5. DistroKid cost/effort for 8 tracks`
+},
+{id:"d-kinsley",title:"Kinsley app — set a window for the full spec",priority:"decide",
+ steps:["Personal lane — fully separate from FlashFusion and Intinc","No spec exists yet","Needs a realistic window given full-time work + Friday custody (hard stop 1pm)","Even a one-page spec is the starting point"],
+ tip:"This will keep getting displaced if you don't give it a date.",
+ promptType:"here",
+ prompt:`Help me scope and schedule the Kinsley app.
+
+CONTEXT: Personal project — an app for/with my daughter Kinsley. Friday = custody day (hard stop 1pm). No full spec exists yet. Fully separate from FlashFusion and INT.
+
+DELIVER:
+1. Ask me 5 questions about what the app does, for whom, what would make it feel right
+   (I'll answer, then you write the one-page spec)
+2. Realistic build window given my constraints
+3. Stack recommendation (bonus if Kinsley could eventually understand or participate)
+4. Is there a version buildable WITH her on a Friday afternoon?
+5. Write the "why I'm building this" paragraph — the one I'd want Kinsley to read someday`
+}
+]}
+];
+
+let checks={},openS={},openT={},filterP='all';
+DATA.forEach(s=>openS[s.id]=true);
+
+function copyPrompt(id,btn){
+  const task=DATA.flatMap(s=>s.tasks).find(t=>t.id===id);
+  if(!task||!task.prompt)return;
+  navigator.clipboard.writeText(task.prompt).then(()=>{
+    btn.textContent='✓ Copied';btn.classList.add('copied');
+    setTimeout(()=>{btn.textContent='Copy';btn.classList.remove('copied')},2000);
+  }).catch(()=>{
+    const ta=document.createElement('textarea');
+    ta.value=task.prompt;document.body.appendChild(ta);ta.select();
+    document.execCommand('copy');document.body.removeChild(ta);
+    btn.textContent='✓ Copied';btn.classList.add('copied');
+    setTimeout(()=>{btn.textContent='Copy';btn.classList.remove('copied')},2000);
+  });
+}
+
+function setFilter(f,el){
+  filterP=f;
+  document.querySelectorAll('.fchip').forEach(c=>c.classList.remove('active'));
+  el.classList.add('active');render();
+}
+function taskVisible(t){return filterP==='all'||t.priority===filterP}
+
+function render(){
+  const app=document.getElementById('app');
+  let html='',totalAll=0,totalDone=0,cNow=0,cSoon=0,cBlocked=0,cDecide=0,cDone=0;
+  DATA.forEach(sec=>{
+    const visible=sec.tasks.filter(t=>taskVisible(t));
+    sec.tasks.forEach(t=>{
+      if(t.priority==='now')cNow++;
+      else if(t.priority==='soon')cSoon++;
+      else if(t.priority==='blocked')cBlocked++;
+      else if(t.priority==='decide')cDecide++;
+      if(checks[t.id])cDone++;
+    });
+    totalAll+=sec.tasks.length;
+    totalDone+=sec.tasks.filter(t=>checks[t.id]).length;
+    if(!visible.length)return;
+    const done=sec.tasks.filter(t=>checks[t.id]).length;
+    const pct=sec.tasks.length?Math.round(done/sec.tasks.length*100):0;
+    const isOpen=openS[sec.id];
+    html+=`<div class="section"><div class="sec-hdr" onclick="toggleS('${sec.id}')"><h2>${sec.label}</h2><span class="badge ${sec.badge}">${sec.badgeTxt}</span><span class="sec-count">${done}/${sec.tasks.length}</span><span class="chevron${isOpen?' open':''}">▾</span></div><div class="progress"><div class="pbar" style="width:${pct}%"></div></div><div class="tasks${isOpen?' open':''}">`;
+    visible.forEach(task=>{
+      const isDone=!!checks[task.id],isTaskOpen=!!openT[task.id];
+      const m={now:'t-now Now',soon:'t-soon Soon',blocked:'t-blocked Blocked',decide:'t-decide Decide',later:'t-later Later'};
+      const parts=(m[task.priority]||'t-later Later').split(' ');
+      const pType=task.promptType==='here'?'here':'code';
+      const pLabel=task.promptType==='here'?'🟣 Fire here — Claude.ai':'🟢 Copy to Claude Code';
+      html+=`<div class="task"><div class="task-hdr" onclick="toggleT('${task.id}')"><div class="chk${isDone?' done':''}" onclick="event.stopPropagation();toggleDone('${task.id}')"></div><span class="ttl${isDone?' done':''}">${task.title}</span><span class="tag ${parts[0]}">${parts[1]}</span><span class="chevron${isTaskOpen?' open':''}">▾</span></div><div class="task-body${isTaskOpen?' open':''}"><div class="steps">`;
+      task.steps.forEach(s=>html+=`<div class="step">${s}</div>`);
+      html+='</div>';
+      if(task.alert)html+=`<div class="alert">⚠ ${task.alert}</div>`;
+      if(task.tip)html+=`<div class="tip">💡 ${task.tip}</div>`;
+      if(task.pro)html+=`<div class="pro">⚡ ${task.pro}</div>`;
+      if(task.prompt){
+        const escaped=task.prompt.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+        html+=`<div class="prompt-box"><div class="prompt-label ${pType}">${pLabel}<button class="copy-btn" onclick="event.stopPropagation();copyPrompt('${task.id}',this)">Copy</button></div><div class="prompt-text">${escaped}</div></div>`;
+      }
+      html+='</div></div>';
+    });
+    html+='</div></div>';
+  });
+  app.innerHTML=html;
+  document.getElementById('total-done').textContent=totalDone;
+  document.getElementById('total-all').textContent=totalAll;
+  document.getElementById('s-now').textContent=cNow;
+  document.getElementById('s-soon').textContent=cSoon;
+  document.getElementById('s-blocked').textContent=cBlocked;
+  document.getElementById('s-decide').textContent=cDecide;
+  document.getElementById('s-done').textContent=cDone;
+}
+function toggleS(id){openS[id]=!openS[id];render()}
+function toggleT(id){openT[id]=!openT[id];render()}
+function toggleDone(id){checks[id]=!checks[id];render()}
+render();
+</script>
+</body>
+</html>

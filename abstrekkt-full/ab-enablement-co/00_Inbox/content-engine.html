@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Content Engine — FlashFusion</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400&family=Fraunces:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+  /* ── FlashFusion Design Tokens ─────────────────────────────────────────── */
+  :root {
+    --surface-base:    #0F0618;
+    --surface-raised:  #1A0B2E;
+    --glass-bg:        rgba(15,6,24,0.6);
+    --border-primary:  rgba(168,85,247,0.2);
+    --border-active:   rgba(168,85,247,0.4);
+    --accent-primary:  #A855F7;
+    --accent-pink:     #F472B6;
+    --accent-cyan:     #22D3EE;
+    --gradient-accent: linear-gradient(90deg,#A855F7 0%,#F472B6 55%,#22D3EE 100%);
+    --glow-primary:    0 0 20px rgba(168,85,247,0.4);
+    --glow-subtle:     0 0 12px rgba(168,85,247,0.2);
+    --text-primary:    #F8FAFC;
+    --text-secondary:  #CBD5E1;
+    --text-tertiary:   #64748B;
+    --font-heading:    'Poppins', sans-serif;
+    --font-body:       'Inter', system-ui, sans-serif;
+    --font-mono:       'JetBrains Mono', monospace;
+    --font-serif:      'Fraunces', Georgia, serif;
+    --radius-sm:  8px;
+    --radius-md:  12px;
+    --radius-lg:  16px;
+    --radius-full: 999px;
+    --color-success: #4ade80;
+    --color-warning: #fbbf24;
+    --color-error:   #f87171;
+    --color-success-bg: rgba(74,222,128,0.1);
+    --color-warning-bg: rgba(251,191,36,0.1);
+    --color-error-bg:   rgba(248,113,113,0.1);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--surface-base);
+    color: var(--text-primary);
+    font-family: var(--font-body);
+    min-height: 100vh;
+    padding: 32px 24px 56px;
+  }
+
+  .page { max-width: 740px; margin: 0 auto; }
+
+  /* Header */
+  .header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 28px;
+  }
+  .header-left { display: flex; align-items: center; gap: 14px; }
+  .logo-mark {
+    width: 42px; height: 42px; border-radius: 10px;
+    background: linear-gradient(135deg,#A855F7,#F472B6);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px; flex-shrink: 0;
+    box-shadow: 0 0 20px rgba(168,85,247,0.35);
+  }
+  .logo-title {
+    font-family: var(--font-heading); font-weight: 700; font-size: 20px;
+    background: var(--gradient-accent);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  }
+  .logo-sub { font-size: 12px; color: var(--text-tertiary); margin-top: 2px; }
+
+  /* Auto toggle */
+  .auto-toggle {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 14px; border-radius: var(--radius-sm);
+    border: 1px solid; font-size: 12px; font-weight: 600;
+    cursor: pointer; transition: all 200ms; flex-shrink: 0;
+    background: none;
+  }
+  .auto-toggle.on  { background: rgba(74,222,128,0.1); border-color: rgba(74,222,128,0.35); color: var(--color-success); }
+  .auto-toggle.off { background: var(--surface-raised); border-color: var(--border-primary); color: var(--text-tertiary); }
+  .toggle-dot {
+    width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; transition: all 200ms;
+  }
+  .toggle-dot.on  { background: var(--color-success); box-shadow: 0 0 6px var(--color-success); }
+  .toggle-dot.off { background: #475569; }
+
+  /* Format tabs */
+  .format-row { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+  .fmt-btn {
+    padding: 8px 15px; border-radius: var(--radius-sm);
+    background: var(--surface-raised);
+    border: 1px solid var(--border-primary);
+    color: var(--text-tertiary); font-size: 13px; font-weight: 500;
+    cursor: pointer; transition: all 140ms; position: relative;
+    font-family: var(--font-body);
+  }
+  .fmt-btn:hover { border-color: var(--border-active); color: var(--text-secondary); }
+  .fmt-btn.active-purple { background: rgba(168,85,247,0.15); border-color: rgba(168,85,247,0.4); color: var(--text-primary); box-shadow: 0 0 12px rgba(168,85,247,0.15); }
+  .fmt-btn.active-cyan   { background: rgba(34,211,238,0.15);  border-color: rgba(34,211,238,0.4);  color: var(--text-primary); box-shadow: 0 0 12px rgba(34,211,238,0.15); }
+  .fmt-btn.active-pink   { background: rgba(244,114,182,0.15); border-color: rgba(244,114,182,0.4); color: var(--text-primary); box-shadow: 0 0 12px rgba(244,114,182,0.15); }
+  .fmt-btn.active-brass  { background: rgba(201,169,110,0.15); border-color: rgba(201,169,110,0.4); color: var(--text-primary); box-shadow: 0 0 12px rgba(201,169,110,0.15); }
+  .fmt-btn.detected-glow { border-color: rgba(74,222,128,0.3); }
+  .detect-dot {
+    position: absolute; top: -4px; right: -4px;
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--color-success);
+    box-shadow: 0 0 6px var(--color-success);
+    display: none;
+  }
+  .fmt-btn.detected-glow .detect-dot { display: block; }
+
+  /* Auto detect banner */
+  .detect-banner {
+    margin-bottom: 16px; padding: 10px 16px;
+    background: rgba(74,222,128,0.06); border: 1px solid rgba(74,222,128,0.2);
+    border-radius: var(--radius-sm); display: flex; align-items: center; gap: 10px;
+    display: none;
+  }
+  .detect-banner.visible { display: flex; }
+  .detect-label { font-size: 11px; color: var(--color-success); font-family: var(--font-mono); flex-shrink: 0; }
+  .detect-reason { font-size: 12px; color: var(--text-secondary); flex: 1; }
+  .detect-confidence { font-size: 10px; font-family: var(--font-mono); text-transform: uppercase; flex-shrink: 0; }
+  .conf-high   { color: var(--color-success); }
+  .conf-medium { color: var(--color-warning); }
+  .conf-low    { color: var(--color-error); }
+
+  /* Format description */
+  .fmt-desc {
+    margin-bottom: 24px; padding: 9px 16px;
+    background: rgba(168,85,247,0.05); border: 1px solid rgba(168,85,247,0.1);
+    border-radius: var(--radius-sm); font-size: 12px; color: #94A3B8;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .fmt-desc-arrow { transition: color 200ms; }
+
+  /* Input */
+  .input-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  .input-label { font-size: 13px; font-weight: 500; color: var(--text-secondary); }
+  .input-meta { display: flex; align-items: center; gap: 12px; }
+  .clear-btn { background: none; border: none; font-size: 11px; color: #475569; cursor: pointer; padding: 0; font-family: var(--font-body); }
+  .clear-btn:hover { color: var(--text-secondary); }
+  .char-count { font-size: 11px; color: #475569; }
+  textarea {
+    width: 100%; background: rgba(15,6,24,0.85);
+    border: 1px solid var(--border-primary); border-radius: var(--radius-md);
+    padding: 16px; font-family: var(--font-body); font-size: 14px;
+    color: var(--text-primary); line-height: 1.65; resize: vertical;
+    transition: border-color 150ms, box-shadow 150ms;
+  }
+  textarea::placeholder { color: var(--text-tertiary); }
+  textarea:focus { outline: none; border-color: var(--accent-primary); box-shadow: 0 0 0 3px rgba(168,85,247,0.14); }
+
+  /* Generate button */
+  .gen-btn {
+    width: 100%; padding: 14px 24px; border-radius: var(--radius-md);
+    background: var(--gradient-accent); border: none;
+    color: #fff; font-family: var(--font-heading); font-size: 14px; font-weight: 600;
+    cursor: pointer; transition: opacity 150ms, box-shadow 200ms;
+    margin: 20px 0; display: flex; align-items: center; justify-content: center; gap: 8px;
+  }
+  .gen-btn:hover:not(:disabled) { opacity: 0.87; box-shadow: var(--glow-primary); }
+  .gen-btn:disabled { background: rgba(168,85,247,0.2); color: rgba(248,250,252,0.35); cursor: not-allowed; }
+
+  /* Spinner */
+  .spinner {
+    width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.3);
+    border-top-color: #fff; border-radius: 50%;
+    animation: spin 0.7s linear infinite; display: none;
+  }
+  .spinner.visible { display: inline-block; }
+
+  /* Heal log */
+  .heal-log { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+  .heal-badge {
+    padding: 4px 12px; border-radius: var(--radius-full);
+    background: var(--color-warning-bg); border: 1px solid rgba(251,191,36,0.3);
+    font-size: 11px; color: var(--color-warning); font-family: var(--font-mono);
+    animation: fadeIn 0.2s ease forwards;
+  }
+
+  /* Error */
+  .error-box {
+    background: var(--color-error-bg); border: 1px solid rgba(248,113,113,0.25);
+    border-radius: var(--radius-sm); padding: 12px 16px;
+    font-size: 13px; color: var(--color-error); margin-bottom: 16px; display: none;
+  }
+  .error-box.visible { display: block; }
+
+  /* Output */
+  .output-card {
+    background: var(--glass-bg); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--border-active); border-radius: var(--radius-lg);
+    padding: 24px; display: none; animation: fadeIn 0.28s ease forwards;
+  }
+  .output-card.visible { display: block; }
+  .output-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+  .output-header-left { display: flex; align-items: center; gap: 8px; }
+  .output-label { font-size: 11px; font-weight: 600; color: var(--text-tertiary); letter-spacing: 0.08em; text-transform: uppercase; }
+  .healed-badge {
+    padding: 2px 8px; border-radius: var(--radius-full);
+    background: var(--color-success-bg); border: 1px solid rgba(74,222,128,0.3);
+    font-size: 10px; color: var(--color-success); font-family: var(--font-mono); display: none;
+  }
+  .healed-badge.visible { display: inline-flex; }
+  .output-actions { display: flex; gap: 8px; }
+  .copy-btn {
+    padding: 6px 14px; border-radius: var(--radius-sm);
+    background: rgba(168,85,247,0.1); border: 1px solid rgba(168,85,247,0.3);
+    color: var(--accent-primary); font-size: 12px; font-weight: 500;
+    cursor: pointer; transition: all 150ms; font-family: var(--font-body);
+  }
+  .copy-btn:hover { background: rgba(168,85,247,0.2); }
+  .copy-btn.copied { color: var(--color-success); border-color: rgba(74,222,128,0.3); }
+  .clear-output-btn {
+    padding: 6px 14px; border-radius: var(--radius-sm);
+    background: none; border: 1px solid rgba(168,85,247,0.12);
+    color: #475569; font-size: 12px; cursor: pointer; font-family: var(--font-body);
+  }
+  .output-text {
+    font-size: 14px; line-height: 1.75; color: var(--text-secondary);
+    white-space: pre-wrap; word-break: break-word;
+  }
+  .output-text.reading-room {
+    font-family: var(--font-serif); font-size: 16px; line-height: 1.82;
+  }
+  .output-footer {
+    margin-top: 20px; padding-top: 16px;
+    border-top: 1px solid rgba(168,85,247,0.1);
+    font-size: 11px; color: #475569;
+    display: flex; justify-content: space-between;
+  }
+  .output-model { opacity: 0.7; }
+
+  /* Animations */
+  @keyframes spin    { to { transform: rotate(360deg); } }
+  @keyframes fadeIn  { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
+  @keyframes pulse   { 0%,100%{opacity:1}50%{opacity:0.45} }
+  .detecting-pulse   { animation: pulse 1.2s ease-in-out infinite; }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="header-left">
+      <div class="logo-mark">⚡</div>
+      <div>
+        <div class="logo-title">Content Engine</div>
+        <div class="logo-sub">Article → production content in your voice</div>
+      </div>
+    </div>
+    <button class="auto-toggle on" id="autoToggle" onclick="toggleAutoMode()">
+      <span class="toggle-dot on" id="toggleDot"></span>
+      <span id="toggleLabel">Auto</span>
+    </button>
+  </div>
+
+  <!-- Format Tabs -->
+  <div class="format-row" id="formatRow"></div>
+
+  <!-- Auto-detect Banner -->
+  <div class="detect-banner" id="detectBanner">
+    <span class="detect-label" id="detectLabel">AUTO →</span>
+    <span class="detect-reason" id="detectReason"></span>
+    <span class="detect-confidence" id="detectConfidence"></span>
+  </div>
+
+  <!-- Format Description -->
+  <div class="fmt-desc">
+    <span class="fmt-desc-arrow" id="fmtArrow">→</span>
+    <span id="fmtDesc"></span>
+  </div>
+
+  <!-- Input -->
+  <div style="margin-bottom:20px">
+    <div class="input-header">
+      <label class="input-label">Source content</label>
+      <div class="input-meta">
+        <button class="clear-btn" id="clearBtn" onclick="clearAll()" style="display:none">Clear</button>
+        <span class="char-count" id="charCount">0 chars</span>
+      </div>
+    </div>
+    <textarea id="sourceInput" rows="9" placeholder="Paste anything — format auto-detects as you type." oninput="onInputChange()"></textarea>
+  </div>
+
+  <!-- Generate -->
+  <button class="gen-btn" id="genBtn" onclick="runGenerate()" disabled>
+    <span class="spinner" id="spinner"></span>
+    <span id="genLabel">Generate</span>
+  </button>
+
+  <!-- Heal Log -->
+  <div class="heal-log" id="healLog"></div>
+
+  <!-- Error -->
+  <div class="error-box" id="errorBox"></div>
+
+  <!-- Output -->
+  <div class="output-card" id="outputCard">
+    <div class="output-header">
+      <div class="output-header-left">
+        <span class="output-label">Output</span>
+        <span class="healed-badge" id="healedBadge"></span>
+      </div>
+      <div class="output-actions">
+        <button class="copy-btn" id="copyBtn" onclick="copyOutput()">Copy</button>
+        <button class="clear-output-btn" onclick="clearOutput()">Clear</button>
+      </div>
+    </div>
+    <div class="output-text" id="outputText"></div>
+    <div class="output-footer">
+      <span id="wordCount">0 words</span>
+      <span class="output-model" id="outputModel">claude-sonnet-4-20250514</span>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ─── VOICE CORE ──────────────────────────────────────────────────────────────
+const VOICE_CORE = `
+You are writing in Kyle Rosebrook's exact voice. Kyle is an L1 service desk tech at a managed IT firm who builds AI systems on the side. He founded FlashFusion, a B2B AI enablement consultancy. He came up through bartending (O'Toole's), quality control, and self-taught engineering. He is not a senior engineer, not a credentials-forward expert — he is a builder who earned pattern recognition through substrate-switching.
+
+═══ STRUCTURAL MOVES ═══
+THE ANTI-CREDENTIAL OPENER:
+YES: "I'm not a security professional. I'm an L1 service desk tech who builds AI apps on the side."
+NO:  "As an AI practitioner and founder, I've seen a lot of workflows..."
+
+THE SAME-SKILL-DIFFERENT-SUBSTRATE MOVE:
+YES: "The diagnostic instinct I developed reading drunks at the bar worked on processes in QC. Same instinct. Different substrate."
+NO:  "I've always been good at reading situations across many domains."
+
+THE CONSTRAINT REFRAME:
+YES: "Constraints free you up. Permission paralyzes you."
+NO:  "Embrace your limitations and turn them into strengths."
+
+THE COMPANION PIECE OBSERVATION:
+YES: "Good work doesn't distribute itself. It needs other work in front of it."
+NO:  "Make sure you have a content strategy in place."
+
+═══ VOICE RULES ═══
+DECLARATIVE OBSERVATIONS:
+YES: "I stopped prompting for outputs. I started designing flows."
+NO:  "I had a major realization that changed the way I think about AI forever."
+
+TECHNICAL DESCRIPTIONS OF EMOTIONAL STATES:
+YES: "The cognitive architecture I was born with stopped working the way it used to. Recovery assumes there's something to go back to. That wasn't the situation."
+NO:  "It was a really hard time and I struggled a lot."
+
+SPECIFICITY — always name the thing:
+YES: "Supabase ships with RLS disabled by default — every row readable by anyone with your anon key. Wiz found Moltbook's data within minutes."
+NO:  "AI tools can have security vulnerabilities."
+
+SENTENCE VARIATION: Short. Then a longer one that earns its space. Then short again.
+
+CLOSERS: Paradox → Reframe → Plus move → Declarative. NEVER questions, invitations, upswing endings.
+
+═══ HARD BANS ═══
+BANNED: "in today's world" / "leverage AI" / "harness the power of" / "game-changer" / "paradigm shift" / "at the end of the day" / "and that's when I realized" / "I hope this helps" / "let's dive in" / "unpacking" / "food for thought" / "it goes without saying"
+NEVER open with a question. NO emojis. NO hashtags. NO performed vulnerability. NO advice-giving tone. NO inflated credentials.
+`;
+
+const CRITIC_PROMPT = `You are a voice critic for Kyle Rosebrook's writing. Check for violations and return structured JSON.
+
+Check:
+1. QUESTION_OPENER — opens with a question?
+2. BANNED_PHRASE — any of: "in today's world", "leverage AI", "harness the power", "game-changer", "paradigm shift", "at the end of the day", "and that's when I realized", "I hope this helps", "let's dive in", "unpacking", "food for thought", "it goes without saying"
+3. SOFT_CLOSER — ends with a question, invitation, "let me know", "what do you think", upswing
+4. PERFORMED_INSIGHT — "I had a realization", "this changed everything", "eye-opening", "this blew my mind"
+5. ADVICE_TONE — "you should", "here are X things you need to", "make sure you"
+6. VAGUE_CLAIM — no specific tool/incident/number named
+7. CREDENTIAL_INFLATION — claims 200+ tools, enterprise-scale, implies senior engineer
+
+Respond ONLY with JSON (no markdown):
+{"pass":true or false,"violations":["VIOLATION_TYPE: description"],"fixInstructions":"instructions if failed, empty if passed"}`;
+
+const DETECT_PROMPT = `You are a content format classifier for Kyle Rosebrook's content engine.
+
+Formats:
+- linkedin_hot_take: Contrarian angles, practitioner takes, short provocations with a clear counter-thesis.
+- x_thread: Sequential logic, multi-point cases, things that build step by step.
+- essay_brief: Complex ideas, construction/diagnostic lens, Load-Bearing newsletter candidates.
+- newsletter_section: Tool spotlights, workflow observations, things Kyle has tested directly.
+- reading_room: Personal intersection of AI + construction-not-recovery frame, longer-form with backstory as evidence.
+
+Respond ONLY with JSON (no markdown):
+{"format":"format_key","confidence":"high" or "medium" or "low","reason":"One sentence: why this format, what angle it unlocks"}`;
+
+// ─── FORMATS ─────────────────────────────────────────────────────────────────
+const FORMATS = {
+  linkedin_hot_take: {
+    label: "LinkedIn Hot Take", badge: "HOT TAKE", color: "purple",
+    description: "Contrarian angle · 250–450 words · Prose, no bullets",
+    accentColor: "#A855F7",
+    system: VOICE_CORE + `
+TASK: LinkedIn Hot Take
+STRUCTURE: Contrarian hook → Justification with named specifics → Concrete case → Paradox or reframe closer
+LENGTH: 250–450 words
+FORMAT: Prose paragraphs, intentional line breaks. No bullets. No bold headers. No emojis. No hashtags.
+The angle: what the source content's audience is missing. Practitioner to practitioner. Not coaching.
+Output ONLY the post text.`
+  },
+  x_thread: {
+    label: "X Thread", badge: "THREAD", color: "cyan",
+    description: "6–8 numbered tweets · Each standalone · Statement hooks only",
+    accentColor: "#22D3EE",
+    system: VOICE_CORE + `
+TASK: X / Twitter Thread
+- [1]: Declarative contrarian hook. Never a question.
+- [2–4]: Argument. Name the tool, failure mode, number.
+- [5]: The turn — what most people miss.
+- [6–7]: Paradox or reframe closer.
+- [8] optional: "Who this is for."
+FORMAT: Number each [1/7]. Max 280 chars. Each standalone. No emojis. No hashtags.
+Output ONLY the numbered thread.`
+  },
+  essay_brief: {
+    label: "Essay Brief", badge: "BRIEF", color: "pink",
+    description: "Load-Bearing essay candidate · Fully structured · Verify flags included",
+    accentColor: "#F472B6",
+    system: VOICE_CORE + `
+TASK: Load-Bearing Essay Brief
+CONTEXT: Newsletter — "AI tested in real life, no hype, just what holds." Essays must be written only from experience.
+
+OUTPUT (exact headers):
+**Working Title:** [Punchy. Not a question.]
+**Thesis:** [1–2 sentences. Falsifiable.]
+**Construction Lens:** [How Kyle's diagnostic instinct maps on. Specific.]
+**Hook Draft:** [2–3 sentences of tension WITHOUT stating thesis.]
+**Key Beats (3–5):** [Ordered specific moves the essay makes.]
+**Closer Direction:** [Paradox or declarative reframe.]
+**Load-Bearing Fit:** [One sentence on what Kyle's experience adds.]
+**Verify Flags:** [Claims needing confirmation, or "None flagged."]`
+  },
+  newsletter_section: {
+    label: "Newsletter Section", badge: "SECTION", color: "cyan",
+    description: "150–250 words · Load-Bearing voice · Honest about where things break",
+    accentColor: "#22D3EE",
+    system: VOICE_CORE + `
+TASK: Load-Bearing Newsletter Section
+PICK: TOOL SPOTLIGHT or WORKFLOW OBSERVATION (whichever fits)
+FORMAT: 150–250 words. No headers. No bullets. Opens with what it does. Names failures. Ends with one declarative takeaway. No CTA.
+Output ONLY the section text.`
+  },
+  reading_room: {
+    label: "Reading Room", badge: "READING ROOM", color: "brass",
+    description: "Personal long-form · 600–1200 words · Construction lens · flashfusion.co byline",
+    accentColor: "#c9a96e",
+    system: VOICE_CORE + `
+TASK: Reading Room Essay — flashfusion.co personal byline voice.
+EDITORIAL FRAME:
+- Construction, not recovery. No clean arc. No epiphanies.
+- Contradictions are material, not problems.
+- Diagnostic instinct lens: O'Toole's → QC → engineering. Same skill. Different substrates.
+- Technical description of states: "Recovery assumes there's something to go back to. That wasn't the situation."
+- Dry humor. Never signal the punchline.
+STRUCTURE: Hook (drop in) → Turn (what dominant framing misses) → Construction move → Landing (paradox or declarative)
+LENGTH: 600–1,200 words. Don't pad.
+Output ONLY the essay text.`
+  }
+};
+
+const BADGE_CLASSES = {
+  purple: "active-purple", cyan: "active-cyan", pink: "active-pink", brass: "active-brass"
+};
+
+// ─── STATE ────────────────────────────────────────────────────────────────────
+let currentFormat  = "linkedin_hot_take";
+let autoMode       = true;
+let detectTimer    = null;
+let isLoading      = false;
+let currentOutput  = "";
+let totalHealCycles = 0;
+
+// ─── INIT ────────────────────────────────────────────────────────────────────
+function init() {
+  const row = document.getElementById("formatRow");
+  Object.entries(FORMATS).forEach(([key, f]) => {
+    const btn = document.createElement("button");
+    btn.className = "fmt-btn";
+    btn.id = "fmt-" + key;
+    btn.innerHTML = f.label + '<span class="detect-dot"></span>';
+    btn.onclick = () => selectFormat(key);
+    row.appendChild(btn);
+  });
+  selectFormat("linkedin_hot_take");
+}
+
+function selectFormat(key) {
+  currentFormat = key;
+  const f = FORMATS[key];
+  // Update tabs
+  Object.keys(FORMATS).forEach(k => {
+    const btn = document.getElementById("fmt-" + k);
+    btn.className = "fmt-btn" + (k === key ? " " + BADGE_CLASSES[FORMATS[k].color] : "");
+    // Preserve detected glow on non-active
+  });
+  // Update description
+  document.getElementById("fmtDesc").textContent = f.description;
+  document.getElementById("fmtArrow").style.color = f.accentColor;
+  // Update output card border
+  document.getElementById("outputCard").style.borderColor = f.accentColor.replace(")", ",0.4)").replace("rgb", "rgba");
+  // Update output model color
+  document.getElementById("outputModel").style.color = f.accentColor;
+  // Update gen label
+  updateGenLabel();
+  clearOutput();
+}
+
+function updateGenLabel() {
+  const f = FORMATS[currentFormat];
+  if (isLoading) return;
+  document.getElementById("genLabel").textContent = "Generate " + f.label;
+}
+
+// ─── AUTO MODE ───────────────────────────────────────────────────────────────
+function toggleAutoMode() {
+  autoMode = !autoMode;
+  const btn = document.getElementById("autoToggle");
+  const dot = document.getElementById("toggleDot");
+  const lbl = document.getElementById("toggleLabel");
+  const inp = document.getElementById("sourceInput");
+  if (autoMode) {
+    btn.className = "auto-toggle on";
+    dot.className = "toggle-dot on";
+    lbl.textContent = "Auto";
+    inp.placeholder = "Paste anything — format auto-detects as you type.";
+  } else {
+    btn.className = "auto-toggle off";
+    dot.className = "toggle-dot off";
+    lbl.textContent = "Manual";
+    inp.placeholder = "Paste article, notes, or raw idea.";
+    hideBanner();
+  }
+}
+
+// ─── INPUT HANDLER ───────────────────────────────────────────────────────────
+function onInputChange() {
+  const val = document.getElementById("sourceInput").value;
+  document.getElementById("charCount").textContent = val.length.toLocaleString() + " chars";
+  document.getElementById("clearBtn").style.display = val.length > 0 ? "inline" : "none";
+  document.getElementById("genBtn").disabled = val.trim().length < 10 || isLoading;
+
+  if (autoMode && val.trim().length >= 80) {
+    clearTimeout(detectTimer);
+    detectTimer = setTimeout(() => runDetect(val), 900);
+  } else {
+    hideBanner();
+  }
+}
+
+// ─── AUTO-DETECT ─────────────────────────────────────────────────────────────
+async function runDetect(content) {
+  showBannerDetecting();
+  try {
+    const raw = await callClaude(DETECT_PROMPT, "Source content:\n\n" + content, 200);
+    const clean = raw.replace(/```json|```/g, "").trim();
+    const result = JSON.parse(clean);
+    if (result.format && FORMATS[result.format]) {
+      showBannerResult(result);
+      if (autoMode) {
+        selectFormat(result.format);
+        // Mark detected dot on all tabs, clear others
+        Object.keys(FORMATS).forEach(k => {
+          const btn = document.getElementById("fmt-" + k);
+          if (k !== currentFormat) {
+            btn.classList.toggle("detected-glow", k === result.format);
+          }
+        });
+      }
+    }
+  } catch { hideBanner(); }
+}
+
+function showBannerDetecting() {
+  const b = document.getElementById("detectBanner");
+  b.className = "detect-banner visible";
+  document.getElementById("detectLabel").innerHTML = '<span class="detecting-pulse">Detecting…</span>';
+  document.getElementById("detectReason").textContent = "";
+  document.getElementById("detectConfidence").textContent = "";
+}
+function showBannerResult(r) {
+  document.getElementById("detectLabel").textContent = "AUTO →";
+  document.getElementById("detectReason").textContent = r.reason;
+  const confEl = document.getElementById("detectConfidence");
+  confEl.textContent = r.confidence;
+  confEl.className = "detect-confidence conf-" + r.confidence;
+}
+function hideBanner() {
+  document.getElementById("detectBanner").className = "detect-banner";
+}
+
+// ─── GENERATE + SELF-HEAL ────────────────────────────────────────────────────
+async function runGenerate() {
+  const input = document.getElementById("sourceInput").value;
+  if (!input.trim() || isLoading) return;
+
+  isLoading = true;
+  totalHealCycles = 0;
+  currentOutput = "";
+  setLoadingState(true, "Generating…");
+  clearOutput();
+  hideError();
+  document.getElementById("healLog").innerHTML = "";
+
+  try {
+    const cfg = FORMATS[currentFormat];
+    let current = await callClaude(cfg.system, "Source content:\n\n" + input + "\n\nGenerate the output now.");
+    const MAX_HEAL = 2;
+    const log = [];
+
+    for (let i = 0; i < MAX_HEAL; i++) {
+      setLoadingState(true, "Self-healing… (pass " + (i + 1) + ")");
+      const auditRaw = await callClaude(CRITIC_PROMPT, "Content to audit:\n\n" + current, 300);
+      const auditClean = auditRaw.replace(/```json|```/g, "").trim();
+      let audit;
+      try { audit = JSON.parse(auditClean); } catch { break; }
+      if (audit.pass) break;
+
+      const issues = (audit.violations || []).join(", ");
+      log.push("Heal " + (i + 1) + ": " + issues);
+      totalHealCycles = i + 1;
+      renderHealLog(log);
+
+      current = await callClaude(
+        cfg.system,
+        "Source content:\n\n" + input + "\n\nPrevious attempt had these violations:\n" + audit.fixInstructions + "\n\nViolations: " + (audit.violations || []).join("; ") + "\n\nGenerate a corrected version now."
+      );
+    }
+
+    currentOutput = current;
+    renderOutput(current, totalHealCycles);
+  } catch (e) {
+    showError(e.message || "Request failed. Check connection.");
+  } finally {
+    isLoading = false;
+    setLoadingState(false);
+  }
+}
+
+function setLoadingState(loading, label) {
+  const btn = document.getElementById("genBtn");
+  const spinner = document.getElementById("spinner");
+  const genLabel = document.getElementById("genLabel");
+  btn.disabled = loading;
+  spinner.className = "spinner" + (loading ? " visible" : "");
+  genLabel.textContent = loading ? label : "Generate " + FORMATS[currentFormat].label;
+}
+
+function renderHealLog(log) {
+  const el = document.getElementById("healLog");
+  el.innerHTML = log.map(l => `<span class="heal-badge">⟳ ${l}</span>`).join("");
+}
+
+function renderOutput(text, healCount) {
+  const card = document.getElementById("outputCard");
+  const textEl = document.getElementById("outputText");
+  const healed = document.getElementById("healedBadge");
+  const wc = document.getElementById("wordCount");
+
+  textEl.textContent = text;
+  textEl.className = "output-text" + (currentFormat === "reading_room" ? " reading-room" : "");
+  wc.textContent = text.split(/\s+/).filter(Boolean).length + " words";
+
+  if (healCount > 0) {
+    healed.textContent = "✓ healed ×" + healCount;
+    healed.className = "healed-badge visible";
+  } else {
+    healed.className = "healed-badge";
+  }
+
+  // Update border color to match format
+  const f = FORMATS[currentFormat];
+  card.style.borderColor = f.accentColor;
+  card.className = "output-card visible";
+}
+
+// ─── COPY ────────────────────────────────────────────────────────────────────
+function copyOutput() {
+  if (!currentOutput) return;
+  navigator.clipboard.writeText(currentOutput).then(() => {
+    const btn = document.getElementById("copyBtn");
+    btn.textContent = "✓ Copied";
+    btn.className = "copy-btn copied";
+    setTimeout(() => {
+      btn.textContent = "Copy";
+      btn.className = "copy-btn";
+    }, 2000);
+  });
+}
+
+// ─── CLEAR ───────────────────────────────────────────────────────────────────
+function clearAll() {
+  document.getElementById("sourceInput").value = "";
+  document.getElementById("charCount").textContent = "0 chars";
+  document.getElementById("clearBtn").style.display = "none";
+  document.getElementById("genBtn").disabled = true;
+  hideBanner();
+  clearOutput();
+  hideError();
+  document.getElementById("healLog").innerHTML = "";
+  Object.keys(FORMATS).forEach(k => {
+    document.getElementById("fmt-" + k).classList.remove("detected-glow");
+  });
+}
+
+function clearOutput() {
+  document.getElementById("outputCard").className = "output-card";
+  document.getElementById("outputText").textContent = "";
+  document.getElementById("healedBadge").className = "healed-badge";
+  document.getElementById("wordCount").textContent = "0 words";
+  currentOutput = "";
+  document.getElementById("healLog").innerHTML = "";
+  totalHealCycles = 0;
+}
+
+function showError(msg) {
+  const el = document.getElementById("errorBox");
+  el.textContent = msg;
+  el.className = "error-box visible";
+}
+function hideError() { document.getElementById("errorBox").className = "error-box"; }
+
+// ─── API ─────────────────────────────────────────────────────────────────────
+async function callClaude(system, userContent, maxTokens = 1000) {
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model: "claude-sonnet-4-20250514",
+      max_tokens: maxTokens,
+      system,
+      messages: [{ role: "user", content: userContent }]
+    })
+  });
+  const data = await res.json();
+  if (!data.content?.[0]?.text) throw new Error(data.error?.message || "No response");
+  return data.content[0].text;
+}
+
+init();
+</script>
+</body>
+</html>

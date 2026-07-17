@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Knowledge Blind Spot Map v4 — June 6, 2026</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0b0d10; --panel:#13161b; --panel-2:#181c22; --line:#242a32;
+  --txt:#e7ebf0; --dim:#8b95a3; --faint:#5a6470;
+  --crit:#ff5d5d; --high:#e8a33d; --med:#5d8fdb; --low:#6b7686; --ok:#4cc38a;
+  --accent:#e8a33d;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--txt);font-family:'Archivo',sans-serif;padding:36px 28px 80px;
+  background-image:radial-gradient(ellipse 900px 400px at 70% -5%, rgba(232,163,61,.05), transparent),
+  repeating-linear-gradient(0deg, transparent, transparent 39px, rgba(255,255,255,.012) 40px);}
+.wrap{max-width:1180px;margin:0 auto}
+.mono{font-family:'IBM Plex Mono',monospace}
+header{display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:12px;margin-bottom:28px;border-bottom:1px solid var(--line);padding-bottom:18px}
+h1{font-size:24px;font-weight:800;letter-spacing:-.5px;text-transform:uppercase}
+h1 .v{color:var(--accent)}
+.stamp{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--dim);text-align:right;line-height:1.7}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-bottom:36px}
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:18px 20px;position:relative;overflow:hidden}
+.kpi::after{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--kc,var(--line))}
+.kpi .lbl{font-size:12px;color:var(--dim);margin-bottom:8px;font-weight:500}
+.kpi .val{font-size:34px;font-weight:800;letter-spacing:-1px;color:var(--kc,var(--txt))}
+.kpi .delta{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--faint);margin-top:4px}
+.kpi .delta.up{color:var(--ok)} .kpi .delta.dn{color:var(--crit)}
+.sec-label{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:2.5px;text-transform:uppercase;color:var(--faint);margin:0 0 14px}
+.domains{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:14px;margin-bottom:44px}
+.dom{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px 18px}
+.dom-top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px}
+.dom-name{font-weight:700;font-size:15px}
+.dom-pct{font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:15px}
+.bar{height:5px;background:#1f242b;border-radius:3px;overflow:hidden;margin-bottom:10px}
+.bar i{display:block;height:100%;border-radius:3px;transition:width .9s cubic-bezier(.2,.8,.2,1);width:0}
+.dom-note{font-size:12.5px;color:var(--dim);line-height:1.55}
+.dom-d{font-family:'IBM Plex Mono',monospace;font-size:10.5px;margin-top:8px}
+.dom-d.up{color:var(--ok)}.dom-d.dn{color:var(--crit)}.dom-d.flat{color:var(--faint)}
+.filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}
+.fbtn{font-family:'IBM Plex Mono',monospace;font-size:12px;padding:8px 18px;border-radius:999px;border:1px solid var(--line);background:transparent;color:var(--dim);cursor:pointer;transition:.15s}
+.fbtn:hover{border-color:var(--dim);color:var(--txt)}
+.fbtn.on{background:var(--txt);color:var(--bg);border-color:var(--txt);font-weight:600}
+.spot{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px 18px;margin-bottom:12px;display:flex;gap:16px;align-items:flex-start;transition:.15s}
+.spot:hover{border-color:#323a44;background:var(--panel-2)}
+.sev{font-family:'IBM Plex Mono',monospace;font-size:10.5px;font-weight:600;letter-spacing:.5px;padding:4px 11px;border-radius:999px;flex-shrink:0;margin-top:2px;text-transform:lowercase}
+.sev.critical{background:rgba(255,93,93,.13);color:var(--crit);border:1px solid rgba(255,93,93,.3)}
+.sev.high{background:rgba(232,163,61,.12);color:var(--high);border:1px solid rgba(232,163,61,.3)}
+.sev.medium{background:rgba(93,143,219,.12);color:var(--med);border:1px solid rgba(93,143,219,.3)}
+.sev.low{background:rgba(107,118,134,.12);color:var(--low);border:1px solid rgba(107,118,134,.3)}
+.sev.resolved{background:rgba(76,195,138,.12);color:var(--ok);border:1px solid rgba(76,195,138,.3)}
+.spot-body{flex:1}
+.spot-title{font-weight:700;font-size:15.5px;margin-bottom:5px}
+.spot-meta{font-size:13px;color:var(--dim);line-height:1.55}
+.tag{display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:10px;padding:2px 8px;border-radius:4px;margin-left:8px;vertical-align:middle;letter-spacing:.5px}
+.tag.new{background:rgba(255,93,93,.15);color:var(--crit)}
+.tag.up{background:rgba(232,163,61,.15);color:var(--high)}
+.tag.down{background:rgba(93,143,219,.15);color:var(--med)}
+.tag.res{background:rgba(76,195,138,.15);color:var(--ok)}
+.tag.carry{background:rgba(107,118,134,.18);color:var(--dim)}
+.spot.resolved-row{opacity:.62}
+.spot.resolved-row .spot-title{text-decoration:line-through;text-decoration-color:var(--faint);text-decoration-thickness:1px}
+footer{margin-top:54px;border-top:1px solid var(--line);padding-top:22px;font-size:12px;color:var(--dim);line-height:1.8}
+footer h3{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--faint);margin:18px 0 8px}
+footer .s{color:var(--ok)} footer .g{color:var(--high)} footer .x{color:var(--crit)}
+@media(max-width:640px){body{padding:20px 14px 60px}.spot{flex-direction:column;gap:8px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div>
+    <h1>Knowledge Blind Spot Map <span class="v">v4</span></h1>
+    <div class="mono" style="font-size:11px;color:var(--dim);margin-top:6px">delta sweep · ~60 chats across both project scopes · May 15 → June 6, 2026</div>
+  </div>
+  <div class="stamp">SUPERSEDES v3 (earlier today)<br>NEW SCOPE ADDED: B44 full audit · 741-repo GitHub audit · n8n credential audit · revenue funnel probe</div>
+</header>
+
+<div class="kpis">
+  <div class="kpi" style="--kc:var(--crit)"><div class="lbl">Active blind spots</div><div class="val">19</div><div class="delta">v3: 15 · +4 from new project scope</div></div>
+  <div class="kpi" style="--kc:var(--crit)"><div class="lbl">Critical</div><div class="val">4</div><div class="delta">revenue funnel promoted ↓</div></div>
+  <div class="kpi" style="--kc:var(--accent)"><div class="lbl">Avg coverage</div><div class="val">54%</div><div class="delta up">▲ from 47% (v2) · 53% (v3)</div></div>
+  <div class="kpi" style="--kc:var(--ok)"><div class="lbl">Domains well-covered</div><div class="val">2/7</div><div class="delta up">▲ from 1/7 · FF platform joins</div></div>
+</div>
+
+<div class="sec-label">Coverage by domain</div>
+<div class="domains">
+  <div class="dom"><div class="dom-top"><span class="dom-name">AI engineering &amp; agentic</span><span class="dom-pct" style="color:var(--ok)">82%</span></div><div class="bar"><i data-w="82" style="background:var(--ok)"></i></div><div class="dom-note">65 skills + new meta-assets (spec generator, capability map, FF 3D) · sparc truncated · persistence unverified</div><div class="dom-d dn">▼ 2 vs v2 — fix integrity, not coverage</div></div>
+  <div class="dom"><div class="dom-top"><span class="dom-name">FlashFusion platform</span><span class="dom-pct" style="color:var(--ok)">76%</span></div><div class="bar"><i data-w="76" style="background:var(--ok)"></i></div><div class="dom-note">audit.flashfusion.co LIVE · remediation sprint shipped (8 SKILL.md, connector audit, n8n runbook) · pricing seeded</div><div class="dom-d up">▲ 8 vs v2</div></div>
+  <div class="dom"><div class="dom-top"><span class="dom-name">Personal / memoir</span><span class="dom-pct" style="color:var(--high)">60%</span></div><div class="bar"><i data-w="60" style="background:var(--high)"></i></div><div class="dom-note">Full chapter architecture LOCKED (prologue + 5 parts + 12 ch) · 26 primary sources · 0 chapters drafted</div><div class="dom-d up">▲ 22 vs v2 — skeleton gap closed</div></div>
+  <div class="dom"><div class="dom-top"><span class="dom-name">Enterprise IT (INT)</span><span class="dom-pct" style="color:var(--high)">55%</span></div><div class="bar"><i data-w="55" style="background:var(--high)"></i></div><div class="dom-note">Internal-channel freeze after VP Finance incident · written zero-conflict confirmation pending · Jackie Miles update overdue</div><div class="dom-d dn">▼ 7 vs v2 — political risk surfaced</div></div>
+  <div class="dom"><div class="dom-top"><span class="dom-name">System architecture</span><span class="dom-pct" style="color:var(--high)">48%</span></div><div class="bar"><i data-w="48" style="background:var(--high)"></i></div><div class="dom-note">Connector audit + Workspace Index exist · "Notion-lives-Drive-dies" pattern named (full docs in Notion, empty stubs in Drive) · still no cross-system doc set</div><div class="dom-d up">▲ 17 vs v2</div></div>
+  <div class="dom"><div class="dom-top"><span class="dom-name">Business operations</span><span class="dom-pct" style="color:var(--crit)">30%</span></div><div class="bar"><i data-w="30" style="background:var(--crit)"></i></div><div class="dom-note">Pricing seeded · funnel state now MEASURED: 0 clients, 0 real submissions, 0 enrollments, 0 orders · invoicing/legal still undocumented</div><div class="dom-d up">▲ 10 vs v2 — still weakest pillar</div></div>
+  <div class="dom"><div class="dom-top"><span class="dom-name">E-commerce</span><span class="dom-pct" style="color:var(--crit)">25%</span></div><div class="bar"><i data-w="25" style="background:var(--crit)"></i></div><div class="dom-note">Wix dead · AffordableStuffStore on B44: 46 entities, 0 orders, broken OpenAI key + DNS CNAME unresolved · 4,665-visitor figure debunked</div><div class="dom-d dn">▼ 6 — number down because the lane shrank</div></div>
+</div>
+
+<div class="sec-label" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+  <span>Blind spots</span>
+</div>
+<div class="filters" id="filters">
+  <button class="fbtn on" data-f="all">All</button>
+  <button class="fbtn" data-f="critical">Critical</button>
+  <button class="fbtn" data-f="high">High</button>
+  <button class="fbtn" data-f="medium">Medium</button>
+  <button class="fbtn" data-f="low">Low</button>
+  <button class="fbtn" data-f="resolved">Resolved since v2</button>
+</div>
+
+<div id="spots"></div>
+
+<footer>
+  <h3>Claims / Counterexamples / Contradictions</h3>
+  <p><span class="s">[SOURCED]</span> n8n runbook + connector audit + 8 SKILL.md shipped in June remediation sprint (Drive docs, June 6 session). WIR-02/WIR-04 stale URL root cause + 0/7 pipeline credentials (June 2 sessions, live n8n pulls). 741-repo count (June 4 live Composio audit). Zero-funnel figures (June 1–3 live B44 + Calendly probes). Memoir chapter architecture locked (Book 1 wiki, May 15 chaos-sync). Plain-text API keys in Drive infra manual (flagged June 6). June 15 Anthropic deprecations (Notion intel page, synced May 15). Wix/WooCommerce dead (June 5 session). Drive folder spray with twice-run job (June 6 session, timestamps 14:16/17:16). sparc truncation + persistence question (June 2 session b64dc879).</p>
+  <p><span class="g">[GENERATED]</span> All coverage percentages are reasoned estimates against the same rubric implied by v2, not measured values. Coverage percentages remain reasoned estimates against the v2 rubric. NotebookLM consolidation status unchanged is an assumption from absence of mention.</p>
+  <p><span class="x">!</span> Repo-count contradiction RESOLVED: live June 4 audit = 741 (632 personal + 109 org); both prior figures were stale. <span class="x">!</span> Skill compliance: one session reports gaps "fixed," another shows fixes applied only to a container with unverified cloud persistence — both can't be fully true until re-audited.</p>
+  <h3>Gaps / Blindspots / Unknown-unknowns</h3>
+  <p>This sweep covers ~40 chats in THIS account scope; conversations inside other Claude Projects are invisible from here — anything decided there is not reflected. Cowork desktop sessions, Claude Code sessions, and local file changes are outside chat history entirely. The 'Shhhh...its a secret' notebook remains off-limits by design, so its risk rating is inherited, not re-verified. No live re-probe of Base44/n8n/Drive was run for this update — it is chat-derived state.</p>
+  <p class="mono" style="margin-top:14px;color:var(--faint)">v4 · built June 6, 2026 · supersedes v3 (same day) · scope: both project chat histories</p>
+</footer>
+</div>
+
+<script>
+const SPOTS=[
+ {sev:'critical',t:"Plain-text API keys in Google Drive",m:"'FlashFusion Production Infrastructure & Orchestration Manual' contains raw keys in body text. Flagged June 6 — remediation unconfirmed. Rotate + move to Bitwarden, then purge doc.",tag:'new'},
+ {sev:'critical',t:"June 15 Anthropic deadline — 9 days out",m:"Sonnet 4 / Opus 4 retire June 15 and artifacts standardize on claude-sonnet-4-20250514. Agent SDK credits must be claimed via account email before the same date. Two forced actions, zero migration doc.",tag:'new'},
+ {sev:'critical',t:"Revenue funnel is zero end-to-end",m:"Measured June 1–3: 0 active clients across all workstreams · 0 real FreeAssessment submissions · 0 SparkAcademy enrollments (32 courses live) · 0 AffordableStuffStore orders · Calendly booking event UNPUBLISHED, blocking Invoke bookings. Everything upstream of revenue is built; nothing converts because the last mile is unwired.",tag:'new'},
+ {sev:'critical',t:"'Shhhh...its a secret' is a single point of failure",m:"116 sources · off-limits · no succession plan. Untouched across all 40 chats — carried forward at full severity.",tag:'carry'},
+ {sev:'high',t:"n8n content pipeline: 0 of 7 credentials exist",m:"Base44, ElevenLabs, HeyGen, Suno, Figma, Cloudinary, Meta Graph — all missing from the credential store (audited live June 2). WF1/WF2/WF3 can't be bound. Separate failure layer from the WIR-02/04 stale-URL issue; the runbook doesn't cover it.",tag:'new'},
+ {sev:'high',t:"Drive automation sprawl, source unidentified",m:"June 5: automated folder spray at root (food-service/hospitality/fintech-operations created same second; 03.5-context-engineering duplicated 3h apart). Suspects: n8n Drive chain, Zapier, GitHub sync. Will bury claude-context if it reruns.",tag:'new'},
+ {sev:'high',t:"Skill fixes may not have persisted",m:"Gap 1/2 fixes applied to Cowork container /mnt/skills/user — cloud-store sync unverified. sparc-methodology-coach body truncated to 14 lines by greedy regex; restore from skills-v2.zip (session b64dc879). Gap 4 triage deferred.",tag:'new'},
+ {sev:'high',t:"flashnframe.com post-migration unverified",m:"Auth restored on new Supabase project, but GitFlow/SiteSketch/Reality Engine/DevStudio/AI Image Editor/DashboardGen untested; Edge Functions and Storage buckets not confirmed redeployed.",tag:'new'},
+ {sev:'high',t:"741 GitHub repos with no inventory (now counted)",m:"Live audit June 4: 632 Krosebrook + 109 ChaosClubCo. Resolves the 591-vs-628 contradiction — both were stale. Still zero active/deprecated/archived classification. skills-pipeline (pushed May 18) may already solve the 259-skill build queue — uninvestigated.",tag:'carry'},
+ {sev:'high',t:"No cross-system knowledge map (partial)",m:"Connector audit + Master Workspace Index (5-pillar taxonomy) now exist in Drive — first real dent. Still no per-connector doc set across the 6 platforms. Downgraded from critical.",tag:'down'},
+ {sev:'high',t:"INT enablement gap tracker is a doc, not a database",m:"19 gaps identified, execution status unknown. Now compounded: internal-channel freeze blocks the stakeholder loop that would close them.",tag:'carry'},
+ {sev:'high',t:"NotebookLM consolidation — still unverified",m:"216→32 plan exists; zero mention in 40 chats. Either done silently or stalled — unknown is the problem.",tag:'carry'},
+ {sev:'medium',t:"11 blocked n8n workflows → runbook now exists",m:"Root cause confirmed: WIR-02/WIR-04 point at stale Base44 URL (orchestrator-ai-6ea9ba23). Fix runbook shipped in remediation sprint. Residual: activation gated on app-ID confirmation (6a02ac1b vs 68dd8e79). Downgraded from critical.",tag:'down'},
+ {sev:'medium',t:"AgentOS v2.1 verification incomplete",m:"Smoke passes 1–5 green with real Redis; passes 6–12 never executed; agentos-v2.1.zip not cut. ~13 defect classes already found — the Windows copy is stale and partially broken until the zip ships.",tag:'new'},
+ {sev:'medium',t:"Phase 3 manual actions still unexecuted",m:"debate.flashfusion.co not decommissioned · sites.flashfusion.co not repointed to WebnfloW (6905b1b4) · dead refactor.flashfusion.co record still points at a discontinued Lovable app. Click-path docs exist (June 3) — execution doesn't.",tag:'new'},
+ {sev:'medium',t:"Illustrative content can pass as real",m:"Chris Butler 'case study' caught as self-written template (June 2) after propagating across project files. April 9 Scorecard case studies still unlabeled. Pattern risk, not one-off.",tag:'new'},
+ {sev:'medium',t:"INT zero-conflict confirmation not on file",m:"Post-VP-Finance incident: stop-messaging directive on internal channels; written confirmation of zero conflict between external work and INT role expected ~June 8. Until it lands, the FlashFusion/INT boundary is verbal only.",tag:'new'},
+ {sev:'medium',t:"ChaosCollective rebrand has no ADR — now with money attached",m:"Domain shopping active (khaos variants, June 6) while rebrand-vs-separate-surface is undecided. Buying before deciding inverts the order. Upgraded from low.",tag:'up'},
+ {sev:'medium',t:"E-commerce pillar 4 — retire or rewrite",m:"Wix store and WooCommerce confirmed dead June 5. The pillar doc still describes them. This is now a 15-minute decision, not a knowledge gap.",tag:'down'},
+ {sev:'resolved',t:"Memoir has no document skeleton",m:"RESOLVED — full narrative architecture locked: prologue + 5 parts + 12 chapters + epilogue (Book 1 wiki, May 15). Residual truth: 0 chapters drafted.",tag:'res'},
+ {sev:'resolved',t:"Notion intel tracker disconnected",m:"RESOLVED — Anthropic intel page (40+ entries) read via Notion MCP June 6. Residual: Google/OpenAI/Microsoft intel agents never ran; pages don't exist.",tag:'res'},
+ {sev:'resolved',t:"11 blocked workflows had no runbook",m:"RESOLVED as stated — n8n fix runbook produced in June remediation sprint. Residual activation work tracked above as medium.",tag:'res'},
+ {sev:'resolved',t:"LinkedIn / public presence had no execution doc",m:"RESOLVED — 8-essay Load-Bearing backlog complete, manifesto built, origin scripts at FINAL v2, pitch console tracking 10 pitches. Single remaining gate: platform decision (Substack/Ghost/self-hosted).",tag:'res'}
+];
+const TAGLBL={new:'NEW',up:'▲ ESCALATED',down:'▼ DOWNGRADED',res:'✓ SINCE v2',carry:'CARRIED'};
+const box=document.getElementById('spots');
+function render(f){
+  box.innerHTML='';
+  SPOTS.filter(s=>f==='all'? s.sev!=='resolved' : s.sev===f).forEach(s=>{
+    const d=document.createElement('div');
+    d.className='spot'+(s.sev==='resolved'?' resolved-row':'');
+    d.innerHTML=`<span class="sev ${s.sev}">${s.sev}</span><div class="spot-body"><div class="spot-title">${s.t}<span class="tag ${s.tag}">${TAGLBL[s.tag]}</span></div><div class="spot-meta">${s.m}</div></div>`;
+    box.appendChild(d);
+  });
+}
+render('all');
+document.getElementById('filters').addEventListener('click',e=>{
+  const b=e.target.closest('.fbtn'); if(!b)return;
+  document.querySelectorAll('.fbtn').forEach(x=>x.classList.remove('on'));
+  b.classList.add('on'); render(b.dataset.f);
+});
+requestAnimationFrame(()=>document.querySelectorAll('.bar i').forEach(i=>i.style.width=i.dataset.w+'%'));
+</script>
+</body>
+</html>

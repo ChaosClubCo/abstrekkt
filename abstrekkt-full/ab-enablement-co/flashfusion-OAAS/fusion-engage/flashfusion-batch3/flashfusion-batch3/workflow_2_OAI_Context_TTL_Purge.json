@@ -1,0 +1,138 @@
+{
+  "name": "OAI Context TTL Purge",
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "nodes": [
+    {
+      "id": "n1-ctx",
+      "name": "Schedule Every Hour",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        100,
+        300
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 1
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "n2-ctx",
+      "name": "Get Active Contexts",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        300,
+        300
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "",
+          "name": "Base44 API Key"
+        }
+      },
+      "parameters": {
+        "method": "GET",
+        "url": "https://api.base44.com/apps/694c756124d640756ea9ba23/entities/AgentConversationContext",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "is_active",
+              "value": "true"
+            },
+            {
+              "name": "_limit",
+              "value": "1000"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "n3-ctx",
+      "name": "Find Expired Contexts",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        500,
+        300
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const items=($input.first().json.items||[]);const now=Date.now();const expired=items.filter(c=>c.ttl_seconds&&(new Date(c.last_accessed||c.created_at).getTime()+c.ttl_seconds*1000)<=now);return expired.length?expired.map(c=>({json:{id:c._id||c.id,workspace_id:c.workspace_id}})):[{json:{skip:true}}];"
+      }
+    },
+    {
+      "id": "n4-ctx",
+      "name": "Deactivate Expired",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        700,
+        300
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "",
+          "name": "Base44 API Key"
+        }
+      },
+      "parameters": {
+        "method": "PUT",
+        "url": "=https://api.base44.com/apps/694c756124d640756ea9ba23/entities/AgentConversationContext/{{$json.id}}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "{\"is_active\":false}"
+      }
+    }
+  ],
+  "connections": {
+    "Schedule Every Hour": {
+      "main": [
+        [
+          {
+            "node": "Get Active Contexts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Active Contexts": {
+      "main": [
+        [
+          {
+            "node": "Find Expired Contexts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find Expired Contexts": {
+      "main": [
+        [
+          {
+            "node": "Deactivate Expired",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

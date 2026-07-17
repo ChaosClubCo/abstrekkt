@@ -1,0 +1,310 @@
+# .github/workflows/portfolio-sync.yml
+# 
+# Triggers portfolio sync on PR merges, releases, and schedule
+# Place this in any repo you want to trigger syncs from (e.g., your main infra repo)
+
+name: Portfolio Sync
+
+on:
+  # Trigger on PR merge to main
+  pull_request:
+    types: [closed]
+    branches: [main, master]
+  
+  # Trigger on release
+  release:
+    types: [published]
+  
+  # Trigger on push to main (direct commits)
+  push:
+    branches: [main, master]
+    paths:
+      - 'package.json'
+      - 'supabase/**'
+      - '.github/workflows/**'
+  
+  # Weekly schedule (backup if n8n schedule fails)
+  schedule:
+    - cron: '0 7 * * 1'  # Monday 7am UTC
+  
+  # Manual trigger
+  workflow_dispatch:
+    inputs:
+      full_sync:
+        description: 'Run full sync (all repos)'
+        required: false
+        default: 'false'
+        type: boolean
+      notify_slack:
+        description: 'Send Slack notification'
+        required: false
+        default: 'true'
+        type: boolean
+
+env:
+  N8N_WEBHOOK_URL: ${{ secrets.N8N_PORTFOLIO_WEBHOOK_URL }}
+  SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+jobs:
+  # Check if PR was merged (not just closed)
+  check-merge:
+    if: |
+      github.event_name != 'pull_request' || 
+      (github.event.pull_request.merged == true)
+    runs-on: ubuntu-latest
+    outputs:
+      should_sync: ${{ steps.check.outputs.should_sync }}
+      trigger_reason: ${{ steps.check.outputs.trigger_reason }}
+    steps:
+      - name: Determine sync trigger
+        id: check
+        run: |
+          if [ "${{ github.event_name }}" == "pull_request" ]; then
+            echo "should_sync=true" >> $GITHUB_OUTPUT
+            echo "trigger_reason=PR #${{ github.event.pull_request.number }} merged: ${{ github.event.pull_request.title }}" >> $GITHUB_OUTPUT
+          elif [ "${{ github.event_name }}" == "release" ]; then
+            echo "should_sync=true" >> $GITHUB_OUTPUT
+            echo "trigger_reason=Release ${{ github.event.release.tag_name }} published" >> $GITHUB_OUTPUT
+          elif [ "${{ github.event_name }}" == "push" ]; then
+            echo "should_sync=true" >> $GITHUB_OUTPUT
+            echo "trigger_reason=Push to ${{ github.ref_name }}" >> $GITHUB_OUTPUT
+          elif [ "${{ github.event_name }}" == "schedule" ]; then
+            echo "should_sync=true" >> $GITHUB_OUTPUT
+            echo "trigger_reason=Weekly scheduled sync" >> $GITHUB_OUTPUT
+          elif [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            echo "should_sync=true" >> $GITHUB_OUTPUT
+            echo "trigger_reason=Manual trigger by ${{ github.actor }}" >> $GITHUB_OUTPUT
+          else
+            echo "should_sync=false" >> $GITHUB_OUTPUT
+          fi
+
+  # Trigger n8n webhook
+  trigger-sync:
+    needs: check-merge
+    if: needs.check-merge.outputs.should_sync == 'true'
+    runs-on: ubuntu-latest
+    outputs:
+      sync_result: ${{ steps.sync.outputs.result }}
+      project_count: ${{ steps.sync.outputs.project_count }}
+      avg_health: ${{ steps.sync.outputs.avg_health }}
+    steps:
+      - name: Trigger Portfolio Sync
+        id: sync
+        run: |
+          echo "🚀 Triggering portfolio sync..."
+          echo "Reason: ${{ needs.check-merge.outputs.trigger_reason }}"
+          
+          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "$N8N_WEBHOOK_URL" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "trigger": "${{ github.event_name }}",
+              "repo": "${{ github.repository }}",
+              "actor": "${{ github.actor }}",
+              "reason": "${{ needs.check-merge.outputs.trigger_reason }}",
+              "full_sync": ${{ github.event.inputs.full_sync || false }},
+              "timestamp": "${{ github.event.head_commit.timestamp || github.event.release.created_at || '' }}"
+            }')
+          
+          HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+          BODY=$(echo "$RESPONSE" | sed '$d')
+          
+          echo "HTTP Status: $HTTP_CODE"
+          echo "Response: $BODY"
+          
+          if [ "$HTTP_CODE" -ge 200 ] && [ "$HTTP_CODE" -lt 300 ]; then
+            echo "result=success" >> $GITHUB_OUTPUT
+            
+            # Parse response for summary data
+            PROJECT_COUNT=$(echo "$BODY" | jq -r '.summary.total // "unknown"')
+            AVG_HEALTH=$(echo "$BODY" | jq -r '.summary.avgHealth // "unknown"')
+            
+            echo "project_count=$PROJECT_COUNT" >> $GITHUB_OUTPUT
+            echo "avg_health=$AVG_HEALTH" >> $GITHUB_OUTPUT
+            
+            echo "✅ Sync triggered successfully"
+            echo "📊 Projects: $PROJECT_COUNT, Avg Health: $AVG_HEALTH"
+          else
+            echo "result=failed" >> $GITHUB_OUTPUT
+            echo "❌ Sync trigger failed with status $HTTP_CODE"
+            exit 1
+          fi
+
+      - name: Update job summary
+        run: |
+          cat >> $GITHUB_STEP_SUMMARY << 'EOF'
+          ## 📊 Portfolio Sync Results
+          
+          | Metric | Value |
+          |--------|-------|
+          | Trigger | ${{ needs.check-merge.outputs.trigger_reason }} |
+          | Status | ${{ steps.sync.outputs.result }} |
+          | Projects | ${{ steps.sync.outputs.project_count }} |
+          | Avg Health | ${{ steps.sync.outputs.avg_health }} |
+          | Timestamp | ${{ github.event.head_commit.timestamp || 'N/A' }} |
+          EOF
+
+  # Send Slack notification
+  notify:
+    needs: [check-merge, trigger-sync]
+    if: |
+      always() && 
+      needs.check-merge.outputs.should_sync == 'true' &&
+      (github.event.inputs.notify_slack != 'false')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send Slack Notification
+        if: env.SLACK_WEBHOOK_URL != ''
+        run: |
+          if [ "${{ needs.trigger-sync.outputs.sync_result }}" == "success" ]; then
+            COLOR="good"
+            STATUS="✅ Success"
+            TEXT="Portfolio sync completed successfully"
+          else
+            COLOR="danger"
+            STATUS="❌ Failed"
+            TEXT="Portfolio sync failed - check workflow logs"
+          fi
+          
+          curl -s -X POST "$SLACK_WEBHOOK_URL" \
+            -H "Content-Type: application/json" \
+            -d "{
+              \"attachments\": [{
+                \"color\": \"$COLOR\",
+                \"blocks\": [
+                  {
+                    \"type\": \"header\",
+                    \"text\": {
+                      \"type\": \"plain_text\",
+                      \"text\": \"📊 Portfolio Sync Update\"
+                    }
+                  },
+                  {
+                    \"type\": \"section\",
+                    \"fields\": [
+                      {\"type\": \"mrkdwn\", \"text\": \"*Status:*\n$STATUS\"},
+                      {\"type\": \"mrkdwn\", \"text\": \"*Trigger:*\n${{ needs.check-merge.outputs.trigger_reason }}\"},
+                      {\"type\": \"mrkdwn\", \"text\": \"*Projects:*\n${{ needs.trigger-sync.outputs.project_count || 'N/A' }}\"},
+                      {\"type\": \"mrkdwn\", \"text\": \"*Avg Health:*\n${{ needs.trigger-sync.outputs.avg_health || 'N/A' }}%\"}
+                    ]
+                  },
+                  {
+                    \"type\": \"context\",
+                    \"elements\": [
+                      {\"type\": \"mrkdwn\", \"text\": \"Triggered by *${{ github.actor }}* in <${{ github.server_url }}/${{ github.repository }}|${{ github.repository }}>\"}
+                    ]
+                  }
+                ]
+              }]
+            }"
+
+  # Update portfolio health badge
+  update-badge:
+    needs: [trigger-sync]
+    if: needs.trigger-sync.outputs.sync_result == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create health badge
+        run: |
+          HEALTH=${{ needs.trigger-sync.outputs.avg_health }}
+          
+          if [ "$HEALTH" -ge 70 ]; then
+            COLOR="brightgreen"
+          elif [ "$HEALTH" -ge 50 ]; then
+            COLOR="yellow"
+          elif [ "$HEALTH" -ge 30 ]; then
+            COLOR="orange"
+          else
+            COLOR="red"
+          fi
+          
+          # Create badge JSON for shields.io endpoint
+          echo "{\"schemaVersion\":1,\"label\":\"portfolio health\",\"message\":\"${HEALTH}%\",\"color\":\"${COLOR}\"}" > badge.json
+          
+          echo "Badge created: portfolio health ${HEALTH}% (${COLOR})"
+          cat badge.json
+
+      # Optional: Upload badge to gist or artifact
+      - name: Upload badge artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: portfolio-health-badge
+          path: badge.json
+          retention-days: 30
+
+---
+# .github/workflows/portfolio-pr-check.yml
+#
+# Lightweight check on every PR to warn about portfolio impact
+
+name: Portfolio Impact Check
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+jobs:
+  check-impact:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Analyze changes
+        id: analyze
+        run: |
+          # Check if this PR affects portfolio-relevant files
+          CHANGES=$(git diff --name-only origin/${{ github.base_ref }}...HEAD 2>/dev/null || echo "")
+          
+          IMPACTS=""
+          
+          if echo "$CHANGES" | grep -q "package.json"; then
+            IMPACTS="${IMPACTS}📦 Dependencies changed\n"
+          fi
+          
+          if echo "$CHANGES" | grep -q "supabase/"; then
+            IMPACTS="${IMPACTS}🗄️ Database migrations\n"
+          fi
+          
+          if echo "$CHANGES" | grep -q ".github/workflows/"; then
+            IMPACTS="${IMPACTS}⚙️ CI/CD changes\n"
+          fi
+          
+          if echo "$CHANGES" | grep -q "Dockerfile\|docker-compose"; then
+            IMPACTS="${IMPACTS}🐳 Container config\n"
+          fi
+          
+          if echo "$CHANGES" | grep -q ".env.example"; then
+            IMPACTS="${IMPACTS}🔑 Environment variables\n"
+          fi
+          
+          if [ -n "$IMPACTS" ]; then
+            echo "has_impact=true" >> $GITHUB_OUTPUT
+            echo "impacts<<EOF" >> $GITHUB_OUTPUT
+            echo -e "$IMPACTS" >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+          else
+            echo "has_impact=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Comment on PR
+        if: steps.analyze.outputs.has_impact == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const impacts = `${{ steps.analyze.outputs.impacts }}`;
+            const body = `## 📊 Portfolio Impact Notice
+            
+            This PR includes changes that will affect portfolio tracking:
+            
+            ${impacts}
+            
+            A portfolio sync will be triggered automatically when this PR is merged.
+            
+            ---
+            <sub>🤖 Automated by Portfolio Command Center</sub>`;
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body
+            });

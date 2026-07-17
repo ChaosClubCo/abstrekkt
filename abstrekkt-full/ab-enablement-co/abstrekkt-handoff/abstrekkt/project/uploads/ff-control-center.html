@@ -1,0 +1,940 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="ff-artifact-version" content="3.1.0">
+<title>FlashFusion Agent Control Center</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif&family=Geist:wght@300;400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.min.js"
+  integrity="sha384-iU8HYtnGQ8Cy4zl7gbNMOhsDTTKX02BTXptVP/vqAWIaTfM7isw76iyZCsjL2eVi"
+  crossorigin="anonymous"></script>
+<style>
+/* ── SOT §1 v3 Brand Tokens ── */
+:root {
+  color-scheme: light;
+  --bg0:#0B0B14; --bg1:#13131F;
+  --glass:rgba(139,92,246,.08); --border:rgba(139,92,246,.12); --border-hi:rgba(139,92,246,.35);
+  --primary:#A855F7; --secondary:#EC4899; --accent:#22D3EE;
+  --text:#FFF; --text-2:#C7C7D1; --text-dim:#8A8A96;
+  --success:#22c55e; --warning:#f59e0b; --danger:#ef4444;
+  --font-head:'Instrument Serif',Georgia,serif;
+  --font-body:'Geist',system-ui,sans-serif;
+  --font-mono:'Geist Mono','Courier New',monospace;
+  --gap:14px; --r:12px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg0);color:var(--text);font-family:var(--font-body);min-height:100vh;}
+h1,h2,h3{font-family:var(--font-head);font-weight:400;}
+
+/* ── SOT §2 Glassmorphic recipe ── */
+.panel{background:var(--glass);border:1px solid var(--border);border-radius:var(--r);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);padding:16px;transition:border-color 200ms;}
+.panel:hover{border-color:var(--border-hi);}
+
+/* ── Alert bar ── */
+.alert-bar{padding:8px 20px;font-size:12px;font-family:var(--font-mono);display:none;align-items:center;gap:12px;border-bottom:1px solid;}
+.alert-bar.warn{background:rgba(245,158,11,.1);border-color:rgba(245,158,11,.3);color:var(--warning);display:flex;}
+.alert-bar.crit{background:rgba(239,68,68,.1);border-color:rgba(239,68,68,.3);color:var(--danger);display:flex;}
+.alert-bar-x{margin-left:auto;cursor:pointer;opacity:.6;font-size:14px;}
+.alert-bar-x:hover{opacity:1;}
+
+/* ── Nav ── */
+.topnav{display:flex;align-items:center;gap:10px;padding:10px 20px;background:rgba(11,11,20,.96);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:50;backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);}
+.logo-mark{width:30px;height:30px;border-radius:8px;flex-shrink:0;background:linear-gradient(135deg,var(--primary),var(--secondary));display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);font-size:11px;font-weight:500;color:#fff;}
+.nav-title{font-family:var(--font-head);font-size:16px;}
+.nav-sub{font-family:var(--font-mono);font-size:9px;color:var(--text-dim);letter-spacing:.1em;text-transform:uppercase;margin-top:1px;}
+.nav-gap{flex:1;}
+.mode-badge{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:99px;font-family:var(--font-mono);font-size:10px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;border:1px solid;}
+.mode-badge::before{content:'';width:6px;height:6px;border-radius:50%;background:currentColor;animation:pulse 2s infinite;}
+.badge-demo{color:var(--warning);border-color:rgba(245,158,11,.3);background:rgba(245,158,11,.08);}
+.badge-live{color:var(--success);border-color:rgba(34,197,94,.3);background:rgba(34,197,94,.08);}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+/* Auto-refresh toggle */
+.ar-toggle{display:flex;align-items:center;gap:6px;font-family:var(--font-mono);font-size:10px;color:var(--text-dim);cursor:pointer;user-select:none;}
+.ar-track{width:28px;height:16px;border-radius:99px;border:1px solid var(--border);background:rgba(255,255,255,.05);position:relative;transition:all 150ms;flex-shrink:0;}
+.ar-track.on{background:rgba(168,85,247,.25);border-color:rgba(168,85,247,.5);}
+.ar-thumb{width:10px;height:10px;border-radius:50%;background:var(--text-dim);position:absolute;top:2px;left:2px;transition:all 150ms;}
+.ar-track.on .ar-thumb{left:14px;background:var(--primary);}
+.nav-btn{display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:7px;border:1px solid var(--border);background:var(--glass);color:var(--text-2);font-family:var(--font-body);font-size:12px;cursor:pointer;transition:all 150ms;}
+.nav-btn:hover{border-color:var(--primary);color:var(--primary);background:rgba(168,85,247,.08);}
+.nav-btn:focus-visible{outline:2px solid var(--primary);outline-offset:2px;}
+
+/* ── Layout ── */
+.content{padding:var(--gap) 20px 24px;display:flex;flex-direction:column;gap:var(--gap);}
+.kpi-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--gap);}
+.kpi-card{background:var(--glass);border:1px solid var(--border);border-radius:var(--r);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);padding:14px 18px;position:relative;overflow:hidden;transition:border-color 200ms;cursor:pointer;}
+.kpi-card:hover{border-color:var(--border-hi);}
+.kpi-card.alert-warn{border-color:rgba(245,158,11,.4);box-shadow:0 0 0 1px rgba(245,158,11,.15);}
+.kpi-card.alert-crit{border-color:rgba(239,68,68,.5);box-shadow:0 0 0 1px rgba(239,68,68,.2);}
+.kpi-card::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--primary),var(--secondary));opacity:0;transition:opacity 200ms;}
+.kpi-card:hover::after{opacity:1;}
+.kpi-label{font-size:10px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.09em;margin-bottom:8px;font-family:var(--font-mono);}
+.kpi-val{font-size:26px;font-family:var(--font-mono);font-weight:500;line-height:1;}
+.kpi-val.c-primary{color:var(--primary);} .kpi-val.c-success{color:var(--success);}
+.kpi-sub{font-size:10px;color:var(--text-dim);margin-top:4px;}
+.kpi-ts{font-size:9px;color:var(--text-dim);font-family:var(--font-mono);margin-top:2px;opacity:.6;}
+
+/* Cost drilldown */
+.cost-drill{grid-column:1/-1;background:var(--glass);border:1px solid var(--border);border-radius:var(--r);padding:14px;display:none;}
+.cost-drill.open{display:block;}
+.drill-table{width:100%;border-collapse:collapse;font-family:var(--font-mono);font-size:11px;}
+.drill-table th{font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-dim);padding:0 8px 8px;text-align:left;}
+.drill-table td{padding:6px 8px;border-top:1px solid var(--border);color:var(--text-2);}
+.drill-table tr:hover td{background:rgba(255,255,255,.02);}
+
+/* Main grid */
+.main-grid{display:grid;grid-template-columns:210px 1fr 290px;grid-template-rows:auto auto;gap:var(--gap);}
+.g-budget{grid-column:1;grid-row:1;} .g-trend{grid-column:2;grid-row:1;}
+.g-queue{grid-column:3;grid-row:1/3;} .g-runs{grid-column:1;grid-row:2;} .g-health{grid-column:2;grid-row:2;}
+
+/* Panel header */
+.ph{display:flex;align-items:center;gap:8px;margin-bottom:12px;}
+.ph h3{font-size:13px;color:var(--text-2);font-family:var(--font-body);font-weight:500;}
+.ph-gap{flex:1;}
+.ph-tag{font-family:var(--font-mono);font-size:9px;padding:2px 7px;border-radius:99px;background:rgba(168,85,247,.12);color:var(--primary);border:1px solid rgba(168,85,247,.22);}
+.ph-ts{font-size:9px;color:var(--text-dim);font-family:var(--font-mono);opacity:.6;}
+
+/* Gauge */
+.gauge-wrap{display:flex;flex-direction:column;align-items:center;gap:10px;padding:6px 0;}
+.gauge-svg{width:148px;height:148px;}
+.g-bg{fill:none;stroke-width:13;stroke-linecap:round;}
+.g-fill{fill:none;stroke-width:13;stroke-linecap:round;transition:stroke-dasharray .6s ease,stroke .3s;}
+.gauge-legend{font-size:11px;color:var(--text-dim);text-align:center;}
+.gauge-legend em{font-style:normal;font-family:var(--font-mono);color:var(--primary);}
+
+/* Trend */
+.chart-wrap{height:168px;position:relative;}
+
+/* ── HITL Queue ── */
+.filter-tabs{display:flex;gap:0;margin-bottom:10px;border:1px solid var(--border);border-radius:8px;overflow:hidden;}
+.ftab{flex:1;padding:5px 0;font-family:var(--font-mono);font-size:10px;font-weight:500;color:var(--text-dim);background:transparent;border:none;cursor:pointer;text-align:center;transition:all 140ms;text-transform:uppercase;letter-spacing:.06em;}
+.ftab:hover{color:var(--text-2);background:rgba(255,255,255,.04);}
+.ftab.active{color:var(--primary);background:rgba(168,85,247,.12);}
+.aq-scroll{display:flex;flex-direction:column;gap:7px;max-height:400px;overflow-y:auto;padding-right:2px;}
+.aq-item{padding:10px 12px;border-radius:9px;background:rgba(255,255,255,.03);border:1px solid var(--border);transition:all 150ms;cursor:default;}
+.aq-item:hover{border-color:var(--border-hi);}
+.aq-item.resolving{opacity:.4;pointer-events:none;transition:opacity .3s;}
+.aq-row{display:flex;align-items:flex-start;gap:6px;}
+.aq-task{font-size:12px;color:var(--text);font-weight:500;flex:1;line-height:1.35;}
+.prio{font-family:var(--font-mono);font-size:9px;font-weight:600;padding:2px 6px;border-radius:99px;text-transform:uppercase;letter-spacing:.06em;flex-shrink:0;}
+.prio-high{background:rgba(239,68,68,.12);color:var(--danger);border:1px solid rgba(239,68,68,.25);}
+.prio-medium{background:rgba(245,158,11,.12);color:var(--warning);border:1px solid rgba(245,158,11,.25);}
+.prio-low{background:rgba(139,92,246,.1);color:var(--text-dim);border:1px solid var(--border);}
+.aq-meta{font-size:10px;color:var(--text-dim);font-family:var(--font-mono);margin-top:5px;display:flex;gap:10px;}
+/* Note expand */
+.aq-note-row{margin-top:6px;display:none;}
+.aq-note-row.open{display:block;}
+.aq-note{width:100%;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:6px;padding:6px 8px;color:var(--text-2);font-family:var(--font-mono);font-size:11px;resize:none;outline:none;transition:border-color 150ms;}
+.aq-note:focus{border-color:var(--primary);}
+.aq-note::placeholder{color:var(--text-dim);}
+.aq-actions{display:flex;gap:5px;margin-top:7px;align-items:center;}
+.aq-btn{flex:1;padding:5px;border-radius:6px;border:1px solid;font-family:var(--font-mono);font-size:10px;font-weight:600;cursor:pointer;transition:all 140ms;text-align:center;background:transparent;}
+.aq-btn:focus-visible{outline:2px solid var(--primary);outline-offset:2px;}
+.aq-btn-ok{border-color:rgba(34,197,94,.3);color:var(--success);}
+.aq-btn-ok:hover{background:rgba(34,197,94,.1);}
+.aq-btn-rej{border-color:rgba(239,68,68,.2);color:rgba(239,68,68,.6);}
+.aq-btn-rej:hover{background:rgba(239,68,68,.1);color:var(--danger);}
+.aq-note-toggle{font-size:10px;font-family:var(--font-mono);color:var(--text-dim);background:none;border:none;cursor:pointer;margin-left:auto;padding:2px 4px;border-radius:4px;transition:color 140ms;}
+.aq-note-toggle:hover{color:var(--primary);}
+.aq-empty{text-align:center;padding:28px 0;font-size:12px;color:var(--text-dim);}
+
+/* Active runs */
+.run-item{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;background:rgba(255,255,255,.02);margin-bottom:5px;}
+.run-dot{width:7px;height:7px;border-radius:50%;background:var(--success);flex-shrink:0;animation:pulse 1.5s infinite;}
+.run-agent{font-size:12px;font-family:var(--font-mono);color:var(--text-2);flex:1;}
+.run-time{font-size:11px;font-family:var(--font-mono);color:var(--text-dim);}
+
+/* Agent health */
+.health-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:7px;}
+.hc{padding:10px 12px;border-radius:8px;border:1px solid;background:rgba(255,255,255,.02);transition:all 150ms;cursor:pointer;}
+.hc:hover{border-color:var(--border-hi);transform:translateY(-1px);}
+.hc:focus-visible{outline:2px solid var(--primary);outline-offset:2px;}
+.hc-name{font-size:11px;font-family:var(--font-mono);color:var(--text-2);margin-bottom:5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.hc-row{display:flex;align-items:center;gap:6px;}
+.hc-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
+.hc-status{font-size:11px;color:var(--text-dim);}
+.hc-rate{font-size:10px;font-family:var(--font-mono);color:var(--text-dim);margin-top:3px;}
+.s-healthy{border-color:rgba(34,197,94,.25);} .s-healthy .hc-dot{background:var(--success);}
+.s-degraded{border-color:rgba(245,158,11,.25);} .s-degraded .hc-dot{background:var(--warning);animation:pulse 2s infinite;}
+.s-idle{border-color:rgba(139,92,246,.18);} .s-idle .hc-dot{background:var(--text-dim);}
+.s-disabled{border-color:rgba(239,68,68,.2);} .s-disabled .hc-dot{background:var(--danger);}
+
+/* Heatmap */
+.hm-outer{overflow-x:auto;}
+.hm-grid{display:grid;grid-template-columns:30px repeat(24,1fr);gap:2px;min-width:580px;}
+.hm-label{font-size:9px;font-family:var(--font-mono);color:var(--text-dim);text-align:right;padding-right:5px;line-height:15px;}
+.hm-cell{height:15px;border-radius:2px;cursor:default;transition:outline 100ms;}
+.hm-cell:hover{outline:1px solid var(--primary);}
+.hm-col-row{grid-column:1/-1;display:grid;grid-template-columns:30px repeat(24,1fr);gap:2px;margin-bottom:2px;}
+.hm-col-label{font-size:8px;font-family:var(--font-mono);color:var(--text-dim);text-align:center;}
+
+/* ── Agent Detail Slide-over ── */
+.slide-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:80;opacity:0;pointer-events:none;transition:opacity 250ms;}
+.slide-backdrop.open{opacity:1;pointer-events:all;}
+.slide-over{position:fixed;top:0;right:-440px;width:420px;height:100vh;background:var(--bg1);border-left:1px solid var(--border);z-index:90;display:flex;flex-direction:column;transition:right 280ms cubic-bezier(.33,1,.68,1);overflow:hidden;}
+.slide-over.open{right:0;}
+.slide-head{display:flex;align-items:flex-start;gap:12px;padding:20px;border-bottom:1px solid var(--border);flex-shrink:0;}
+.slide-head h2{font-family:var(--font-head);font-size:20px;font-weight:400;}
+.slide-head-sub{font-size:11px;color:var(--text-dim);margin-top:3px;font-family:var(--font-mono);}
+.slide-close{margin-left:auto;background:none;border:none;color:var(--text-dim);font-size:18px;cursor:pointer;line-height:1;padding:4px;flex-shrink:0;border-radius:6px;transition:color 140ms;}
+.slide-close:hover{color:var(--text);}
+.slide-body{flex:1;overflow-y:auto;padding:16px 20px;}
+.slide-section{margin-bottom:20px;}
+.slide-section-label{font-size:10px;font-family:var(--font-mono);color:var(--text-dim);text-transform:uppercase;letter-spacing:.09em;margin-bottom:10px;}
+.run-row{display:grid;grid-template-columns:20px 1fr auto auto;gap:8px;align-items:center;padding:7px 0;border-bottom:1px solid var(--border);}
+.run-row:last-child{border-bottom:none;}
+.run-status-dot{width:7px;height:7px;border-radius:50%;}
+.run-agent-id{font-family:var(--font-mono);font-size:11px;color:var(--text-2);}
+.run-when{font-family:var(--font-mono);font-size:10px;color:var(--text-dim);}
+.run-cost{font-family:var(--font-mono);font-size:10px;color:var(--text-dim);}
+.run-err{grid-column:2/-1;font-size:10px;color:var(--danger);font-family:var(--font-mono);margin-top:2px;padding:4px 8px;background:rgba(239,68,68,.08);border-radius:4px;}
+.stat-row{display:flex;gap:0;margin-top:4px;}
+.stat-block{flex:1;text-align:center;padding:10px;}
+.stat-block+.stat-block{border-left:1px solid var(--border);}
+.stat-num{font-size:20px;font-family:var(--font-mono);font-weight:500;}
+.stat-lbl{font-size:10px;color:var(--text-dim);margin-top:2px;}
+
+/* ── Toast notifications ── */
+.toast-wrap{position:fixed;bottom:24px;right:24px;z-index:200;display:flex;flex-direction:column;gap:8px;pointer-events:none;}
+.toast{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:10px;font-size:12px;font-family:var(--font-body);font-weight:500;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid;min-width:240px;max-width:320px;pointer-events:all;animation:slideUp 250ms cubic-bezier(.33,1,.68,1);}
+@keyframes slideUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+.toast.success{background:rgba(34,197,94,.12);border-color:rgba(34,197,94,.3);color:var(--success);}
+.toast.error{background:rgba(239,68,68,.12);border-color:rgba(239,68,68,.3);color:var(--danger);}
+.toast.info{background:rgba(168,85,247,.12);border-color:rgba(168,85,247,.3);color:var(--primary);}
+.toast-undo{margin-left:auto;font-size:11px;font-family:var(--font-mono);text-decoration:underline;cursor:pointer;opacity:.8;}
+.toast-undo:hover{opacity:1;}
+
+/* ── Config / Keyboard modals ── */
+.backdrop{position:fixed;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);z-index:100;display:flex;align-items:center;justify-content:center;padding:20px;}
+.modal{background:var(--bg1);border:1px solid var(--border-hi);border-radius:16px;padding:24px;width:100%;max-width:460px;}
+.modal h2{font-family:var(--font-head);font-weight:400;font-size:20px;margin-bottom:20px;}
+.modal-section-label{font-size:10px;font-family:var(--font-mono);color:var(--text-dim);text-transform:uppercase;letter-spacing:.08em;margin:16px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--border);}
+.field{margin-bottom:12px;}
+.field label{display:block;font-size:11px;color:var(--text-dim);margin-bottom:5px;font-family:var(--font-mono);letter-spacing:.06em;text-transform:uppercase;}
+.field input{width:100%;padding:9px 13px;background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:var(--font-mono);font-size:13px;outline:none;transition:border-color 150ms;}
+.field input:focus{border-color:var(--primary);}
+.field input::placeholder{color:var(--text-dim);}
+.field-hint{font-size:11px;color:var(--text-dim);margin-top:4px;line-height:1.45;}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.modal-btns{display:flex;gap:8px;margin-top:18px;}
+.btn{flex:1;padding:9px;border-radius:8px;border:1px solid;font-family:var(--font-body);font-size:13px;font-weight:500;cursor:pointer;transition:all 140ms;}
+.btn:focus-visible{outline:2px solid var(--primary);outline-offset:2px;}
+.btn-primary{background:var(--primary);border-color:var(--primary);color:#fff;}
+.btn-primary:hover{filter:brightness(1.1);}
+.btn-ghost{background:transparent;border-color:var(--border);color:var(--text-2);}
+.btn-ghost:hover{border-color:var(--border-hi);color:var(--text);}
+.btn-danger{background:rgba(239,68,68,.1);border-color:rgba(239,68,68,.3);color:var(--danger);}
+.btn-danger:hover{background:rgba(239,68,68,.2);}
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.8);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);z-index:100;display:flex;align-items:center;justify-content:center;padding:20px;}
+.overlay-card{background:var(--bg1);border:1px solid var(--border);border-radius:16px;padding:24px;max-width:440px;width:100%;}
+.overlay-card h2{font-family:var(--font-head);font-weight:400;font-size:20px;margin-bottom:16px;}
+.kbd-tbl{width:100%;border-collapse:collapse;}
+.kbd-tbl td{padding:7px 0;border-bottom:1px solid var(--border);font-size:13px;color:var(--text-2);}
+.kbd-tbl tr:last-child td{border-bottom:none;}
+.kbd-tbl td:first-child{padding-right:16px;width:1%;white-space:nowrap;}
+kbd{display:inline-flex;align-items:center;padding:2px 7px;border-radius:4px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);font-family:var(--font-mono);font-size:11px;color:var(--text);}
+
+/* Utils */
+[hidden]{display:none!important;}
+::-webkit-scrollbar{width:3px;height:3px;} ::-webkit-scrollbar-track{background:transparent;} ::-webkit-scrollbar-thumb{background:rgba(139,92,246,.3);border-radius:99px;}
+:focus-visible{outline:2px solid var(--primary);outline-offset:2px;border-radius:4px;}
+:focus:not(:focus-visible){outline:none;}
+.shimmer{background:linear-gradient(90deg,rgba(139,92,246,.05) 25%,rgba(139,92,246,.14) 50%,rgba(139,92,246,.05) 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;border-radius:6px;}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important;}}
+</style>
+</head>
+<body>
+
+<!-- Alert bar -->
+<div id="alert-bar" class="alert-bar" role="alert">
+  <span id="alert-msg"></span>
+  <button class="alert-bar-x" id="alert-close" aria-label="Dismiss alert">✕</button>
+</div>
+
+<!-- Panel 1: Top Nav -->
+<header class="topnav">
+  <div class="logo-mark" aria-hidden="true">FF</div>
+  <div><div class="nav-title">FlashFusion Control Center</div><div class="nav-sub">Agent Ops · v3.1.0</div></div>
+  <div class="nav-gap"></div>
+  <div class="ar-toggle" id="ar-toggle" role="switch" aria-checked="false" aria-label="Auto-refresh every 30s" tabindex="0">
+    <div class="ar-track" id="ar-track"><div class="ar-thumb"></div></div>
+    <span id="ar-label">Auto</span>
+  </div>
+  <span id="mode-badge" class="mode-badge badge-demo" aria-live="polite">DEMO</span>
+  <button class="nav-btn" id="refresh-btn" aria-label="Refresh all panels">↻ Refresh</button>
+  <button class="nav-btn" id="config-btn" aria-label="Open configuration (C)">⚙ Config</button>
+</header>
+
+<div class="content">
+
+  <!-- Panel 2: KPI Strip -->
+  <div class="kpi-strip" role="region" aria-label="Key performance indicators">
+    <div class="kpi-card" id="kpi-card-runs" tabindex="0" title="Click for details">
+      <div class="kpi-label">Runs (24h)</div>
+      <div class="kpi-val" id="kpi-runs">—</div>
+      <div class="kpi-sub">last 24 hours</div>
+      <div class="kpi-ts" id="ts-kpis"></div>
+    </div>
+    <div class="kpi-card" id="kpi-card-rate" tabindex="0" title="Click for details">
+      <div class="kpi-label">Success Rate</div>
+      <div class="kpi-val c-success" id="kpi-rate">—</div>
+      <div class="kpi-sub" id="kpi-rate-sub">last 24h</div>
+    </div>
+    <div class="kpi-card" id="kpi-card-agents" tabindex="0">
+      <div class="kpi-label">Active Agents</div>
+      <div class="kpi-val c-primary" id="kpi-agents">—</div>
+      <div class="kpi-sub">healthy status</div>
+    </div>
+    <div class="kpi-card" id="kpi-card-cost" tabindex="0" title="Click to see per-agent breakdown" aria-expanded="false">
+      <div class="kpi-label">Cost (30d) ↓</div>
+      <div class="kpi-val" id="kpi-cost">—</div>
+      <div class="kpi-sub">USD this month</div>
+    </div>
+
+    <!-- Cost drilldown (expands across the full strip) -->
+    <div class="cost-drill" id="cost-drill">
+      <div style="font-size:11px;font-family:var(--font-mono);color:var(--text-dim);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px">Cost by Agent — This Month</div>
+      <table class="drill-table">
+        <thead><tr><th>Agent</th><th>Runs</th><th>Total</th><th>Avg/Run</th></tr></thead>
+        <tbody id="cost-drill-body"><tr><td colspan="4" style="color:var(--text-dim);text-align:center;padding:12px">Loading…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Main grid -->
+  <div class="main-grid">
+
+    <!-- Panel 3: Budget Gauge -->
+    <div class="panel g-budget">
+      <div class="ph"><h3>Budget</h3><span class="ph-gap"></span><span id="ts-budget" class="ph-ts"></span></div>
+      <div class="gauge-wrap">
+        <svg class="gauge-svg" viewBox="0 0 148 148" role="img" aria-labelledby="gauge-title">
+          <title id="gauge-title">Monthly budget gauge</title>
+          <circle id="g-bg"   class="g-bg"   cx="74" cy="74" r="56"/>
+          <circle id="g-fill" class="g-fill"  cx="74" cy="74" r="56"/>
+          <defs>
+            <linearGradient id="gg" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stop-color="#A855F7"/>
+              <stop offset="100%" stop-color="#22D3EE"/>
+            </linearGradient>
+          </defs>
+          <text id="g-pct" x="74" y="70" text-anchor="middle" font-family="'Geist Mono',monospace" font-size="22" font-weight="500" fill="#FFFFFF">—</text>
+          <text x="74" y="85" text-anchor="middle" font-family="'Geist',system-ui" font-size="10" fill="#8A8A96">spent</text>
+        </svg>
+        <div class="gauge-legend"><em id="g-spent">$0</em> of <em id="g-ceil">$50</em></div>
+      </div>
+    </div>
+
+    <!-- Panel 4: 7-Day Run Trend -->
+    <div class="panel g-trend">
+      <div class="ph"><h3>Run Trend</h3><span class="ph-gap"></span><span id="ts-trend" class="ph-ts"></span></div>
+      <div class="chart-wrap"><canvas id="trend-canvas" aria-label="7-day agent run trend"></canvas></div>
+    </div>
+
+    <!-- Panel 5: Approval Queue (HITL) with filter tabs + write-back -->
+    <div class="panel g-queue">
+      <div class="ph">
+        <h3>Approval Queue</h3>
+        <span id="aq-count" class="ph-tag" aria-live="polite">0</span>
+        <span class="ph-gap"></span>
+        <span id="ts-queue" class="ph-ts"></span>
+      </div>
+      <div class="filter-tabs" role="tablist" aria-label="Filter by priority">
+        <button class="ftab active" data-priority="all"    role="tab" aria-selected="true">All</button>
+        <button class="ftab"        data-priority="high"   role="tab" aria-selected="false">High</button>
+        <button class="ftab"        data-priority="medium" role="tab" aria-selected="false">Med</button>
+        <button class="ftab"        data-priority="low"    role="tab" aria-selected="false">Low</button>
+      </div>
+      <div class="aq-scroll" id="aq-list" role="list" aria-label="Pending HITL approvals">
+        <div class="aq-empty">Loading…</div>
+      </div>
+    </div>
+
+    <!-- Panel 6: Active Runs -->
+    <div class="panel g-runs">
+      <div class="ph"><h3>Active Runs</h3><span class="ph-gap"></span><span id="ts-runs" class="ph-ts"></span></div>
+      <div id="runs-list"></div>
+    </div>
+
+    <!-- Panel 7: Agent Health (clickable → slide-over) -->
+    <div class="panel g-health">
+      <div class="ph"><h3>Agent Health</h3><span style="font-size:10px;color:var(--text-dim);font-family:var(--font-mono)">click for detail</span><span class="ph-gap"></span><span id="ts-health" class="ph-ts"></span></div>
+      <div class="health-grid" id="health-grid" aria-label="Agent health status"></div>
+    </div>
+
+  </div>
+
+  <!-- Panel 8: Heatmap -->
+  <div class="panel">
+    <div class="ph"><h3>Run Heatmap</h3><span class="ph-gap"></span><span style="font-family:var(--font-mono);font-size:9px;color:var(--text-dim)">runs/hour × day · 28 days</span></div>
+    <div class="hm-outer"><div class="hm-grid" id="heatmap" aria-label="Heatmap of agent runs by hour and day"></div></div>
+  </div>
+
+</div><!-- /content -->
+
+<!-- Agent Detail Slide-over -->
+<div class="slide-backdrop" id="slide-backdrop"></div>
+<aside class="slide-over" id="slide-over" role="dialog" aria-modal="true" aria-labelledby="slide-title">
+  <div class="slide-head">
+    <div>
+      <h2 id="slide-title">Agent</h2>
+      <div class="slide-head-sub" id="slide-sub"></div>
+    </div>
+    <button class="slide-close" id="slide-close" aria-label="Close agent detail">✕</button>
+  </div>
+  <div class="slide-body">
+    <div class="slide-section">
+      <div class="slide-section-label">30-Day Stats</div>
+      <div class="stat-row panel" style="padding:0">
+        <div class="stat-block"><div class="stat-num" id="sd-runs">—</div><div class="stat-lbl">runs</div></div>
+        <div class="stat-block"><div class="stat-num c-success" id="sd-rate">—</div><div class="stat-lbl">success</div></div>
+        <div class="stat-block"><div class="stat-num" id="sd-cost">—</div><div class="stat-lbl">cost</div></div>
+      </div>
+    </div>
+    <div class="slide-section">
+      <div class="slide-section-label">Last 10 Runs</div>
+      <div id="sd-runs-list"><div class="shimmer" style="height:200px"></div></div>
+    </div>
+  </div>
+</aside>
+
+<!-- Toast container -->
+<div class="toast-wrap" id="toast-wrap" aria-live="polite" aria-atomic="false"></div>
+
+<!-- Panel 9: Config Modal -->
+<div id="cfg-backdrop" class="backdrop" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="cfg-title">
+    <h2 id="cfg-title">Configuration</h2>
+    <div class="modal-section-label">Connection</div>
+    <div class="field">
+      <label for="pid-in">Supabase Project ID</label>
+      <input type="text" id="pid-in" placeholder="Enter project ID for Live mode" autocomplete="off" spellcheck="false"/>
+      <div class="field-hint">Reads and writes live data via MCP. Leave blank for Demo mode.</div>
+    </div>
+    <div class="modal-section-label">Budget</div>
+    <div class="field-row">
+      <div class="field">
+        <label for="budget-in">Monthly Ceiling (USD)</label>
+        <input type="number" id="budget-in" min="1" max="99999" value="50"/>
+      </div>
+      <div class="field">
+        <label for="budget-alert-in">Alert Threshold (%)</label>
+        <input type="number" id="budget-alert-in" min="10" max="100" value="80"/>
+        <div class="field-hint">Show alert bar above this %.</div>
+      </div>
+    </div>
+    <div class="modal-section-label">Quality Alerts</div>
+    <div class="field">
+      <label for="success-alert-in">Min Success Rate (%)</label>
+      <input type="number" id="success-alert-in" min="0" max="100" value="85"/>
+      <div class="field-hint">Alert when 24h success rate drops below this.</div>
+    </div>
+    <div class="modal-btns">
+      <button class="btn btn-ghost" id="cfg-cancel">Cancel</button>
+      <button class="btn btn-danger" id="cfg-clear">Clear → Demo</button>
+      <button class="btn btn-primary" id="cfg-save">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Panel 10: Keyboard Overlay -->
+<div id="kbd-overlay" class="overlay" hidden role="dialog" aria-modal="true" aria-label="Keyboard shortcuts">
+  <div class="overlay-card">
+    <h2>Keyboard Shortcuts</h2>
+    <table class="kbd-tbl"><tbody>
+      <tr><td><kbd>?</kbd></td><td>Toggle this overlay</td></tr>
+      <tr><td><kbd>C</kbd></td><td>Open Configuration</td></tr>
+      <tr><td><kbd>R</kbd></td><td>Refresh all panels</td></tr>
+      <tr><td><kbd>A</kbd></td><td>Toggle auto-refresh</td></tr>
+      <tr><td><kbd>Esc</kbd></td><td>Close modal / slide-over</td></tr>
+      <tr><td><kbd>Tab</kbd></td><td>Navigate interactive elements</td></tr>
+    </tbody></table>
+    <button class="btn btn-ghost" style="margin-top:14px;width:100%" id="kbd-close">Close</button>
+  </div>
+</div>
+
+<script>
+/* ─── DEMO data (SOT Phase 4) ─── */
+const DEMO={
+  kpis:{runs_24h:47,success_rate:0.94,active_agents:6,cost_30d:12.34},
+  budget:{spent:12.34,ceiling:50},
+  trend:{labels:['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],runs:[32,41,38,52,47,19,24]},
+  approvals:[
+    {id:'a1',task:'Publish weekly newsletter draft',    agent:'newsletter-bot',ts:'09:42',priority:'high'},
+    {id:'a2',task:'Send invoice to ChaosClubCo client', agent:'finance-bot',   ts:'09:18',priority:'medium'},
+    {id:'a3',task:'Approve social content calendar',    agent:'social-bot',    ts:'08:51',priority:'low'}
+  ],
+  runs:[
+    {id:'r1',agent:'newsletter-bot',elapsed:'12m'},
+    {id:'r2',agent:'social-bot',    elapsed:'<1m'}
+  ],
+  agents:[
+    {name:'newsletter-bot',status:'healthy', last_run:'09:30',success_rate:0.96},
+    {name:'social-bot',    status:'healthy', last_run:'09:42',success_rate:0.91},
+    {name:'finance-bot',   status:'idle',    last_run:'08:18',success_rate:0.99},
+    {name:'kb-bot',        status:'healthy', last_run:'07:55',success_rate:0.94},
+    {name:'audit-bot',     status:'degraded',last_run:'06:12',success_rate:0.78},
+    {name:'plugin-bot',    status:'idle',    last_run:'05:00',success_rate:0.97}
+  ],
+  heatmap:Array.from({length:7},(_,d)=>Array.from({length:24},(_,h)=>{
+    const wd=d>0&&d<6,bh=h>=9&&h<=17;
+    return Math.max(0,(wd&&bh?4:wd?1:0)+Math.floor(Math.random()*3)-1);
+  })),
+  agentDetail:{
+    'newsletter-bot':{runs:48,success_rate:0.96,cost_total:4.20,
+      history:[{status:'succeeded',when:'09:30',cost:0.09,err:null},{status:'succeeded',when:'Tue 21:00',cost:0.08,err:null},{status:'failed',when:'Mon 09:00',cost:0.01,err:'Token limit exceeded'},{status:'succeeded',when:'Sun 09:30',cost:0.09,err:null},{status:'succeeded',when:'Sat 14:00',cost:0.07,err:null}]},
+    'audit-bot':{runs:12,success_rate:0.78,cost_total:1.80,
+      history:[{status:'failed',when:'06:12',cost:0.02,err:'Supabase timeout after 30s'},{status:'failed',when:'Yesterday 18:00',cost:0.01,err:'RLS policy denied query'},{status:'succeeded',when:'Mon 09:00',cost:0.15,err:null}]}
+  },
+  costByAgent:[
+    {agent:'newsletter-bot',runs:48,total:4.20,avg:0.09},
+    {agent:'kb-bot',        runs:36,total:3.10,avg:0.09},
+    {agent:'audit-bot',     runs:12,total:1.80,avg:0.15},
+    {agent:'social-bot',    runs:24,total:1.60,avg:0.07},
+    {agent:'finance-bot',   runs:8, total:1.04,avg:0.13},
+    {agent:'plugin-bot',    runs:4, total:0.60,avg:0.15}
+  ]
+};
+
+/* ─── State ─── */
+let trendChart=null,arTimer=null,currentPriority='all',pendingUndo=null;
+
+function readState(){
+  return{pid:localStorage.getItem('ff_pid')||'',budget:parseFloat(localStorage.getItem('ff_budget')||'50'),mode:localStorage.getItem('ff_mode')||'demo'};
+}
+function ts(){return new Date().toLocaleTimeString('en',{hour:'2-digit',minute:'2-digit',second:'2-digit'});}
+function setTS(id){const el=document.getElementById(id);if(el)el.textContent='↑ '+ts();}
+function elapsedStr(iso){const m=Math.floor((Date.now()-new Date(iso))/60000);return m<1?'<1m':m<60?`${m}m`:`${Math.floor(m/60)}h ${m%60}m`;}
+
+/* ─── Persistent preferences (window.storage) ─── */
+async function readPrefs(){
+  try{const r=await window.storage.get('ff_prefs');return r?JSON.parse(r.value):{budgetAlert:80,minSuccess:85,autoRefresh:false};}
+  catch{return{budgetAlert:80,minSuccess:85,autoRefresh:false};}
+}
+async function savePrefs(p){
+  try{await window.storage.set('ff_prefs',JSON.stringify(p));}catch{}
+}
+
+/* ─── Toast ─── */
+function showToast(msg,type='info',undoFn=null){
+  const wrap=document.getElementById('toast-wrap');
+  const t=document.createElement('div');
+  t.className=`toast ${type}`;
+  t.innerHTML=`<span>${msg}</span>${undoFn?`<span class="toast-undo" role="button" tabindex="0">Undo</span>`:''}`;
+  if(undoFn){
+    const u=t.querySelector('.toast-undo');
+    u.addEventListener('click',()=>{undoFn();t.remove();});
+    u.addEventListener('keydown',e=>e.key==='Enter'&&(undoFn(),t.remove()));
+  }
+  wrap.appendChild(t);
+  setTimeout(()=>t.remove(),4500);
+}
+
+/* ─── Alert bar ─── */
+function setAlert(msg,level='warn'){
+  const bar=document.getElementById('alert-bar');
+  document.getElementById('alert-msg').textContent=msg;
+  bar.className=`alert-bar ${level}`;
+}
+function clearAlert(){document.getElementById('alert-bar').className='alert-bar';}
+document.getElementById('alert-close').addEventListener('click',clearAlert);
+
+/* ─── Live MCP fetch ─── */
+async function fetchLive(pid){
+  const call=sql=>{
+    if(!window.cowork?.callMcpTool)return null;
+    return window.cowork.callMcpTool('mcp__plugin_kyle-os_supabase__execute_sql',{project_id:pid,query:sql}).catch(()=>null);
+  };
+  const[kRaw,acRaw,tRaw,aqRaw,ruRaw,agRaw,hmRaw,bdRaw,costRaw]=await Promise.all([
+    call(`SELECT COUNT(*) FILTER(WHERE started_at>now()-interval '24h') as r24, ROUND((COUNT(*) FILTER(WHERE status='succeeded' AND started_at>now()-interval '24h'))::numeric/NULLIF(COUNT(*) FILTER(WHERE started_at>now()-interval '24h'),0)*100,1) as spct, COALESCE(SUM(cost_usd) FILTER(WHERE started_at>date_trunc('month',now())),0) as c30 FROM agent_runs`),
+    call(`SELECT COUNT(*) FILTER(WHERE status='healthy') as hc FROM agents`),
+    call(`SELECT date_trunc('day',started_at)::date::text as dy,COUNT(*) as r FROM agent_runs WHERE started_at>now()-interval '7 days' GROUP BY 1 ORDER BY 1`),
+    call(`SELECT id,task_name,agent_id,priority,created_at FROM hitl_queue WHERE status='pending' ORDER BY CASE priority WHEN 'high' THEN 1 WHEN 'medium' THEN 2 ELSE 3 END,created_at DESC LIMIT 20`),
+    call(`SELECT id,agent_id,started_at FROM agent_runs WHERE status='running' ORDER BY started_at ASC`),
+    call(`SELECT a.id,a.name,a.status,COUNT(r.id) FILTER(WHERE r.status='succeeded') as ok,COUNT(r.id) as tot,MAX(r.started_at) as lr FROM agents a LEFT JOIN agent_runs r ON r.agent_id=a.id AND r.started_at>now()-interval '30d' GROUP BY a.id,a.name,a.status ORDER BY a.name`),
+    call(`SELECT EXTRACT(DOW FROM started_at)::int as dw,EXTRACT(HOUR FROM started_at)::int as hr,COUNT(*) as r FROM agent_runs WHERE started_at>now()-interval '28d' GROUP BY 1,2`),
+    call(`SELECT COALESCE(SUM(cost_usd),0) as t FROM agent_runs WHERE started_at>date_trunc('month',now())`),
+    call(`SELECT agent_id,COUNT(*) as runs,SUM(cost_usd) as total,AVG(cost_usd) as avg_cost FROM agent_runs WHERE started_at>date_trunc('month',now()) GROUP BY agent_id ORDER BY total DESC LIMIT 10`)
+  ]);
+  const{budget}=readState();
+  const kr=kRaw?.rows?.[0];
+  const kpis=kr?{runs_24h:parseInt(kr.r24||0),success_rate:parseFloat(kr.spct||0)/100,active_agents:parseInt(acRaw?.rows?.[0]?.hc||DEMO.kpis.active_agents),cost_30d:parseFloat(kr.c30||0)}:DEMO.kpis;
+  const tRows=tRaw?.rows;
+  const trend=tRows?.length?{labels:tRows.map(r=>new Date(r.dy).toLocaleDateString('en',{weekday:'short'})),runs:tRows.map(r=>parseInt(r.r))}:DEMO.trend;
+  const approvals=aqRaw?.rows?.length?aqRaw.rows.map(r=>({id:r.id,task:r.task_name,agent:r.agent_id,priority:r.priority,ts:new Date(r.created_at).toLocaleTimeString('en',{hour:'2-digit',minute:'2-digit'})})):DEMO.approvals;
+  const runs=ruRaw?.rows?.length?ruRaw.rows.map(r=>({id:r.id,agent:r.agent_id,elapsed:elapsedStr(r.started_at)})):DEMO.runs;
+  const agents=agRaw?.rows?.length?agRaw.rows.map(r=>({name:r.name,status:r.status,last_run:r.lr?new Date(r.lr).toLocaleTimeString('en',{hour:'2-digit',minute:'2-digit'}):'—',success_rate:r.tot>0?r.ok/r.tot:1})):DEMO.agents;
+  let heatmap=DEMO.heatmap;
+  if(hmRaw?.rows?.length){heatmap=Array.from({length:7},()=>new Array(24).fill(0));for(const r of hmRaw.rows)heatmap[parseInt(r.dw)][parseInt(r.hr)]=parseInt(r.r);}
+  const spent=parseFloat(bdRaw?.rows?.[0]?.t||kpis.cost_30d);
+  const costByAgent=costRaw?.rows?.length?costRaw.rows.map(r=>({agent:r.agent_id,runs:parseInt(r.runs),total:parseFloat(r.total).toFixed(2),avg:parseFloat(r.avg_cost).toFixed(3)})):DEMO.costByAgent;
+  return{kpis,trend,approvals,runs,agents,heatmap,budget:{spent,ceiling:budget},costByAgent};
+}
+
+/* ─── MCP write: approve/reject HITL ─── */
+async function writeApproval(id,status,note){
+  const{pid}=readState();
+  if(!pid||!window.cowork?.callMcpTool)return true; // Demo: always succeed
+  const noteClause=note?`,payload=payload||'{"resolution_note":"${note.replace(/'/g,"''")}"}':''`;
+  await window.cowork.callMcpTool('mcp__plugin_kyle-os_supabase__execute_sql',{
+    project_id:pid,
+    query:`UPDATE hitl_queue SET status='${status}',resolved_at=now()${noteClause} WHERE id='${id}'`
+  });
+  return true;
+}
+
+/* ─── Render: KPIs ─── */
+async function renderKPIs(d){
+  const prefs=await readPrefs();
+  document.getElementById('kpi-runs').textContent=d.runs_24h.toLocaleString();
+  const rateEl=document.getElementById('kpi-rate');
+  rateEl.textContent=`${(d.success_rate*100).toFixed(1)}%`;
+  document.getElementById('kpi-agents').textContent=d.active_agents;
+  document.getElementById('kpi-cost').textContent=`$${d.cost_30d.toFixed(2)}`;
+  setTS('ts-kpis');
+  // Alert check
+  const ratePct=d.success_rate*100;
+  if(ratePct<prefs.minSuccess){
+    setAlert(`⚠ Success rate ${ratePct.toFixed(1)}% — below ${prefs.minSuccess}% threshold`,'warn');
+    document.getElementById('kpi-card-rate').classList.add('alert-warn');
+  } else {
+    document.getElementById('kpi-card-rate').classList.remove('alert-warn');
+  }
+}
+
+/* ─── Render: Budget Gauge ─── */
+async function renderBudget({spent,ceiling}){
+  const prefs=await readPrefs();
+  const pct=Math.min(100,spent/ceiling*100);
+  const r=56,C=2*Math.PI*r,ARC=C*.75,filled=ARC*(pct/100);
+  const bg=document.getElementById('g-bg');
+  bg.setAttribute('stroke','rgba(139,92,246,.1)');
+  bg.setAttribute('stroke-dasharray',`${ARC.toFixed(1)} ${(C-ARC).toFixed(1)}`);
+  bg.setAttribute('transform','rotate(135 74 74)');
+  const fill=document.getElementById('g-fill');
+  fill.setAttribute('stroke-dasharray',`${filled.toFixed(1)} ${(C-filled).toFixed(1)}`);
+  fill.setAttribute('transform','rotate(135 74 74)');
+  const isCrit=pct>prefs.budgetAlert+10,isWarn=pct>prefs.budgetAlert;
+  fill.setAttribute('stroke',isCrit?'#ef4444':isWarn?'#f59e0b':'url(#gg)');
+  document.getElementById('g-pct').textContent=`${Math.round(pct)}%`;
+  document.getElementById('g-spent').textContent=`$${spent.toFixed(2)}`;
+  document.getElementById('g-ceil').textContent=`$${ceiling}`;
+  setTS('ts-budget');
+  const costCard=document.getElementById('kpi-card-cost');
+  if(isCrit){costCard.classList.add('alert-crit');costCard.classList.remove('alert-warn');setAlert(`🔴 Budget ${Math.round(pct)}% used — critical (>${prefs.budgetAlert}% threshold)`,'crit');}
+  else if(isWarn){costCard.classList.add('alert-warn');costCard.classList.remove('alert-crit');setAlert(`⚠ Budget ${Math.round(pct)}% used — approaching ${prefs.budgetAlert}% threshold`,'warn');}
+  else{costCard.classList.remove('alert-warn','alert-crit');}
+}
+
+/* ─── Render: Trend ─── */
+function renderTrend({labels,runs}){
+  const ctx=document.getElementById('trend-canvas');
+  if(!ctx)return;
+  if(trendChart)trendChart.destroy();
+  trendChart=new Chart(ctx,{type:'line',data:{labels,datasets:[{label:'Runs',data:runs,borderColor:'#A855F7',backgroundColor:'rgba(168,85,247,.08)',fill:true,tension:.4,pointBackgroundColor:'#A855F7',pointBorderColor:'transparent',pointRadius:4,pointHoverRadius:6,borderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{backgroundColor:'#13131F',borderColor:'rgba(139,92,246,.35)',borderWidth:1,titleColor:'#C7C7D1',bodyColor:'#A855F7',padding:10,callbacks:{label:c=>`${c.parsed.y} runs`}}},scales:{x:{grid:{color:'rgba(139,92,246,.06)'},ticks:{color:'#8A8A96',font:{family:"'Geist Mono',monospace",size:10}}},y:{grid:{color:'rgba(139,92,246,.06)'},ticks:{color:'#8A8A96',font:{family:"'Geist Mono',monospace",size:10},maxTicksLimit:5},beginAtZero:true}}}});
+  setTS('ts-trend');
+}
+
+/* ─── Render: Approval Queue with write-back ─── */
+function renderApprovals(items){
+  document.getElementById('aq-count').textContent=items.length;
+  const el=document.getElementById('aq-list');
+  if(!items.length){el.innerHTML='<div class="aq-empty" role="status">✓ No pending approvals</div>';return;}
+  el.innerHTML=items.map(a=>`
+    <div class="aq-item" role="listitem" data-id="${a.id}" data-priority="${a.priority}">
+      <div class="aq-row">
+        <span class="aq-task">${a.task}</span>
+        <span class="prio prio-${a.priority}">${a.priority}</span>
+      </div>
+      <div class="aq-meta"><span>${a.agent}</span><span>${a.ts}</span></div>
+      <div class="aq-note-row" id="note-${a.id}">
+        <textarea class="aq-note" id="note-text-${a.id}" rows="2" placeholder="Optional resolution note…" aria-label="Resolution note for ${a.task}"></textarea>
+      </div>
+      <div class="aq-actions">
+        <button class="aq-btn aq-btn-ok"  onclick="handleApproval('${a.id}','approved')" aria-label="Approve: ${a.task}">✓ Approve</button>
+        <button class="aq-btn aq-btn-rej" onclick="handleApproval('${a.id}','rejected')" aria-label="Reject: ${a.task}">✗ Reject</button>
+        <button class="aq-note-toggle" onclick="toggleNote('${a.id}')" aria-expanded="false" aria-controls="note-${a.id}">+ note</button>
+      </div>
+    </div>`).join('');
+  applyFilter(currentPriority);
+  setTS('ts-queue');
+}
+
+function toggleNote(id){
+  const row=document.getElementById('note-'+id);
+  const btn=row?.previousElementSibling?.querySelector('.aq-note-toggle');
+  if(!row)return;
+  const open=row.classList.toggle('open');
+  if(btn)btn.setAttribute('aria-expanded',open);
+  if(open)document.getElementById('note-text-'+id)?.focus();
+}
+
+async function handleApproval(id,status){
+  const item=document.querySelector(`.aq-item[data-id="${id}"]`);
+  if(!item)return;
+  const note=document.getElementById('note-text-'+id)?.value.trim()||'';
+  // Optimistic update
+  item.classList.add('resolving');
+  try{
+    await writeApproval(id,status,note);
+    const label=status==='approved'?'✓ Approved':'✗ Rejected';
+    const type=status==='approved'?'success':'info';
+    // Undo: re-set to pending (live only; demo undo is visual-only)
+    const undoFn=async()=>{
+      try{
+        const{pid}=readState();
+        if(pid&&window.cowork?.callMcpTool){
+          await window.cowork.callMcpTool('mcp__plugin_kyle-os_supabase__execute_sql',{project_id:pid,query:`UPDATE hitl_queue SET status='pending',resolved_at=NULL WHERE id='${id}'`});
+        }
+        item.classList.remove('resolving');
+        showToast('↩ Reverted to pending','info');
+      }catch{showToast('Failed to undo — refresh to see current state','error');}
+    };
+    setTimeout(()=>{
+      item.remove();
+      const rem=document.querySelectorAll('#aq-list .aq-item:not(.resolving)').length;
+      document.getElementById('aq-count').textContent=rem;
+      if(!rem)document.getElementById('aq-list').innerHTML='<div class="aq-empty" role="status">✓ Queue empty</div>';
+    },350);
+    showToast(`${label}: ${item.querySelector('.aq-task')?.textContent}`,type,undoFn);
+  }catch{
+    item.classList.remove('resolving');
+    showToast('Write failed — check Live connection and project ID','error');
+  }
+}
+
+function applyFilter(priority){
+  currentPriority=priority;
+  document.querySelectorAll('.ftab').forEach(t=>{
+    const active=t.dataset.priority===priority;
+    t.classList.toggle('active',active);
+    t.setAttribute('aria-selected',active);
+  });
+  document.querySelectorAll('.aq-item').forEach(item=>{
+    item.style.display=(priority==='all'||item.dataset.priority===priority)?'':'none';
+  });
+}
+
+/* ─── Render: Active Runs ─── */
+function renderRuns(runs){
+  const el=document.getElementById('runs-list');
+  if(!runs.length){el.innerHTML='<div style="font-size:12px;color:var(--text-dim);text-align:center;padding:16px">No active runs</div>';return;}
+  el.innerHTML=runs.map(r=>`<div class="run-item"><span class="run-dot" aria-hidden="true"></span><span class="run-agent">${r.agent}</span><span class="run-time">${r.elapsed}</span></div>`).join('');
+  setTS('ts-runs');
+}
+
+/* ─── Render: Agent Health (clickable) ─── */
+let agentDataCache={};
+function renderHealth(agents){
+  agentDataCache={};
+  agents.forEach(a=>agentDataCache[a.name]=a);
+  document.getElementById('health-grid').innerHTML=agents.map(a=>`
+    <div class="hc s-${a.status}" role="button" tabindex="0" aria-label="${a.name}: ${a.status}, ${(a.success_rate*100).toFixed(0)}% success rate. Click for detail" onclick="openAgentDetail('${a.name}')" onkeydown="if(event.key==='Enter'||event.key===' ')openAgentDetail('${a.name}')">
+      <div class="hc-name" title="${a.name}">${a.name}</div>
+      <div class="hc-row"><span class="hc-dot" aria-hidden="true"></span><span class="hc-status">${a.status}</span></div>
+      <div class="hc-rate">${(a.success_rate*100).toFixed(0)}% · ${a.last_run}</div>
+    </div>`).join('');
+  setTS('ts-health');
+}
+
+/* ─── Agent Detail Slide-over ─── */
+async function openAgentDetail(name){
+  document.getElementById('slide-title').textContent=name;
+  document.getElementById('slide-sub').textContent='Fetching run history…';
+  document.getElementById('sd-runs').textContent='—';
+  document.getElementById('sd-rate').textContent='—';
+  document.getElementById('sd-cost').textContent='—';
+  document.getElementById('sd-runs-list').innerHTML='<div class="shimmer" style="height:200px"></div>';
+  document.getElementById('slide-backdrop').classList.add('open');
+  document.getElementById('slide-over').classList.add('open');
+  document.getElementById('slide-close').focus();
+  const{pid}=readState();
+  if(pid&&window.cowork?.callMcpTool){
+    try{
+      const[statsRaw,histRaw]=await Promise.all([
+        window.cowork.callMcpTool('mcp__plugin_kyle-os_supabase__execute_sql',{project_id:pid,query:`SELECT COUNT(*) as tot, COUNT(*) FILTER(WHERE status='succeeded') as ok, COALESCE(SUM(cost_usd),0) as cost FROM agent_runs WHERE agent_id='${name}' AND started_at>now()-interval '30d'`}),
+        window.cowork.callMcpTool('mcp__plugin_kyle-os_supabase__execute_sql',{project_id:pid,query:`SELECT status,started_at,ended_at,cost_usd,error_msg FROM agent_runs WHERE agent_id='${name}' ORDER BY started_at DESC LIMIT 10`})
+      ]);
+      const s=statsRaw?.rows?.[0];
+      if(s){
+        document.getElementById('sd-runs').textContent=s.tot||0;
+        document.getElementById('sd-rate').textContent=s.tot>0?`${((s.ok/s.tot)*100).toFixed(0)}%`:'—';
+        document.getElementById('sd-cost').textContent=`$${parseFloat(s.cost||0).toFixed(2)}`;
+      }
+      const hist=histRaw?.rows||[];
+      renderAgentHistory(hist);
+      document.getElementById('slide-sub').textContent='Live data · 30-day window';
+      return;
+    }catch{}
+  }
+  // Demo fallback
+  const d=DEMO.agentDetail[name]||{runs:0,success_rate:1,cost_total:0,history:[]};
+  document.getElementById('sd-runs').textContent=d.runs;
+  document.getElementById('sd-rate').textContent=`${(d.success_rate*100).toFixed(0)}%`;
+  document.getElementById('sd-cost').textContent=`$${d.cost_total.toFixed(2)}`;
+  renderAgentHistory(d.history.map(h=>({status:h.status,started_at:h.when,cost_usd:h.cost,error_msg:h.err})));
+  document.getElementById('slide-sub').textContent='Demo data — no project ID set';
+}
+
+function renderAgentHistory(history){
+  if(!history.length){document.getElementById('sd-runs-list').innerHTML='<div style="font-size:12px;color:var(--text-dim);text-align:center;padding:24px">No runs in this window</div>';return;}
+  const DOT={succeeded:'var(--success)',failed:'var(--danger)',running:'var(--warning)',queued:'var(--text-dim)',cancelled:'var(--text-dim)'};
+  document.getElementById('sd-runs-list').innerHTML=history.map(r=>{
+    const when=r.started_at&&r.started_at.includes('T')?new Date(r.started_at).toLocaleString('en',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}):r.started_at||'—';
+    const cost=r.cost_usd!=null?`$${parseFloat(r.cost_usd).toFixed(3)}`:'—';
+    return `<div class="run-row">
+      <span class="run-status-dot" style="background:${DOT[r.status]||'var(--text-dim)'}"></span>
+      <span class="run-agent-id">${r.status}</span>
+      <span class="run-when">${when}</span>
+      <span class="run-cost">${cost}</span>
+      ${r.error_msg?`<div class="run-err">✗ ${r.error_msg}</div>`:''}
+    </div>`;
+  }).join('');
+}
+
+function closeSlideOver(){
+  document.getElementById('slide-backdrop').classList.remove('open');
+  document.getElementById('slide-over').classList.remove('open');
+}
+document.getElementById('slide-close').addEventListener('click',closeSlideOver);
+document.getElementById('slide-backdrop').addEventListener('click',closeSlideOver);
+
+/* ─── Cost Drilldown ─── */
+let costDrillOpen=false;
+function renderCostDrill(data){
+  document.getElementById('cost-drill-body').innerHTML=data.map(r=>`
+    <tr>
+      <td>${r.agent}</td>
+      <td>${r.runs}</td>
+      <td>$${parseFloat(r.total).toFixed(2)}</td>
+      <td>$${parseFloat(r.avg).toFixed(3)}</td>
+    </tr>`).join('');
+}
+document.getElementById('kpi-card-cost').addEventListener('click',()=>{
+  costDrillOpen=!costDrillOpen;
+  document.getElementById('cost-drill').classList.toggle('open',costDrillOpen);
+  document.getElementById('kpi-card-cost').setAttribute('aria-expanded',costDrillOpen);
+});
+
+/* ─── Render: Heatmap ─── */
+function renderHeatmap(hm){
+  const DAYS=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const max=Math.max(...hm.flat(),1);
+  let h='<div class="hm-col-row"><span></span>';
+  for(let i=0;i<24;i++)h+=`<span class="hm-col-label">${i===0?'12a':i===12?'12p':i<12?i+'a':(i-12)+'p'}</span>`;
+  h+='</div>';
+  for(let d=0;d<7;d++){
+    h+=`<span class="hm-label">${DAYS[d]}</span>`;
+    for(let hr=0;hr<24;hr++){
+      const v=hm[d][hr];
+      const intensity=(v===0?0.03:0.07+(v/max)*.72).toFixed(3);
+      h+=`<div class="hm-cell" style="background:rgba(168,85,247,${intensity})" title="${DAYS[d]} ${hr}:00 — ${v} run${v!==1?'s':''}"></div>`;
+    }
+  }
+  document.getElementById('heatmap').innerHTML=h;
+}
+
+/* ─── Main init ─── */
+async function init(){
+  const{pid,budget}=readState();
+  const canLive=!!(pid&&window.cowork?.callMcpTool);
+  const badge=document.getElementById('mode-badge');
+  badge.textContent=canLive?'LIVE':'DEMO';
+  badge.className=`mode-badge ${canLive?'badge-live':'badge-demo'}`;
+  localStorage.setItem('ff_mode',canLive?'live':'demo');
+  let data;
+  if(canLive){try{data=await fetchLive(pid);}catch{data={...DEMO,budget:{spent:DEMO.budget.spent,ceiling:budget},costByAgent:DEMO.costByAgent};}}
+  else{data={...DEMO,budget:{spent:DEMO.budget.spent,ceiling:budget},costByAgent:DEMO.costByAgent};}
+  await renderKPIs(data.kpis);
+  await renderBudget(data.budget);
+  renderTrend(data.trend);
+  renderApprovals(data.approvals);
+  renderRuns(data.runs);
+  renderHealth(data.agents);
+  renderHeatmap(data.heatmap);
+  renderCostDrill(data.costByAgent);
+}
+
+/* ─── Auto-refresh ─── */
+let arOn=false;
+async function setAutoRefresh(on){
+  arOn=on;
+  document.getElementById('ar-track').classList.toggle('on',on);
+  document.getElementById('ar-toggle').setAttribute('aria-checked',on);
+  document.getElementById('ar-label').textContent=on?'Auto (:30)':'Auto';
+  const prefs=await readPrefs();
+  await savePrefs({...prefs,autoRefresh:on});
+  clearInterval(arTimer);
+  if(on)arTimer=setInterval(init,30000);
+}
+document.getElementById('ar-toggle').addEventListener('click',()=>setAutoRefresh(!arOn));
+document.getElementById('ar-toggle').addEventListener('keydown',e=>{if(e.key===' '||e.key==='Enter'){e.preventDefault();setAutoRefresh(!arOn);}});
+
+/* ─── Priority filter tabs ─── */
+document.querySelectorAll('.ftab').forEach(t=>t.addEventListener('click',()=>applyFilter(t.dataset.priority)));
+
+/* ─── Config modal ─── */
+async function openConfig(){
+  const{pid,budget}=readState();
+  const prefs=await readPrefs();
+  document.getElementById('pid-in').value=pid;
+  document.getElementById('budget-in').value=budget;
+  document.getElementById('budget-alert-in').value=prefs.budgetAlert;
+  document.getElementById('success-alert-in').value=prefs.minSuccess;
+  document.getElementById('cfg-backdrop').hidden=false;
+  document.getElementById('pid-in').focus();
+}
+document.getElementById('config-btn').addEventListener('click',openConfig);
+document.getElementById('cfg-cancel').addEventListener('click',()=>document.getElementById('cfg-backdrop').hidden=true);
+document.getElementById('cfg-backdrop').addEventListener('click',e=>{if(e.target.id==='cfg-backdrop')document.getElementById('cfg-backdrop').hidden=true;});
+document.getElementById('cfg-save').addEventListener('click',async()=>{
+  const pid=document.getElementById('pid-in').value.trim();
+  const budget=parseFloat(document.getElementById('budget-in').value)||50;
+  const budgetAlert=parseFloat(document.getElementById('budget-alert-in').value)||80;
+  const minSuccess=parseFloat(document.getElementById('success-alert-in').value)||85;
+  localStorage.setItem('ff_pid',pid);
+  localStorage.setItem('ff_budget',budget);
+  await savePrefs({budgetAlert,minSuccess,autoRefresh:arOn});
+  document.getElementById('cfg-backdrop').hidden=true;
+  showToast('Settings saved','success');
+  init();
+});
+document.getElementById('cfg-clear').addEventListener('click',async()=>{
+  localStorage.removeItem('ff_pid');
+  localStorage.setItem('ff_mode','demo');
+  localStorage.setItem('ff_budget','50');
+  await savePrefs({budgetAlert:80,minSuccess:85,autoRefresh:false});
+  setAutoRefresh(false);
+  document.getElementById('cfg-backdrop').hidden=true;
+  showToast('Cleared — Demo mode','info');
+  init();
+});
+
+/* ─── Keyboard shortcuts ─── */
+document.getElementById('kbd-close').addEventListener('click',()=>document.getElementById('kbd-overlay').hidden=true);
+document.addEventListener('keydown',e=>{
+  if(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA')return;
+  const kbdOpen=!document.getElementById('kbd-overlay').hidden;
+  const cfgOpen=!document.getElementById('cfg-backdrop').hidden;
+  const slideOpen=document.getElementById('slide-over').classList.contains('open');
+  if(e.key==='Escape'){document.getElementById('kbd-overlay').hidden=true;document.getElementById('cfg-backdrop').hidden=true;if(slideOpen)closeSlideOver();}
+  if(e.key==='?'&&!cfgOpen&&!slideOpen)document.getElementById('kbd-overlay').hidden=kbdOpen;
+  if((e.key==='c'||e.key==='C')&&!kbdOpen&&!cfgOpen&&!slideOpen)openConfig();
+  if((e.key==='r'||e.key==='R')&&!kbdOpen&&!cfgOpen&&!slideOpen){init();showToast('↻ Refreshing…','info');}
+  if((e.key==='a'||e.key==='A')&&!kbdOpen&&!cfgOpen)setAutoRefresh(!arOn);
+});
+document.getElementById('refresh-btn').addEventListener('click',()=>{init();showToast('↻ Refreshing…','info');});
+
+/* ─── Boot ─── */
+(async()=>{
+  const prefs=await readPrefs();
+  if(prefs.autoRefresh)await setAutoRefresh(true);
+  await init();
+})();
+</script>
+</body>
+</html>

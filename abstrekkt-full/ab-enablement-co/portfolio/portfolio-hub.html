@@ -1,0 +1,1024 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Portfolio Hub — Rosebrook</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js" crossorigin></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js" crossorigin></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.28.4/babel.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#080c10;--s:#0d1117;--s2:#161b22;--s3:#21262d;
+  --b:#21262d;--b2:#30363d;--t:#e6edf3;--t2:#8b949e;--t3:#484f58;
+  --a:#7c3aed;--a2:#a855f7;--ag:rgba(124,58,237,0.15);
+  --green:#3fb950;--yellow:#d29922;--orange:#f0883e;--red:#da3633;--blue:#388bfd;--teal:#14b8a6;
+}
+body{background:var(--bg);color:var(--t);font-family:'Outfit',sans-serif;min-height:100vh;font-size:13px}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--b2);border-radius:2px}
+.mono{font-family:'JetBrains Mono',monospace}
+.btn{cursor:pointer;border:none;border-radius:6px;font-family:inherit;font-size:12px;font-weight:500;padding:6px 14px;transition:all .15s;display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+.btn:hover{filter:brightness(1.12)}.btn:active{transform:scale(.97)}
+.btn-primary{background:var(--a);color:#fff}
+.btn-ghost{background:transparent;color:var(--t2);border:1px solid var(--b2)}
+.btn-ghost:hover{color:var(--t);border-color:var(--t2)}
+.btn-danger{background:var(--red);color:#fff}
+.btn-success{background:#238636;color:#fff}
+.btn-sm{padding:3px 9px;font-size:11px}
+.inp{background:var(--s);border:1px solid var(--b2);border-radius:6px;color:var(--t);font-family:inherit;font-size:12px;padding:7px 10px;outline:none;width:100%;transition:border-color .15s}
+.inp:focus{border-color:var(--a)}select.inp{cursor:pointer}
+.inp-sm{padding:4px 8px;font-size:12px}
+textarea.inp{resize:vertical;min-height:70px}
+.card{background:var(--s2);border:1px solid var(--b);border-radius:10px;padding:16px}
+.kcard{background:var(--s2);border:1px solid var(--b);border-radius:8px;padding:10px;cursor:pointer;transition:all .15s;user-select:none}
+.kcard:hover{border-color:var(--b2);background:#1c2128}
+.kcard.dragging{opacity:.3;transform:rotate(1deg)}
+.drop-target{background:#1c2128!important;border-color:var(--blue)!important;border-style:dashed!important}
+.pbar{height:4px;background:var(--s3);border-radius:2px;overflow:hidden}
+.pfill{height:100%;border-radius:2px;transition:width .5s}
+.sl{font-size:10px;font-weight:600;color:var(--t2);text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px;font-family:'JetBrains Mono',monospace}
+.badge{display:inline-flex;align-items:center;font-size:10px;font-weight:600;padding:2px 8px;border-radius:100px;text-transform:uppercase;letter-spacing:.5px}
+.tag{display:inline-flex;align-items:center;font-size:10px;font-weight:600;padding:2px 7px;border-radius:100px;text-transform:uppercase;letter-spacing:.4px;white-space:nowrap}
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.8);display:flex;align-items:center;justify-content:center;z-index:1000;padding:16px;backdrop-filter:blur(4px)}
+.modal{background:var(--s2);border:1px solid var(--b2);border-radius:12px;padding:24px;width:640px;max-width:100%;max-height:90vh;overflow-y:auto}
+.fade{animation:fade .2s ease}
+@keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+.spin{animation:spin 1s linear infinite;display:inline-block}
+@keyframes spin{to{transform:rotate(360deg)}}
+.tpill{padding:4px 12px;border-radius:6px;font-size:12px;font-weight:500;cursor:pointer;border:none;font-family:inherit;transition:all .15s}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const {useState,useEffect,useRef,useCallback} = React;
+
+// ─── CONSTANTS ────────────────────────────────────────────────────────────────
+const HUB_KEY = "portfolio_hub_v1";
+const WEBHOOK = "https://krosebrook.app.n8n.cloud/webhook/portfolio-sync";
+const PC={1:"#3fb950",2:"#d29922",3:"#f0883e",4:"#da3633",5:"#8b5cf6"};
+const PL={1:"Low",2:"Med",3:"High",4:"Crit",5:"Urgent"};
+const LC={bug:"#da3633",feature:"#388bfd","tech-debt":"#d29922",migration:"#f0883e",urgent:"#8b5cf6",security:"#ec4899",automation:"#14b8a6",client:"#10b981",internal:"#6366f1",research:"#84cc16",memoir:"#a855f7",writing:"#e879f9",legal:"#f59e0b",launch:"#22d3ee"};
+const LANES=[
+  {id:"backlog",title:"Backlog",wipLimit:0,color:"#484f58"},
+  {id:"todo",title:"To Do",wipLimit:5,color:"#388bfd"},
+  {id:"inprogress",title:"In Progress",wipLimit:3,color:"#d29922"},
+  {id:"review",title:"Review",wipLimit:3,color:"#f0883e"},
+  {id:"blocked",title:"Blocked",wipLimit:0,color:"#da3633"},
+  {id:"done",title:"Done",wipLimit:0,color:"#3fb950"},
+];
+const PSTATUS=["Active","Planning","Blocked","Archived","Sunset"];
+const PPLATFORMS=["Vercel","Firebase","Supabase","GitHub","WordPress","Base44","Other"];
+const MS_C={"not-started":"#484f58","excavating":"#d29922","drafting":"#388bfd","revising":"#f0883e","done":"#3fb950"};
+const MS_ORDER=["not-started","excavating","drafting","revising","done"];
+const TMPLS=[
+  {id:"bug",name:"Bug",icon:"🐛",d:{priority:4,labels:["bug"],estimate:"2h",description:"**Steps:**\n1. \n\n**Expected:**\n**Actual:**"}},
+  {id:"feature",name:"Feature",icon:"✨",d:{priority:2,labels:["feature"],estimate:"1d",description:"**User Story:**\nAs a [user], I want [feature] so that [benefit].\n\n**AC:**\n- [ ] "}},
+  {id:"techdebt",name:"Tech Debt",icon:"⚙️",d:{priority:2,labels:["tech-debt"],estimate:"4h",description:"**Problem:**\n**Solution:**\n**Impact if ignored:**"}},
+  {id:"security",name:"Security",icon:"🔒",d:{priority:4,labels:["security"],estimate:"1d",description:"**Scope:**\n- [ ] Input validation\n- [ ] Auth\n- [ ] RLS\n- [ ] Secrets scan"}},
+  {id:"memoir",name:"Memoir",icon:"📖",d:{priority:2,labels:["memoir","writing"],estimate:"3h",description:"**Session:** Excavation / Drafting / Revision\n**Target area:**\n**Protected:** TBI/addiction — Kyle's call only"}},
+  {id:"launch",name:"Launch",icon:"🚀",d:{priority:4,labels:["launch","urgent"],estimate:"1h",description:"**Must ship:**\n**Manual steps:**\n**Validation:**"}},
+  {id:"legal",name:"Legal",icon:"⚖️",d:{priority:5,labels:["legal","security"],estimate:"1d",description:"**Scope:**\n**Risk:**\n**Required before:**"}},
+  {id:"research",name:"Research",icon:"🔬",d:{priority:2,labels:["research"],estimate:"4h",description:"**Question:**\n**Timebox:**\n**Output:** Decision doc / PoC"}},
+  {id:"blank",name:"Blank",icon:"📝",d:{priority:2,labels:[],estimate:"",description:""}},
+];
+
+// ─── DEFAULT DATA ─────────────────────────────────────────────────────────────
+const DEF_MEMBERS=[{id:"kyle",name:"Kyle",team:"Platform"}];
+const DEF_CARDS=[
+  {id:"c1",laneId:"inprogress",title:"FlashFusion.co: Vite/Vercel commercial path",description:"FlashFusion-Unified (~60-70% complete) on GitHub. flashfusion.co → Base44 Fusion AI (67-entity schema). Commercial path: Sole Revival first, CSTMPRNT simultaneous. Plan B: model-agnostic, Claude-preferred.",priority:3,labels:["migration","client"],dueDate:"2026-04-07",estimate:"3d",assignee:"kyle",subtasks:[{id:"s1",text:"Confirm Base44 schema exported",done:true},{id:"s2",text:"Reconnect Vite/Vercel repo",done:false},{id:"s3",text:"First customer — Sole Revival",done:false},{id:"s4",text:"CSTMPRNT outreach",done:false}],repo:"Krosebrook/FlashFusion",timeLog:[{date:"2026-03-20",duration:90,note:"Discovery"}],sprintId:"sp2",storyPoints:8,createdAt:"2026-03-15"},
+  {id:"c2",laneId:"done",title:"RLS Audit — Supabase",description:"Replace auth.uid() with (select auth.uid()) across all multi-tenant tables. Cleared auth_rls_initplan warnings.",priority:5,labels:["security"],dueDate:"2026-03-26",estimate:"1d",assignee:"kyle",subtasks:[{id:"s5",text:"Identify all policies",done:true},{id:"s6",text:"Test tenant isolation",done:true},{id:"s7",text:"Document findings",done:true}],repo:"Krosebrook/continuum",timeLog:[],sprintId:"sp1",storyPoints:5,createdAt:"2026-03-18"},
+  {id:"c3",laneId:"review",title:"Daily Dispatch — Chaos Club",description:"3-step morning check-in: Acknowledge, Anchor, Clarity. Phase 1 feature for CCC app.",priority:3,labels:["feature"],dueDate:"2026-04-10",estimate:"2d",assignee:"kyle",subtasks:[],repo:"ChaosClubCo/app",timeLog:[],sprintId:"sp1",storyPoints:3,createdAt:"2026-03-17"},
+  {id:"c4",laneId:"blocked",title:"Continuum: Batch-merge 90 Dependabot PRs",description:"Batch-merge strategy — NOT individually. Last good prod deploy 2026-03-23. Claude-powered discovery API committed.",priority:3,labels:["tech-debt","urgent"],dueDate:null,estimate:"2h",assignee:"kyle",subtasks:[{id:"s8",text:"Group PRs by type",done:false},{id:"s9",text:"Batch merge non-breaking",done:false},{id:"s10",text:"Validate prod deploy",done:false}],repo:"Krosebrook/continuum",timeLog:[],sprintId:"sp2",storyPoints:3,createdAt:"2026-03-19"},
+  {id:"c5",laneId:"todo",title:"Firebase MVP — Chaos Club App",description:"Onboarding, Dashboard, Daily Drill, Panic Button, Chaos Tracker, PuppyChow, Community Circles, Raccoon Den, Field Manual, Settings. Full spec exists. BLOCKED on legal (c12) first.",priority:4,labels:["feature"],dueDate:null,estimate:"5d",assignee:"kyle",subtasks:[{id:"s11",text:"Legal foundation first (c12)",done:false},{id:"s12",text:"Auth setup",done:false},{id:"s13",text:"Firestore schema",done:false},{id:"s14",text:"Crisis detection in Rebel AI",done:false}],repo:"ChaosClubCo/app",timeLog:[],sprintId:"sp2",storyPoints:13,createdAt:"2026-03-10"},
+  {id:"c6",laneId:"backlog",title:"Kinsley's World — Concept Spec",description:"Educational creative sandbox for Kinsley (ages 8-10). Voice-powered. Concept only — no spec docs, no dev started. Google AI Studio base identified.",priority:2,labels:["internal","research"],dueDate:null,estimate:"2w",assignee:"kyle",subtasks:[],repo:"ChaosClubCo/kidcreator",timeLog:[],sprintId:null,storyPoints:20,createdAt:"2026-03-01"},
+  {id:"c7",laneId:"done",title:"INT Institutional Hub v1.0",description:"Launch completed. Final deploy & validation 2026-03-20.",priority:4,labels:["client"],dueDate:"2026-03-20",estimate:"1w",assignee:"kyle",subtasks:[],repo:"intinc/hub",timeLog:[{date:"2026-03-20",duration:180,note:"Final deploy"}],sprintId:"sp1",storyPoints:5,createdAt:"2026-03-01"},
+  {id:"c8",laneId:"todo",title:"kylerosebrook.com: Disable Coming Soon + Set Homepage",description:"Manual steps: 1) Disable Coming Soon in WP Admin, 2) Set static homepage, 3) Confirm custom domain live. Staff Engineer removed from all copy.",priority:5,labels:["launch","urgent"],dueDate:"2026-03-30",estimate:"30m",assignee:"kyle",subtasks:[{id:"la1",text:"Disable Coming Soon mode",done:false},{id:"la2",text:"Set static homepage in WP settings",done:false},{id:"la3",text:"Confirm custom domain live",done:false}],repo:"",timeLog:[],sprintId:"sp1",storyPoints:1,createdAt:"2026-03-25"},
+  {id:"c9",laneId:"todo",title:"Unblock robots.txt + Submit to Google Search Console",description:"kylerosebrook.com and flashfusion.co both blocking crawl (disallow all). Remove block, submit sitemaps. Clean slates for relaunch.",priority:4,labels:["launch","urgent"],dueDate:"2026-03-31",estimate:"1h",assignee:"kyle",subtasks:[{id:"la4",text:"robots.txt — kylerosebrook.com",done:false},{id:"la5",text:"robots.txt — flashfusion.co",done:false},{id:"la6",text:"Submit sitemap — Google Search Console",done:false}],repo:"",timeLog:[],sprintId:"sp1",storyPoints:2,createdAt:"2026-03-25"},
+  {id:"c10",laneId:"blocked",title:"Reconnect n8n, Notion, Craft + Rotate PAT",description:"Auth failed post-session for n8n, Notion, Craft. Wix needs manual check in Cowork. GitHub PAT used for webhook needs rotation.",priority:3,labels:["automation","tech-debt"],dueDate:null,estimate:"2h",assignee:"kyle",subtasks:[{id:"la7",text:"Reconnect n8n",done:false},{id:"la8",text:"Reconnect Notion",done:false},{id:"la9",text:"Reconnect Craft",done:false},{id:"la10",text:"Rotate GitHub PAT",done:false}],repo:"",timeLog:[],sprintId:"sp1",storyPoints:3,createdAt:"2026-03-25"},
+  {id:"c11",laneId:"todo",title:"BTBS Book 1: Build + Deliver Final .docx",description:"Manuscript COMPLETE (76K chars). Build script written — NOT executed. Known issue: Chapters 1-6 appear TWICE — exclude duplicate. Steps: node build_manuscript.js → validate → copy to outputs.",priority:5,labels:["writing","urgent"],dueDate:"2026-03-30",estimate:"2h",assignee:"kyle",subtasks:[{id:"b1",text:"Run node build_manuscript.js",done:false},{id:"b2",text:"Run validation script",done:false},{id:"b3",text:"Copy to outputs + present_files",done:false}],repo:"",timeLog:[],sprintId:"sp1",storyPoints:2,createdAt:"2026-03-13"},
+  {id:"c12",laneId:"todo",title:"CCC: Legal Foundation + Risk Mitigation",description:"MUST complete before Firebase MVP. Docs exist: Legal_proteection_kit, Legal_liability_disclaimer. Mental health platform — liability exposure is real. Crisis resources always free, never paywalled.",priority:5,labels:["legal","security","urgent"],dueDate:"2026-04-03",estimate:"3d",assignee:"kyle",subtasks:[{id:"cc1",text:"Review Legal_proteection_kit",done:false},{id:"cc2",text:"Finalize disclaimer language",done:false},{id:"cc3",text:"Define crisis intervention liability scope",done:false}],repo:"ChaosClubCo/app",timeLog:[],sprintId:"sp2",storyPoints:8,createdAt:"2026-03-26"},
+  {id:"c13",laneId:"backlog",title:"CCC: Crisis Intervention System Design",description:"Step 2 after legal. crisis_safety_sprint_structure doc exists. Rebel AI crisis detection. Crisis resources always free.",priority:4,labels:["feature","security"],dueDate:null,estimate:"2d",assignee:"kyle",subtasks:[],repo:"ChaosClubCo/app",timeLog:[],sprintId:null,storyPoints:5,createdAt:"2026-03-26"},
+  {id:"c14",laneId:"backlog",title:"CCC: Brand Voice AI Training — Rebel",description:"Chaos raccoon mascot. Anti-toxic-positivity. 'Welcome to the Chaos Club: where no one has to pretend — but everyone understands.' Step 4 after legal + crisis.",priority:2,labels:["feature","automation"],dueDate:null,estimate:"1w",assignee:"kyle",subtasks:[],repo:"ChaosClubCo/app",timeLog:[],sprintId:null,storyPoints:5,createdAt:"2026-03-26"},
+  {id:"c16",laneId:"backlog",title:"CCC: Outline Book 2 — The Chaos Journal",description:"Structured prompts for excavating what's underneath. Natural sequel. Outline while Book 1 is fresh.",priority:1,labels:["writing","research"],dueDate:null,estimate:"2h",assignee:"kyle",subtasks:[],repo:"",timeLog:[],sprintId:null,storyPoints:2,createdAt:"2026-03-26"},
+  {id:"c17",laneId:"todo",title:"Memoir: Excavation Session 1 — Hospitality Years",description:"Phase: early excavation. Thesis locked. No chapters drafted. Before the Break: O'Toole's sensory inventory. Fran, Stewart, Kylie, Tony. Letter-to-Kinsley frame is load-bearing.",priority:3,labels:["memoir","research"],dueDate:null,estimate:"3h",assignee:"kyle",subtasks:[{id:"m1",text:"Sensory inventory: O'Toole's space",done:false},{id:"m2",text:"Key characters + dynamics",done:false},{id:"m3",text:"First signs of rupture approaching",done:false}],repo:"",timeLog:[],sprintId:"sp2",storyPoints:3,createdAt:"2026-03-26"},
+  {id:"c18",laneId:"backlog",title:"Memoir: Rupture — First Rough Notes",description:"TBI and addiction chapter seeds. Kyle discloses on his terms — no pushing. Raw notes only. Memory gaps ARE the content.",priority:2,labels:["memoir","writing"],dueDate:null,estimate:"3h",assignee:"kyle",subtasks:[],repo:"",timeLog:[],sprintId:null,storyPoints:3,createdAt:"2026-03-26"},
+  {id:"c19",laneId:"backlog",title:"Memoir: Chronological Tool/System Archaeology",description:"Map 240+ tools chronologically from first post-TBI coping tools to current MCP stack. Identify first tool that actually helped.",priority:2,labels:["memoir","research"],dueDate:null,estimate:"4h",assignee:"kyle",subtasks:[],repo:"",timeLog:[],sprintId:null,storyPoints:3,createdAt:"2026-03-26"},
+  {id:"c20",laneId:"backlog",title:"Memoir: Structure Decision",description:"Must draft one scene before committing. Options: (1) Chronological+flashbacks, (2) Systems as chapters, (3) Parallel timelines, (4) Arsenal structure.",priority:2,labels:["memoir","writing"],dueDate:null,estimate:"1d",assignee:"kyle",subtasks:[],repo:"",timeLog:[],sprintId:null,storyPoints:3,createdAt:"2026-03-26"},
+  {id:"c21",laneId:"backlog",title:"Suno: Finalize 5 Songs",description:"'Gold in the Static', 'Still Standing', 'Echo Chamber Karaoke', 'Little Blue Halos', 'Hold On, Dad'. Custom Mode — [Verse]/[Chorus]/[Bridge] + style descriptions.",priority:1,labels:["writing"],dueDate:null,estimate:"2h",assignee:"kyle",subtasks:[],repo:"",timeLog:[],sprintId:null,storyPoints:2,createdAt:"2026-03-26"},
+];
+const DEF_SPRINTS=[
+  {id:"sp1",name:"Sprint 9 — Launch",startDate:"2026-03-16",endDate:"2026-03-30",totalPoints:24,burndown:[{d:0,i:24,a:24},{d:1,i:22.3,a:23},{d:2,i:20.6,a:22},{d:3,i:18.9,a:20},{d:4,i:17.1,a:18},{d:5,i:15.4,a:16},{d:6,i:13.7,a:14},{d:7,i:12,a:12},{d:8,i:10.3,a:9},{d:9,i:8.6,a:7},{d:10,i:6.9,a:null},{d:11,i:5.1,a:null},{d:12,i:3.4,a:null},{d:13,i:1.7,a:null},{d:14,i:0,a:null}]},
+  {id:"sp2",name:"Sprint 10 — Build",startDate:"2026-03-31",endDate:"2026-04-14",totalPoints:38,burndown:[{d:0,i:38,a:38},{d:1,i:35.3,a:null},{d:2,i:32.6,a:null},{d:3,i:29.9,a:null},{d:4,i:27.1,a:null},{d:5,i:24.4,a:null},{d:6,i:21.7,a:null},{d:7,i:19,a:null},{d:8,i:16.3,a:null},{d:9,i:13.6,a:null},{d:10,i:10.9,a:null},{d:11,i:8.1,a:null},{d:12,i:5.4,a:null},{d:13,i:2.7,a:null},{d:14,i:0,a:null}]},
+];
+const DEF_PROJECTS=[
+  {id:"continuum",name:"Continuum",status:"Active",platform:"Vercel",techDebt:2,businessValue:5,monthlyCost:20,lastActivity:"2026-03-23",repo:"https://github.com/Krosebrook/continuum",notes:"90+ Dependabot PRs — batch-merge needed. Claude-powered discovery API committed. Last good prod deploy 2026-03-23.",auditChecks:{hasTests:true,hasCI:true,hasDocs:false}},
+  {id:"ccc-app",name:"Chaos Club Co. App",status:"Active",platform:"Firebase",techDebt:2,businessValue:5,monthlyCost:25,lastActivity:"2026-04-07",repo:"",notes:"BLOCKED on legal foundation — must complete before Firebase MVP. Rebel AI raccoon, crisis detection. Crisis resources always free.",auditChecks:{hasTests:false,hasCI:false,hasDocs:true}},
+  {id:"ccc-book1",name:"BTBS Book 1",status:"Active",platform:"Other",techDebt:1,businessValue:4,monthlyCost:0,lastActivity:"2026-04-07",repo:"",notes:"Manuscript COMPLETE. Build script written but NOT executed. Ch 1-6 appear twice — exclude duplicate on build.",auditChecks:{hasTests:false,hasCI:false,hasDocs:true}},
+  {id:"memoir",name:"The Memoir",status:"Planning",platform:"Other",techDebt:1,businessValue:5,monthlyCost:0,lastActivity:"2026-04-07",repo:"",notes:"Thesis locked: construction vs. recovery. Voice DNA v2 built. Phase: early excavation — no chapters drafted. Next: hospitality years.",auditChecks:{hasTests:false,hasCI:false,hasDocs:true}},
+  {id:"kylerosebrook",name:"kylerosebrook.com",status:"Planning",platform:"WordPress",techDebt:1,businessValue:5,monthlyCost:0,lastActivity:"2026-04-07",repo:"",notes:"Launch tasks 8 days overdue. Coming Soon still on. robots.txt blocking crawl. 'Staff Engineer' removed from copy.",auditChecks:{hasTests:false,hasCI:false,hasDocs:true}},
+  {id:"ff-co",name:"flashfusion.co",status:"Active",platform:"Base44",techDebt:2,businessValue:4,monthlyCost:0,lastActivity:"2026-03-20",repo:"",notes:"Points to Base44 Fusion AI (67-entity schema). Commercial path: Sole Revival first. robots.txt also blocking crawl.",auditChecks:{hasTests:false,hasCI:false,hasDocs:false}},
+  {id:"ff-unified",name:"FlashFusion-Unified",status:"Archived",platform:"Vercel",techDebt:4,businessValue:4,monthlyCost:20,lastActivity:"2025-09-01",repo:"https://github.com/Krosebrook/FlashFusion",notes:"Archived at 60-70% completion. Revival contingent on first customer (Sole Revival).",auditChecks:{hasTests:false,hasCI:false,hasDocs:false}},
+  {id:"kinsley",name:"KidCreator / Kinsley App",status:"Planning",platform:"GitHub",techDebt:2,businessValue:4,monthlyCost:0,lastActivity:"2025-11-01",repo:"",notes:"Concept only. Voice-powered educational sandbox for Kinsley (ages 8-10). No spec docs, no dev started.",auditChecks:{hasTests:false,hasCI:false,hasDocs:false}},
+];
+const DEF_MEMOIR={
+  thesis:"Recovery assumes returning to a previous state. Kyle can't return — the injury changed the hardware. Can you build a functional self from scratch using different materials than the original?",
+  frame:"A letter to Kinsley documenting his reconstruction as evidence of commitment to her.",
+  structureDecision:null,
+  chapters:[
+    {id:"ch1",title:"Before the Break",subtitle:"Hospitality years — O'Toole's, competence before memory failed",status:"not-started",notes:"",scenes:["Sensory inventory: O'Toole's physical space, sounds, smells","Key characters: Fran, Stewart, Kylie, Tony, Dominic","First signs something was building toward rupture","The competence that existed — what it felt like to know things without systems"]},
+    {id:"ch2",title:"The Rupture",subtitle:"TBI, addiction — the moment old strategies stopped working",status:"not-started",notes:"⚠ Protected — TBI specifics and addiction details are Kyle's to disclose on his terms. Never push.",scenes:["When did old strategies stop working? The first failure.","What does unreliable narration feel like from inside?","The loss inventory — what stopped being available","First coping mechanisms that didn't work"]},
+    {id:"ch3",title:"The Construction Project",subtitle:"First tools, external cognition, learning to program as learning to think in a new architecture",status:"not-started",notes:"",scenes:["What was the first tool/system that actually helped?","Learning to code as learning a new cognitive architecture","240+ tools mapped chronologically — archaeology of construction","Prosthetics vs. productivity hacks — the reframe"]},
+    {id:"ch4",title:"Late-Life Emergence",subtitle:"Self-teaching to Staff Engineer, FlashFusion, Intinc",status:"not-started",notes:"",scenes:["The Intinc hire — AI depth in an interview for a different role","FlashFusion as founder attempt — what it taught, why it was archived","Self-taught at a level that shouldn't be possible without the injury forcing adaptation","What does it mean to be good at something you built from scratch?"]},
+    {id:"ch5",title:"The Parallel Constructions",subtitle:"Kinsley, Chaos Club Co., the memoir itself as artifacts of the same project",status:"not-started",notes:"",scenes:["What Kinsley sees — what she will understand when she's older","How Chaos Club Co. emerged from lived experience (not business logic)","Are the book and the platform the same project?","The letter frame — accountability as structure, not sentiment"]},
+  ],
+  sessions:[],
+  excavationQueue:[
+    {id:"eq1",text:"What does pre-injury Kyle feel like to remember?",done:false},
+    {id:"eq2",text:"When did Kyle first realize old strategies had stopped working?",done:false},
+    {id:"eq3",text:"What was the first tool/system that actually helped?",done:false},
+    {id:"eq4",text:"What would the 240+ tools look like mapped chronologically?",done:false},
+    {id:"eq5",text:"What does Kinsley see right now?",done:false},
+    {id:"eq6",text:"How does building Chaos Club relate to writing this book? Are they the same project?",done:false},
+    {id:"eq7",text:"What's permanently lost? What exists now that couldn't have existed before?",done:false},
+    {id:"eq8",text:"Where does the systems-builder identity protect Kyle from feeling? Where does it enable feeling?",done:false},
+  ],
+  voiceDNA:{
+    dos:["Declarative observations — let readers draw conclusions","Technical descriptions of emotional states","Admissions of uncertainty about memory/meaning","Humor that doesn't defuse tension prematurely","'dumpster fire brain', 'cognitive scaffolding', 'smoke detector for burnt toast'"],
+    donts:["\"And that's when I realized...\"","\"Looking back, I can see that...\"","\"It was then that everything changed...\"","Anything that makes meaning too available too fast","Performative vulnerability or toughness"],
+  },
+};
+
+// ─── HELPERS ──────────────────────────────────────────────────────────────────
+const fmt=(m)=>m>=60?`${Math.floor(m/60)}h${m%60?` ${m%60}m`:""}`:m>0?`${m}m`:"—";
+const isOverdue=(d)=>d&&new Date(d)<new Date();
+const totalTime=(c)=>(c.timeLog||[]).reduce((s,e)=>s+e.duration,0);
+const calcHealth=(p)=>{
+  const days=p.lastActivity?Math.floor((Date.now()-new Date(p.lastActivity))/86400000):999;
+  let s=100;
+  if(days>180)s-=40;else if(days>90)s-=25;else if(days>30)s-=10;
+  s-=((p.techDebt||3)-1)*8;
+  if(p.status==="Blocked")s-=20;
+  if(p.status==="Archived"||p.status==="Sunset")s-=30;
+  s+=((p.businessValue||3)-3)*5;
+  s+=Object.values(p.auditChecks||{}).filter(Boolean).length*2;
+  return Math.max(0,Math.min(100,Math.round(s)));
+};
+const hc=(h)=>h>=75?"#3fb950":h>=50?"#d29922":h>=30?"#f0883e":"#da3633";
+const hl=(h)=>h>=75?"Healthy":h>=50?"Fair":h>=30?"At Risk":"Critical";
+const repoUrl=(r)=>r?(r.startsWith("http")?r:`https://github.com/${r}`):null;
+
+// ─── SHARED UI COMPONENTS ─────────────────────────────────────────────────────
+const Lbl=({text})=>{const c=LC[text]||"#8b949e";return <span className="tag" style={{background:c+"22",color:c,border:`1px solid ${c}44`}}>{text}</span>;};
+const Ava=({name,size=22})=>{const c=["#388bfd","#3fb950","#d29922","#f0883e","#8b5cf6"][name?.charCodeAt(0)%5||0];return <div style={{width:size,height:size,borderRadius:"50%",background:c+"33",border:`1px solid ${c}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:size*.45,fontWeight:700,color:c,flexShrink:0,fontFamily:"'JetBrains Mono'"}}>{name?.[0]?.toUpperCase()||"?"}</div>;};
+const HBar=({score})=><div style={{display:"flex",alignItems:"center",gap:8}}><div className="pbar" style={{flex:1}}><div className="pfill" style={{width:`${score}%`,background:hc(score)}}/></div><span className="mono" style={{fontSize:11,color:hc(score),minWidth:24,textAlign:"right"}}>{score}</span></div>;
+const SBadge=({status})=>{const c={Active:"#3fb950",Planning:"#388bfd",Blocked:"#da3633",Archived:"#484f58",Sunset:"#8b949e"}[status]||"#8b949e";return <span className="badge" style={{background:c+"22",color:c,border:`1px solid ${c}44`}}>{status}</span>;};
+
+// ─── TODAY VIEW ──────────────────────────────────────────────────────────────
+function TodayView({cards,lanes,members,projects,onCardClick,onAddCard,activeTimer,timerDisplay,stopTimer}){
+  const [title,setTitle]=useState(""); const [lane,setLane]=useState("todo"); const [pri,setPri]=useState(2);
+  const today=new Date().toISOString().split("T")[0];
+  const overdue=cards.filter(c=>c.laneId!=="done"&&isOverdue(c.dueDate)).sort((a,b)=>b.priority-a.priority);
+  const dueToday=cards.filter(c=>c.laneId!=="done"&&c.dueDate===today&&!isOverdue(c.dueDate)).sort((a,b)=>b.priority-a.priority);
+  const blocked=cards.filter(c=>c.laneId==="blocked");
+  const pAlerts=projects.map(p=>({...p,health:calcHealth(p)})).filter(p=>p.health<50).sort((a,b)=>a.health-b.health);
+  const laneColor=(lId)=>lanes.find(l=>l.id===lId)?.color||"#484f58";
+  const FCard=({card})=>(
+    <div onClick={()=>onCardClick(card)} style={{background:"var(--s2)",border:`1px solid ${isOverdue(card.dueDate)?"#da363355":"var(--b)"}`,borderLeft:`3px solid ${PC[card.priority]}`,borderRadius:8,padding:"10px 12px",cursor:"pointer",marginBottom:6}}
+      onMouseEnter={e=>e.currentTarget.style.borderColor=isOverdue(card.dueDate)?"#da3633":"var(--b2)"}
+      onMouseLeave={e=>e.currentTarget.style.borderColor=isOverdue(card.dueDate)?"#da363355":"var(--b)"}>
+      <div style={{fontSize:12,fontWeight:500,color:"var(--t)",marginBottom:4}}>{card.title}</div>
+      <div style={{display:"flex",gap:6,flexWrap:"wrap",alignItems:"center"}}>
+        <span style={{fontSize:10,fontFamily:"'JetBrains Mono'",padding:"1px 6px",borderRadius:4,background:laneColor(card.laneId)+"22",color:laneColor(card.laneId)}}>{lanes.find(l=>l.id===card.laneId)?.title||card.laneId}</span>
+        {card.dueDate&&<span style={{fontSize:10,fontFamily:"'JetBrains Mono'",color:isOverdue(card.dueDate)?"var(--red)":"var(--t3)"}}>{isOverdue(card.dueDate)?"⚠ ":""}{card.dueDate}</span>}
+        {card.labels.slice(0,2).map(l=><Lbl key={l} text={l}/>)}
+      </div>
+    </div>
+  );
+  return (
+    <div style={{flex:1,overflow:"auto",padding:20}}>
+      <div style={{marginBottom:20,display:"flex",alignItems:"center",gap:12}}>
+        <div>
+          <div style={{fontSize:22,fontWeight:700,color:"var(--t)"}}>Today</div>
+          <div className="mono" style={{fontSize:11,color:"var(--t3)"}}>{new Date().toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric",year:"numeric"})}</div>
+        </div>
+        {activeTimer&&(
+          <div style={{marginLeft:"auto",background:"#0c2a0c",border:"1px solid var(--green)",borderRadius:8,padding:"8px 14px",display:"flex",alignItems:"center",gap:8}}>
+            <span style={{color:"var(--green)",fontFamily:"'JetBrains Mono'",fontWeight:700}}>● {timerDisplay}</span>
+            <button className="btn btn-danger btn-sm" onClick={()=>stopTimer(activeTimer.cardId)}>Stop</button>
+          </div>
+        )}
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,marginBottom:16}}>
+        {[{label:"Overdue",val:overdue.length,c:"var(--red)"},{label:"Due Today",val:dueToday.length,c:"var(--yellow)"},{label:"Blocked",val:blocked.length,c:"var(--orange)"},{label:"Portfolio Alerts",val:pAlerts.length,c:pAlerts.length>0?"var(--red)":"var(--green)"}].map(s=>(
+          <div key={s.label} className="card" style={{padding:"12px 16px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+            <div className="sl" style={{marginBottom:0}}>{s.label}</div>
+            <div className="mono" style={{fontSize:22,fontWeight:700,color:s.c}}>{s.val}</div>
+          </div>
+        ))}
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
+        <div>
+          {overdue.length>0&&<><div className="sl">⚠ Overdue ({overdue.length})</div>{overdue.map(c=><FCard key={c.id} card={c}/>)}</>}
+          {dueToday.length>0&&<><div className="sl" style={{marginTop:overdue.length?12:0}}>📅 Due Today ({dueToday.length})</div>{dueToday.map(c=><FCard key={c.id} card={c}/>)}</>}
+          {blocked.length>0&&<><div className="sl" style={{marginTop:12}}>⛔ Blocked ({blocked.length})</div>{blocked.map(c=><FCard key={c.id} card={c}/>)}</>}
+          {!overdue.length&&!dueToday.length&&!blocked.length&&<div className="card" style={{textAlign:"center",padding:32,color:"var(--t3)"}}>✓ Nothing overdue or blocked</div>}
+        </div>
+        <div>
+          <div className="sl">Quick Add</div>
+          <div className="card" style={{marginBottom:16}}>
+            <input className="inp" placeholder="Card title..." value={title} onChange={e=>setTitle(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&title.trim()){onAddCard(lane,pri,title);setTitle("");}}} style={{marginBottom:8}}/>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:8}}>
+              <select className="inp inp-sm" value={lane} onChange={e=>setLane(e.target.value)}>{lanes.filter(l=>l.id!=="done").map(l=><option key={l.id} value={l.id}>{l.title}</option>)}</select>
+              <select className="inp inp-sm" value={pri} onChange={e=>setPri(+e.target.value)}>{[1,2,3,4,5].map(p=><option key={p} value={p}>P{p} {PL[p]}</option>)}</select>
+            </div>
+            <button className="btn btn-primary" style={{width:"100%"}} onClick={()=>{if(title.trim()){onAddCard(lane,pri,title);setTitle("");}}} disabled={!title.trim()}>+ Add Card</button>
+          </div>
+          {pAlerts.length>0&&<><div className="sl">Portfolio Alerts</div>{pAlerts.map(p=>(
+            <div key={p.id} className="card" style={{marginBottom:8,borderColor:"var(--red)",background:"rgba(218,54,51,0.05)",padding:"12px 14px"}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
+                <span style={{fontWeight:500,color:"var(--red)"}}>{p.name}</span>
+                <span className="mono" style={{fontSize:16,fontWeight:700,color:hc(p.health)}}>{p.health}</span>
+              </div>
+              <HBar score={p.health}/>
+              {p.notes&&<div style={{fontSize:10,color:"var(--t3)",marginTop:5}}>{p.notes.slice(0,100)}{p.notes.length>100?"…":""}</div>}
+            </div>
+          ))}</>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── KANBAN CARD ITEM ────────────────────────────────────────────────────────
+function CardItem({card,members,onClick,onDragStart,onDragEnd,activeTimer,isDragging}){
+  const tt=totalTime(card),done=card.subtasks?.filter(s=>s.done).length||0,tot=card.subtasks?.length||0;
+  const isActive=activeTimer?.cardId===card.id,od=isOverdue(card.dueDate),rUrl=repoUrl(card.repo);
+  return (
+    <div className={`kcard${isDragging?" dragging":""}`} style={{borderLeft:`3px solid ${PC[card.priority]}`,marginBottom:6}} draggable
+      onClick={()=>onClick(card)} onDragStart={e=>{e.dataTransfer.effectAllowed="move";onDragStart(card.id);}} onDragEnd={onDragEnd}>
+      <div style={{fontSize:12,fontWeight:500,color:"var(--t)",lineHeight:1.4,marginBottom:5}}>{card.title}</div>
+      {card.labels?.length>0&&<div style={{display:"flex",gap:3,flexWrap:"wrap",marginBottom:5}}>{card.labels.map(l=><Lbl key={l} text={l}/>)}</div>}
+      <div style={{display:"flex",alignItems:"center",gap:5,flexWrap:"wrap"}}>
+        {card.assignee&&<Ava name={members.find(m=>m.id===card.assignee)?.name||card.assignee} size={16}/>}
+        {card.dueDate&&<span style={{fontSize:10,color:od?"var(--red)":"var(--t3)",fontFamily:"'JetBrains Mono'"}}>{od?"⚠ ":""}{card.dueDate}</span>}
+        {tot>0&&<span style={{fontSize:10,color:done===tot?"var(--green)":"var(--t3)",fontFamily:"'JetBrains Mono'"}}>{done}/{tot}</span>}
+        {tt>0&&<span style={{fontSize:10,color:"var(--teal)",fontFamily:"'JetBrains Mono'"}}>⏱{fmt(tt)}</span>}
+        {isActive&&<span style={{fontSize:10,color:"var(--green)",fontFamily:"'JetBrains Mono'"}}>●REC</span>}
+        {rUrl&&<span onClick={e=>{e.stopPropagation();window.open(rUrl,"_blank");}} style={{fontSize:10,color:"var(--t3)",cursor:"pointer",marginLeft:"auto"}} title={card.repo}>↗</span>}
+        {!rUrl&&card.storyPoints&&<span style={{fontSize:10,color:"var(--t3)",marginLeft:"auto",fontFamily:"'JetBrains Mono'"}}>{card.storyPoints}pt</span>}
+        {rUrl&&card.storyPoints&&<span style={{fontSize:10,color:"var(--t3)",fontFamily:"'JetBrains Mono'"}}>{card.storyPoints}pt</span>}
+      </div>
+    </div>
+  );
+}
+
+// ─── KANBAN BOARD VIEW ───────────────────────────────────────────────────────
+function BoardView({lanes,cards,members,dragCardId,setDragCardId,dragOverLane,setDragOverLane,moveCard,onCardClick,onAddCard,activeTimer}){
+  const drop=(lId)=>{if(dragCardId)moveCard(dragCardId,lId);setDragCardId(null);setDragOverLane(null);};
+  const wipOver=(l)=>l.wipLimit>0&&cards.filter(c=>c.laneId===l.id).length>l.wipLimit;
+  return (
+    <div style={{flex:1,overflow:"auto",padding:"12px 16px",display:"flex",gap:10,minWidth:"max-content"}}>
+      {lanes.map(lane=>{
+        const lCards=cards.filter(c=>c.laneId===lane.id);
+        const over=wipOver(lane),isTarget=dragOverLane===lane.id;
+        return (
+          <div key={lane.id} style={{width:240,flexShrink:0,display:"flex",flexDirection:"column"}}>
+            <div style={{padding:"8px 10px",borderRadius:"8px 8px 0 0",background:"var(--s2)",border:`1px solid ${over?"var(--red)":"var(--b)"}`,borderBottom:"none",display:"flex",alignItems:"center",gap:6}}>
+              <div style={{width:7,height:7,borderRadius:"50%",background:lane.color,flexShrink:0}}/>
+              <span style={{fontSize:12,fontWeight:600,color:"var(--t)",flex:1}}>{lane.title}</span>
+              <span style={{fontSize:11,fontFamily:"'JetBrains Mono'",color:over?"var(--red)":"var(--t3)"}}>{lCards.length}{lane.wipLimit>0?`/${lane.wipLimit}`:""}</span>
+              <button onClick={()=>onAddCard(lane.id)} style={{background:"transparent",border:"none",color:"var(--t3)",cursor:"pointer",fontSize:16,padding:"0 2px",lineHeight:1}}>+</button>
+            </div>
+            <div style={{flex:1,overflowY:"auto",padding:8,background:"var(--s)",border:`1px solid ${isTarget?"var(--blue)":over?"var(--red)":"var(--b)"}`,borderTop:"none",borderRadius:"0 0 8px 8px",minHeight:120,transition:"border-color .1s"}}
+              onDragOver={e=>{e.preventDefault();setDragOverLane(lane.id);}} onDrop={()=>drop(lane.id)} onDragLeave={()=>setDragOverLane(null)}>
+              {lCards.map(c=><CardItem key={c.id} card={c} members={members} onClick={onCardClick} activeTimer={activeTimer} isDragging={dragCardId===c.id} onDragStart={id=>setDragCardId(id)} onDragEnd={()=>{setDragCardId(null);setDragOverLane(null);}}/>)}
+              {lCards.length===0&&<div style={{textAlign:"center",color:"var(--b2)",fontSize:11,padding:"16px 0",fontStyle:"italic"}}>Drop here</div>}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ─── CARD MODAL ───────────────────────────────────────────────────────────────
+function CardModal({card,lanes,members,onSave,onDelete,onClose,activeTimer,startTimer,stopTimer,timerDisplay,addTimeEntry}){
+  const [form,setForm]=useState({...card});
+  const [tab,setTab]=useState("details");
+  const [newSub,setNewSub]=useState("");
+  const [timeForm,setTimeForm]=useState({duration:"",date:new Date().toISOString().split("T")[0],note:""});
+  const isTimerActive=activeTimer?.cardId===card.id;
+  const set=(k,v)=>setForm(f=>({...f,[k]:v}));
+  const addSub=()=>{if(!newSub.trim())return;set("subtasks",[...(form.subtasks||[]),{id:`s${Date.now()}`,text:newSub.trim(),done:false}]);setNewSub("");};
+  const rUrl=repoUrl(form.repo);
+  return (
+    <div className="modal-bg" onClick={onClose}>
+      <div className="modal fade" onClick={e=>e.stopPropagation()}>
+        <div style={{display:"flex",gap:10,alignItems:"flex-start",marginBottom:14}}>
+          <div style={{width:4,height:32,background:PC[form.priority],borderRadius:2,flexShrink:0,marginTop:4}}/>
+          <input className="inp" style={{flex:1,fontSize:14,fontWeight:600,background:"transparent",border:"none",borderBottom:"1px solid var(--b2)",borderRadius:0,padding:"4px 0"}} value={form.title} onChange={e=>set("title",e.target.value)}/>
+          <button className="btn btn-ghost btn-sm" onClick={onClose}>✕</button>
+        </div>
+        <div style={{display:"flex",gap:4,marginBottom:14,borderBottom:"1px solid var(--b)"}}>
+          {[["details","Details"],["time","⏱ Time"],["subtasks","Subtasks"]].map(([id,lbl])=>(
+            <button key={id} className="tpill" onClick={()=>setTab(id)} style={{background:tab===id?"var(--s3)":"transparent",color:tab===id?"var(--t)":"var(--t2)",border:"none",borderBottom:tab===id?"2px solid var(--blue)":"2px solid transparent",borderRadius:"4px 4px 0 0"}}>
+              {lbl}{id==="subtasks"&&form.subtasks?.length>0?` (${form.subtasks.length})`:""}{id==="time"&&totalTime(form)>0?` ${fmt(totalTime(form))}`:""}</button>
+          ))}
+        </div>
+        {tab==="details"&&(
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
+            <div><div className="sl">Lane</div><select className="inp" value={form.laneId} onChange={e=>set("laneId",e.target.value)}>{lanes.map(l=><option key={l.id} value={l.id}>{l.title}</option>)}</select></div>
+            <div><div className="sl">Priority</div><select className="inp" value={form.priority} onChange={e=>set("priority",+e.target.value)}>{[1,2,3,4,5].map(p=><option key={p} value={p}>P{p} — {PL[p]}</option>)}</select></div>
+            <div><div className="sl">Assignee</div><select className="inp" value={form.assignee||""} onChange={e=>set("assignee",e.target.value||null)}><option value="">Unassigned</option>{members.map(m=><option key={m.id} value={m.id}>{m.name}</option>)}</select></div>
+            <div><div className="sl">Due Date</div><input className="inp" type="date" value={form.dueDate||""} onChange={e=>set("dueDate",e.target.value||null)}/></div>
+            <div><div className="sl">Estimate</div><input className="inp" placeholder="2h, 1d, 1w..." value={form.estimate||""} onChange={e=>set("estimate",e.target.value)}/></div>
+            <div><div className="sl">Story Points</div><input className="inp" type="number" min="1" max="100" value={form.storyPoints||1} onChange={e=>set("storyPoints",+e.target.value||1)}/></div>
+            <div style={{gridColumn:"span 2"}}><div className="sl">Description</div><textarea className="inp" style={{minHeight:90}} value={form.description||""} onChange={e=>set("description",e.target.value)}/></div>
+            <div style={{gridColumn:"span 2"}}>
+              <div className="sl">Labels</div>
+              <div style={{display:"flex",flexWrap:"wrap",gap:5}}>
+                {Object.keys(LC).map(l=>{const a=form.labels?.includes(l);return <button key={l} className="tag" style={{cursor:"pointer",background:a?LC[l]+"33":LC[l]+"11",color:LC[l],border:`1px solid ${LC[l]}${a?"":"33"}`,opacity:a?1:.6}} onClick={()=>set("labels",a?(form.labels||[]).filter(x=>x!==l):[...(form.labels||[]),l])}>{l}</button>;})}
+              </div>
+            </div>
+            <div>
+              <div className="sl">Repo</div>
+              <div style={{display:"flex",gap:6}}>
+                <input className="inp" placeholder="org/repo or https://..." value={form.repo||""} onChange={e=>set("repo",e.target.value)}/>
+                {rUrl&&<button className="btn btn-ghost btn-sm" style={{flexShrink:0}} onClick={()=>window.open(rUrl,"_blank")}>↗</button>}
+              </div>
+            </div>
+            <div><div className="sl">Health Score</div><input className="inp" type="number" min="0" max="100" value={form.healthScore||""} onChange={e=>set("healthScore",+e.target.value||null)} placeholder="0–100"/></div>
+          </div>
+        )}
+        {tab==="time"&&(
+          <div>
+            <div style={{background:"var(--s)",border:"1px solid var(--b)",borderRadius:8,padding:14,marginBottom:14,display:"flex",alignItems:"center",gap:12}}>
+              <div className="mono" style={{fontSize:28,fontWeight:700,color:isTimerActive?"var(--green)":"var(--t)",flex:1}}>{isTimerActive?timerDisplay:"00:00"}</div>
+              {isTimerActive?<button className="btn btn-danger" onClick={()=>stopTimer(card.id)}>⏹ Stop & Log</button>:<button className="btn btn-success" onClick={()=>startTimer(card.id)}>▶ Start Timer</button>}
+            </div>
+            <div style={{background:"var(--s)",border:"1px solid var(--b)",borderRadius:8,padding:12,marginBottom:14}}>
+              <div className="sl">Log Time Manually</div>
+              <div style={{display:"grid",gridTemplateColumns:"80px 1fr 1fr auto",gap:8,alignItems:"end"}}>
+                <div><div style={{fontSize:10,color:"var(--t3)",marginBottom:3}}>Minutes</div><input className="inp inp-sm" type="number" min="1" placeholder="60" value={timeForm.duration} onChange={e=>setTimeForm(f=>({...f,duration:e.target.value}))}/></div>
+                <div><div style={{fontSize:10,color:"var(--t3)",marginBottom:3}}>Date</div><input className="inp inp-sm" type="date" value={timeForm.date} onChange={e=>setTimeForm(f=>({...f,date:e.target.value}))}/></div>
+                <div><div style={{fontSize:10,color:"var(--t3)",marginBottom:3}}>Note</div><input className="inp inp-sm" placeholder="What did you do?" value={timeForm.note} onChange={e=>setTimeForm(f=>({...f,note:e.target.value}))}/></div>
+                <button className="btn btn-primary" style={{padding:"5px 12px"}} onClick={()=>{if(!timeForm.duration)return;addTimeEntry(card.id,+timeForm.duration,timeForm.date,timeForm.note);setForm(f=>({...f,timeLog:[...(f.timeLog||[]),{date:timeForm.date,duration:+timeForm.duration,note:timeForm.note}]}));setTimeForm({duration:"",date:new Date().toISOString().split("T")[0],note:""});}}>Add</button>
+              </div>
+            </div>
+            {(form.timeLog||[]).length===0?<div style={{textAlign:"center",color:"var(--t3)",padding:20,fontSize:12}}>No time logged yet</div>:(
+              <div style={{background:"var(--s2)",border:"1px solid var(--b)",borderRadius:8,overflow:"hidden"}}>
+                <div style={{padding:"8px 12px",background:"var(--s)",borderBottom:"1px solid var(--b)",display:"flex",justifyContent:"space-between",fontSize:11,color:"var(--t2)",fontWeight:600}}>
+                  <span>Time Log</span><span className="mono" style={{color:"var(--teal)"}}>Total: {fmt(totalTime(form))}</span>
+                </div>
+                {form.timeLog.map((e,i)=>(
+                  <div key={i} style={{display:"flex",gap:10,padding:"8px 12px",borderBottom:i<form.timeLog.length-1?"1px solid var(--b)":"none",alignItems:"center"}}>
+                    <span className="mono" style={{fontSize:11,color:"var(--t2)",width:90}}>{e.date}</span>
+                    <span className="mono" style={{fontSize:12,fontWeight:600,color:"var(--teal)",width:40}}>{fmt(e.duration)}</span>
+                    <span style={{fontSize:12,color:"var(--t2)",flex:1}}>{e.note||"—"}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+        {tab==="subtasks"&&(
+          <div>
+            <div style={{display:"flex",gap:8,marginBottom:12}}>
+              <input className="inp" placeholder="Add subtask..." value={newSub} onChange={e=>setNewSub(e.target.value)} onKeyDown={e=>e.key==="Enter"&&addSub()}/>
+              <button className="btn btn-primary" style={{flexShrink:0}} onClick={addSub}>Add</button>
+            </div>
+            {(form.subtasks||[]).length===0?<div style={{textAlign:"center",color:"var(--t3)",padding:20,fontSize:12}}>No subtasks yet</div>:(
+              <div>
+                <div style={{marginBottom:8,display:"flex",alignItems:"center",gap:8}}>
+                  <div className="pbar" style={{flex:1}}><div className="pfill" style={{width:`${(form.subtasks.filter(s=>s.done).length/form.subtasks.length)*100}%`,background:"var(--green)"}}/></div>
+                  <span className="mono" style={{fontSize:11,color:"var(--t2)"}}>{form.subtasks.filter(s=>s.done).length}/{form.subtasks.length}</span>
+                </div>
+                {form.subtasks.map(s=>(
+                  <div key={s.id} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 0",borderBottom:"1px solid var(--b)"}}>
+                    <input type="checkbox" checked={s.done} onChange={()=>set("subtasks",form.subtasks.map(x=>x.id===s.id?{...x,done:!x.done}:x))} style={{cursor:"pointer",accentColor:"var(--green)"}}/>
+                    <span style={{flex:1,fontSize:13,color:s.done?"var(--t3)":"var(--t)",textDecoration:s.done?"line-through":"none"}}>{s.text}</span>
+                    <button onClick={()=>set("subtasks",form.subtasks.filter(x=>x.id!==s.id))} style={{background:"transparent",border:"none",color:"var(--t3)",cursor:"pointer",fontSize:14,padding:"0 4px"}}>✕</button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+        <div style={{display:"flex",gap:8,marginTop:18,paddingTop:14,borderTop:"1px solid var(--b)"}}>
+          <button className="btn btn-danger btn-sm" onClick={()=>onDelete(card.id)}>Delete</button>
+          <div style={{flex:1}}/>
+          <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
+          <button className="btn btn-primary" onClick={()=>onSave(form)}>Save</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── TEMPLATE PICKER ─────────────────────────────────────────────────────────
+function TemplatePicker({onSelect,onClose}){
+  return (
+    <div className="modal-bg" onClick={onClose}>
+      <div style={{background:"var(--s2)",border:"1px solid var(--b2)",borderRadius:12,padding:20,width:480,maxWidth:"95vw"}} onClick={e=>e.stopPropagation()}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
+          <span style={{fontSize:14,fontWeight:700}}>Choose Template</span>
+          <button className="btn btn-ghost btn-sm" onClick={onClose}>✕</button>
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
+          {TMPLS.map(t=>(
+            <button key={t.id} className="btn btn-ghost" style={{padding:"10px 12px",textAlign:"left",height:"auto",flexDirection:"column",alignItems:"flex-start",gap:3}} onClick={()=>onSelect(t)}>
+              <div style={{fontSize:16}}>{t.icon}</div>
+              <div style={{fontSize:12,fontWeight:600,color:"var(--t)"}}>{t.name}</div>
+              <div style={{fontSize:10,color:"var(--t3)"}}>{t.d.labels.join(", ")||"No labels"}</div>
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── AI PANEL ────────────────────────────────────────────────────────────────
+function AIPanel({analysis,loading,onReanalyze}){
+  if(loading)return <div style={{padding:20,textAlign:"center",color:"var(--t2)"}}><div style={{fontSize:20,marginBottom:8}}>◈</div>Analyzing…</div>;
+  if(!analysis)return null;
+  return (
+    <div style={{fontSize:12}}>
+      <div style={{background:"var(--s)",border:"1px solid var(--b)",borderRadius:8,padding:12,marginBottom:12,color:"var(--t2)",lineHeight:1.6}}>{analysis.summary}</div>
+      {analysis.riskAlerts?.map((r,i)=><div key={i} style={{background:"#3a1a1a",border:"1px solid #da363355",borderRadius:6,padding:"8px 10px",marginBottom:6,color:"var(--orange)",fontSize:11}}>⚠ {r}</div>)}
+      {analysis.weeklyFocus?.length>0&&<div style={{marginBottom:10}}><div className="sl">This Week</div>{analysis.weeklyFocus.map((f,i)=><div key={i} style={{color:"var(--green)",padding:"3px 0",fontSize:11}}>→ {f}</div>)}</div>}
+      {analysis.bottlenecks?.length>0&&<div><div className="sl">Bottlenecks</div>{analysis.bottlenecks.map((b,i)=><div key={i} style={{color:"var(--a2)",padding:"3px 0",fontSize:11}}>◈ {b}</div>)}</div>}
+    </div>
+  );
+}
+
+// ─── KANBAN VIEW ─────────────────────────────────────────────────────────────
+function KanbanView({cards,setCards,lanes,members,sprints,setSprints,activeSprintId,setActiveSprintId,resetKanban}){
+  const [kTab,setKTab]=useState("board");
+  const [filters,setFilters]=useState({search:"",label:"",priority:""});
+  const [dragCardId,setDragCardId]=useState(null);
+  const [dragOverLane,setDragOverLane]=useState(null);
+  const [editCard,setEditCard]=useState(null);
+  const [tplLane,setTplLane]=useState(null);
+  const [aiAnalysis,setAiAnalysis]=useState(null);
+  const [aiLoading,setAiLoading]=useState(false);
+  const [showAI,setShowAI]=useState(false);
+  const [activeTimer,setActiveTimer]=useState(null);
+  const [timerDisplay,setTimerDisplay]=useState("00:00");
+  const timerRef=useRef(null);
+
+  useEffect(()=>{
+    if(activeTimer){timerRef.current=setInterval(()=>{const s=Math.floor((Date.now()-activeTimer.startTime)/1000);setTimerDisplay(`${String(Math.floor(s/60)).padStart(2,"0")}:${String(s%60).padStart(2,"0")}`);},1000);}
+    else{clearInterval(timerRef.current);setTimerDisplay("00:00");}
+    return()=>clearInterval(timerRef.current);
+  },[activeTimer]);
+
+  const addCard=(laneId,tmpl)=>{const d=tmpl?.d||{};const c={id:`c${Date.now()}`,laneId,title:"New Card",description:d.description||"",priority:d.priority||2,labels:d.labels||[],dueDate:null,estimate:d.estimate||"",assignee:null,subtasks:[],repo:"",timeLog:[],sprintId:activeSprintId,storyPoints:1,createdAt:new Date().toISOString().split("T")[0]};setCards(prev=>[...prev,c]);setEditCard(c);setTplLane(null);};
+  const quickAdd=(laneId,priority,title)=>{const c={id:`c${Date.now()}`,laneId,title,description:"",priority,labels:[],dueDate:null,estimate:"",assignee:null,subtasks:[],repo:"",timeLog:[],sprintId:activeSprintId,storyPoints:1,createdAt:new Date().toISOString().split("T")[0]};setCards(prev=>[...prev,c]);};
+  const updateCard=u=>{setCards(prev=>prev.map(c=>c.id===u.id?u:c));setEditCard(null);};
+  const deleteCard=id=>{setCards(prev=>prev.filter(c=>c.id!==id));setEditCard(null);};
+  const moveCard=(cId,lId)=>setCards(prev=>prev.map(c=>c.id===cId?{...c,laneId:lId}:c));
+  const startTimer=cId=>setActiveTimer({cardId:cId,startTime:Date.now()});
+  const stopTimer=cId=>{if(!activeTimer||activeTimer.cardId!==cId)return;const dur=Math.max(1,Math.floor((Date.now()-activeTimer.startTime)/60000));setCards(prev=>prev.map(c=>c.id===cId?{...c,timeLog:[...(c.timeLog||[]),{date:new Date().toISOString().split("T")[0],duration:dur,note:"Tracked session"}]}:c));setActiveTimer(null);};
+  const addTimeEntry=(cId,dur,date,note)=>setCards(prev=>prev.map(c=>c.id===cId?{...c,timeLog:[...(c.timeLog||[]),{date,duration:dur,note}]}:c));
+  const runAI=async()=>{
+    setAiLoading(true);setShowAI(true);
+    try{
+      const summary={lanes:lanes.map(l=>({lane:l.title,count:cards.filter(c=>c.laneId===l.id).length,wip:l.wipLimit})),overdue:cards.filter(c=>c.dueDate&&new Date(c.dueDate)<new Date()).map(c=>c.title),blocked:cards.filter(c=>c.laneId==="blocked").map(c=>c.title),highPriority:cards.filter(c=>c.priority>=4).map(c=>c.title)};
+      const res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:800,messages:[{role:"user",content:`Analyze this Kanban board and return ONLY valid JSON:\n${JSON.stringify(summary)}\n\nReturn: {"summary":"2-sentence overview","weeklyFocus":[],"bottlenecks":[],"riskAlerts":[]}`}]})});
+      const data=await res.json();
+      const txt=data.content?.filter(b=>b.type==="text").map(b=>b.text).join("")||"{}";
+      setAiAnalysis(JSON.parse(txt.replace(/```json|```/g,"").trim()));
+    }catch{setAiAnalysis({summary:"Analysis unavailable.",weeklyFocus:[],bottlenecks:[],riskAlerts:[]});}
+    setAiLoading(false);
+  };
+
+  const filtered=cards.filter(c=>{
+    if(filters.search&&!c.title.toLowerCase().includes(filters.search.toLowerCase()))return false;
+    if(filters.label&&!c.labels?.includes(filters.label))return false;
+    if(filters.priority&&c.priority!==+filters.priority)return false;
+    return true;
+  });
+
+  // Burndown
+  const sprint=sprints.find(s=>s.id===activeSprintId)||sprints[0];
+  const sprintCards=cards.filter(c=>c.sprintId===activeSprintId);
+  const completed=sprintCards.filter(c=>c.laneId==="done").reduce((s,c)=>s+(c.storyPoints||0),0);
+
+  return (
+    <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}>
+      <div style={{padding:"8px 16px",borderBottom:"1px solid var(--b)",display:"flex",alignItems:"center",gap:8,flexWrap:"wrap",flexShrink:0}}>
+        <div style={{display:"flex",gap:3,background:"var(--s)",borderRadius:8,padding:3}}>
+          {[["board","Board"],["burndown","Burndown"],["settings","⚙"]].map(([id,lbl])=>(
+            <button key={id} className="tpill" onClick={()=>setKTab(id)} style={{background:kTab===id?"var(--s3)":"transparent",color:kTab===id?"var(--t)":"var(--t2)",border:"none"}}>{lbl}</button>
+          ))}
+        </div>
+        {kTab==="board"&&<>
+          <input className="inp inp-sm" placeholder="🔍 Search..." style={{width:160}} value={filters.search} onChange={e=>setFilters(f=>({...f,search:e.target.value}))}/>
+          <select className="inp inp-sm" style={{width:"auto"}} value={filters.label} onChange={e=>setFilters(f=>({...f,label:e.target.value}))}><option value="">All Labels</option>{Object.keys(LC).map(l=><option key={l}>{l}</option>)}</select>
+          <select className="inp inp-sm" style={{width:"auto"}} value={filters.priority} onChange={e=>setFilters(f=>({...f,priority:e.target.value}))}><option value="">All Priorities</option>{[1,2,3,4,5].map(p=><option key={p} value={p}>P{p} {PL[p]}</option>)}</select>
+        </>}
+        <div style={{flex:1}}/>
+        {kTab==="board"&&<select className="inp inp-sm" style={{width:"auto"}} value={activeSprintId} onChange={e=>setActiveSprintId(e.target.value)}>{sprints.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</select>}
+        {activeTimer&&<div style={{background:"#0c2a0c",border:"1px solid var(--green)",borderRadius:6,padding:"3px 10px",fontSize:12,color:"var(--green)",fontFamily:"'JetBrains Mono'",display:"flex",alignItems:"center",gap:6}}>● {timerDisplay}<button className="btn btn-danger btn-sm" style={{padding:"1px 6px",fontSize:10}} onClick={()=>stopTimer(activeTimer.cardId)}>Stop</button></div>}
+        {kTab==="board"&&<button className="btn btn-ghost btn-sm" style={{borderColor:showAI?"var(--blue)":"var(--b2)",color:showAI?"var(--blue)":"var(--t2)"}} onClick={()=>{if(!aiAnalysis&&!aiLoading)runAI();else setShowAI(v=>!v);}}>◈ AI</button>}
+      </div>
+
+      <div style={{flex:1,display:"flex",overflow:"hidden"}}>
+        <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}>
+          {kTab==="board"&&<BoardView lanes={lanes} cards={filtered} members={members} dragCardId={dragCardId} setDragCardId={setDragCardId} dragOverLane={dragOverLane} setDragOverLane={setDragOverLane} moveCard={moveCard} onCardClick={setEditCard} onAddCard={(lId)=>setTplLane(lId)} activeTimer={activeTimer}/>}
+
+          {kTab==="burndown"&&sprint&&(
+            <div style={{flex:1,overflow:"auto",padding:20}}>
+              <div style={{display:"flex",gap:8,marginBottom:16,flexWrap:"wrap"}}>
+                {sprints.map(s=><button key={s.id} className="btn btn-ghost" style={{background:activeSprintId===s.id?"var(--s3)":"transparent",color:activeSprintId===s.id?"var(--blue)":"var(--t2)",borderColor:activeSprintId===s.id?"var(--blue)":"var(--b2)"}} onClick={()=>setActiveSprintId(s.id)}>{s.name}</button>)}
+              </div>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12,marginBottom:20}}>
+                {[{l:"Sprint",v:sprint.name,s:`${sprint.startDate} → ${sprint.endDate}`},{l:"Total",v:sprint.totalPoints+"pt",s:"committed"},{l:"Done",v:completed+"pt",s:`${Math.round(completed/sprint.totalPoints*100)||0}%`},{l:"Remaining",v:(sprint.totalPoints-completed)+"pt",s:"to go"}].map(x=>(
+                  <div key={x.l} className="card" style={{padding:"12px 16px"}}>
+                    <div className="sl" style={{marginBottom:4}}>{x.l}</div>
+                    <div className="mono" style={{fontSize:20,fontWeight:700}}>{x.v}</div>
+                    <div style={{fontSize:11,color:"var(--t3)",marginTop:2}}>{x.s}</div>
+                  </div>
+                ))}
+              </div>
+              <div className="card" style={{padding:"14px 0 8px"}}>
+                <div style={{padding:"0 16px",marginBottom:10,fontSize:13,fontWeight:600}}>Burndown — {sprint.name}</div>
+                <svg width="100%" viewBox="0 0 520 180" style={{overflow:"visible"}}>
+                  {[0,.25,.5,.75,1].map(p=>(
+                    <g key={p}>
+                      <line x1={40} y1={10+140*(1-p)} x2={500} y2={10+140*(1-p)} stroke="#21262d" strokeWidth="1"/>
+                      <text x={34} y={14+140*(1-p)} fontSize="9" fill="#484f58" textAnchor="end">{Math.round(sprint.totalPoints*p)}</text>
+                    </g>
+                  ))}
+                  {[0,3,6,9,12,14].map(d=><text key={d} x={40+(d/14)*460} y={168} fontSize="9" fill="#484f58" textAnchor="middle">D{d}</text>)}
+                  <path d={sprint.burndown.map((pt,i)=>`${i===0?"M":"L"}${40+(pt.d/14)*460},${10+140*(1-pt.i/sprint.totalPoints)}`).join(" ")} fill="none" stroke="#484f58" strokeWidth="1.5" strokeDasharray="4,3"/>
+                  <path d={sprint.burndown.filter(pt=>pt.a!==null).map((pt,i)=>`${i===0?"M":"L"}${40+(pt.d/14)*460},${10+140*(1-pt.a/sprint.totalPoints)}`).join(" ")} fill="none" stroke="var(--blue)" strokeWidth="2.5" strokeLinecap="round"/>
+                  {sprint.burndown.filter(pt=>pt.a!==null).map(pt=><circle key={pt.d} cx={40+(pt.d/14)*460} cy={10+140*(1-pt.a/sprint.totalPoints)} r="3.5" fill="var(--blue)" stroke="var(--s)" strokeWidth="1.5"/>)}
+                </svg>
+              </div>
+            </div>
+          )}
+
+          {kTab==="settings"&&(
+            <div style={{flex:1,overflow:"auto",padding:20}}>
+              <div className="card" style={{marginBottom:16}}>
+                <div style={{fontSize:14,fontWeight:600,marginBottom:12}}>Data Management</div>
+                <div style={{display:"flex",gap:8,flexWrap:"wrap",alignItems:"center"}}>
+                  <button className="btn btn-ghost" onClick={()=>{const d=JSON.stringify({cards,lanes,members,sprints},null,2);const b=new Blob([d]);const u=URL.createObjectURL(b);const a=document.createElement("a");a.href=u;a.download=`kanban-${Date.now()}.json`;a.click();}}>⬇ Export JSON</button>
+                  <button className="btn btn-ghost" onClick={()=>{const h="Name,Status,Priority,Labels,Assignee,Due,Points\n"+cards.map(c=>`"${c.title}","${c.laneId}","${PL[c.priority]}","${c.labels?.join(";")||""}","${c.assignee||""}","${c.dueDate||""}","${c.storyPoints||0}"`).join("\n");const b=new Blob([h],{type:"text/csv"});const u=URL.createObjectURL(b);const a=document.createElement("a");a.href=u;a.download=`kanban-${Date.now()}.csv`;a.click();}}>⬇ Export CSV</button>
+                  <div style={{flex:1}}/>
+                  <button className="btn btn-danger" onClick={()=>{if(window.confirm("Reset kanban to defaults?"))resetKanban();}}>↺ Reset Kanban</button>
+                </div>
+              </div>
+              <div className="card">
+                <div style={{fontSize:14,fontWeight:600,marginBottom:12}}>Sprints</div>
+                <button className="btn btn-primary btn-sm" onClick={()=>setSprints(p=>[...p,{id:`sp${Date.now()}`,name:`Sprint ${p.length+9}`,startDate:"",endDate:"",totalPoints:40,burndown:[{d:0,i:40,a:40}]}])}>+ New Sprint</button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {showAI&&(
+          <div style={{width:280,borderLeft:"1px solid var(--b)",background:"var(--s2)",overflow:"auto",padding:14,flexShrink:0}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+              <span style={{fontWeight:700,fontSize:13}}>◈ AI Analysis</span>
+              <button className="btn btn-ghost btn-sm" onClick={()=>setShowAI(false)}>✕</button>
+            </div>
+            <AIPanel analysis={aiAnalysis} loading={aiLoading}/>
+            <button className="btn btn-primary" style={{width:"100%",marginTop:10}} onClick={runAI} disabled={aiLoading}>{aiLoading?"Analyzing...":"↺ Re-analyze"}</button>
+          </div>
+        )}
+      </div>
+
+      {tplLane&&<TemplatePicker onSelect={t=>addCard(tplLane,t)} onClose={()=>setTplLane(null)}/>}
+      {editCard&&<CardModal card={editCard} lanes={lanes} members={members} onSave={updateCard} onDelete={deleteCard} onClose={()=>setEditCard(null)} activeTimer={activeTimer} startTimer={startTimer} stopTimer={stopTimer} timerDisplay={timerDisplay} addTimeEntry={addTimeEntry}/>}
+    </div>
+  );
+}
+
+// ─── PCC VIEW ─────────────────────────────────────────────────────────────────
+function ProjectModal({project,onSave,onClose}){
+  const [p,setP]=useState({...project});
+  const s=(k,v)=>setP(x=>({...x,[k]:v}));
+  const rUrl=repoUrl(p.repo);
+  return (
+    <div className="modal-bg" onClick={e=>e.target===e.currentTarget&&onClose()}>
+      <div className="modal fade">
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:18}}>
+          <b style={{fontSize:14}}>{p.id?"Edit Project":"New Project"}</b>
+          <button className="btn btn-ghost btn-sm" onClick={onClose}>✕</button>
+        </div>
+        <div style={{display:"flex",flexDirection:"column",gap:12}}>
+          <div><div className="sl">Name</div><input className="inp" value={p.name} onChange={e=>s("name",e.target.value)}/></div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+            <div><div className="sl">Status</div><select className="inp" value={p.status} onChange={e=>s("status",e.target.value)}>{PSTATUS.map(x=><option key={x}>{x}</option>)}</select></div>
+            <div><div className="sl">Platform</div><select className="inp" value={p.platform} onChange={e=>s("platform",e.target.value)}>{PPLATFORMS.map(x=><option key={x}>{x}</option>)}</select></div>
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10}}>
+            <div><div className="sl">Tech Debt (1–5)</div><input className="inp" type="number" min={1} max={5} value={p.techDebt} onChange={e=>s("techDebt",+e.target.value)}/></div>
+            <div><div className="sl">Business Value (1–5)</div><input className="inp" type="number" min={1} max={5} value={p.businessValue} onChange={e=>s("businessValue",+e.target.value)}/></div>
+            <div><div className="sl">Monthly Cost ($)</div><input className="inp" type="number" min={0} value={p.monthlyCost} onChange={e=>s("monthlyCost",+e.target.value)}/></div>
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr auto",gap:10}}>
+            <div><div className="sl">Last Activity</div><input className="inp" type="date" value={p.lastActivity} onChange={e=>s("lastActivity",e.target.value)}/></div>
+          </div>
+          <div><div className="sl">Repo / URL</div><div style={{display:"flex",gap:6}}><input className="inp" value={p.repo||""} onChange={e=>s("repo",e.target.value)} placeholder="https://github.com/org/repo"/>{rUrl&&<button className="btn btn-ghost btn-sm" style={{flexShrink:0}} onClick={()=>window.open(rUrl,"_blank")}>↗</button>}</div></div>
+          <div><div className="sl">Notes / Current State</div><textarea className="inp" value={p.notes||""} onChange={e=>s("notes",e.target.value)} placeholder="Current status, blockers, next actions..."/></div>
+          <div><div className="sl" style={{marginBottom:8}}>Audit Checks</div><div style={{display:"flex",gap:16}}>{["hasTests","hasCI","hasDocs"].map(k=><label key={k} style={{display:"flex",alignItems:"center",gap:6,cursor:"pointer",fontSize:12,color:"var(--t2)"}}><input type="checkbox" checked={!!p.auditChecks?.[k]} onChange={e=>setP(x=>({...x,auditChecks:{...x.auditChecks,[k]:e.target.checked}}))} style={{accentColor:"var(--a)"}}/>{k.replace("has","")}</label>)}</div></div>
+          <div style={{display:"flex",gap:8,justifyContent:"flex-end",paddingTop:4}}>
+            <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
+            <button className="btn btn-primary" onClick={()=>onSave(p)}>Save</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PCCView({projects,setProjects,webhookUrl,setWebhookUrl,resetPCC}){
+  const [pTab,setPTab]=useState("pipeline");
+  const [filter,setFilter]=useState("All");
+  const [editP,setEditP]=useState(null);
+  const [showNew,setShowNew]=useState(false);
+  const [syncing,setSyncing]=useState(false);
+  const [syncError,setSyncError]=useState("");
+  const [lastSync,setLastSync]=useState(null);
+
+  const wh=projects.map(p=>({...p,health:calcHealth(p)}));
+  const filtered=filter==="All"?wh:wh.filter(p=>p.status===filter);
+  const criticals=wh.filter(p=>p.health<50||p.status==="Blocked").sort((a,b)=>a.health-b.health);
+  const sum={total:projects.length,avgHealth:Math.round(wh.reduce((s,p)=>s+p.health,0)/(wh.length||1)),cost:projects.reduce((s,p)=>s+(p.monthlyCost||0),0),active:projects.filter(p=>p.status==="Active").length};
+
+  const sync=async()=>{
+    setSyncing(true);setSyncError("");
+    try{
+      const res=await fetch(webhookUrl,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({projects:projects.map(p=>({id:p.id,name:p.name,status:p.status,platform:p.platform,techDebt:p.techDebt,businessValue:p.businessValue,monthlyCost:p.monthlyCost,lastActivity:p.lastActivity,repo:p.repo||"",auditChecks:p.auditChecks||{}})),meta:{requestedAt:new Date().toISOString(),source:"portfolio-hub"}})});
+      if(!res.ok)throw new Error(`HTTP ${res.status}`);
+      setLastSync(new Date());
+    }catch(err){setSyncError(err.message||"Network error");}
+    setSyncing(false);
+  };
+  const saveProject=p=>{if(!p.id)p.id=`proj-${Date.now()}`;setProjects(prev=>{const i=prev.findIndex(x=>x.id===p.id);if(i>=0){const n=[...prev];n[i]=p;return n;}return[...prev,p];});setEditP(null);setShowNew(false);};
+  const delProject=id=>{if(window.confirm("Delete?"))setProjects(prev=>prev.filter(p=>p.id!==id));};
+
+  return (
+    <div style={{flex:1,overflow:"auto",padding:20}}>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12,marginBottom:20}}>
+        {[{l:"Avg Health",v:sum.avgHealth,c:hc(sum.avgHealth),s:hl(sum.avgHealth)},{l:"Projects",v:sum.total,c:"var(--t)",s:`${sum.active} active`},{l:"Monthly Cost",v:`$${sum.cost}`,c:"var(--t)",s:"across all"},{l:"Last Sync",v:lastSync?lastSync.toLocaleTimeString():"—",c:lastSync?"var(--green)":"var(--t3)",s:syncError?syncError:"n8n webhook"}].map(x=>(
+          <div key={x.l} className="card" style={{padding:"12px 16px"}}>
+            <div className="sl" style={{marginBottom:3}}>{x.l}</div>
+            <div className="mono" style={{fontSize:18,fontWeight:700,color:x.c}}>{x.v}</div>
+            <div style={{fontSize:10,color:syncError&&x.l==="Last Sync"?"var(--red)":"var(--t3)",marginTop:2}}>{x.s}</div>
+          </div>
+        ))}
+      </div>
+
+      <div style={{display:"flex",gap:4,marginBottom:14,alignItems:"center"}}>
+        {["pipeline","health","alerts"].map(t=><button key={t} onClick={()=>setPTab(t)} className="tpill" style={{background:pTab===t?"var(--a)":"transparent",color:pTab===t?"#fff":"var(--t2)",border:"none",fontFamily:"'JetBrains Mono'",fontSize:11}}>{t}</button>)}
+        <div style={{flex:1}}/>
+        <button className="btn btn-ghost btn-sm" onClick={()=>setShowNew(true)}>+ Add</button>
+        <button className="btn btn-ghost btn-sm" onClick={()=>{if(window.confirm("Reset to default projects?"))resetPCC();}} title="Reset to defaults">↺ Reset</button>
+        <button className="btn btn-primary btn-sm" onClick={sync} disabled={syncing}>{syncing?<><span className="spin">↻</span> Syncing…</>:"↻ Sync n8n"}</button>
+      </div>
+
+      {pTab==="pipeline"&&(
+        <div className="fade">
+          <div style={{display:"flex",gap:5,marginBottom:10,flexWrap:"wrap"}}>
+            {["All",...PSTATUS].map(s=><button key={s} onClick={()=>setFilter(s)} style={{padding:"3px 10px",borderRadius:100,border:"1px solid",cursor:"pointer",fontFamily:"inherit",fontSize:11,borderColor:filter===s?"var(--a)":"var(--b2)",background:filter===s?"var(--ag)":"transparent",color:filter===s?"var(--a2)":"var(--t2)"}}>{s}</button>)}
+          </div>
+          <div className="card" style={{padding:0,overflow:"hidden"}}>
+            <table style={{width:"100%",borderCollapse:"collapse"}}>
+              <thead><tr style={{borderBottom:"1px solid var(--b)"}}>{["Project","Status","Platform","Health","Activity","Cost","Links",""].map(h=><th key={h} style={{padding:"8px 12px",textAlign:"left",fontSize:10,fontWeight:600,color:"var(--t3)",fontFamily:"'JetBrains Mono'",textTransform:"uppercase"}}>{h}</th>)}</tr></thead>
+              <tbody>
+                {filtered.map((p,i)=>{const rUrl=repoUrl(p.repo);return(
+                  <tr key={p.id} style={{borderBottom:i<filtered.length-1?"1px solid var(--b)":"none",background:i%2?"rgba(255,255,255,.01)":"transparent"}}>
+                    <td style={{padding:"9px 12px",maxWidth:200}}>
+                      <div style={{fontWeight:500}}>{p.name}</div>
+                      {p.notes&&<div style={{fontSize:10,color:"var(--t3)",marginTop:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:180}} title={p.notes}>{p.notes}</div>}
+                    </td>
+                    <td style={{padding:"9px 12px"}}><SBadge status={p.status}/></td>
+                    <td style={{padding:"9px 12px",fontSize:11,color:"var(--t2)",fontFamily:"'JetBrains Mono'"}}>{p.platform}</td>
+                    <td style={{padding:"9px 12px",minWidth:110}}><HBar score={p.health}/></td>
+                    <td style={{padding:"9px 12px",fontSize:11,color:"var(--t2)",fontFamily:"'JetBrains Mono'",whiteSpace:"nowrap"}}>{p.lastActivity||"—"}</td>
+                    <td style={{padding:"9px 12px",fontSize:11,fontFamily:"'JetBrains Mono'",color:p.monthlyCost>0?"var(--t)":"var(--t3)"}}>{p.monthlyCost>0?`$${p.monthlyCost}`:"free"}</td>
+                    <td style={{padding:"9px 12px"}}>{rUrl&&<button className="btn btn-ghost btn-sm" onClick={()=>window.open(rUrl,"_blank")}>↗ repo</button>}</td>
+                    <td style={{padding:"9px 12px"}}><div style={{display:"flex",gap:4}}><button className="btn btn-ghost btn-sm" onClick={()=>setEditP(p)}>Edit</button><button className="btn btn-ghost btn-sm" style={{color:"var(--red)"}} onClick={()=>delProject(p.id)}>✕</button></div></td>
+                  </tr>
+                );})}
+              </tbody>
+            </table>
+            {filtered.length===0&&<div style={{padding:32,textAlign:"center",color:"var(--t3)"}}>No projects</div>}
+          </div>
+        </div>
+      )}
+
+      {pTab==="health"&&(
+        <div className="fade" style={{display:"flex",flexDirection:"column",gap:8}}>
+          {[...wh].sort((a,b)=>a.health-b.health).map(p=>{const rUrl=repoUrl(p.repo);return(
+            <div key={p.id} className="card" style={{padding:"12px 14px",borderLeft:`3px solid ${hc(p.health)}`}}>
+              <div style={{display:"flex",alignItems:"center",gap:12}}>
+                <div style={{flex:1}}>
+                  <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:4}}>
+                    <span style={{fontWeight:500}}>{p.name}</span>
+                    <SBadge status={p.status}/>
+                    <span style={{fontSize:10,color:"var(--t3)",fontFamily:"'JetBrains Mono'"}}>{p.platform}</span>
+                    {rUrl&&<button className="btn btn-ghost btn-sm" style={{fontSize:10,padding:"1px 5px"}} onClick={()=>window.open(rUrl,"_blank")}>↗</button>}
+                  </div>
+                  <HBar score={p.health}/>
+                  {p.notes&&<div style={{fontSize:10,color:"var(--t3)",marginTop:4}}>{p.notes.slice(0,120)}{p.notes.length>120?"…":""}</div>}
+                </div>
+                <div style={{textAlign:"right",minWidth:64}}>
+                  <div className="mono" style={{fontSize:20,fontWeight:700,color:hc(p.health),lineHeight:1}}>{p.health}</div>
+                  <div style={{fontSize:10,color:"var(--t3)"}}>{hl(p.health)}</div>
+                </div>
+              </div>
+            </div>
+          );})}
+        </div>
+      )}
+
+      {pTab==="alerts"&&(
+        <div className="fade" style={{display:"flex",flexDirection:"column",gap:8}}>
+          {criticals.length===0?<div className="card" style={{padding:32,textAlign:"center"}}><div style={{fontSize:24,marginBottom:6}}>✓</div><div style={{color:"var(--green)",fontWeight:500}}>All clear</div></div>
+          :criticals.map(p=>{const rUrl=repoUrl(p.repo);return(
+            <div key={p.id} className="card" style={{borderColor:"var(--red)",background:"rgba(218,54,51,0.05)",padding:"12px 14px"}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+                <div style={{flex:1,marginRight:12}}>
+                  <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:4}}>
+                    <span style={{fontWeight:600,color:"var(--red)"}}>⚠ {p.name}</span>
+                    <SBadge status={p.status}/>
+                    {rUrl&&<button className="btn btn-ghost btn-sm" style={{fontSize:10,padding:"1px 5px"}} onClick={()=>window.open(rUrl,"_blank")}>↗</button>}
+                  </div>
+                  <div style={{fontSize:11,color:"var(--t2)"}}>{p.status==="Blocked"?"Blocked — needs unblocking. ":""}{`Health ${p.health}/100`}{p.lastActivity&&` · Last active ${p.lastActivity}`}</div>
+                  {p.notes&&<div style={{fontSize:10,color:"var(--t3)",marginTop:4}}>{p.notes.slice(0,160)}{p.notes.length>160?"…":""}</div>}
+                </div>
+                <div className="mono" style={{fontSize:24,fontWeight:700,color:"var(--red)",flexShrink:0}}>{p.health}</div>
+              </div>
+            </div>
+          );})}
+        </div>
+      )}
+
+      {(editP||showNew)&&<ProjectModal project={editP||{id:"",name:"",status:"Active",platform:"Vercel",techDebt:3,businessValue:3,monthlyCost:0,lastActivity:new Date().toISOString().split("T")[0],repo:"",notes:"",auditChecks:{hasTests:false,hasCI:false,hasDocs:false}}} onSave={saveProject} onClose={()=>{setEditP(null);setShowNew(false);}}/>}
+    </div>
+  );
+}
+
+// ─── MEMOIR VIEW ──────────────────────────────────────────────────────────────
+function MemoirView({memoir,setMemoir}){
+  const [mTab,setMTab]=useState("chapters");
+  const [editCh,setEditCh]=useState(null);
+  const [newQ,setNewQ]=useState("");
+  const [sessionForm,setSessionForm]=useState({date:new Date().toISOString().split("T")[0],duration:120,phase:"excavation",chapterId:"ch1",produced:"",unresolved:"",nextFocus:""});
+  const [showLog,setShowLog]=useState(false);
+  const [showVoice,setShowVoice]=useState(false);
+
+  const cycleStatus=chId=>{
+    setMemoir(m=>({...m,chapters:m.chapters.map(ch=>{if(ch.id!==chId)return ch;const i=MS_ORDER.indexOf(ch.status);return {...ch,status:MS_ORDER[(i+1)%MS_ORDER.length]};})}))}
+  const addSession=()=>{
+    if(!sessionForm.produced.trim())return;
+    setMemoir(m=>({...m,sessions:[{id:`ms${Date.now()}`,...sessionForm},...m.sessions]}));
+    setSessionForm({date:new Date().toISOString().split("T")[0],duration:120,phase:"excavation",chapterId:"ch1",produced:"",unresolved:"",nextFocus:""});
+    setShowLog(false);
+  };
+  const toggleQ=id=>setMemoir(m=>({...m,excavationQueue:m.excavationQueue.map(q=>q.id===id?{...q,done:!q.done}:q)}));
+  const addQ=()=>{if(!newQ.trim())return;setMemoir(m=>({...m,excavationQueue:[...m.excavationQueue,{id:`eq${Date.now()}`,text:newQ.trim(),done:false}]}));setNewQ("");};
+
+  return (
+    <div style={{flex:1,overflow:"auto",padding:20}}>
+      <div className="card" style={{marginBottom:16,padding:"14px 16px"}}>
+        <div style={{fontSize:12,color:"var(--a2)",fontStyle:"italic",lineHeight:1.6,marginBottom:8}}>"{memoir.thesis}"</div>
+        <div style={{fontSize:11,color:"var(--t3)"}}>Frame: {memoir.frame}</div>
+      </div>
+
+      <div style={{display:"flex",gap:4,marginBottom:14}}>
+        {[["chapters","Chapters"],["sessions","Sessions"],["queue","Excavation Queue"],["voice","Voice DNA"]].map(([id,lbl])=>(
+          <button key={id} className="tpill" onClick={()=>setMTab(id)} style={{background:mTab===id?"var(--ag)":"transparent",color:mTab===id?"var(--a2)":"var(--t2)",border:`1px solid ${mTab===id?"var(--a)":"transparent"}`}}>{lbl}</button>
+        ))}
+      </div>
+
+      {mTab==="chapters"&&(
+        <div className="fade">
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:12}}>
+            {memoir.chapters.map(ch=>(
+              <div key={ch.id} className="card" style={{padding:"14px 16px",borderLeft:`3px solid ${MS_C[ch.status]}`}}>
+                <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
+                  <span style={{fontWeight:600,flex:1,fontSize:13}}>{ch.title}</span>
+                  <button onClick={()=>cycleStatus(ch.id)} className="badge" style={{cursor:"pointer",background:MS_C[ch.status]+"22",color:MS_C[ch.status],border:`1px solid ${MS_C[ch.status]}44`}} title="Click to advance status">{ch.status}</button>
+                </div>
+                <div style={{fontSize:11,color:"var(--t2)",marginBottom:8,lineHeight:1.5}}>{ch.subtitle}</div>
+                {ch.notes&&<div style={{fontSize:10,color:ch.notes.startsWith("⚠")?"var(--orange)":"var(--t3)",marginBottom:8,padding:"6px 8px",background:"var(--s)",borderRadius:4}}>{ch.notes}</div>}
+                <div style={{fontSize:10,color:"var(--t3)",fontWeight:600,marginBottom:4}}>SCENE SEEDS</div>
+                {ch.scenes.map((sc,i)=><div key={i} style={{fontSize:11,color:"var(--t2)",padding:"3px 0",borderBottom:i<ch.scenes.length-1?"1px solid var(--b)":"none"}}>· {sc}</div>)}
+                {editCh===ch.id?(
+                  <div style={{marginTop:10}}>
+                    <textarea className="inp" placeholder="Notes for this chapter..." style={{minHeight:60,fontSize:11}} defaultValue={ch.notes} onBlur={e=>setMemoir(m=>({...m,chapters:m.chapters.map(c=>c.id===ch.id?{...c,notes:e.target.value}:c)}))}/>
+                    <button className="btn btn-ghost btn-sm" style={{marginTop:6}} onClick={()=>setEditCh(null)}>Done</button>
+                  </div>
+                ):(
+                  <button className="btn btn-ghost btn-sm" style={{marginTop:8}} onClick={()=>setEditCh(ch.id)}>Edit notes</button>
+                )}
+              </div>
+            ))}
+          </div>
+          <div style={{display:"flex",gap:8,alignItems:"center"}}>
+            <div className="sl" style={{marginBottom:0}}>Structure</div>
+            <select className="inp inp-sm" style={{width:"auto"}} value={memoir.structureDecision||""} onChange={e=>setMemoir(m=>({...m,structureDecision:e.target.value||null}))}>
+              <option value="">Not decided yet — draft one scene first</option>
+              <option value="chronological">Chronological with flashbacks (mimics damaged memory)</option>
+              <option value="systems">Systems as chapters (each major tool as entry point)</option>
+              <option value="parallel">Parallel timelines (external career + internal reconstruction)</option>
+              <option value="arsenal">Arsenal structure (Chaos Club's 25 categories)</option>
+            </select>
+          </div>
+        </div>
+      )}
+
+      {mTab==="sessions"&&(
+        <div className="fade">
+          <div style={{display:"flex",gap:8,marginBottom:14,alignItems:"center"}}>
+            <div style={{fontSize:13,fontWeight:600}}>Session Log ({memoir.sessions.length})</div>
+            <div style={{flex:1}}/>
+            <button className="btn btn-primary btn-sm" onClick={()=>setShowLog(v=>!v)}>+ Log Session</button>
+          </div>
+          {showLog&&(
+            <div className="card" style={{marginBottom:14}}>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10,marginBottom:10}}>
+                <div><div className="sl">Date</div><input className="inp inp-sm" type="date" value={sessionForm.date} onChange={e=>setSessionForm(f=>({...f,date:e.target.value}))}/></div>
+                <div><div className="sl">Duration (min)</div><input className="inp inp-sm" type="number" value={sessionForm.duration} onChange={e=>setSessionForm(f=>({...f,duration:+e.target.value}))}/></div>
+                <div><div className="sl">Phase</div><select className="inp inp-sm" value={sessionForm.phase} onChange={e=>setSessionForm(f=>({...f,phase:e.target.value}))}>{["excavation","drafting","revision"].map(p=><option key={p}>{p}</option>)}</select></div>
+              </div>
+              <div style={{marginBottom:10}}><div className="sl">Chapter</div><select className="inp inp-sm" value={sessionForm.chapterId} onChange={e=>setSessionForm(f=>({...f,chapterId:e.target.value}))}>{memoir.chapters.map(c=><option key={c.id} value={c.id}>{c.title}</option>)}</select></div>
+              <div style={{marginBottom:10}}><div className="sl">What was produced</div><textarea className="inp" style={{minHeight:60}} value={sessionForm.produced} onChange={e=>setSessionForm(f=>({...f,produced:e.target.value}))} placeholder="Raw material captured, scenes written, decisions made..."/></div>
+              <div style={{marginBottom:10}}><div className="sl">What's unresolved</div><textarea className="inp" style={{minHeight:50}} value={sessionForm.unresolved} onChange={e=>setSessionForm(f=>({...f,unresolved:e.target.value}))} placeholder="What needs more excavation? What didn't resolve?"/></div>
+              <div style={{marginBottom:12}}><div className="sl">Next session focus</div><input className="inp inp-sm" value={sessionForm.nextFocus} onChange={e=>setSessionForm(f=>({...f,nextFocus:e.target.value}))} placeholder="Specific scene, question, or chapter area for next time"/></div>
+              <div style={{display:"flex",gap:8,justifyContent:"flex-end"}}>
+                <button className="btn btn-ghost" onClick={()=>setShowLog(false)}>Cancel</button>
+                <button className="btn btn-primary" onClick={addSession} disabled={!sessionForm.produced.trim()}>Save Session</button>
+              </div>
+            </div>
+          )}
+          {memoir.sessions.length===0?(
+            <div className="card" style={{padding:32,textAlign:"center",color:"var(--t3)"}}>No sessions logged yet. Start excavating.</div>
+          ):memoir.sessions.map(s=>(
+            <div key={s.id} className="card" style={{marginBottom:10,padding:"14px 16px",borderLeft:"3px solid var(--a)"}}>
+              <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}>
+                <span className="mono" style={{fontSize:11,color:"var(--t2)"}}>{s.date}</span>
+                <span className="badge" style={{background:"var(--ag)",color:"var(--a2)",border:"1px solid var(--a)44"}}>{s.phase}</span>
+                <span style={{fontSize:11,color:"var(--t3)"}}>{memoir.chapters.find(c=>c.id===s.chapterId)?.title}</span>
+                <span className="mono" style={{fontSize:10,color:"var(--teal)",marginLeft:"auto"}}>{fmt(s.duration)}</span>
+              </div>
+              {s.produced&&<div style={{fontSize:12,color:"var(--t)",marginBottom:6,lineHeight:1.5}}><span style={{color:"var(--green)",fontWeight:600,fontSize:10}}>PRODUCED </span>{s.produced}</div>}
+              {s.unresolved&&<div style={{fontSize:11,color:"var(--t2)",marginBottom:6}}><span style={{color:"var(--orange)",fontWeight:600,fontSize:10}}>UNRESOLVED </span>{s.unresolved}</div>}
+              {s.nextFocus&&<div style={{fontSize:11,color:"var(--a2)"}}><span style={{fontWeight:600,fontSize:10}}>NEXT → </span>{s.nextFocus}</div>}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {mTab==="queue"&&(
+        <div className="fade">
+          <div style={{display:"flex",gap:8,marginBottom:14}}>
+            <input className="inp" placeholder="Add excavation question..." value={newQ} onChange={e=>setNewQ(e.target.value)} onKeyDown={e=>e.key==="Enter"&&addQ()}/>
+            <button className="btn btn-primary" style={{flexShrink:0}} onClick={addQ}>Add</button>
+          </div>
+          <div style={{fontSize:11,color:"var(--t3)",marginBottom:10}}>
+            {memoir.excavationQueue.filter(q=>!q.done).length} open · {memoir.excavationQueue.filter(q=>q.done).length} done
+          </div>
+          {memoir.excavationQueue.map(q=>(
+            <div key={q.id} style={{display:"flex",alignItems:"flex-start",gap:10,padding:"10px 0",borderBottom:"1px solid var(--b)"}}>
+              <input type="checkbox" checked={q.done} onChange={()=>toggleQ(q.id)} style={{marginTop:2,cursor:"pointer",accentColor:"var(--a2)"}}/>
+              <span style={{flex:1,fontSize:13,color:q.done?"var(--t3)":"var(--t)",textDecoration:q.done?"line-through":"none",lineHeight:1.5}}>{q.text}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {mTab==="voice"&&(
+        <div className="fade">
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
+            <div className="card">
+              <div className="sl" style={{color:"var(--green)",marginBottom:10}}>✓ DO</div>
+              {memoir.voiceDNA.dos.map((d,i)=><div key={i} style={{fontSize:12,color:"var(--t)",padding:"6px 0",borderBottom:i<memoir.voiceDNA.dos.length-1?"1px solid var(--b)":"none",lineHeight:1.5}}>{d}</div>)}
+            </div>
+            <div className="card">
+              <div className="sl" style={{color:"var(--red)",marginBottom:10}}>✕ NEVER</div>
+              {memoir.voiceDNA.donts.map((d,i)=><div key={i} style={{fontSize:12,color:"var(--t)",padding:"6px 0",borderBottom:i<memoir.voiceDNA.donts.length-1?"1px solid var(--b)":"none",lineHeight:1.5,fontStyle:d.startsWith('"')?"italic":"normal"}}>{d}</div>)}
+            </div>
+          </div>
+          <div className="card" style={{marginTop:16}}>
+            <div className="sl" style={{marginBottom:8}}>Kyle's Register</div>
+            <div style={{fontSize:12,color:"var(--t2)",lineHeight:1.8}}>Direct without being cold · Metaphor-heavy · Technical precision when it serves clarity · Strategic profanity for emphasis, not shock · Self-aware about the irony of systematizing everything, including self-examination · No performance of either vulnerability or toughness</div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── APP SHELL ────────────────────────────────────────────────────────────────
+function App(){
+  const [tab,setTab]=useState("today");
+  const [cards,setCards]=useState(DEF_CARDS);
+  const [lanes]=useState(LANES);
+  const [members]=useState(DEF_MEMBERS);
+  const [sprints,setSprints]=useState(DEF_SPRINTS);
+  const [activeSprintId,setActiveSprintId]=useState("sp2");
+  const [projects,setProjects]=useState(DEF_PROJECTS);
+  const [webhookUrl,setWebhookUrl]=useState(WEBHOOK);
+  const [memoir,setMemoir]=useState(DEF_MEMOIR);
+
+  // Load from storage
+  useEffect(()=>{
+    try{
+      const saved=JSON.parse(localStorage.getItem(HUB_KEY));
+      if(!saved)return;
+      if(saved.cards)setCards(saved.cards);
+      if(saved.sprints)setSprints(saved.sprints);
+      if(saved.activeSprintId)setActiveSprintId(saved.activeSprintId);
+      if(saved.projects)setProjects(saved.projects);
+      if(saved.webhookUrl)setWebhookUrl(saved.webhookUrl);
+      if(saved.memoir)setMemoir(saved.memoir);
+    }catch(e){}
+  },[]);
+
+  // Save on change (guarded — storage may be unavailable in the artifact sandbox)
+  useEffect(()=>{
+    try{localStorage.setItem(HUB_KEY,JSON.stringify({cards,sprints,activeSprintId,projects,webhookUrl,memoir}));}catch(e){}
+  },[cards,sprints,activeSprintId,projects,webhookUrl,memoir]);
+
+  const exportAll=()=>{
+    const d=JSON.stringify({cards,sprints,activeSprintId,projects,webhookUrl,memoir},null,2);
+    const b=new Blob([d],{type:"application/json"});
+    const u=URL.createObjectURL(b);
+    const a=document.createElement("a");a.href=u;a.download=`portfolio-hub-${new Date().toISOString().split("T")[0]}.json`;a.click();
+    URL.revokeObjectURL(u);
+  };
+  const importAll=()=>{
+    const inp=document.createElement("input");inp.type="file";inp.accept=".json";
+    inp.onchange=e=>{
+      const f=e.target.files[0];if(!f)return;
+      const r=new FileReader();
+      r.onload=ev=>{try{const d=JSON.parse(ev.target.result);if(d.cards)setCards(d.cards);if(d.sprints)setSprints(d.sprints);if(d.activeSprintId)setActiveSprintId(d.activeSprintId);if(d.projects)setProjects(d.projects);if(d.memoir)setMemoir(d.memoir);if(d.webhookUrl)setWebhookUrl(d.webhookUrl);}catch{alert("Invalid JSON file");}};
+      r.readAsText(f);
+    };
+    inp.click();
+  };
+  const resetAll=()=>{
+    if(!window.confirm("Reset ALL data to defaults? This cannot be undone."))return;
+    localStorage.removeItem(HUB_KEY);
+    setCards(DEF_CARDS);setSprints(DEF_SPRINTS);setActiveSprintId("sp2");setProjects(DEF_PROJECTS);setMemoir(DEF_MEMOIR);setTab("today");
+  };
+
+  const today=new Date();
+  const overdueCount=cards.filter(c=>c.laneId!=="done"&&isOverdue(c.dueDate)).length;
+
+  const TABS=[
+    {id:"today",label:"Today",dot:overdueCount>0,dotColor:"var(--red)"},
+    {id:"kanban",label:"Kanban"},
+    {id:"portfolio",label:"Portfolio"},
+    {id:"memoir",label:"Memoir"},
+  ];
+
+  return (
+    <div style={{display:"flex",flexDirection:"column",height:"100vh",overflow:"hidden"}}>
+      {/* Nav */}
+      <div style={{background:"var(--s)",borderBottom:"1px solid var(--b)",padding:"0 16px",display:"flex",alignItems:"center",gap:4,flexShrink:0,height:44}}>
+        <div style={{display:"flex",alignItems:"center",gap:8,marginRight:12}}>
+          <div style={{width:22,height:22,borderRadius:5,background:"linear-gradient(135deg,#7c3aed,#a855f7)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11}}>⬡</div>
+          <span className="mono" style={{fontSize:12,fontWeight:600,color:"var(--t)"}}>Hub</span>
+        </div>
+        {TABS.map(t=>(
+          <button key={t.id} onClick={()=>setTab(t.id)} className="tpill" style={{background:tab===t.id?"var(--s3)":"transparent",color:tab===t.id?"var(--t)":"var(--t2)",border:"none",position:"relative"}}>
+            {t.label}
+            {t.dot&&<span style={{position:"absolute",top:2,right:2,width:6,height:6,borderRadius:"50%",background:t.dotColor}}/>}
+          </button>
+        ))}
+        <div style={{flex:1}}/>
+        <div className="mono" style={{fontSize:10,color:"var(--t3)",marginRight:8}}>{today.toLocaleDateString("en-US",{month:"short",day:"numeric"})}</div>
+        <button className="btn btn-ghost btn-sm" onClick={importAll} title="Import JSON backup">⬆ Import</button>
+        <button className="btn btn-ghost btn-sm" onClick={exportAll} title="Export full backup">⬇ Export</button>
+        <button className="btn btn-ghost btn-sm" onClick={resetAll} title="Reset all data to defaults" style={{color:"var(--t3)"}}>↺</button>
+      </div>
+
+      {/* Content */}
+      <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}>
+        {tab==="today"&&<TodayView cards={cards} lanes={lanes} members={members} projects={projects} onCardClick={c=>{setTab("kanban");}} onAddCard={(laneId,pri,title)=>{const c={id:`c${Date.now()}`,laneId,title,description:"",priority:pri,labels:[],dueDate:null,estimate:"",assignee:null,subtasks:[],repo:"",timeLog:[],sprintId:activeSprintId,storyPoints:1,createdAt:new Date().toISOString().split("T")[0]};setCards(p=>[...p,c]);}} activeTimer={null} timerDisplay="00:00" stopTimer={()=>{}}/>}
+        {tab==="kanban"&&<KanbanView cards={cards} setCards={setCards} lanes={lanes} members={members} sprints={sprints} setSprints={setSprints} activeSprintId={activeSprintId} setActiveSprintId={setActiveSprintId} resetKanban={()=>{if(window.confirm("Reset kanban data?"))setCards(DEF_CARDS);}}/>}
+        {tab==="portfolio"&&<PCCView projects={projects} setProjects={setProjects} webhookUrl={webhookUrl} setWebhookUrl={setWebhookUrl} resetPCC={()=>{if(window.confirm("Reset portfolio data?"))setProjects(DEF_PROJECTS);}}/>}
+        {tab==="memoir"&&<MemoirView memoir={memoir} setMemoir={setMemoir}/>}
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>

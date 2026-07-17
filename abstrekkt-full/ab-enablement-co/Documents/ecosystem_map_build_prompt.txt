@@ -1,0 +1,769 @@
+######################################################################
+ECOSYSTEM MAP
+AUDITED REUSABLE CLAUDE ARTIFACT BUILD PROMPT
+######################################################################
+
+PURPOSE
+
+Build a polished, interactive HTML artifact named:
+
+[ECOSYSTEM NAME] Ecosystem Map
+
+The artifact is a relational operating map consisting of:
+
+1. A Mermaid-powered, tab-switchable diagram surface with three required
+   views (Structure/Flowchart, Relational/Entity-Relationship, Chronology/
+   Timeline) and one optional view (Mindmap)
+2. An always-present Entity Directory panel (plain HTML, not Mermaid) that
+   is the reliable, diagram-type-independent way to inspect any entity
+3. A selected-entity inspection panel
+4. A responsive, accessible, single-file implementation
+
+This prompt is a sibling to the [PROJECT NAME] Growth OS prompt. It
+replicates that prompt's rigor and reusable-template structure, but the
+subject is relational/structural (what exists, what it depends on, when
+it started) rather than strategic (what to do next), and the rendering
+engine is Mermaid rather than a hand-built SVG radial wheel.
+
+Do not create a static mockup. Build a functional artifact that renders
+immediately and supports real interaction.
+
+Before generating code, silently normalize the supplied entity data,
+generate valid Mermaid syntax for each view from that single data source,
+and validate that the resulting diagrams can render safely.
+
+Do not stop to ask questions because a field remains in brackets. When
+data is incomplete:
+
+- Preserve the incomplete field in a clearly marked CONFIG object
+- Supply believable placeholder data prefixed with "Example:"
+- Add a subtle "Configuration incomplete" indicator
+- Still produce a fully functional artifact
+
+======================================================================
+NON-NEGOTIABLE RUNTIME RULES
+======================================================================
+
+TARGET RUNTIME
+
+The primary target is a Claude.ai HTML artifact — NOT a React artifact.
+
+Mermaid is not among the pre-approved React-artifact libraries (no bundler
+is available for React artifacts, so an unlisted package cannot be
+imported). HTML artifacts can load external scripts from
+https://cdnjs.cloudflare.com, which does host Mermaid. Use a single
+self-contained .html file: HTML, CSS, and JavaScript together, Mermaid
+loaded from cdnjs, Google Fonts as the only other external resource.
+
+MERMAID LOADING
+
+Load Mermaid as an ES module from cdnjs, current major version 11:
+
+<script type="module">
+  import mermaid from
+    "https://cdnjs.cloudflare.com/ajax/libs/mermaid/11.12.0/mermaid.esm.min.mjs";
+  ...
+</script>
+
+The exact patch version on cdnjs will drift over time. If the pinned path
+404s, fall back to the equivalent path on
+https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs before
+trying anything else. Do not silently swap in an unrelated charting
+library if Mermaid fails to load — surface a visible error state instead.
+
+INITIALIZATION AND RENDER PATTERN
+
+- Call mermaid.initialize(config) once, before any render call.
+- Set startOnLoad: false. Do not use the auto-discovery
+  class="mermaid" + mermaid.run() pattern — this artifact needs
+  fine-grained control over WHEN each view renders (on tab switch), not
+  render-everything-on-load.
+- Render each view explicitly with the promise-based API:
+  const { svg, bindFunctions } = await mermaid.render(uniqueId, diagramText);
+  container.innerHTML = svg;
+  if (bindFunctions) bindFunctions(container);
+- bindFunctions MUST be called after the SVG is inserted into the DOM, or
+  click bindings silently do nothing. This is the single most common
+  Mermaid integration bug — do not skip it.
+- Wait for document.fonts.ready before the FIRST render call. Mermaid
+  measures text using whatever fonts are currently loaded; rendering
+  before custom fonts finish loading produces labels that are out of
+  bounds or wrongly wrapped. This is a known, documented Mermaid pitfall,
+  not a hypothetical one.
+- Lazy-render: only render the active tab's diagram. Do not render all
+  views eagerly on load.
+
+SECURITY LEVEL — DELIBERATE, JUSTIFIED, NOT A DEFAULT
+
+Mermaid's default securityLevel ('strict') disables the click directive
+entirely; tags are encoded and clicking does nothing. Getting
+click-to-inspect working requires setting securityLevel: 'loose' in
+mermaid.initialize(). This is a real trust decision, not a throwaway
+config flag — state the justification in a code comment at the point of
+use:
+
+  // securityLevel: 'loose' is required for the flowchart's click
+  // bindings to fire. This is safe here because the ONLY Mermaid text
+  // ever rendered is generated from this file's own CONFIG object —
+  // never from user-submitted or externally-fetched text. If this
+  // pattern is ever reused somewhere that renders untrusted diagram
+  // text, do not carry this setting over without re-evaluating it.
+
+Do not use securityLevel: 'antiscript' as a middle ground — it has a
+known, currently-open bug where click callbacks silently fail to fire.
+'loose' or 'strict', not 'antiscript', for this artifact.
+
+CLICK BINDING SCOPE — DO NOT OVER-PROMISE
+
+Mermaid's click directive (click nodeId call fn()) is a flowchart
+feature. Do not assume it works identically on the ER and Timeline views
+— it does not reliably provide the same node-level JS callback binding
+there. Because of this, native Mermaid click bindings are a SUPPLEMENTARY
+convenience on the Structure/Flowchart view only. The Entity Directory
+panel (plain HTML, described below) is the PRIMARY, diagram-type-
+independent way every entity gets inspected, and it must work identically
+regardless of which Mermaid view is currently active.
+
+NO AI / COMPLETION PANEL IN THIS BUILD
+
+Unlike Growth OS, this artifact does not include a conversational AI
+panel. It is a static-but-interactive reference visualization, not a
+strategy chat tool. If conversational analysis of the ecosystem is wanted
+later, it is a separate, additive extension — structurally similar to
+Growth OS's AI Strategy Panel (same sendStrategyMessage /
+buildSystemPrompt pattern, same api.anthropic.com in-artifact bridge, same
+no-exposed-key rule) — and does not require changing the entity data model
+below to add.
+
+DO NOT:
+
+- Use a React artifact for this (Mermaid is not on the approved list)
+- Auto-render all views on load (lazy-render the active tab only)
+- Skip bindFunctions() after inserting rendered SVG
+- Render the first diagram before fonts are ready
+- Use securityLevel: 'antiscript' for click bindings
+- Claim click-to-inspect works uniformly across all Mermaid diagram types
+- Add an AI/chat panel unless explicitly asked for in a later pass
+
+======================================================================
+OUTPUT CONTRACT
+======================================================================
+
+Create one complete HTML artifact.
+
+Implementation constraints:
+
+- Single .html file: HTML + CSS + JS together
+- Vanilla JavaScript only — no framework, no build step
+- Mermaid loaded from cdnjs.cloudflare.com as described above
+- Google Fonts are the only other permitted external resource
+- All CSS inside one <style> element, using CSS custom properties for
+  every token — no hardcoded hex values in component rules
+- Semantic HTML wherever Mermaid's own SVG is not required (nav, main,
+  aside, button — not div soup)
+- Keep editable ecosystem data in one CONFIG constant near the top
+- Separate data normalization, Mermaid-text generation, theming,
+  rendering, and interaction into clearly named, commented sections
+- No incomplete handlers, no TODO placeholders, no console errors
+- No fabricated production data
+
+Generate the artifact directly. Do not return an implementation tutorial
+instead of the artifact.
+
+======================================================================
+DESIGN SYSTEM
+======================================================================
+
+This build uses the Abstrekkt token profile — the parent-brand identity,
+not any individual sub-brand's tokens. An ecosystem map spans multiple
+sub-brands by definition; rendering it in one sub-brand's visual language
+(e.g. FlashFusion's dark neon-glass) would visually imply that sub-brand
+sits above the others in the hierarchy, when the parent entity does.
+Abstrekkt is also, mechanically, a better fit for Mermaid: Mermaid's
+default rendering conventions are light-surface and line-based, which
+pairs far more cleanly with an editorial light theme than with a
+glow/gradient dark theme that Mermaid's theming API cannot fully express.
+
+LIGHT MODE — EDITORIAL, STRUCTURAL
+
+COLOR TOKENS (verified against the live Abstrekkt token set — do not
+substitute a compressed or remembered version of these):
+
+Primary (brass):
+--color-primary-100: #f5efe5   (light bg states, node fill)
+--color-primary-400: #c8a86a   (brand primary, focus rings, borders)
+--color-primary-700: #6d5a32   (headings on light, high-contrast primary)
+
+Neutral (ink-based, not pure black):
+--color-neutral-0:   #ffffff
+--color-neutral-50:  #fafaf9   (elevated surface)
+--color-neutral-300: #d6d3d1   (default border)
+--color-neutral-600: #57534e   (secondary text)
+--color-neutral-900: #1c1917   (body text, headings)
+
+Semantic status (4-level, extending the 3-level success/warning/error
+scale the same way Growth OS did — poor and critical share the error hue
+family at different depths):
+good:     #16a34a  (success-600)
+moderate: #b45309  (warning-700, not warning-600 — warning-600's contrast
+                     against white was not in the verified WCAG table;
+                     use the darker, confirmed-safer shade for any text
+                     use. Re-verify before using warning-600 for text.)
+poor:     #dc2626  (error-600)
+critical: #b91c1c  (error-700)
+
+Surface:
+--surface-background: #ffffff
+--surface-elevated:   #fafaf9
+--surface-border:     #d6d3d1
+--surface-overlay:    rgba(0,0,0,0.5)
+
+TYPOGRAPHY
+
+--font-family-display: 'Fraunces', serif        (headings, entity names)
+--font-family-body:    'Crimson Pro', serif      (prose, UI text)
+--font-family-mono:    'JetBrains Mono', monospace (IDs, dates, metadata)
+
+Google Fonts import, in <head> or the top of the single <style> block,
+loaded BEFORE mermaid.initialize() runs:
+
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:wght@400;600&family=Crimson+Pro:wght@400;600&family=JetBrains+Mono:wght@400;500&display=swap');
+
+SPACING / RADIUS / SHADOW / MOTION
+
+Use the Abstrekkt system exactly — 4px base spacing unit, radius-base
+(6px) as the default for most elements, radius-sm (4px) for tags/chips,
+radius-lg (12px) for cards and panels, radius-full for pills. Shadows:
+shadow-base for cards, shadow-lg for the entity inspection panel when it
+floats over content. Motion: 150–300ms only, ease-out for entrances,
+ease-in for exits, no spring/bounce/elastic curves, nothing over 500ms.
+
+STYLE DIRECTION
+
+Use:
+- Flat cards — no blur, no gradient, no glow (this is an explicit,
+  standing Abstrekkt rule: never glow, never gradient)
+- Restrained brass accents against cream/white/ink
+- Serif display type for entity names and section headings
+- Generous whitespace, print-document rhythm rather than dashboard
+  density
+- One elevation level for the diagram surface, one for floating panels —
+  never mix depth levels on the same surface
+
+Do not use:
+- Any glow or gradient effect anywhere in this artifact
+- Pure black
+- Dashboard-card-grid-of-equal-weight-metrics as the default layout
+- FlashFusion or Chaos Club Co tokens, even as an accent — brand
+  isolation is a real, standing rule across Kyle's brand systems, and
+  this artifact deliberately sits above that isolation, not inside it
+
+======================================================================
+APPLICATION STRUCTURE
+======================================================================
+
+The outer application must fill:
+
+width: 100%
+min-height: 100dvh
+height: 100dvh
+
+Structure:
+
+1. Topbar
+2. Main workspace
+   - Diagram surface (view tabs + active Mermaid render + zoom/fit
+     controls)
+   - Entity Directory panel (always visible on desktop; collapsible
+     drawer on mobile, same drawer pattern as Growth OS)
+3. Selected-entity inspection panel (floats over the diagram surface,
+   same positioning convention as Growth OS's inspection card)
+4. Screen-reader-only ecosystem summary and entity/relationship list
+
+DESKTOP (>=1100px): Entity Directory is a fixed 340px right-hand panel,
+never overlapping the diagram surface. Main workspace uses display: flex.
+
+TABLET (760–1099px): Entity Directory width clamp(300px, 34vw, 340px).
+
+MOBILE (<760px): Entity Directory becomes a fixed overlay drawer, same
+backdrop / Escape-to-close / focus-return pattern as Growth OS. Diagram
+surface gets a horizontal-scroll container with momentum scrolling and a
+visible "fit to width" button, since flowcharts and ER diagrams routinely
+exceed mobile viewport width and must never be silently clipped.
+
+======================================================================
+TOPBAR
+======================================================================
+
+Left group: logo ("[ECOSYSTEM NAME]" in Fraunces 600, brass-700, no
+gradient text — gradient text is a FlashFusion-only device, not used
+here), a compact "Ecosystem Map — [OPERATOR NAME]" badge, and a
+[GENERATED-OR-DATE] context line.
+
+Right group: a status legend (good / moderate / poor / critical), each
+item pairing a colored dot with a text label — never color alone.
+
+======================================================================
+DIAGRAM SURFACE — VIEW TABS
+======================================================================
+
+Three required tabs, one optional:
+
+1. STRUCTURE  — flowchart view (required)
+2. RELATIONAL — entity-relationship view (required)
+3. CHRONOLOGY — timeline view (required)
+4. DOMAINS    — mindmap view (optional; include only if
+   config.behavior.includeMindmapView is true)
+
+Tabs are real <button> elements with aria-selected and role="tab" on a
+role="tablist" container. Switching tabs:
+
+- Shows a brief loading state (Mermaid render is fast but not
+  instantaneous; never show a blank frame while waiting)
+- Renders that view's Mermaid text via mermaid.render() + bindFunctions()
+  as specified above
+- Does not re-render a view that is already rendered and unchanged —
+  cache the last-rendered SVG per view and only re-render when the
+  underlying CONFIG changes
+- Preserves the current entity selection across tab switches where the
+  selected entity exists in the new view
+
+----------------------------------------------------------------------
+VIEW 1 — STRUCTURE (flowchart)
+----------------------------------------------------------------------
+
+Generated from every entity's ownerOf relationships (parent → child) plus
+dependsOn relationships (rendered as dotted edges, since a dependency is
+a softer relationship than ownership).
+
+Node shape by entity type — use classic bracket shape syntax, not the
+newer @{shape:} syntax, for broadest compatibility:
+
+holding-company    → id(["Name"])          rounded rectangle
+product / platform → id["Name"]            rectangle
+infrastructure     → id[("Name")]          cylinder
+creative-work      → id(("Name"))          stadium/circle
+external-commitment→ id{{"Name"}}          hexagon
+
+Edges:
+ownerOf   → A --> B
+dependsOn → A -.->|depends on| B
+
+Node IDs must be slugified (lowercase, hyphenated, no spaces — Mermaid
+IDs cannot contain whitespace or most punctuation). Keep a stable
+id-to-entity map so the same slug is reused across all three views and
+in click bindings.
+
+Status styling via classDef, one class per status, applied with
+`class nodeId statusClassName`:
+
+classDef good fill:#f0fdf4,stroke:#16a34a,color:#1c1917;
+classDef moderate fill:#fffbeb,stroke:#b45309,color:#1c1917;
+classDef poor fill:#fef2f2,stroke:#dc2626,color:#1c1917;
+classDef critical fill:#fef2f2,stroke:#b91c1c,stroke-width:2px,color:#1c1917;
+
+Click binding (Structure view only):
+click nodeId call inspectEntity_nodeId()
+
+Do not generate one globally-named callback per node with string
+concatenation in a way that risks collisions — use a single delegated
+handler registered on the window, keyed by a lookup table, e.g.
+window.__inspectEntity = (id) => showInspectionPanel(id); and bind each
+node to click nodeId call __inspectEntity('nodeId').
+
+----------------------------------------------------------------------
+VIEW 2 — RELATIONAL (erDiagram)
+----------------------------------------------------------------------
+
+Generated from every typed relationship in config.relationships, not
+just ownerOf. This view exists specifically to show relationship KIND
+and cardinality, which the Structure view collapses into a single arrow
+type.
+
+erDiagram
+    ENTITY_A ||--o{ ENTITY_B : "owns"
+    ENTITY_A }o--o{ ENTITY_C : "shares brand system with"
+    ENTITY_B ||--|| ENTITY_D : "deployed on"
+
+Cardinality mapping from config.relationships[].cardinality:
+one-to-one   → ||--||
+one-to-many  → ||--o{
+many-to-many → }o--o{
+
+Entity names in erDiagram must be UPPER_SNAKE_CASE identifiers (Mermaid's
+erDiagram parser is stricter about this than flowchart). Keep a second
+lookup mapping the same stable entity id to its erDiagram-safe identifier.
+
+Mermaid does not reliably support click-to-JS-callback bindings on
+erDiagram nodes. Do not attempt it. Entities in this view are inspected
+through the Entity Directory panel, not by clicking the diagram.
+
+----------------------------------------------------------------------
+VIEW 3 — CHRONOLOGY (timeline)
+----------------------------------------------------------------------
+
+Generated from every entity's `launched` field, sorted ascending.
+Entities with launched: "not yet launched" or no date are excluded from
+this view and noted once, below the diagram, as "N entities not yet
+dated" rather than silently dropped.
+
+timeline
+    title [ECOSYSTEM NAME] Timeline
+    [YYYY-MM] : [Entity name]
+    [YYYY-MM] : [Entity name] : [Second entity same period, if any]
+
+Same as erDiagram: no native click bindings on this view. Entity
+Directory panel is the inspection mechanism.
+
+----------------------------------------------------------------------
+VIEW 4 — DOMAINS (mindmap, optional)
+----------------------------------------------------------------------
+
+Only build this if config.behavior.includeMindmapView is true. Radiates
+from the operator or top-level holding-company entity, one branch per
+direct child, sub-branches for that child's own ownerOf children. Useful
+for showing a skill library, knowledge domains, or anything more
+naturally hierarchical-and-organic than strictly relational. Do not
+force this view into existence if the ecosystem data is fundamentally
+flat — an empty or trivial mindmap is worse than omitting the tab.
+
+======================================================================
+MERMAID THEMING
+======================================================================
+
+Do not rely on Mermaid's built-in 'default', 'forest', 'dark', or
+'neutral' themes — none of them match the Abstrekkt token set. Use
+theme: 'base' with explicit themeVariables so every rendered diagram
+pulls from the same tokens as the surrounding HTML:
+
+mermaid.initialize({
+  startOnLoad: false,
+  securityLevel: 'loose',
+  theme: 'base',
+  themeVariables: {
+    primaryColor: '#f5efe5',        // primary-100, node fill
+    primaryTextColor: '#1c1917',    // neutral-900, ink text
+    primaryBorderColor: '#c8a86a',  // primary-400, brass
+    lineColor: '#a8a29d',           // neutral-400
+    secondaryColor: '#fafaf9',      // neutral-50
+    tertiaryColor: '#ffffff',
+    background: '#ffffff',
+    fontFamily: "'Crimson Pro', serif",
+  },
+  flowchart: { htmlLabels: true, curve: 'basis' },
+});
+
+Diagram TITLES (timeline title, any section labels) should visually read
+in the display font where Mermaid allows a class hook for it; individual
+node/edge labels stay in the body font set via themeVariables.fontFamily
+above, since Mermaid does not support per-element font overrides through
+themeVariables alone.
+
+======================================================================
+ENTITY DIRECTORY / INSPECTION PANEL
+======================================================================
+
+ENTITY DIRECTORY (always present, plain HTML — the reliable interaction
+surface regardless of which Mermaid view is active):
+
+- A scrollable list of every entity, grouped by type
+- Each row: status dot + icon, entity name, one-line summary
+- Real <button> elements, full keyboard support, visible focus ring
+- Clicking a row opens/updates the inspection panel
+- If the Structure tab is currently active AND the clicked entity's
+  Mermaid-rendered node can be located in the DOM (best-effort — Mermaid
+  node DOM ids are not a hard contract across versions, do not depend on
+  this working), apply a temporary outline to that node. Treat this as a
+  nice-to-have enhancement, not a requirement the acceptance checks gate
+  on.
+
+INSPECTION PANEL:
+
+- Entity name, type, status badge
+- Summary and full detail text
+- Owns (list, each item a button that re-selects that entity)
+- Depends on (list, same pattern)
+- Launched date, or "Not yet launched" if absent
+- Tags
+- Brand-isolation note when config marks the entity brandIsolated: true
+  ("This entity maintains its own locked design tokens, separate from
+  every other entity here — including this map's own Abstrekkt tokens.")
+- Clear-selection control
+
+======================================================================
+CONFIGURATION VALIDATION
+======================================================================
+
+Create a normalizeConfig function. It must:
+
+- Trim strings, lowercase and validate status values, defaulting invalid
+  ones to "moderate" with a logged warning (not a thrown error)
+- Slugify and de-duplicate entity ids; keep a stable id map reused by all
+  three Mermaid generators and by click bindings
+- Drop relationships that reference a non-existent entity id, with a
+  warning — do not let a bad relationship crash Mermaid's parser
+- Validate cardinality values against the three known mappings, default
+  unrecognized ones to one-to-many
+- Never mutate the original CONFIG object
+- Return configurationWarnings; render a small non-blocking badge when
+  any exist, same convention as Growth OS
+- Throw only when there are zero entities — nothing can be rendered at
+  all in that case, and that is the one unrecoverable condition
+
+======================================================================
+ACCESSIBILITY
+======================================================================
+
+Mermaid's own SVG output has inconsistent screen-reader support across
+diagram types — do not rely on it as the accessibility layer. Required,
+independent of Mermaid's output:
+
+- A screen-reader-only paragraph summarizing entity and relationship
+  counts by status, same pattern as Growth OS's wheel summary
+- A screen-reader-only <ul> listing every entity, its type, status, and
+  one-line summary — this is the actual accessible content; the Mermaid
+  SVG is presentational on top of it
+- role="tablist" / role="tab" / aria-selected on the view switcher
+- Entity Directory rows are real buttons with descriptive aria-labels
+- Inspection panel is a labeled region, announced via aria-live on
+  selection
+- Escape closes the inspection panel and the mobile drawer, focus
+  returns to the triggering control
+- Visible focus rings everywhere, prefers-reduced-motion respected (no
+  !important overrides needed here if base specificity is kept low —
+  Abstrekkt's own reduced-motion block already zeroes animation/
+  transition durations globally; do not fight it with a second, louder
+  override)
+- Status never conveyed by color alone — dot + icon + text label, same
+  discipline as Growth OS
+
+======================================================================
+PERFORMANCE
+======================================================================
+
+- Lazy-render: only the active tab's Mermaid text is generated and
+  rendered; do not pre-render all four views on load
+- Cache rendered SVG per view; only invalidate the cache when CONFIG
+  actually changes
+- Debounce window resize before recalculating any zoom/fit-to-width math
+- Clean up: resize listeners, keydown listeners, any pending render
+  promises on unmount
+- Reasonable target: comfortable rendering up to roughly 40 entities and
+  80 relationships without visible jank. Beyond that, this prompt's
+  single-map approach starts to strain — that is a signal to split into
+  multiple maps, not a signal to keep adding entities to one diagram.
+
+======================================================================
+VISUAL AND INTERACTION POLISH
+======================================================================
+
+Add: subtle entrance fade on first render of each view, hover elevation
+on Entity Directory rows, smooth panel transitions, a one-shot (not
+looping) highlight when an entity is selected, clear loading/disabled/
+error states, safe-area spacing on mobile, high-quality focus rings,
+responsive long-label handling (Mermaid will wrap or truncate on its
+own within htmlLabels — do not fight it with manual truncation logic
+duplicating what flowchart.htmlLabels already does).
+
+Do not add: glow, gradient, confetti, particle effects, fake live
+metrics, decorative background texture, or a card-grid summary dashboard
+bolted onto the top of the diagram surface — the diagram and the
+directory are the interface; resist the urge to add a third, redundant
+way to see the same data.
+
+======================================================================
+ACCEPTANCE CHECKS
+======================================================================
+
+Before returning the artifact, silently verify:
+
+1. The artifact renders without a syntax error.
+2. Mermaid loads from cdnjs; a visible error state appears if it does not
+   (never a silent blank frame).
+3. document.fonts.ready is awaited before the first render call.
+4. All three required views render valid Mermaid syntax generated from
+   the same CONFIG — no view uses hand-duplicated data.
+5. Entity ids are slugified, unique, and consistently reused across all
+   three view generators.
+6. bindFunctions() is called after every mermaid.render() insertion.
+7. securityLevel is 'loose', with the justification comment present at
+   the point of use.
+8. Click bindings are only claimed/attempted on the Structure view.
+9. The Entity Directory works identically regardless of which tab is
+   active.
+10. Switching tabs does not re-render an unchanged, already-cached view.
+11. The inspection panel opens from both the Structure-view click path
+    and the Entity Directory path, showing identical content either way.
+12. Mobile drawer behaves as an overlay with backdrop, Escape closes it,
+    focus returns to the reopen control.
+13. Diagrams that exceed viewport width scroll horizontally rather than
+    clipping; a fit-to-width control is present.
+14. No entity is silently dropped — incomplete or invalid data produces
+    a visible configuration-warning badge, not a missing node.
+15. No relationship references a non-existent entity in the final
+    rendered output.
+16. Status is never communicated by color alone anywhere in the UI.
+17. No glow or gradient effect appears anywhere (standing Abstrekkt
+    rule).
+18. No FlashFusion or Chaos Club Co token values appear anywhere in this
+    file.
+19. Reduced-motion preferences are respected without a duplicate,
+    conflicting override.
+20. The artifact has no obvious console errors.
+
+======================================================================
+PROJECT CONFIGURATION
+======================================================================
+
+Place all editable ecosystem data in:
+
+const CONFIG = {
+  ecosystem: {},
+  operator: {},
+  entities: [],
+  relationships: [],
+  branding: {},
+  behavior: {}
+};
+
+----------------------------------------------------------------------
+1. ECOSYSTEM AND OPERATOR IDENTITY
+----------------------------------------------------------------------
+
+Ecosystem name:
+[ECOSYSTEM NAME]
+
+Operator name:
+[YOUR NAME]
+
+Operator role:
+[ROLE — describe how you actually work, not a job title inflated beyond
+what you'd claim yourself]
+
+Context line (topbar):
+[CONTEXT TAG] · [DATE OR PERIOD]
+
+----------------------------------------------------------------------
+2. ENTITIES
+----------------------------------------------------------------------
+
+Entity schema:
+
+{
+  id: "[entity-id]",                 // slug, auto-generated if omitted
+  name: "[ENTITY NAME]",
+  type: "[holding-company|product|platform|infrastructure|creative-work|external-commitment|automation]",
+  status: "[good|moderate|poor|critical]",
+  launched: "[YYYY-MM, or 'not yet launched']",
+  brandIsolated: [true|false],       // does this entity keep its own
+                                      // locked, non-shared design tokens?
+  summary: "[ONE-SENTENCE DESCRIPTION]",
+  detail: "[LONGER DESCRIPTION FOR THE INSPECTION PANEL]",
+  tags: ["[TAG]", "..."]
+}
+
+Example entity (illustrating the shape — replace with real entities):
+
+{
+  id: "example-holding-co",
+  name: "Example: Parent Holding Company",
+  type: "holding-company",
+  status: "good",
+  launched: "2026-06",
+  brandIsolated: false,
+  summary: "Example: the parent entity everything else sits under.",
+  detail: "Example: filed [DATE], holds [WHAT], parents [WHICH PRODUCTS].",
+  tags: ["Parent"]
+}
+
+Add as many entities as the real ecosystem has. Do not force a fixed
+count — unlike Growth OS's fixed five rings, an ecosystem map's entity
+count is inherently variable. Performance guidance above still applies:
+past roughly 40 entities, consider splitting into multiple maps rather
+than growing this one indefinitely.
+
+----------------------------------------------------------------------
+3. RELATIONSHIPS
+----------------------------------------------------------------------
+
+Relationship schema:
+
+{
+  from: "[entity-id]",
+  to: "[entity-id]",
+  kind: "[owns|deployed-on|depends-on|integrates-with|competes-for-time-with|shares-brand-with]",
+  cardinality: "[one-to-one|one-to-many|many-to-many]"
+}
+
+"kind" drives the erDiagram edge label and, for owns/depends-on
+specifically, which edge style the Structure/flowchart view uses (solid
+for owns, dotted for depends-on). Other kinds render as solid edges in
+the Structure view and as labeled edges in the Relational view; they do
+not need their own dedicated flowchart edge style.
+
+Example relationship:
+
+{
+  from: "example-holding-co",
+  to: "[example-child-entity-id]",
+  kind: "owns",
+  cardinality: "one-to-many"
+}
+
+----------------------------------------------------------------------
+4. BRANDING
+----------------------------------------------------------------------
+
+Logo text:
+[ECOSYSTEM NAME]
+
+Badge text:
+Ecosystem Map — [OPERATOR NAME]
+
+----------------------------------------------------------------------
+5. BEHAVIOR SETTINGS
+----------------------------------------------------------------------
+
+Use:
+
+{
+  includeMindmapView: [true|false],
+  showEntityDirectoryOnMobileByDefault: false,
+  maxEntitiesBeforeWarning: 40
+}
+
+======================================================================
+CONFIGURATION VALIDATION — RESTATED FOR THIS SECTION
+======================================================================
+
+Where ecosystem information is incomplete, use clearly labeled example
+data inside CONFIG while preserving the exact configuration location so
+the operator can replace it later, exactly as Growth OS does.
+
+======================================================================
+FINAL BUILD INSTRUCTION
+======================================================================
+
+Now build the complete [ECOSYSTEM NAME] Ecosystem Map HTML artifact
+using all supplied ecosystem data and the requirements above.
+
+Return the functional artifact itself.
+
+Do not return:
+
+- A wireframe
+- A prose-only design description
+- A partial code sample
+- Multiple files
+- A React artifact (Mermaid is not on the approved React-artifact
+  library list — this must be HTML)
+- A build that pre-renders all views eagerly instead of lazy-rendering
+  the active tab
+- A build that claims click-to-inspect works uniformly across all
+  Mermaid diagram types
+- An AI chat panel (out of scope for this prompt — see NON-NEGOTIABLE
+  RUNTIME RULES)
+
+Where ecosystem information is incomplete, use clearly labeled example
+data inside CONFIG while preserving the exact configuration location so
+the operator can replace it later.

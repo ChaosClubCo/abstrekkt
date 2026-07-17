@@ -1,0 +1,65 @@
+# .github/workflows/ci.yml
+# Reconstructed + hardened from the source chat's CI sketch:
+#   on:[push,pull_request] -> pnpm install -> pnpm turbo run test lint build -> pnpm audit
+# Hardening added here (inferred, not in source): pinned actions, --frozen-lockfile,
+# --ignore-scripts on first install for untrusted imports, least-privilege perms.
+name: CI
+
+on:
+  push:
+    branches: [main, staging]
+  pull_request:
+
+# Least privilege by default; jobs opt into more if needed.
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-test:
+    name: Lint / Test / Build / Audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "pnpm"
+
+      # First install with --ignore-scripts: imported third-party repos must not
+      # run arbitrary postinstall code in CI. Lifecycle scripts run only after
+      # the dependency review job (below) is green.
+      - name: Install (no lifecycle scripts)
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
+      - name: Turbo lint / test / build
+        run: pnpm turbo run lint test build
+        env:
+          TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}      # remote cache (optional)
+          TURBO_TEAM: ${{ vars.TURBO_TEAM }}
+
+      - name: Dependency audit (fail on high+)
+        run: pnpm audit --audit-level=high
+
+  codeql:
+    name: CodeQL static analysis
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    strategy:
+      matrix:
+        language: [javascript-typescript, python]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+      - uses: github/codeql-action/analyze@v3

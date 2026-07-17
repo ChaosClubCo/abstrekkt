@@ -1,0 +1,207 @@
+{
+  "name": "Win/Loss Analysis & Competitive Intelligence",
+  "description": "Automated analysis of closed deals, competitor mentions, and sales playbook optimization",
+  "trigger": {
+    "type": "webhook",
+    "config": {
+      "url": "https://hooks.zapier.com/hooks/catch/{{ZAPIER_WEBHOOK_ID}}/win-loss/",
+      "method": "POST",
+      "expected_payload": {
+        "deal_id": "string",
+        "outcome": "won | lost",
+        "value": "number",
+        "close_date": "ISO date"
+      }
+    }
+  },
+  "steps": [
+    {
+      "step": 1,
+      "action": "Fetch Deal Details",
+      "app": "Supabase",
+      "config": {
+        "operation": "select",
+        "table": "deals",
+        "filters": {
+          "id": "{{trigger.deal_id}}"
+        },
+        "select": "*, company(name, industry, size), sales_rep(name, email), interactions(*)"
+      }
+    },
+    {
+      "step": 2,
+      "action": "Gather Context from Notion",
+      "app": "Notion",
+      "config": {
+        "operation": "search",
+        "query": "{{step_1.company.name}}",
+        "filter": {
+          "property": "type",
+          "select": {
+            "equals": "Sales Call Notes"
+          }
+        }
+      }
+    },
+    {
+      "step": 3,
+      "action": "Extract Competitor Mentions",
+      "app": "Code by Zapier",
+      "code": "const interactions = inputData.interactions || [];\nconst notionPages = inputData.notionPages || [];\n\nconst competitorKeywords = ['hubspot', 'salesforce', 'pipedrive', 'zoho', 'monday', 'asana', 'clickup', 'jira', 'linear'];\nconst competitorMentions = {};\n\nconst allText = [\n  ...interactions.map(i => i.notes || ''),\n  ...notionPages.map(p => p.content || '')\n].join(' ').toLowerCase();\n\ncompetitorKeywords.forEach(comp => {\n  if (allText.includes(comp)) {\n    competitorMentions[comp] = (allText.match(new RegExp(comp, 'gi')) || []).length;\n  }\n});\n\nreturn {\n  competitors_mentioned: Object.keys(competitorMentions),\n  competitor_counts: competitorMentions,\n  total_interactions: interactions.length,\n  notion_pages_found: notionPages.length\n};"
+    },
+    {
+      "step": 4,
+      "action": "Generate Win/Loss Analysis",
+      "app": "Anthropic Claude",
+      "config": {
+        "model": "claude-sonnet-4-5-20250929",
+        "max_tokens": 2000,
+        "temperature": 0.3,
+        "system_prompt": "You are a B2B sales analyst specializing in win/loss analysis. Provide actionable insights based on deal data.",
+        "messages": [
+          {
+            "role": "user",
+            "content": "Analyze this {{trigger.outcome}} deal:\n\n**Deal Information:**\n- Company: {{step_1.company.name}} ({{step_1.company.industry}}, {{step_1.company.size}} employees)\n- Value: ${{trigger.value}}\n- Sales Cycle: {{step_1.days_in_pipeline}} days\n- Interactions: {{step_3.total_interactions}}\n- Sales Rep: {{step_1.sales_rep.name}}\n\n**Competitors Mentioned:**\n{{step_3.competitors_mentioned}}\n\n**Key Interactions:**\n{{step_1.interactions}}\n\n**Notion Call Notes:**\n{{step_2.pages}}\n\nProvide:\n1. **Primary Reason for {{trigger.outcome}}** (1-2 sentences)\n2. **Key Factors** (3-5 bullet points)\n3. **Competitor Analysis** (if applicable)\n4. **Lessons Learned** (what worked / what didn't)\n5. **Actionable Recommendations** for sales team\n6. **Playbook Updates** (specific changes to sales process)"
+          }
+        ]
+      }
+    },
+    {
+      "step": 5,
+      "action": "Store Analysis",
+      "app": "Supabase",
+      "config": {
+        "operation": "insert",
+        "table": "win_loss_analyses",
+        "record": {
+          "deal_id": "{{trigger.deal_id}}",
+          "outcome": "{{trigger.outcome}}",
+          "deal_value": "{{trigger.value}}",
+          "company_name": "{{step_1.company.name}}",
+          "industry": "{{step_1.company.industry}}",
+          "company_size": "{{step_1.company.size}}",
+          "sales_cycle_days": "{{step_1.days_in_pipeline}}",
+          "interactions_count": "{{step_3.total_interactions}}",
+          "competitors_mentioned": "{{step_3.competitors_mentioned}}",
+          "ai_analysis": "{{step_4.response}}",
+          "analyzed_at": "{{zap.meta.timestamp}}",
+          "sales_rep_id": "{{step_1.sales_rep.id}}"
+        }
+      }
+    },
+    {
+      "step": 6,
+      "action": "Update Deal Record",
+      "app": "Supabase",
+      "config": {
+        "operation": "update",
+        "table": "deals",
+        "filters": {
+          "id": "{{trigger.deal_id}}"
+        },
+        "record": {
+          "win_loss_analysis_id": "{{step_5.id}}",
+          "analyzed": true,
+          "analysis_summary": "{{step_4.response}}"
+        }
+      }
+    },
+    {
+      "step": 7,
+      "action": "Post to Slack #sales-insights",
+      "app": "Slack",
+      "config": {
+        "channel": "#sales-insights",
+        "blocks": [
+          {
+            "type": "header",
+            "text": {
+              "type": "plain_text",
+              "text": "{{trigger.outcome == 'won' ? '🎉 Won' : '😞 Lost'}}: {{step_1.company.name}} (${{trigger.value}})"
+            }
+          },
+          {
+            "type": "section",
+            "fields": [
+              {"type": "mrkdwn", "text": "*Industry:*\n{{step_1.company.industry}}"},
+              {"type": "mrkdwn", "text": "*Size:*\n{{step_1.company.size}} employees"},
+              {"type": "mrkdwn", "text": "*Sales Cycle:*\n{{step_1.days_in_pipeline}} days"},
+              {"type": "mrkdwn", "text": "*Rep:*\n{{step_1.sales_rep.name}}"}
+            ]
+          },
+          {
+            "type": "section",
+            "text": {
+              "type": "mrkdwn",
+              "text": "*AI Analysis:*\n{{step_4.response}}"
+            }
+          },
+          {
+            "type": "context",
+            "elements": [
+              {
+                "type": "mrkdwn",
+                "text": "Competitors mentioned: {{step_3.competitors_mentioned || 'None'}}"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "step": 8,
+      "action": "Email Sales Team (Weekly Digest)",
+      "app": "Gmail",
+      "config": {
+        "action": "send_email",
+        "to": "sales@intinc.com",
+        "subject": "{{trigger.outcome == 'won' ? '🎉 Win' : '📊 Loss'}} Analysis: {{step_1.company.name}}",
+        "body_html": "<h2>{{trigger.outcome == 'won' ? 'Win' : 'Loss'}} Analysis</h2>\n<p><strong>Company:</strong> {{step_1.company.name}}</p>\n<p><strong>Value:</strong> ${{trigger.value}}</p>\n<p><strong>Industry:</strong> {{step_1.company.industry}}</p>\n<p><strong>Sales Cycle:</strong> {{step_1.days_in_pipeline}} days</p>\n\n<h3>AI Analysis</h3>\n<pre>{{step_4.response}}</pre>\n\n<h3>Competitor Intelligence</h3>\n<p>Mentioned: {{step_3.competitors_mentioned}}</p>\n\n<p><a href='https://intinc.com/deals/{{trigger.deal_id}}'>View Full Deal</a></p>"
+      }
+    },
+    {
+      "step": 9,
+      "action": "Update Sales Playbook (Monthly Aggregation)",
+      "app": "Notion",
+      "config": {
+        "operation": "append_blocks",
+        "page_id": "{{SALES_PLAYBOOK_PAGE_ID}}",
+        "blocks": [
+          {
+            "type": "heading_3",
+            "heading_3": {
+              "rich_text": [{"type": "text", "text": {"content": "{{trigger.outcome}} - {{step_1.company.name}} ({{format_date(zap.meta.timestamp)}})"}}]
+            }
+          },
+          {
+            "type": "paragraph",
+            "paragraph": {
+              "rich_text": [{"type": "text", "text": {"content": "{{step_4.response}}"}}]
+            }
+          }
+        ]
+      },
+      "filter": {
+        "continue_if": "{{day_of_month}} == '1'"
+      }
+    }
+  ],
+  "cost_estimate": {
+    "per_deal_analysis": {
+      "supabase": 0.003,
+      "notion_search": 0.01,
+      "claude_analysis": 0.012,
+      "slack": 0.01,
+      "zapier_tasks": 0.27,
+      "total": 0.305
+    },
+    "monthly_estimate_20_deals": 183.0,
+    "monthly_estimate_50_deals": 457.5
+  },
+  "testing": {
+    "scenarios": [
+      {"outcome": "won", "value": 50000, "expected": "Celebration message, competitor analysis, playbook update"},
+      {"outcome": "lost", "value": 25000, "competitors": ["hubspot", "salesforce"], "expected": "Loss analysis, competitor intel"}
+    ]
+  }
+}

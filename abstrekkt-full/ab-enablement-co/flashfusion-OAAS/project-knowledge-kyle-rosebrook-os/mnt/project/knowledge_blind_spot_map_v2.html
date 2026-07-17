@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Knowledge Blind Spot Map v2</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f0f0f; color: #e8e8e2; min-height: 100vh; padding: 2rem; }
+.wrap { max-width: 860px; margin: 0 auto; }
+h1 { font-size: 18px; font-weight: 500; color: #f0f0e8; margin-bottom: 4px; }
+.sub { font-size: 12px; color: #666; margin-bottom: 1.5rem; }
+.alert { background: rgba(226,75,74,0.12); border: 0.5px solid rgba(226,75,74,0.4); border-radius: 8px; padding: 10px 14px; margin-bottom: 1.25rem; font-size: 13px; color: #f09595; }
+.alert strong { color: #E24B4A; }
+.stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 1.5rem; }
+.stat { background: #1a1a18; border: 0.5px solid #2a2a28; border-radius: 8px; padding: 12px 14px; }
+.stat-n { font-size: 24px; font-weight: 500; line-height: 1; }
+.stat-n.red { color: #E24B4A; }
+.stat-n.amber { color: #EF9F27; }
+.stat-l { font-size: 11px; color: #888; margin-top: 5px; }
+.tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 1.25rem; }
+.tab { font-size: 12px; padding: 6px 14px; border: 0.5px solid #333; border-radius: 8px; background: transparent; color: #888; cursor: pointer; }
+.tab.active { background: #1f1f1d; color: #e8e8e2; border-color: #555; font-weight: 500; }
+.tab:hover:not(.active) { background: #1a1a18; color: #bbb; }
+.lane { display: none; }
+.lane.active { display: block; }
+.lane-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; }
+.lane-title { font-size: 14px; font-weight: 500; color: #e8e8e2; }
+.lane-src { font-size: 11px; color: #555; font-style: italic; }
+.cov-row { display: flex; align-items: center; gap: 10px; margin-bottom: 1.25rem; }
+.cov-label { font-size: 12px; color: #666; white-space: nowrap; }
+.cov-track { flex: 1; height: 4px; background: #2a2a28; border-radius: 2px; overflow: hidden; }
+.cov-fill { height: 100%; border-radius: 2px; }
+.cov-pct { font-size: 12px; font-weight: 500; min-width: 60px; text-align: right; }
+.sec-label { font-size: 11px; font-weight: 500; color: #555; letter-spacing: 0.06em; text-transform: uppercase; margin: 1.25rem 0 0.5rem; }
+.items { display: flex; flex-direction: column; gap: 7px; }
+.item { display: flex; gap: 10px; padding: 10px 12px; border: 0.5px solid #222; border-radius: 8px; background: #141412; }
+.item.crit { border-left: 3px solid #E24B4A; }
+.item.high { border-left: 3px solid #EF9F27; }
+.item.med { border-left: 3px solid #639922; }
+.item.info { border-left: 3px solid #378ADD; }
+.ib { flex: 1; min-width: 0; }
+.it { font-size: 13px; font-weight: 500; color: #e8e8e2; margin: 0 0 3px; }
+.id { font-size: 12px; color: #888; margin: 0; line-height: 1.5; }
+.badge { font-size: 11px; padding: 2px 8px; border-radius: 6px; white-space: nowrap; flex-shrink: 0; align-self: flex-start; margin-top: 2px; }
+.br { background: rgba(226,75,74,0.15); color: #f09595; }
+.ba { background: rgba(239,159,39,0.15); color: #FAC775; }
+.bb { background: rgba(55,138,221,0.15); color: #85B7EB; }
+.bg { background: rgba(99,153,34,0.15); color: #C0DD97; }
+.bgr { background: #1f1f1d; color: #666; }
+.act-btn { margin-top: 1.25rem; font-size: 12px; padding: 7px 14px; border: 0.5px solid #333; border-radius: 8px; background: transparent; color: #888; cursor: pointer; display: inline-block; }
+.act-btn:hover { background: #1a1a18; color: #bbb; border-color: #555; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Knowledge Blind Spot Map</h1>
+  <p class="sub">Sourced from live Notion: WSJF v2.2, OI Tracker, flashfusion-sprint wiki, Backlog Snapshot Apr 10 · Generated Apr 15, 2026</p>
+
+  <div class="alert"><strong>Demo Day is April 18 — 3 days out.</strong> 3 P0 blockers still open. This was absent from the memory-only version.</div>
+
+  <div class="stats">
+    <div class="stat"><div class="stat-n red">22</div><div class="stat-l">open WSJF items</div></div>
+    <div class="stat"><div class="stat-n red">21d</div><div class="stat-l">backlog staleness</div></div>
+    <div class="stat"><div class="stat-n amber">3</div><div class="stat-l">P0 Demo Day blocks</div></div>
+    <div class="stat"><div class="stat-n amber">2</div><div class="stat-l">dark projects (no Notion page)</div></div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="sw('demo',this)">Demo Day P0s</button>
+    <button class="tab" onclick="sw('wsjf',this)">WSJF gaps</button>
+    <button class="tab" onclick="sw('dark',this)">Dark projects</button>
+    <button class="tab" onclick="sw('well',this)">What's solid</button>
+  </div>
+
+  <!-- DEMO DAY -->
+  <div id="demo" class="lane active">
+    <div class="lane-top">
+      <span class="lane-title">Demo Day — April 18, 3 days</span>
+      <span class="lane-src">flashfusion-sprint wiki + OI Tracker</span>
+    </div>
+    <div class="cov-row">
+      <span class="cov-label">P0 blockers resolved</span>
+      <div class="cov-track"><div class="cov-fill" style="width:33%;background:#E24B4A;"></div></div>
+      <span class="cov-pct" style="color:#E24B4A;">3 of 9 done</span>
+    </div>
+    <div class="items">
+      <div class="item crit">
+        <div class="ib">
+          <p class="it">OI-004 — Embedding model / dimensions unconfirmed</p>
+          <p class="id">Actual embedContent calls in Edge Functions not located. Unknown model and dimensions = potential silent data corruption at inference time on demo day.</p>
+        </div>
+        <span class="badge br">P0 open</span>
+      </div>
+      <div class="item crit">
+        <div class="ib">
+          <p class="it">OI-009 — LangSmith CF Worker tracing not set up</p>
+          <p class="id">Secret not set, SDK not initialized in flashnframe worker. Zero observability on the live demo path during Demo Day.</p>
+        </div>
+        <span class="badge br">P0 open</span>
+      </div>
+      <div class="item high">
+        <div class="ib">
+          <p class="it">OI-008 — OAuth token vault migration</p>
+          <p class="id">Script is ready. Dry-run has not been executed. Tokens remain unencrypted in prod. Run <code>--dry-run</code> then <code>--execute</code> with prod creds.</p>
+        </div>
+        <span class="badge ba">script ready, unrun</span>
+      </div>
+      <div class="item high">
+        <div class="ib">
+          <p class="it">RLS on v1.9.9 tables — unverified security invariant</p>
+          <p class="id">Sprint wiki shows "🟡 Verify" status. Not confirmed before a live demo with external viewers. Tool I/O hashing also unverified.</p>
+        </div>
+        <span class="badge ba">unverified</span>
+      </div>
+      <div class="item high">
+        <div class="ib">
+          <p class="it">OI-002/003/005 — 3 more items "needs check"</p>
+          <p class="id">socket.io-parser in MCP adapter, Base44 77-entity vs 33-table gap, AutoGen feature flag mechanism undefined. All 3 still need a decision or grep.</p>
+        </div>
+        <span class="badge ba">needs check</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- WSJF GAPS -->
+  <div id="wsjf" class="lane">
+    <div class="lane-top">
+      <span class="lane-title">WSJF backlog gaps</span>
+      <span class="lane-src">WSJF v2.2 (Mar 25) + Snapshot Apr 10</span>
+    </div>
+    <div class="cov-row">
+      <span class="cov-label">Backlog freshness</span>
+      <div class="cov-track"><div class="cov-fill" style="width:25%;background:#EF9F27;"></div></div>
+      <span class="cov-pct" style="color:#EF9F27;">21 days stale</span>
+    </div>
+    <p class="sec-label">Written but not executed</p>
+    <div class="items">
+      <div class="item crit">
+        <div class="ib">
+          <p class="it">Jackie Miles fortnightly update — WSJF 27.0, OVERDUE</p>
+          <p class="id">Highest-scored item in the backlog. Includes ~$354K Q1 ROI figure. Still open as of April 10 snapshot — 3+ weeks past due.</p>
+        </div>
+        <span class="badge br">WSJF 27.0</span>
+      </div>
+      <div class="item high">
+        <div class="ib">
+          <p class="it">Webhook HMAC PT-20260314-004 — WSJF 25.0, P1 security</p>
+          <p class="id">4-step curl test guide written March 21. Execution not run. Unverified HIGH risk open for 25+ days.</p>
+        </div>
+        <span class="badge ba">WSJF 25.0</span>
+      </div>
+      <div class="item high">
+        <div class="ib">
+          <p class="it">AI Enablement pulse survey form — spec done, form NOT deployed</p>
+          <p class="id">April 6 calendar reminder already fired without action. Module 1 workshop is blocked on this form deploying first.</p>
+        </div>
+        <span class="badge ba">reminder fired</span>
+      </div>
+      <div class="item high">
+        <div class="ib">
+          <p class="it">LinkedIn Staff+ update — draft done, not posted</p>
+          <p class="id">CAR-framed draft written March 21. Estimated 15 minutes to post. WSJF 9.5. Still open.</p>
+        </div>
+        <span class="badge ba">15-min task</span>
+      </div>
+      <div class="item high">
+        <div class="ib">
+          <p class="it">The Chaos Book .docx — path unknown, blocking pipeline</p>
+          <p class="id">Expected: D:\02_Homebase\01_Knowledge\Projects\Archive\ChaosBook\Book — not confirmed. WSJF 19.0. Blocks voice-to-book pipeline.</p>
+        </div>
+        <span class="badge ba">WSJF 19.0</span>
+      </div>
+      <div class="item med">
+        <div class="ib">
+          <p class="it">Sunday WSJF ritual — cadence broken for 21 days</p>
+          <p class="id">Documented 5-minute Sunday ritual exists. No evidence it's run since March 25. 22 items may have shifted priority. Demo Day alone reshuffles the whole top 5.</p>
+        </div>
+        <span class="badge bb">cadence broken</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- DARK PROJECTS -->
+  <div id="dark" class="lane">
+    <div class="lane-top">
+      <span class="lane-title">Projects with zero Notion presence</span>
+      <span class="lane-src">Full workspace search — not found</span>
+    </div>
+    <div class="cov-row">
+      <span class="cov-label">Cross-project coverage</span>
+      <div class="cov-track"><div class="cov-fill" style="width:45%;background:#EF9F27;"></div></div>
+      <span class="cov-pct" style="color:#EF9F27;">~45%</span>
+    </div>
+    <div class="items">
+      <div class="item crit">
+        <div class="ib">
+          <p class="it">chaosclub.co — full arch spec, zero Notion presence</p>
+          <p class="id">React 19 + Firebase + Gemini + Cloudflare R2 stack. Architecture lives in Claude memory only. No project page, no task tracker, no sprint doc. Firebase project not initialized. 100+ lyrics with no ingestion pipeline.</p>
+        </div>
+        <span class="badge br">memory only</span>
+      </div>
+      <div class="item crit">
+        <div class="ib">
+          <p class="it">FlashFusion Wix store — separate from v1.9.9, no Notion page</p>
+          <p class="id">Site ID 4cad8458. 20 products, 9 coupons, 3 known API blockers. Zero documentation outside of memory. Treated as an orphan lane.</p>
+        </div>
+        <span class="badge br">memory only</span>
+      </div>
+      <div class="item high">
+        <div class="ib">
+          <p class="it">Primitive Registry (D-010) — WSJF entry only, no spec written yet</p>
+          <p class="id">WSJF 4.2. Note says "spec is the gate before any build" — meaning the spec itself hasn't been written. It's a pre-spec item, not a pre-build one.</p>
+        </div>
+        <span class="badge ba">pre-spec</span>
+      </div>
+      <div class="item high">
+        <div class="ib">
+          <p class="it">Memoir / Chaos Book — no chapter map, outline, or target in Notion</p>
+          <p class="id">WSJF item #11 tracks finding the .docx. But no creative scaffold (chapter structure, word count target, deadline) exists anywhere in the workspace.</p>
+        </div>
+        <span class="badge ba">no scaffold</span>
+      </div>
+      <div class="item med">
+        <div class="ib">
+          <p class="it">INT Customization Service — ICP done, GTM/pricing model not found</p>
+          <p class="id">ICP v1.0 is closed in the WSJF archive. 45-product catalog exists. But no sales motion, pricing tier doc, or client acquisition strategy found in workspace search.</p>
+        </div>
+        <span class="badge bb">ICP done, GTM missing</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- WELL DOCUMENTED -->
+  <div id="well" class="lane">
+    <div class="lane-top">
+      <span class="lane-title">What's actually well-documented</span>
+      <span class="lane-src">Confirmed in workspace search</span>
+    </div>
+    <div class="cov-row">
+      <span class="cov-label">Documentation quality (confirmed)</span>
+      <div class="cov-track"><div class="cov-fill" style="width:78%;background:#639922;"></div></div>
+      <span class="cov-pct" style="color:#639922;">solid</span>
+    </div>
+    <div class="items">
+      <div class="item med">
+        <div class="ib">
+          <p class="it">Security framework — 6 docs shipped, 2 in execution phase only</p>
+          <p class="id">IR Runbook, Threat Model, VDP, Data Classification, On-Call Procedure, AI Data Handling Guide all closed. Only HMAC verify and gitleaks install remain as execution tasks.</p>
+        </div>
+        <span class="badge bg">strong</span>
+      </div>
+      <div class="item med">
+        <div class="ib">
+          <p class="it">Staff+ career path — Growth Path, 360 system, salary benchmark, LinkedIn draft all written</p>
+          <p class="id">The only gap is execution: post the LinkedIn update (15 min) and send the Jackie update (overdue, WSJF 27.0). Docs are done.</p>
+        </div>
+        <span class="badge bg">strong</span>
+      </div>
+      <div class="item med">
+        <div class="ib">
+          <p class="it">The Prompt newsletter — Production Hub, Feedback System, 27-entry topic log</p>
+          <p class="id">Well-structured. Next issue April 16 (tomorrow). Only gaps: tier channel IDs and reaction block footer (both Size 1, ~15 min each).</p>
+        </div>
+        <span class="badge bg">strong</span>
+      </div>
+      <div class="item med">
+        <div class="ib">
+          <p class="it">FlashFusion v1.9.9 — OI Tracker, sprint wiki, phase docs, session log running</p>
+          <p class="id">Best-maintained project by a wide margin. Security invariants tracked, session log current as of April 11. Needs OI-004/009 closed before Demo Day.</p>
+        </div>
+        <span class="badge bg">strong</span>
+      </div>
+      <div class="item med">
+        <div class="ib">
+          <p class="it">WSJF system — formula, scoring, weekly ritual, archive pattern all documented</p>
+          <p class="id">The methodology is solid and reusable. The problem isn't the system — it's that the Sunday ritual hasn't been run in 3 weeks.</p>
+        </div>
+        <span class="badge bg">solid system</span>
+      </div>
+      <div class="item info">
+        <div class="ib">
+          <p class="it">Flash-n-Frame post-mortem — Pre-Sprint 1 gate extracted</p>
+          <p class="id">One of the few completed post-mortems that produced a reusable artifact. This pattern (post-mortem → reusable gate) is valuable and underused elsewhere.</p>
+        </div>
+        <span class="badge bb">reference quality</span>
+      </div>
+    </div>
+  </div>
+
+  <div style="margin-top: 2rem; padding-top: 1rem; border-top: 0.5px solid #222; font-size: 11px; color: #444; line-height: 1.6;">
+    <strong style="color:#555;">[SOURCED]</strong> All items above drawn from live Notion pages fetched April 15, 2026. WSJF scores from v2.2 (Mar 25). OI statuses from sprint wiki (Apr 11) + snapshot (Apr 10).
+    <br><strong style="color:#555;">[COUNTEREXAMPLE]</strong> Coverage % estimates are directional — no automated file count was run. "Dark projects" finding relies on search completeness.
+    <br><strong style="color:#555;">[CONTRADICTION]</strong> First version relied entirely on memory and missed Demo Day entirely. Memory and Notion diverge most on time-critical execution state.
+  </div>
+</div>
+
+<script>
+function sw(id, el) {
+  document.querySelectorAll('.lane').forEach(l => l.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  el.classList.add('active');
+}
+</script>
+</body>
+</html>

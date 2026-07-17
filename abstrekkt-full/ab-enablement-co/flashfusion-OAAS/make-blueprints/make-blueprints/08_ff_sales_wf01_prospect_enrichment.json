@@ -1,0 +1,75 @@
+{
+  "name": "FF Sales WF-01 — Prospect Enrichment",
+  "flow": [
+    {
+      "id": 1,
+      "module": "gateway:CustomWebHook",
+      "version": 1,
+      "parameters": {"hook": "{{HOOK:ff-prospect-enrich}}"},
+      "mapper": {},
+      "metadata": {"designer": {"x": 0, "y": 0}}
+    },
+    {
+      "id": 2,
+      "module": "http:ActionSendData",
+      "version": 3,
+      "parameters": {},
+      "mapper": {
+        "url": "https://api.base44.com/v1/apps/69d6866d29e0b32ab7e05bac/entities/Prospect/{{1.prospect_id}}",
+        "method": "GET",
+        "headers": [{"name": "Authorization", "value": "Bearer {{CONNECTION_KEY:base44}}"}]
+      },
+      "metadata": {"designer": {"x": 200, "y": 0}, "label": "GET Prospect"}
+    },
+    {
+      "id": 3,
+      "module": "http:ActionSendData",
+      "version": 3,
+      "parameters": {},
+      "mapper": {
+        "url": "https://api.anthropic.com/v1/messages",
+        "method": "POST",
+        "headers": [
+          {"name": "x-api-key", "value": "{{CONNECTION_KEY:anthropic}}"},
+          {"name": "anthropic-version", "value": "2023-06-01"},
+          {"name": "content-type", "value": "application/json"}
+        ],
+        "body": "{\"model\":\"claude-sonnet-4-20250514\",\"max_tokens\":1000,\"messages\":[{\"role\":\"user\",\"content\":\"Research this prospect for AI enablement sales outreach.\\n\\nName: {{2.data.name}}\\nCompany: {{2.data.company}}\\nRole: {{2.data.role}}\\nLinkedIn: {{2.data.linkedin_url}}\\n\\nReturn JSON with: {\\\"ai_maturity_signal\\\": string, \\\"talking_points\\\": [string], \\\"suggested_hook\\\": string, \\\"red_flags\\\": [string]}\"}]}"
+      },
+      "metadata": {"designer": {"x": 400, "y": 0}, "label": "Anthropic Research"}
+    },
+    {
+      "id": 4,
+      "module": "http:ActionSendData",
+      "version": 3,
+      "parameters": {},
+      "mapper": {
+        "url": "https://api.base44.com/v1/apps/69d6866d29e0b32ab7e05bac/entities/Prospect/{{1.prospect_id}}",
+        "method": "PATCH",
+        "headers": [
+          {"name": "Authorization", "value": "Bearer {{CONNECTION_KEY:base44}}"},
+          {"name": "Content-Type", "value": "application/json"}
+        ],
+        "body": "{\"ai_research\": {{3.data.content[0].text}}, \"enriched_at\": \"{{now}}\"}"
+      },
+      "metadata": {"designer": {"x": 600, "y": 0}, "label": "PATCH Prospect"}
+    }
+  ],
+  "metadata": {
+    "instant": true,
+    "version": 1,
+    "scenario": {
+      "roundtrips": 1,
+      "maxErrors": 3,
+      "autoCommit": true,
+      "autoCommitTriggerLast": true,
+      "sequential": true,
+      "confidential": false,
+      "dataloss": false,
+      "dlq": false,
+      "freshVariables": false
+    },
+    "zone": "us1.make.com",
+    "notes": "Migrated from n8n 53jar4pwvlWfP7yM. Base44 app: Flagship Command (69d6866d). Update webhook URL in Fusion AI after import. Requires: Base44 Bearer token, Anthropic API key."
+  }
+}

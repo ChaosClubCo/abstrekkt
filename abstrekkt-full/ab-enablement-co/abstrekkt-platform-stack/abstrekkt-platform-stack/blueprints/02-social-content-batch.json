@@ -1,0 +1,143 @@
+{
+  "name": "02 — Social Content Batch",
+  "flow": [
+    {
+      "id": 1,
+      "module": "gateway:CustomWebHook",
+      "version": 2,
+      "parameters": {
+        "hook": "{{WEBHOOK_02_HOOK_ID}}",
+        "maxResults": 1
+      },
+      "mapper": {},
+      "metadata": {
+        "designer": { "x": 0, "y": 0 },
+        "notes": "Webhook — POST {\"content\": \"<newsletter text or topic>\", \"issue\": \"12\", \"lane\": \"rr\"} to trigger. Create the webhook in Make, copy the hook ID to WEBHOOK_02_HOOK_ID variable."
+      }
+    },
+    {
+      "id": 2,
+      "module": "http:ActionSendData",
+      "version": 3,
+      "parameters": { "handleErrors": true },
+      "mapper": {
+        "url": "https://api.anthropic.com/v1/messages",
+        "serializeUrl": false,
+        "method": "post",
+        "headers": [
+          { "name": "x-api-key", "value": "{{ANTHROPIC_API_KEY}}" },
+          { "name": "anthropic-version", "value": "2023-06-01" },
+          { "name": "Content-Type", "value": "application/json" }
+        ],
+        "body": "{\"model\": \"claude-sonnet-4-6\", \"max_tokens\": 1024, \"system\": \"You are a social content writer for FlashFusion, a B2B AI enablement consultancy. Write 5 social media hooks. Each hook: specific claim from real work (not hype), LinkedIn format (150-200 chars), practitioner voice ('I tested this'/'This is what actually happened'). Output JSON array: [{\\\"hook\\\": \\\"...\\\", \\\"platform\\\": \\\"linkedin\\\", \\\"rationale\\\": \\\"...\\\", \\\"image_theme\\\": \\\"...\\\"}]\", \"messages\": [{\"role\": \"user\", \"content\": \"Content: {{1.body.content}}\\n\\nWrite 5 social hooks for lane {{1.body.lane}}.\"}]}",
+        "parseBody": true,
+        "timeout": 45
+      },
+      "metadata": {
+        "designer": { "x": 200, "y": 0 },
+        "notes": "Claude writes 5 hooks as JSON array. Parse output as JSON for the iterator."
+      }
+    },
+    {
+      "id": 3,
+      "module": "json:ParseJSON",
+      "version": 1,
+      "mapper": {
+        "json": "{{2.body.content[0].text}}"
+      },
+      "metadata": {
+        "designer": { "x": 400, "y": 0 },
+        "notes": "Parse Claude's JSON array output. If Claude wraps in ```json fences, add a text transform step to strip them first."
+      }
+    },
+    {
+      "id": 4,
+      "module": "flow:ArrayIterator",
+      "version": 1,
+      "parameters": {
+        "array": "{{3.array}}"
+      },
+      "metadata": {
+        "designer": { "x": 600, "y": 0 },
+        "notes": "Iterates over 5 hooks. Modules 5-7 run once per hook."
+      }
+    },
+    {
+      "id": 5,
+      "module": "http:ActionSendData",
+      "version": 3,
+      "parameters": { "handleErrors": true },
+      "mapper": {
+        "url": "https://api.anthropic.com/v1/messages",
+        "serializeUrl": false,
+        "method": "post",
+        "headers": [
+          { "name": "x-api-key", "value": "{{ANTHROPIC_API_KEY}}" },
+          { "name": "anthropic-version", "value": "2023-06-01" },
+          { "name": "Content-Type", "value": "application/json" }
+        ],
+        "body": "{\"model\": \"claude-haiku-4-5-20251001\", \"max_tokens\": 512, \"system\": \"You orchestrate Higgsfield image generation. Given a hook and image theme, write the Higgsfield generation prompt. Output only the prompt string, nothing else.\", \"messages\": [{\"role\": \"user\", \"content\": \"Hook: {{4.value.hook}}\\nImage theme: {{4.value.image_theme}}\\n\\nWrite a Higgsfield Nano Banana Pro generation prompt. FlashFusion brand: void-dark base (#0B0B14), violet accent (#A855F7), professional editorial, no text overlay, 1:1 aspect ratio.\"}]}",
+        "parseBody": true,
+        "timeout": 30
+      },
+      "metadata": {
+        "designer": { "x": 800, "y": 0 },
+        "notes": "Uses Haiku for cost efficiency (prompt generation only). Replace with call to Higgsfield API directly once you have endpoint confirmed — see workflow-chains.md."
+      }
+    },
+    {
+      "id": 6,
+      "module": "http:ActionSendData",
+      "version": 3,
+      "parameters": { "handleErrors": true },
+      "mapper": {
+        "url": "https://api.cloudinary.com/v1_1/{{CLOUDINARY_CLOUD_NAME}}/image/upload",
+        "serializeUrl": false,
+        "method": "post",
+        "headers": [
+          { "name": "Content-Type", "value": "application/json" }
+        ],
+        "body": "{\"file\": \"{{5.imageUrl}}\", \"upload_preset\": \"flashfusion_social\", \"tags\": \"flashfusion,social,{{1.body.lane}},issue-{{1.body.issue}}\", \"api_key\": \"{{CLOUDINARY_API_KEY}}\"}",
+        "parseBody": true,
+        "timeout": 30
+      },
+      "metadata": {
+        "designer": { "x": 1000, "y": 0 },
+        "notes": "Cloudinary upload. Create upload preset 'flashfusion_social' in Cloudinary dashboard first. Adjust body to pass the actual image URL returned from Higgsfield."
+      }
+    },
+    {
+      "id": 7,
+      "module": "hubspot:CreateaCRMRecord",
+      "version": 1,
+      "parameters": {
+        "objectType": "MARKETING_EVENT"
+      },
+      "mapper": {
+        "name": "Social Draft — {{1.body.lane}} — {{4.value.hook|truncate:40}}",
+        "properties": {
+          "hs_content_body": "{{4.value.hook}}",
+          "hs_content_type": "SOCIAL",
+          "hs_asset_url": "{{6.body.secure_url}}",
+          "hs_content_state": "DRAFT",
+          "hs_campaign": "Newsletter Issue {{1.body.issue}}"
+        }
+      },
+      "metadata": {
+        "designer": { "x": 1200, "y": 0 },
+        "notes": "Creates HubSpot social post draft. Object type and property names depend on your HubSpot plan. Adjust for your actual HubSpot social post schema."
+      }
+    }
+  ],
+  "metadata": {
+    "instant": true,
+    "version": 1,
+    "scenario": {
+      "roundtrips": 1,
+      "maxErrors": 3,
+      "autoCommit": true,
+      "sequential": true
+    },
+    "_notes": "SETUP: ANTHROPIC_API_KEY, CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, WEBHOOK_02_HOOK_ID. Create upload preset 'flashfusion_social' in Cloudinary. Blueprint 02 requires Higgsfield API — either wire the HTTP call to Higgsfield's generation endpoint (confirm at higgsfield.ai/docs) or call Claude with Higgsfield MCP configured. Step 5 currently generates the prompt only — complete the Higgsfield call when endpoint is confirmed."
+  }
+}

@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Halls of Villains and Virtues — Console</title>
+<style>
+  /* ─────────────────────────────────────────────────────────────
+     DESIGN TOKENS — contrast-checked for WCAG 2.2 AA
+     ───────────────────────────────────────────────────────────── */
+  :root {
+    --bg: #07070f;
+    --surface: #0f0f1c;
+    --surface-2: #16161f;
+    --border: rgba(255,255,255,.10);
+    --border-strong: rgba(255,255,255,.20);
+    --focus: #a78bfa;                /* focus ring — 7:1 on bg */
+    --text: #ece6fa;                 /* 14:1 on bg */
+    --muted: #a59cc0;               /* 5.9:1 on bg — AA body */
+    --muted-dim: #6f6890;           /* 3.2:1 — large/decorative only */
+    --accent: #8b5cf6;
+    --accent-hover: #7c3aed;
+    --virtue: #d8b84a;              /* outward */
+    --villain: #ec5a78;             /* inward */
+    --ok: #4ec57f;
+    --pending: #ec5a78;
+    --mono: ui-monospace, "Courier New", monospace;
+    --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --tap: 44px;                    /* min touch target */
+    --radius: 4px;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    background: var(--bg); color: var(--text);
+    font-family: var(--sans); font-size: 15px; line-height: 1.5;
+    min-height: 100dvh; overflow-x: hidden;
+  }
+
+  /* Skip link — keyboard / screen reader */
+  .skip-link {
+    position: absolute; left: 8px; top: -48px; z-index: 1000;
+    background: var(--accent); color: #fff; padding: 10px 16px;
+    border-radius: var(--radius); font-size: 13px; text-decoration: none;
+    transition: top .15s;
+  }
+  .skip-link:focus { top: 8px; }
+
+  /* Visible focus everywhere — never removed */
+  :focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+    border-radius: var(--radius);
+  }
+
+  /* Screen-reader-only utility */
+  .sr-only {
+    position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+    overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+  }
+
+  /* ─────────────────────────────────────────────────────────────
+     LAYOUT — mobile first
+     ───────────────────────────────────────────────────────────── */
+  .topbar {
+    position: sticky; top: 0; z-index: 50;
+    display: flex; align-items: center; gap: 12px;
+    padding: 0 16px; height: 56px;
+    background: var(--bg); border-bottom: 1px solid var(--border);
+  }
+  .menu-toggle {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: var(--tap); height: var(--tap); min-width: var(--tap);
+    background: transparent; border: 1px solid var(--border); border-radius: var(--radius);
+    color: var(--text); cursor: pointer; font-size: 18px;
+  }
+  .brand { font-family: var(--mono); font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+  .brand strong { color: var(--text); font-weight: 600; }
+
+  /* Mode switch */
+  .mode-switch { margin-left: auto; display: flex; gap: 0; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+  .mode-btn {
+    background: transparent; border: none; color: var(--muted);
+    font-family: var(--mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase;
+    padding: 0 14px; height: 40px; min-height: 40px; cursor: pointer; transition: background .15s, color .15s;
+  }
+  .mode-btn[aria-pressed="true"] { background: var(--accent); color: #fff; }
+  .mode-btn:not([aria-pressed="true"]):hover { background: var(--surface); color: var(--text); }
+
+  .layout { display: block; }
+
+  /* Sidebar = off-canvas drawer on mobile */
+  .sidebar {
+    position: fixed; inset: 56px auto 0 0; z-index: 40;
+    width: min(86vw, 300px); height: calc(100dvh - 56px);
+    background: var(--surface); border-right: 1px solid var(--border);
+    transform: translateX(-100%); transition: transform .25s ease;
+    overflow-y: auto;
+  }
+  .sidebar.open { transform: translateX(0); }
+  .scrim {
+    position: fixed; inset: 0; z-index: 35; background: rgba(0,0,0,.6);
+    opacity: 0; pointer-events: none; transition: opacity .25s;
+  }
+  .scrim.show { opacity: 1; pointer-events: auto; }
+
+  .main { padding: 16px; max-width: 820px; margin: 0 auto; }
+
+  /* Desktop layout */
+  @media (min-width: 1024px) {
+    .menu-toggle { display: none; }
+    .layout { display: grid; grid-template-columns: 300px 1fr; }
+    .sidebar { position: sticky; top: 56px; transform: none; height: calc(100dvh - 56px); }
+    .scrim { display: none; }
+    .main { padding: 28px; }
+  }
+
+  /* ─────────────────────────────────────────────────────────────
+     SIDEBAR — moment list
+     ───────────────────────────────────────────────────────────── */
+  .side-head { padding: 14px 16px 8px; font-family: var(--mono); font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+  .moment-list { list-style: none; }
+  .moment-item button {
+    display: flex; align-items: center; gap: 10px; width: 100%;
+    padding: 12px 16px; min-height: var(--tap);
+    background: transparent; border: none; border-bottom: 1px solid var(--border);
+    border-left: 3px solid transparent;
+    color: var(--text); text-align: left; cursor: pointer; transition: background .15s;
+    font-family: var(--sans); font-size: 14px;
+  }
+  .moment-item button:hover { background: var(--surface-2); }
+  .moment-item button[aria-current="true"] { background: var(--surface-2); border-left-color: var(--accent); }
+  .status-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+  .dot-pub { background: var(--ok); }
+  .dot-draft { background: var(--muted-dim); }
+  .m-label { font-weight: 500; line-height: 1.2; }
+  .m-date { font-size: 12px; color: var(--muted); }
+  .add-moment {
+    margin: 14px 16px; width: calc(100% - 32px); min-height: var(--tap);
+    background: transparent; border: 1px dashed rgba(139,92,246,.5); border-radius: var(--radius);
+    color: var(--accent); font-family: var(--mono); font-size: 11px; letter-spacing: .08em;
+    text-transform: uppercase; cursor: pointer; transition: background .15s;
+  }
+  .add-moment:hover { background: rgba(139,92,246,.1); }
+
+  /* ─────────────────────────────────────────────────────────────
+     CARDS + FORMS
+     ───────────────────────────────────────────────────────────── */
+  .stack { display: flex; flex-direction: column; gap: 18px; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; }
+  .card-head { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
+  h2.card-title { font-family: var(--mono); font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+  h2.card-title strong { color: var(--text); }
+  .pill { font-family: var(--mono); font-size: 10px; letter-spacing: .1em; text-transform: uppercase; padding: 3px 9px; border: 1px solid; border-radius: 100px; }
+  .pill-virtue { color: var(--virtue); border-color: rgba(216,184,74,.4); background: rgba(216,184,74,.08); }
+  .pill-villain { color: var(--villain); border-color: rgba(236,90,120,.4); background: rgba(236,90,120,.08); }
+  .pill-pub { color: var(--ok); border-color: rgba(78,197,127,.4); }
+  .pill-draft { color: var(--muted); border-color: var(--border); }
+
+  .grid-2 { display: grid; grid-template-columns: 1fr; gap: 14px; }
+  @media (min-width: 600px) { .grid-2 { grid-template-columns: 1fr 1fr; } }
+
+  .field { margin-bottom: 14px; }
+  .field:last-child { margin-bottom: 0; }
+  .field label { display: block; font-family: var(--mono); font-size: 10px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+  .field .hint { font-size: 12px; color: var(--muted-dim); margin-bottom: 6px; font-style: italic; }
+  .field input, .field textarea, .field select {
+    width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius);
+    color: var(--text); font-family: var(--mono); font-size: 14px; padding: 10px 12px;
+    outline-offset: 2px; transition: border-color .15s; min-height: var(--tap);
+  }
+  .field textarea { min-height: 72px; resize: vertical; line-height: 1.55; }
+  .field input:focus, .field textarea:focus, .field select:focus { border-color: var(--accent); }
+  .field input:hover, .field textarea:hover, .field select:hover { border-color: var(--border-strong); }
+
+  /* AI box */
+  .ai-box { background: var(--bg); border: 1px dashed rgba(139,92,246,.32); border-radius: var(--radius); padding: 14px; }
+  .ai-box textarea { width: 100%; background: transparent; border: none; color: var(--text); font-family: var(--mono); font-size: 14px; line-height: 1.6; outline: none; resize: vertical; min-height: 80px; }
+  .ai-box textarea:focus-visible { outline: 2px solid var(--focus); outline-offset: 4px; }
+
+  /* Buttons */
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    min-height: var(--tap); padding: 0 18px; border-radius: var(--radius);
+    font-family: var(--mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase;
+    cursor: pointer; border: 1px solid; transition: background .15s, border-color .15s, color .15s;
+  }
+  .btn-primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .btn-primary:hover { background: var(--accent-hover); }
+  .btn-ghost { background: transparent; border-color: var(--border); color: var(--muted); }
+  .btn-ghost:hover { border-color: var(--border-strong); color: var(--text); }
+  .btn-danger { background: transparent; border-color: rgba(236,90,120,.4); color: var(--villain); }
+  .btn-danger:hover { background: rgba(236,90,120,.1); }
+  .btn[aria-busy="true"] { opacity: .6; cursor: progress; }
+  .btn:disabled { opacity: .4; cursor: not-allowed; }
+
+  /* Media grid */
+  .media-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  @media (min-width: 600px) { .media-grid { grid-template-columns: repeat(4, 1fr); } }
+  .media-cell { border: 1px solid var(--border); border-radius: var(--radius); padding: 12px; text-align: center; }
+  .media-cell .ml { font-family: var(--mono); font-size: 9px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+  .ms { font-size: 12px; display: flex; align-items: center; justify-content: center; gap: 5px; margin-bottom: 8px; }
+  .s-done .d, .s-pending .d, .s-none .d { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+  .s-done .d { background: var(--ok); }
+  .s-pending .d { background: var(--pending); }
+  .s-none .d { background: var(--muted-dim); }
+  .media-action { min-height: 36px; width: 100%; background: transparent; border: 1px solid var(--border); border-radius: var(--radius); color: var(--accent); font-family: var(--mono); font-size: 10px; cursor: pointer; transition: background .15s; }
+  .media-action:hover { background: rgba(139,92,246,.08); }
+
+  /* Tags */
+  .tag-row { display: flex; flex-wrap: wrap; gap: 6px; }
+  .tag { font-family: var(--mono); font-size: 11px; padding: 5px 10px; min-height: 30px; background: rgba(255,255,255,.04); border: 1px solid var(--border); border-radius: 100px; color: var(--muted); cursor: pointer; display: inline-flex; align-items: center; }
+  .tag[aria-pressed="true"] { background: rgba(139,92,246,.14); border-color: rgba(139,92,246,.5); color: var(--text); }
+
+  .bottom-bar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  .save-msg { font-family: var(--mono); font-size: 11px; letter-spacing: .06em; }
+
+  /* ─────────────────────────────────────────────────────────────
+     VISITOR MODE — inside-experience AI
+     ───────────────────────────────────────────────────────────── */
+  .visitor-intro { font-size: 15px; color: var(--muted); line-height: 1.6; margin-bottom: 6px; }
+  .chat-log { display: flex; flex-direction: column; gap: 12px; margin: 16px 0; max-height: 360px; overflow-y: auto; padding-right: 4px; }
+  .msg { padding: 12px 14px; border-radius: var(--radius); font-size: 14px; line-height: 1.6; max-width: 90%; }
+  .msg-user { align-self: flex-end; background: var(--surface-2); border: 1px solid var(--border); }
+  .msg-ai { align-self: flex-start; background: rgba(139,92,246,.08); border: 1px solid rgba(139,92,246,.25); }
+  .msg-ai .who { font-family: var(--mono); font-size: 9px; letter-spacing: .1em; text-transform: uppercase; color: var(--accent); display: block; margin-bottom: 5px; }
+  .chat-input-row { display: flex; gap: 8px; }
+  .chat-input-row input { flex: 1; }
+  .ask-suggestions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+  .suggestion { font-family: var(--mono); font-size: 11px; padding: 6px 12px; min-height: 32px; background: transparent; border: 1px solid var(--border); border-radius: 100px; color: var(--muted); cursor: pointer; transition: all .15s; }
+  .suggestion:hover { border-color: var(--accent); color: var(--text); }
+
+  .hidden { display: none !important; }
+
+  /* Reduced motion */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: .001ms !important; transition-duration: .001ms !important; }
+  }
+
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-thumb { background: rgba(255,255,255,.14); border-radius: 100px; }
+</style>
+</head>
+<body>
+<a href="#main" class="skip-link">Skip to content</a>
+
+<!-- TOPBAR -->
+<header class="topbar">
+  <button class="menu-toggle" id="menu-toggle" aria-label="Open moment list" aria-expanded="false" aria-controls="sidebar">☰</button>
+  <p class="brand">HOVAV&nbsp;/&nbsp;<strong>Console</strong></p>
+  <div class="mode-switch" role="group" aria-label="Console mode">
+    <button class="mode-btn" id="mode-creator" aria-pressed="true" onclick="setMode('creator')">Creator</button>
+    <button class="mode-btn" id="mode-visitor" aria-pressed="false" onclick="setMode('visitor')">Visitor</button>
+  </div>
+</header>
+
+<div class="scrim" id="scrim" onclick="closeSidebar()"></div>
+
+<div class="layout">
+  <!-- SIDEBAR -->
+  <nav class="sidebar" id="sidebar" aria-label="Moments">
+    <h2 class="side-head" id="side-head">Moments <span id="moment-count"></span></h2>
+    <ul class="moment-list" id="moment-list" aria-labelledby="side-head"></ul>
+    <button class="add-moment" id="add-moment" onclick="openNew()">+ Add Moment</button>
+  </nav>
+
+  <!-- MAIN -->
+  <main class="main" id="main" tabindex="-1">
+    <!-- CREATOR MODE -->
+    <div id="creator-view" class="stack"></div>
+
+    <!-- VISITOR MODE -->
+    <div id="visitor-view" class="stack hidden"></div>
+  </main>
+</div>
+
+<!-- live region for async announcements -->
+<div aria-live="polite" class="sr-only" id="live"></div>
+
+<script>
+"use strict";
+
+// ── DATA ───────────────────────────────────────────────────────────
+const MOMENTS = [
+  { id:'parking-lot-2009', label:'The Parking Lot', date:'2009', status:'published', thread:'formation', position:-80, tags:['formation','midwest','work'],
+    virtue:{cap:'First real job. Chain link. Fluorescent loading dock. Cigarette I didn\'t want.',env:'harsh industrial midwest, flat gray sky, sodium light'},
+    villain:{cap:'Performing belonging. Watching everyone else like I was studying for a test.',room:'dimly lit, one chair facing the wrong direction'},
+    media:{vi:1,li:0,vv:1,lv:0,va:0,la:0} },
+  { id:'shelter-2010', label:'The Shelter', date:'2010', status:'published', thread:'rupture', position:-60, tags:['shelter','schopp','rupture'],
+    virtue:{cap:'4am. Less than an inch of snow. Mandatory.',env:'pre-dawn institutional lot, sodium vapor, chain link'},
+    villain:{cap:'Counting days. Not approximately. Exactly. Some men around me had stopped.',room:'fluorescent, cots in rows, a bible left on the pillow'},
+    media:{vi:1,li:1,vv:1,lv:1,va:0,la:1} },
+  { id:'back-bar-2014', label:'The Back Bar', date:'2014', status:'published', thread:'formation', position:-30, tags:['otooleys','bartending','hollow'],
+    virtue:{cap:'Six deep, both rails. I knew every face before they ordered.',env:'warm amber, motion blur, packed'},
+    villain:{cap:'Most alive I\'d felt in years. Completely hollow underneath it.',room:'bar bottles casting color, nothing reflected in the mirror'},
+    media:{vi:1,li:1,vv:1,lv:1,va:0,la:0} },
+  { id:'card-table-2015', label:'The Card Table', date:'2015', status:'published', thread:'construction', position:-20, tags:['origin','building','bear'],
+    virtue:{cap:'Built Bear\'s website on a folding table. Googled everything. Finished it.',env:'single lamp, rented room, screen glow'},
+    villain:{cap:'I didn\'t know that was how it started. I just knew I had to finish it.',room:'open room, tools on floor, one lamp, no furniture yet'},
+    media:{vi:1,li:0,vv:1,lv:0,va:1,la:0} },
+  { id:'sedona-2016', label:'Sedona', date:'2016', status:'published', thread:'construction', position:-10, tags:['sedona','bear','quiet'],
+    virtue:{cap:'Red rock. Bear\'s assignments through a ticket system I built. The desert does something to the noise.',env:'red rock formations, warm desert light, open sky'},
+    villain:{cap:'First time in years something quieted. Didn\'t trust it. Stayed in it anyway.',room:'sparse, warm single lamp, open door to outside'},
+    media:{vi:1,li:0,vv:0,lv:0,va:1,la:0} },
+  { id:'right-now', label:'Right Now', date:'2026', status:'published', thread:'emergence', position:0, tags:['present','building'],
+    virtue:{cap:'Same window. Different everything.',env:'clear morning, open, unresolved'},
+    villain:{cap:'Building something. Not sure what yet. That\'s fine.',room:'tools on floor, no furniture yet, one lamp'},
+    media:{vi:1,li:1,vv:0,lv:0,va:0,la:0} },
+  { id:'office-2023', label:'The Office', date:'2023', status:'published', thread:'construction', position:20, tags:['construction','language'],
+    virtue:{cap:'Learning a language nobody taught me.',env:'fluorescent overhead, corporate neutral, daylight through blinds'},
+    villain:{cap:'Quietly building a second floor nobody could see yet.',room:'blueprint sketches taped to wall, low desk lamp'},
+    media:{vi:1,li:1,vv:0,lv:0,va:0,la:0} },
+  { id:'drive-home', label:'The Drive Home', date:'ongoing', status:'published', thread:'parallel', position:40, tags:['planning','alone'],
+    virtue:{cap:'Empty highway. The only thinking time I had.',env:'wet road, headlights, late, no other cars'},
+    villain:{cap:'Every plan I ever made happened in this car.',room:'dashboard glow only, dark interior, wide open'},
+    media:{vi:1,li:1,vv:1,lv:0,va:1,la:0} },
+];
+
+let active = 1;
+let mode = 'creator';
+
+// ── HELPERS ────────────────────────────────────────────────────────
+const $ = sel => document.querySelector(sel);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function announce(msg){ $('#live').textContent = msg; }
+
+// ── SIDEBAR (drawer behavior + a11y) ───────────────────────────────
+function openSidebar(){
+  const sb = $('#sidebar'), t = $('#menu-toggle');
+  sb.classList.add('open'); $('#scrim').classList.add('show');
+  t.setAttribute('aria-expanded','true'); t.setAttribute('aria-label','Close moment list');
+  sb.querySelector('button')?.focus();
+}
+function closeSidebar(){
+  const t = $('#menu-toggle');
+  $('#sidebar').classList.remove('open'); $('#scrim').classList.remove('show');
+  t.setAttribute('aria-expanded','false'); t.setAttribute('aria-label','Open moment list');
+}
+$('#menu-toggle').addEventListener('click', () => {
+  $('#sidebar').classList.contains('open') ? closeSidebar() : openSidebar();
+});
+// Escape closes drawer
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && $('#sidebar').classList.contains('open')) { closeSidebar(); $('#menu-toggle').focus(); }
+});
+
+function renderSidebar(){
+  $('#moment-count').textContent = `(${MOMENTS.length})`;
+  $('#moment-list').innerHTML = MOMENTS.map((m,i)=>`
+    <li class="moment-item">
+      <button onclick="setActive(${i})" ${i===active?'aria-current="true"':''}>
+        <span class="status-dot ${m.status==='published'?'dot-pub':'dot-draft'}" aria-hidden="true"></span>
+        <span>
+          <span class="m-label">${esc(m.label)}</span><br>
+          <span class="m-date">${esc(m.date)} · ${esc(m.status)}</span>
+        </span>
+      </button>
+    </li>`).join('');
+}
+
+function setActive(i){
+  active = i;
+  renderSidebar();
+  mode === 'creator' ? renderCreator() : renderVisitor();
+  if (window.innerWidth < 1024) closeSidebar();
+  announce(`Selected ${MOMENTS[i].label}`);
+  $('#main').focus();
+}
+
+// ── MODE SWITCH ────────────────────────────────────────────────────
+function setMode(m){
+  mode = m;
+  $('#mode-creator').setAttribute('aria-pressed', m==='creator');
+  $('#mode-visitor').setAttribute('aria-pressed', m==='visitor');
+  $('#creator-view').classList.toggle('hidden', m!=='creator');
+  $('#visitor-view').classList.toggle('hidden', m!=='visitor');
+  m === 'creator' ? renderCreator() : renderVisitor();
+  announce(`${m==='creator'?'Creator':'Visitor'} mode`);
+}
+
+// ── CREATOR VIEW (outside AI) ──────────────────────────────────────
+function mediaStat(done, label, action){
+  const cls = done ? 's-done' : 's-none';
+  return `<div class="media-cell">
+    <p class="ml">${label}</p>
+    <p class="ms ${cls}"><span class="d" aria-hidden="true"></span>${done?'done':'none'}</p>
+    <button class="media-action">${done?'replace':action}</button>
+  </div>`;
+}
+
+function renderCreator(){
+  const m = MOMENTS[active];
+  $('#creator-view').innerHTML = `
+    <!-- OUTSIDE AI: memory parser -->
+    <section class="card" aria-labelledby="parser-h">
+      <div class="card-head"><h2 class="card-title" id="parser-h">AI Memory Parser <strong>(outside)</strong></h2></div>
+      <div class="ai-box">
+        <label for="ai-input" class="ml" style="display:block;margin-bottom:8px;color:var(--muted);font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase">Describe the memory — AI fills every field below</label>
+        <textarea id="ai-input" aria-describedby="parser-help" placeholder="I was at the shelter in 2010. They made us do religious services to eat. Met my best friend Schopp there. 4am snow shoveling for less than an inch..."></textarea>
+        <p id="parser-help" class="sr-only">Type a freeform memory. The AI extracts label, date, tags, and both virtue and villain captions.</p>
+        <div style="margin-top:10px"><button class="btn btn-primary" id="parse-btn" onclick="parseMemory()">↯ Parse with AI</button></div>
+      </div>
+    </section>
+
+    <!-- META -->
+    <section class="card" aria-labelledby="meta-h">
+      <div class="card-head">
+        <h2 class="card-title" id="meta-h">Moment — <strong>${esc(m.label)}</strong></h2>
+        <span class="pill ${m.status==='published'?'pill-pub':'pill-draft'}">${esc(m.status)}</span>
+      </div>
+      <div class="grid-2">
+        <div class="field"><label for="f-label">Label</label><input id="f-label" value="${esc(m.label)}"></div>
+        <div class="field"><label for="f-date">Date / Period</label><input id="f-date" value="${esc(m.date)}"></div>
+      </div>
+      <div class="grid-2">
+        <div class="field"><label for="f-thread">Chapter Thread</label>
+          <select id="f-thread">
+            ${['rupture','formation','construction','emergence','parallel'].map(t=>`<option ${t===m.thread?'selected':''}>${t}</option>`).join('')}
+          </select>
+        </div>
+        <div class="field"><label for="f-pos">Corridor Position</label><input id="f-pos" type="number" value="${m.position}"></div>
+      </div>
+      <div class="field">
+        <label id="tags-label">Tags</label>
+        <div class="tag-row" role="group" aria-labelledby="tags-label">
+          ${m.tags.map(t=>`<button class="tag" aria-pressed="true">${esc(t)}</button>`).join('')}
+          <button class="tag" aria-pressed="false">+ add</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- VIRTUE -->
+    <section class="card" aria-labelledby="virtue-h">
+      <div class="card-head"><h2 class="card-title" id="virtue-h">Virtue Side</h2><span class="pill pill-virtue">↗ outward</span></div>
+      <div class="field"><label for="v-cap">Caption</label><p class="hint">First person, present tense, under 45s spoken. No epiphanies.</p><textarea id="v-cap">${esc(m.virtue.cap)}</textarea></div>
+      <div class="field"><label for="v-env">Environment</label><p class="hint">Descriptors for image / video generation.</p><textarea id="v-env">${esc(m.virtue.env)}</textarea></div>
+    </section>
+
+    <!-- VILLAIN -->
+    <section class="card" aria-labelledby="villain-h">
+      <div class="card-head"><h2 class="card-title" id="villain-h">Villain Side</h2><span class="pill pill-villain">↙ inward</span></div>
+      <div class="field"><label for="l-cap">Caption</label><p class="hint">First person, present tense. No resolution.</p><textarea id="l-cap">${esc(m.villain.cap)}</textarea></div>
+      <div class="field"><label for="l-room">Room</label><p class="hint">Emotional state as physical space — light, objects, the door, the emptiness.</p><textarea id="l-room">${esc(m.villain.room)}</textarea></div>
+    </section>
+
+    <!-- AI SCRIPT WRITER (outside AI #2) -->
+    <section class="card" aria-labelledby="script-h">
+      <div class="card-head"><h2 class="card-title" id="script-h">AI Script Writer <strong>(outside)</strong></h2></div>
+      <p class="hint" style="margin-bottom:12px">Generates AI-Kyle narration scripts for both sides from the captions above.</p>
+      <button class="btn btn-ghost" id="script-btn" onclick="writeScripts()">↯ Generate narration scripts</button>
+      <div id="script-out" style="margin-top:14px"></div>
+    </section>
+
+    <!-- MEDIA STATUS -->
+    <section class="card" aria-labelledby="media-h">
+      <div class="card-head"><h2 class="card-title" id="media-h">Media Production</h2></div>
+      <div class="media-grid">
+        ${mediaStat(m.media.vi,'Virtue Image','generate')}
+        ${mediaStat(m.media.li,'Villain Image','generate')}
+        ${mediaStat(m.media.vv,'Virtue Video','generate')}
+        ${mediaStat(m.media.lv,'Villain Video','generate')}
+        ${mediaStat(m.media.va,'Virtue Audio','generate')}
+        ${mediaStat(m.media.la,'Villain Audio','generate')}
+      </div>
+    </section>
+
+    <!-- ACTIONS -->
+    <div class="bottom-bar">
+      <button class="btn btn-ghost">Save Draft</button>
+      <button class="btn btn-primary" onclick="publish()">Publish to Corridor</button>
+      <span class="save-msg" id="save-msg" role="status"></span>
+      <button class="btn btn-danger" style="margin-left:auto">Delete</button>
+    </div>
+  `;
+}
+
+function publish(){
+  const el = $('#save-msg'); el.textContent='✓ published'; el.style.color='var(--ok)';
+  announce('Moment published to corridor');
+  setTimeout(()=>{ el.textContent=''; }, 2400);
+}
+
+// ── VISITOR VIEW (inside AI) ───────────────────────────────────────
+let chatHistory = [];
+
+function renderVisitor(){
+  const m = MOMENTS[active];
+  chatHistory = [];
+  $('#visitor-view').innerHTML = `
+    <section class="card" aria-labelledby="vis-h">
+      <div class="card-head"><h2 class="card-title" id="vis-h">Inside the Window — <strong>${esc(m.label)}</strong></h2></div>
+      <p class="visitor-intro">You're standing where I stood. Ask what it was like — I'll answer from inside this moment, not from now looking back.</p>
+
+      <div class="chat-log" id="chat-log" role="log" aria-live="polite" aria-label="Conversation"></div>
+
+      <div class="chat-input-row">
+        <div class="field" style="flex:1;margin:0">
+          <label for="ask-input" class="sr-only">Ask about this moment</label>
+          <input id="ask-input" placeholder="What were you thinking right then?" onkeydown="if(event.key==='Enter')askMoment()">
+        </div>
+        <button class="btn btn-primary" id="ask-btn" onclick="askMoment()">Ask</button>
+      </div>
+
+      <div class="ask-suggestions" role="group" aria-label="Suggested questions">
+        <button class="suggestion" onclick="askMoment('What did you see first?')">What did you see first?</button>
+        <button class="suggestion" onclick="askMoment('Were you scared?')">Were you scared?</button>
+        <button class="suggestion" onclick="askMoment('What got you through it?')">What got you through it?</button>
+      </div>
+    </section>
+
+    <!-- INSIDE AI #2: visitor's own parallel -->
+    <section class="card" aria-labelledby="mine-h">
+      <div class="card-head"><h2 class="card-title" id="mine-h">Your Window <strong>(inside)</strong></h2></div>
+      <p class="visitor-intro">Everyone has a version of this. Describe yours — AI renders what your version of this moment looked like.</p>
+      <div class="field">
+        <label for="mine-input" class="sr-only">Describe your parallel memory</label>
+        <textarea id="mine-input" placeholder="My version of the shelter was..."></textarea>
+      </div>
+      <button class="btn btn-ghost" id="mine-btn" onclick="renderMine()">↯ Render my window</button>
+      <div id="mine-out" style="margin-top:14px"></div>
+    </section>
+  `;
+}
+
+function addMsg(role, text, who){
+  const log = $('#chat-log');
+  const div = document.createElement('div');
+  div.className = `msg msg-${role}`;
+  div.innerHTML = role==='ai' ? `<span class="who">${esc(who||'inside the moment')}</span>${esc(text)}` : esc(text);
+  log.appendChild(div);
+  log.scrollTop = log.scrollHeight;
+  return div;
+}
+
+async function askMoment(preset){
+  const input = $('#ask-input');
+  const q = preset || input.value.trim();
+  if (!q) return;
+  input.value = '';
+  addMsg('user', q);
+  const btn = $('#ask-btn'); btn.setAttribute('aria-busy','true'); btn.disabled = true;
+  const thinking = addMsg('ai', '…', 'thinking');
+
+  const m = MOMENTS[active];
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        model:'claude-sonnet-4-20250514', max_tokens:400,
+        system:`You are answering as a person standing inside a single remembered moment, in first person present tense. You do NOT explain, analyze, or look back from the future. You are IN it.
+
+THE MOMENT: "${m.label}" (${m.date})
+What's outside: ${m.virtue.cap} — ${m.virtue.env}
+What's inside you: ${m.villain.cap} — ${m.villain.room}
+
+RULES: First person, present tense. 2-4 sentences max. No epiphanies, no "I realized", no recovery language, no clean resolution. Declarative. Sensory. If you don't know, say you don't know. Preserve contradiction. This is testimony, not a TED talk.`,
+        messages:[...chatHistory, {role:'user', content:q}]
+      })
+    });
+    const data = await res.json();
+    const text = data.content?.find(b=>b.type==='text')?.text || '...';
+    thinking.remove();
+    addMsg('ai', text);
+    chatHistory.push({role:'user',content:q},{role:'assistant',content:text});
+    announce('Response received');
+  } catch(e) {
+    thinking.remove();
+    addMsg('ai','(connection error — try again)','error');
+  } finally {
+    btn.setAttribute('aria-busy','false'); btn.disabled = false;
+  }
+}
+
+async function renderMine(){
+  const input = $('#mine-input');
+  const desc = input.value.trim();
+  if (!desc) return;
+  const btn = $('#mine-btn'); btn.setAttribute('aria-busy','true'); btn.disabled = true; btn.textContent='↻ rendering...';
+  const out = $('#mine-out');
+  out.innerHTML = '';
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        model:'claude-sonnet-4-20250514', max_tokens:500,
+        system:`A visitor is describing their own version of a hard or formative moment. Render it as a "window" — two sides.
+
+Return ONLY JSON, no markdown:
+{ "label":"short evocative name", "virtue":{"cap":"what the outside looked like, first person present, under 35 words"}, "villain":{"cap":"what was happening inside them, first person present, under 35 words, no resolution"} }
+
+No epiphanies. No advice. Just reflect their moment back as two honest views.`,
+        messages:[{role:'user', content:desc}]
+      })
+    });
+    const data = await res.json();
+    const text = data.content?.find(b=>b.type==='text')?.text || '{}';
+    const p = JSON.parse(text.replace(/```json|```/g,'').trim());
+    out.innerHTML = `
+      <div class="card" style="border-color:rgba(216,184,74,.3);background:rgba(216,184,74,.05);margin-bottom:10px">
+        <span class="pill pill-virtue" style="margin-bottom:8px;display:inline-block">↗ ${esc(p.label||'your window')} — outward</span>
+        <p style="font-size:14px;line-height:1.6">${esc(p.virtue?.cap||'')}</p>
+      </div>
+      <div class="card" style="border-color:rgba(236,90,120,.3);background:rgba(236,90,120,.05)">
+        <span class="pill pill-villain" style="margin-bottom:8px;display:inline-block">↙ inward</span>
+        <p style="font-size:14px;line-height:1.6">${esc(p.villain?.cap||'')}</p>
+      </div>`;
+    announce('Your window rendered');
+  } catch(e){
+    out.innerHTML = `<p style="color:var(--villain);font-size:13px">Couldn't render — try again.</p>`;
+  } finally {
+    btn.setAttribute('aria-busy','false'); btn.disabled=false; btn.textContent='↯ Render my window';
+  }
+}
+
+// ── AI: parse memory (outside) ─────────────────────────────────────
+async function parseMemory(){
+  const input = $('#ai-input').value.trim();
+  if (!input) return;
+  const btn = $('#parse-btn'); btn.setAttribute('aria-busy','true'); btn.disabled=true; btn.textContent='↻ parsing...';
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        model:'claude-sonnet-4-20250514', max_tokens:1000,
+        system:`Parse a raw memory into a structured "Halls of Villains and Virtues" moment. Return ONLY JSON, no markdown:
+{"label":"2-4 words","date":"year","tags":["t1","t2","t3"],"thread":"rupture|formation|construction|emergence|parallel","virtue":{"cap":"outside view, first person present, <40 words, no epiphany","env":"image-gen descriptors"},"villain":{"cap":"inside view, first person present, <40 words, no resolution","room":"emotional state as room — light, objects, door"}}`,
+        messages:[{role:'user', content:input}]
+      })
+    });
+    const data = await res.json();
+    const text = data.content?.find(b=>b.type==='text')?.text || '{}';
+    const p = JSON.parse(text.replace(/```json|```/g,'').trim());
+    if (p.label) $('#f-label').value = p.label;
+    if (p.date) $('#f-date').value = p.date;
+    if (p.thread && $('#f-thread')) $('#f-thread').value = p.thread;
+    if (p.virtue?.cap) $('#v-cap').value = p.virtue.cap;
+    if (p.virtue?.env) $('#v-env').value = p.virtue.env;
+    if (p.villain?.cap) $('#l-cap').value = p.villain.cap;
+    if (p.villain?.room) $('#l-room').value = p.villain.room;
+    btn.textContent='✓ parsed'; announce('Fields populated from AI');
+    setTimeout(()=>{ btn.textContent='↯ Parse with AI'; }, 2000);
+  } catch(e){
+    btn.textContent='✗ retry'; setTimeout(()=>btn.textContent='↯ Parse with AI', 2200);
+  } finally {
+    btn.setAttribute('aria-busy','false'); btn.disabled=false;
+  }
+}
+
+// ── AI: write scripts (outside) ────────────────────────────────────
+async function writeScripts(){
+  const m = MOMENTS[active];
+  const vCap = $('#v-cap')?.value || m.virtue.cap;
+  const lCap = $('#l-cap')?.value || m.villain.cap;
+  const btn = $('#script-btn'); btn.setAttribute('aria-busy','true'); btn.disabled=true; btn.textContent='↻ writing...';
+  const out = $('#script-out');
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        model:'claude-sonnet-4-20250514', max_tokens:600,
+        system:`Write two AI-Kyle narration scripts (virtue + villain) for a memoir window. First person, present tense, under 45 seconds spoken each (~80 words). No epiphanies, no "I realized", no recovery language. Declarative, sensory, honest. Return ONLY JSON: {"virtue":"...","villain":"..."}`,
+        messages:[{role:'user', content:`Moment: ${m.label} (${m.date})\nOutside: ${vCap}\nInside: ${lCap}`}]
+      })
+    });
+    const data = await res.json();
+    const text = data.content?.find(b=>b.type==='text')?.text || '{}';
+    const p = JSON.parse(text.replace(/```json|```/g,'').trim());
+    out.innerHTML = `
+      <div class="field"><label>Virtue script (↗ outward)</label><textarea>${esc(p.virtue||'')}</textarea></div>
+      <div class="field"><label>Villain script (↙ inward)</label><textarea>${esc(p.villain||'')}</textarea></div>
+      <p class="hint">Send these to ElevenLabs + HeyGen for AI-Kyle video.</p>`;
+    announce('Scripts generated');
+    btn.textContent='✓ done'; setTimeout(()=>btn.textContent='↯ Generate narration scripts',2000);
+  } catch(e){
+    out.innerHTML = `<p style="color:var(--villain);font-size:13px">Couldn't generate — try again.</p>`;
+    btn.textContent='✗ retry'; setTimeout(()=>btn.textContent='↯ Generate narration scripts',2200);
+  } finally {
+    btn.setAttribute('aria-busy','false'); btn.disabled=false;
+  }
+}
+
+function openNew(){
+  MOMENTS.push({ id:'new-'+Date.now(), label:'New Moment', date:'', status:'draft', thread:'rupture', position:0, tags:[],
+    virtue:{cap:'',env:''}, villain:{cap:'',room:''}, media:{vi:0,li:0,vv:0,lv:0,va:0,la:0} });
+  setActive(MOMENTS.length-1);
+}
+
+// ── INIT ───────────────────────────────────────────────────────────
+renderSidebar();
+renderCreator();
+</script>
+</body>
+</html>

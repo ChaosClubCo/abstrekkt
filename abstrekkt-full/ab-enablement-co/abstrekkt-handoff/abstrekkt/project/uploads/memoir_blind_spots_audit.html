@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Memoir — Blind Spots Audit</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500&display=swap');
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #faf9f7;
+    --surface: #ffffff;
+    --border: rgba(0,0,0,0.09);
+    --border-md: rgba(0,0,0,0.15);
+    --text: #1a1916;
+    --text-2: #5a5854;
+    --text-3: #9a9894;
+    --red: #d94040;
+    --red-bg: #fdf1f1;
+    --amber: #c07018;
+    --amber-bg: #fdf5e6;
+    --green: #2d7a3a;
+    --green-bg: #edf7ef;
+    --purple: #5040b8;
+    --purple-bg: #f0eefb;
+    --blue: #1860a8;
+    --blue-bg: #eaf2fb;
+    --teal: #0d6e5a;
+    --teal-bg: #e4f5f1;
+    --pink: #9a2858;
+    --pink-bg: #faedf3;
+    --orange: #8a4010;
+    --orange-bg: #fdf0e6;
+    --gray-bg: #f0ede8;
+  }
+  body { background: var(--bg); font-family: 'Inter', sans-serif; font-size: 14px; color: var(--text); min-height: 100vh; }
+  .page { max-width: 820px; margin: 0 auto; padding: 2.5rem 1.5rem 4rem; }
+  .header { margin-bottom: 2.5rem; }
+  .header-label { font-family: 'DM Mono', monospace; font-size: 11px; letter-spacing: 0.12em; color: var(--text-3); text-transform: uppercase; margin-bottom: 0.5rem; }
+  .header-title { font-family: 'Instrument Serif', serif; font-size: 28px; color: var(--text); line-height: 1.3; margin-bottom: 0.5rem; }
+  .header-sub { font-size: 13px; color: var(--text-2); line-height: 1.6; }
+  .summary { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 2rem; }
+  .stat { background: var(--surface); border: 0.5px solid var(--border); border-radius: 12px; padding: 1rem; }
+  .stat-n { font-size: 26px; font-weight: 500; line-height: 1; margin-bottom: 4px; }
+  .stat-n.red { color: var(--red); }
+  .stat-n.amber { color: var(--amber); }
+  .stat-n.green { color: var(--green); }
+  .stat-n.neutral { color: var(--text); }
+  .stat-l { font-size: 11px; color: var(--text-3); }
+  .filters { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 1.5rem; }
+  .filter-btn { font-size: 12px; font-family: 'DM Mono', monospace; padding: 5px 12px; border-radius: 20px; border: 0.5px solid var(--border-md); background: transparent; color: var(--text-2); cursor: pointer; transition: all 0.12s; }
+  .filter-btn:hover { border-color: var(--text-3); color: var(--text); }
+  .filter-btn.active { background: var(--text); color: var(--bg); border-color: var(--text); }
+  .legend { display: flex; gap: 18px; margin-bottom: 1.25rem; flex-wrap: wrap; }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-2); }
+  .dot { width: 8px; height: 8px; border-radius: 50%; }
+  .dot-red { background: var(--red); }
+  .dot-amber { background: var(--amber); }
+  .dot-green { background: var(--green); }
+  .section-hdr { font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 0.12em; color: var(--text-3); text-transform: uppercase; margin: 1.5rem 0 0.6rem; }
+  .section-hdr:first-child { margin-top: 0; }
+  .item { background: var(--surface); border: 0.5px solid var(--border); border-radius: 12px; padding: 0.9rem 1rem; display: grid; grid-template-columns: 12px 1fr auto; gap: 10px; align-items: start; cursor: pointer; transition: border-color 0.12s; margin-bottom: 6px; }
+  .item:hover { border-color: var(--border-md); }
+  .item-dot { width: 8px; height: 8px; border-radius: 50%; margin-top: 5px; }
+  .item-title { font-size: 13.5px; font-weight: 500; color: var(--text); margin-bottom: 3px; }
+  .item-sub { font-size: 12px; color: var(--text-2); line-height: 1.55; }
+  .item-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; min-width: 100px; }
+  .tag { font-size: 11px; font-family: 'DM Mono', monospace; padding: 2px 8px; border-radius: 10px; border: 0.5px solid; white-space: nowrap; }
+  .tag-before { background: var(--green-bg); color: var(--green); border-color: rgba(45,122,58,0.2); }
+  .tag-rupture { background: var(--red-bg); color: var(--red); border-color: rgba(217,64,64,0.2); }
+  .tag-construction { background: var(--blue-bg); color: var(--blue); border-color: rgba(24,96,168,0.2); }
+  .tag-late { background: var(--teal-bg); color: var(--teal); border-color: rgba(13,110,90,0.2); }
+  .tag-parallel { background: var(--gray-bg); color: var(--text-2); border-color: var(--border); }
+  .tag-structure { background: var(--purple-bg); color: var(--purple); border-color: rgba(80,64,184,0.2); }
+  .tag-character { background: var(--amber-bg); color: var(--amber); border-color: rgba(192,112,24,0.2); }
+  .tag-timeline { background: var(--pink-bg); color: var(--pink); border-color: rgba(154,40,88,0.2); }
+  .priority { font-size: 10px; font-family: 'DM Mono', monospace; color: var(--text-3); }
+  .priority.HIGH { color: var(--red); }
+  .priority.MED { color: var(--amber); }
+  .empty { font-size: 13px; color: var(--text-3); padding: 2rem; text-align: center; font-style: italic; }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="header">
+    <div class="header-label">Kyle Rosebrook — Literary Memoir</div>
+    <div class="header-title">Knowledge Base: Blind Spots Audit</div>
+    <div class="header-sub">Cross-referenced against outline (07-outline.md), timeline update (Apr 2026), evidence board, session handoffs, and project state. Click any item to drill in.</div>
+  </div>
+
+  <div class="summary" id="summary"></div>
+
+  <div class="legend">
+    <div class="legend-item"><span class="dot dot-red"></span> Not started</div>
+    <div class="legend-item"><span class="dot dot-amber"></span> Partial / conflict</div>
+    <div class="legend-item"><span class="dot dot-green"></span> Excavated</div>
+  </div>
+
+  <div class="filters" id="filters"></div>
+  <div id="items"></div>
+</div>
+
+<script>
+const gaps = [
+  { status:"missing", priority:"HIGH", thread:"rupture",      title:"The gap year (2020–2022)",              sub:"What happened between the TBI event and the AMEN evaluation? Hospitalization? Survival mechanics? How stabilization began. This is the hinge between rupture and construction — currently a complete blank in the record." },
+  { status:"missing", priority:"HIGH", thread:"rupture",      title:"Turnaround sequence order",             sub:"Meditation, therapy, coaching, recovery programs — what order? What worked? When did each click? The bridge between rupture and construction is entirely unexcavated. Without it, the narrative jumps from crisis to competence with no visible mechanism." },
+  { status:"missing", priority:"HIGH", thread:"construction", title:"Tool archaeology (Session 3)",          sub:"Chronological mapping of 240+ tools. Which came first? What cognitive gap did each address? This is the central evidence base for the construction thesis. Marked 'NOT YET DONE' in project state — the book's spine has no scaffolding yet." },
+  { status:"missing", priority:"HIGH", thread:"rupture",      title:"Ch 4: Hardware failure — raw material", sub:"The rupture chapter has zero excavated content. TBI specifics, addiction arc, the moment old strategies stopped working — all at Kyle's disclosure level, but nothing exists on the page yet." },
+  { status:"missing", priority:"HIGH", thread:"rupture",      title:"Ch 5: The noise that stopped",         sub:"What was the inner monologue. What 'relief' meant at each stage. The thesis that addiction was chasing silence, not highs. No source material — this chapter is an outline entry and nothing more." },
+  { status:"missing", priority:"HIGH", thread:"construction", title:"Ch 6: First tools — origin stories",   sub:"What was the first external system that actually helped? When did documentation shift from optional to necessary? The discovery moment for prosthetic cognition. No material beyond the question itself." },
+  { status:"missing", priority:"HIGH", thread:"construction", title:"Ch 7: Learning a new architecture",    sub:"Self-teaching to code as cognitive reconstruction, not career development. The first moment code did something the unaided brain couldn't. Unexcavated entirely." },
+  { status:"missing", priority:"HIGH", thread:"structure",    title:"Zero chapters drafted",                 sub:"Prologue + 12 chapters + epilogue are outlined. Zero prose has been drafted. No structural decision made between the 4 candidate architectures. The outline is complete; the book does not yet exist." },
+  { status:"missing", priority:"MED",  thread:"character",    title:"The life coach figure",                 sub:"Described as 'load-bearing' in project instructions. Met 'out west.' Name, location, timeline all unknown. Almost zero documented material — this character may unlock the permission mechanism central to Ch 2." },
+  { status:"missing", priority:"MED",  thread:"timeline",     title:"Kinsley's birth placement",             sub:"When was she born relative to TBI, addiction arc, homelessness? The fatherhood thread's emotional weight depends entirely on this sequencing." },
+  { status:"missing", priority:"MED",  thread:"timeline",     title:"NIU timeline",                          sub:"When expelled? When hit by car? When did the $50K settlement arrive and disappear? Sequence matters for the rupture arc — currently floating without anchor dates." },
+  { status:"missing", priority:"MED",  thread:"before",       title:"Ch 2: Permission scene — sensory depth",sub:"Couch scene confirmed as real memory. Almost no sensory detail exists. The psychological mechanism (permission unlocks what pressure never could) is the chapter's thesis — but it has no flesh, no room, no physical specificity." },
+  { status:"missing", priority:"MED",  thread:"late",         title:"Ch 10: FlashFusion as memoir material", sub:"FlashFusion material exists in project knowledge as a business narrative. It hasn't been excavated as memoir content — what it taught about the limits of the constructed self, failure as data not moral lesson." },
+  { status:"missing", priority:"LOW",  thread:"construction", title:"Ch 8: Tool emotional valence",          sub:"240 tools exist. They haven't been catalogued individually with emotional valence (shameful, practical, desperate, accidental). Each needs an origin story for the chapter to work as literature, not as a productivity flex." },
+  { status:"missing", priority:"LOW",  thread:"before",       title:"Pre-injury competence — felt sense",    sub:"What did cognition feel like when memory worked organically? O'Toole's excavation captured the diagnostic instinct; the felt phenomenology of pre-TBI thinking hasn't been documented." },
+  { status:"partial", priority:"HIGH", thread:"timeline",     title:"Lee Chong Ming pitch: killed vs. drafting", sub:"Hard conflict in project records. One entry says killed; Apr 11 records say 'still drafting, not sent.' Needs explicit confirmation before any action is taken." },
+  { status:"partial", priority:"HIGH", thread:"timeline",     title:"Michael relationship — timing unknown",  sub:"Before or after O'Toole's? Before or after the meditation breakthrough? This relationship represents a failed reconstruction attempt — its placement in the timeline changes everything about what the rupture arc means." },
+  { status:"partial", priority:"MED",  thread:"before",       title:"Ch 3: Late-night walk — real or constructed?", sub:"'Age 17, counting streetlights' scene is flagged explicitly in project records as potentially AI extrapolation absorbed as true memory. Needs explicit verification before it can anchor a chapter." },
+  { status:"partial", priority:"MED",  thread:"parallel",     title:"Ch 11/12: Chaos Club memory — Apr 14",  sub:"Session handoff (Apr 14, 2026) says 'major memory unlocked mid-session — write it down now.' Status unknown. Was it captured? What was it? If it cooled, the Chaos Club chapter loses its origin anchor." },
+  { status:"partial", priority:"MED",  thread:"character",    title:"Meditation: what actually shifted",     sub:"The shift from 'I want this to work' → 'I am open to this helping' is documented. The specific moment, the body experience, the practice details — partial at best. This is the turnaround's emotional core." },
+  { status:"partial", priority:"LOW",  thread:"structure",    title:"Structural decision deferred",          sub:"4 candidate architectures exist (chronological/flashbacks, systems-as-chapters, parallel timelines, Arsenal structure). Recommendation in project docs: draft one chapter in two structures and compare before committing." },
+  { status:"done",    priority:"",     thread:"before",       title:"O'Toole's excavation",                  sub:"Complete as of Mar 25. All 5 scene seeds confirmed as real memory: age oscillation, relief line, late-night walk, couch permission, monitor reflection. Ready to draft from." },
+  { status:"done",    priority:"",     thread:"structure",    title:"Thesis, voice, architecture locked",    sub:"Construction not recovery. Letter to Kinsley. Diagnostic instinct as spine. Five narrative threads. Voice guidelines locked. Comparable works identified." },
+  { status:"done",    priority:"",     thread:"structure",    title:"Full chapter outline (07-outline.md)",  sub:"Prologue + 12 chapters + epilogue titled, described, and sequenced. Structural skeleton is complete and ready for drafting." },
+  { status:"done",    priority:"",     thread:"timeline",     title:"Core timeline skeleton confirmed",      sub:"Michaels → Walmart → O'Toole's → Sole Revival → Intinc sequence confirmed. AMEN Clinics evaluation July 2022 confirmed in Gmail. TBI as narrative hinge established." },
+];
+
+const threadLabels = {
+  before:'Before the break', rupture:'The rupture', construction:'Construction', late:'Late emergence',
+  parallel:'Parallel constructions', structure:'Structure', character:'Characters', timeline:'Timeline'
+};
+
+const tagClass = t => ({ before:'tag-before', rupture:'tag-rupture', construction:'tag-construction', late:'tag-late', parallel:'tag-parallel', structure:'tag-structure', character:'tag-character', timeline:'tag-timeline' }[t] || 'tag-structure');
+
+let active = 'all';
+
+function render() {
+  const vis = active === 'all' ? gaps : gaps.filter(g => g.thread === active);
+  const missing = vis.filter(g=>g.status==='missing').length;
+  const partial = vis.filter(g=>g.status==='partial').length;
+  const done = vis.filter(g=>g.status==='done').length;
+
+  document.getElementById('summary').innerHTML = `
+    <div class="stat"><div class="stat-n red">${missing}</div><div class="stat-l">not started</div></div>
+    <div class="stat"><div class="stat-n amber">${partial}</div><div class="stat-l">partial / conflict</div></div>
+    <div class="stat"><div class="stat-n green">${done}</div><div class="stat-l">excavated</div></div>
+    <div class="stat"><div class="stat-n neutral">${vis.length}</div><div class="stat-l">total tracked</div></div>
+  `;
+
+  const container = document.getElementById('items');
+  container.innerHTML = '';
+
+  const sections = [
+    { label:'Not started — by priority', items: vis.filter(g=>g.status==='missing').sort((a,b)=>a.priority==='HIGH'?-1:b.priority==='HIGH'?1:a.priority==='MED'?-1:1) },
+    { label:'Partial or conflicted', items: vis.filter(g=>g.status==='partial') },
+    { label:'Excavated / locked', items: vis.filter(g=>g.status==='done') },
+  ];
+
+  sections.forEach(section => {
+    if (!section.items.length) return;
+    const lbl = document.createElement('div');
+    lbl.className = 'section-hdr';
+    lbl.textContent = section.label;
+    container.appendChild(lbl);
+
+    section.items.forEach(gap => {
+      const el = document.createElement('div');
+      el.className = 'item';
+      const dotClass = { missing:'dot-red', partial:'dot-amber', done:'dot-green' }[gap.status];
+      el.innerHTML = `
+        <div class="item-dot ${dotClass}"></div>
+        <div>
+          <div class="item-title">${gap.title}</div>
+          <div class="item-sub">${gap.sub}</div>
+        </div>
+        <div class="item-meta">
+          <span class="tag ${tagClass(gap.thread)}">${threadLabels[gap.thread]}</span>
+          ${gap.priority ? `<span class="priority ${gap.priority}">${gap.priority}</span>` : ''}
+        </div>
+      `;
+      container.appendChild(el);
+    });
+  });
+
+  if (container.children.length === 0) {
+    container.innerHTML = '<div class="empty">No items for this filter.</div>';
+  }
+}
+
+const filtersEl = document.getElementById('filters');
+[['all','All'], ...Object.entries(threadLabels)].forEach(([key, label]) => {
+  const btn = document.createElement('button');
+  btn.className = 'filter-btn' + (key === 'all' ? ' active' : '');
+  btn.textContent = label;
+  btn.onclick = () => {
+    active = key;
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    render();
+  };
+  filtersEl.appendChild(btn);
+});
+
+render();
+</script>
+</body>
+</html>

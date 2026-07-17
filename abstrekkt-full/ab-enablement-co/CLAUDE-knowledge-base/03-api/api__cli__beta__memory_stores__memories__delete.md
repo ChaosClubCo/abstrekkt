@@ -1,0 +1,67 @@
+---
+title: "Delete a memory (Beta) (cli)"
+source: "https://platform.claude.com/docs/en/api/cli/beta/memory_stores/memories/delete.md"
+crawled: "2026-06-07"
+content_hash: "sha256:87c7fc09cfeec00b924b6225a94bda5eb65a69bef7aaf14ad6735d66c78ccce7"
+category: "api"
+audience: "developer"
+deprecated: false
+---
+
+## Delete a memory
+
+`$ ant beta:memory-stores:memories delete`
+
+**delete** `/v1/memory_stores/{memory_store_id}/memories/{memory_id}`
+
+Delete a memory
+
+### Parameters
+
+- `--memory-store-id: string`
+
+  Path param: Path parameter memory_store_id
+
+- `--memory-id: string`
+
+  Path param: Path parameter memory_id
+
+- `--expected-content-sha256: optional string`
+
+  Query param: Query parameter for expected_content_sha256
+
+- `--beta: optional array of AnthropicBeta`
+
+  Header param: Optional header to specify the beta version(s) you want to use.
+
+### Returns
+
+- `beta_managed_agents_deleted_memory: object { id, type }`
+
+  Tombstone returned by [Delete a memory](/docs/en/api/beta/memory_stores/memories/delete). The memory's version history persists and remains listable via [List memory versions](/docs/en/api/beta/memory_stores/memory_versions/list) until the store itself is deleted.
+
+  - `id: string`
+
+    ID of the deleted memory (a `mem_...` value).
+
+  - `type: "memory_deleted"`
+
+    - `"memory_deleted"`
+
+### Example
+
+```cli
+ant beta:memory-stores:memories delete \
+  --api-key my-anthropic-api-key \
+  --memory-store-id memory_store_id \
+  --memory-id memory_id
+```
+
+#### Response
+
+```json
+{
+  "id": "id",
+  "type": "memory_deleted"
+}
+```

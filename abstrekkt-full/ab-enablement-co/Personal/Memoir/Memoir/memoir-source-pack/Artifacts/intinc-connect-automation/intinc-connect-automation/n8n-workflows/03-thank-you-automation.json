@@ -1,0 +1,162 @@
+{
+  "name": "INTINC Connect - Thank You Automation",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "recognition-created",
+        "options": {}
+      },
+      "id": "recognition-webhook",
+      "name": "Recognition Created Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300],
+      "webhookId": "intinc-recognition-created"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Validate recognition payload and prepare thank you data\nconst recognition = $input.first().json;\n\n// Skip system-generated recognitions (avoid infinite loops)\nif (recognition.sender_id === 'system') {\n  return { skip: true, reason: 'System-generated recognition' };\n}\n\n// Skip if recipient has opted out of auto-thanks\nif (recognition.recipient_preferences?.auto_thanks === false) {\n  return { skip: true, reason: 'Recipient opted out' };\n}\n\n// Generate personalized thank you suggestions based on recognition type\nconst thankYouTemplates = {\n  kudos: [\n    `Thank you so much for the recognition, {sender_name}! 🙏 It really made my day!`,\n    `I really appreciate you taking the time to recognize this, {sender_name}! 💙`,\n    `Wow, thank you {sender_name}! This means a lot coming from you! 🌟`\n  ],\n  achievement: [\n    `Thank you for celebrating this milestone with me, {sender_name}! 🏆`,\n    `I'm grateful for your support, {sender_name}! Couldn't have done it without the team! 🎯`,\n    `Thanks {sender_name}! Excited to keep pushing forward! 🚀`\n  ],\n  teamwork: [\n    `Thank you {sender_name}! Teamwork makes the dream work! 🤝`,\n    `Appreciate the shoutout, {sender_name}! Love working with this amazing team! 💪`,\n    `Thanks {sender_name}! We really do have the best team! ⭐`\n  ],\n  default: [\n    `Thank you so much, {sender_name}! 🙏`,\n    `Really appreciate the recognition, {sender_name}! 💙`,\n    `Thanks {sender_name}! This made my day! 🌟`\n  ]\n};\n\nconst recognitionType = recognition.tags?.includes('teamwork') ? 'teamwork' :\n                        recognition.tags?.includes('achievement') ? 'achievement' :\n                        recognition.tags?.includes('kudos') ? 'kudos' : 'default';\n\nconst templates = thankYouTemplates[recognitionType];\nconst randomTemplate = templates[Math.floor(Math.random() * templates.length)];\nconst thankYouMessage = randomTemplate.replace('{sender_name}', recognition.sender_name);\n\nreturn {\n  skip: false,\n  recognition_id: recognition.id,\n  recipient_id: recognition.recipient_id,\n  recipient_name: recognition.recipient_name,\n  recipient_email: recognition.recipient_email,\n  sender_id: recognition.sender_id,\n  sender_name: recognition.sender_name,\n  sender_email: recognition.sender_email,\n  original_message: recognition.message,\n  points_received: recognition.points,\n  thank_you_suggestion: thankYouMessage,\n  recognition_type: recognitionType,\n  created_at: new Date().toISOString()\n};"
+      },
+      "id": "process-recognition",
+      "name": "Process Recognition",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [470, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.skip }}",
+              "value2": false
+            }
+          ]
+        }
+      },
+      "id": "should-process",
+      "name": "Should Process?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [690, 300]
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{$env.INTINC_NOREPLY_EMAIL}}",
+        "toEmail": "={{$json.recipient_email}}",
+        "subject": "🎉 You received recognition from {{$json.sender_name}}!",
+        "emailType": "html",
+        "message": "=<html>\n<body style=\"font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f9fafb;\">\n  <div style=\"background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center;\">\n    <img src=\"https://intinc.com/wp-content/uploads/2024/11/Dot-favicon.png\" alt=\"INTINC\" style=\"width: 50px; height: 50px;\">\n    <h1 style=\"color: white; margin: 15px 0;\">You've Been Recognized! 🌟</h1>\n  </div>\n  \n  <div style=\"padding: 30px; background: white;\">\n    <p style=\"font-size: 16px;\">Hi {{$json.recipient_name}},</p>\n    \n    <div style=\"background: #f3f4f6; border-left: 4px solid #667eea; padding: 20px; margin: 20px 0; border-radius: 0 8px 8px 0;\">\n      <p style=\"margin: 0; font-style: italic;\">\"{{$json.original_message}}\"</p>\n      <p style=\"margin: 10px 0 0 0; color: #6b7280;\">— {{$json.sender_name}}</p>\n    </div>\n    \n    <p><strong>You received {{$json.points_received}} points!</strong> 🎁</p>\n    \n    <div style=\"background: #ecfdf5; border: 1px solid #10b981; padding: 20px; border-radius: 8px; margin: 20px 0;\">\n      <p style=\"margin: 0 0 10px 0; font-weight: bold; color: #065f46;\">💡 Quick Reply Suggestion:</p>\n      <p style=\"margin: 0; color: #047857;\">\"{{$json.thank_you_suggestion}}\"</p>\n    </div>\n    \n    <div style=\"text-align: center; margin: 30px 0;\">\n      <a href=\"{{$env.INTINC_CONNECT_URL}}/recognition/{{$json.recognition_id}}/reply\" style=\"background: #667eea; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;\">Say Thank You →</a>\n    </div>\n    \n    <p style=\"color: #6b7280; font-size: 14px;\">Recognition builds stronger teams! Consider paying it forward by recognizing someone else today.</p>\n  </div>\n  \n  <div style=\"padding: 20px; background: #1f2937; color: #9ca3af; text-align: center; font-size: 12px;\">\n    <p>INTINC • Business Solutions You CAN Take for Granted</p>\n    <p><a href=\"{{$env.INTINC_CONNECT_URL}}/settings/notifications\" style=\"color: #60a5fa;\">Manage notification preferences</a></p>\n  </div>\n</body>\n</html>",
+        "options": {}
+      },
+      "id": "notify-recipient-email",
+      "name": "Email Recognition Notification",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2,
+      "position": [910, 200],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "gmail-intinc",
+          "name": "INTINC Gmail"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.TEAMS_WEBHOOK_PRIVATE_URL}}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"@type\": \"MessageCard\",\n  \"@context\": \"http://schema.org/extensions\",\n  \"themeColor\": \"6366F1\",\n  \"summary\": \"New Recognition Received\",\n  \"sections\": [{\n    \"activityTitle\": \"🌟 {{$json.sender_name}} recognized you!\",\n    \"activitySubtitle\": \"{{$json.original_message}}\",\n    \"facts\": [\n      { \"name\": \"Points\", \"value\": \"+{{$json.points_received}} 🎁\" }\n    ],\n    \"markdown\": true\n  }],\n  \"potentialAction\": [\n    {\n      \"@type\": \"OpenUri\",\n      \"name\": \"Say Thank You\",\n      \"targets\": [{ \"os\": \"default\", \"uri\": \"{{$env.INTINC_CONNECT_URL}}/recognition/{{$json.recognition_id}}/reply\" }]\n    },\n    {\n      \"@type\": \"OpenUri\",\n      \"name\": \"View in INTINC Connect\",\n      \"targets\": [{ \"os\": \"default\", \"uri\": \"{{$env.INTINC_CONNECT_URL}}/recognition/{{$json.recognition_id}}\" }]\n    }\n  ]\n}",
+        "options": {}
+      },
+      "id": "notify-recipient-teams",
+      "name": "Teams DM to Recipient",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [910, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.INTINC_CONNECT_API_URL}}/api/notifications",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"user_id\": \"{{$json.recipient_id}}\",\n  \"type\": \"recognition_received\",\n  \"title\": \"{{$json.sender_name}} recognized you!\",\n  \"message\": \"{{$json.original_message}}\",\n  \"action_url\": \"/recognition/{{$json.recognition_id}}\",\n  \"metadata\": {\n    \"recognition_id\": \"{{$json.recognition_id}}\",\n    \"sender_id\": \"{{$json.sender_id}}\",\n    \"points\": {{$json.points_received}},\n    \"suggested_reply\": \"{{$json.thank_you_suggestion}}\"\n  },\n  \"read\": false\n}",
+        "options": {}
+      },
+      "id": "create-in-app-notification",
+      "name": "Create In-App Notification",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [910, 400],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "intinc-connect-api",
+          "name": "INTINC Connect API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.POSTHOG_API_URL}}/capture",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"api_key\": \"{{$env.POSTHOG_API_KEY}}\",\n  \"event\": \"recognition_notification_sent\",\n  \"distinct_id\": \"{{$json.recipient_id}}\",\n  \"properties\": {\n    \"recognition_id\": \"{{$json.recognition_id}}\",\n    \"sender_id\": \"{{$json.sender_id}}\",\n    \"recognition_type\": \"{{$json.recognition_type}}\",\n    \"points\": {{$json.points_received}},\n    \"notification_channels\": [\"email\", \"teams\", \"in-app\"],\n    \"workflow\": \"n8n_thank_you_automation\"\n  }\n}",
+        "options": {}
+      },
+      "id": "posthog-track-notification",
+      "name": "Track in PostHog",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1130, 300]
+    },
+    {
+      "parameters": {},
+      "id": "skip-processing",
+      "name": "Skip Processing",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [910, 500]
+    }
+  ],
+  "connections": {
+    "Recognition Created Webhook": {
+      "main": [[{ "node": "Process Recognition", "type": "main", "index": 0 }]]
+    },
+    "Process Recognition": {
+      "main": [[{ "node": "Should Process?", "type": "main", "index": 0 }]]
+    },
+    "Should Process?": {
+      "main": [
+        [
+          { "node": "Email Recognition Notification", "type": "main", "index": 0 },
+          { "node": "Teams DM to Recipient", "type": "main", "index": 0 },
+          { "node": "Create In-App Notification", "type": "main", "index": 0 }
+        ],
+        [{ "node": "Skip Processing", "type": "main", "index": 0 }]
+      ]
+    },
+    "Email Recognition Notification": {
+      "main": [[{ "node": "Track in PostHog", "type": "main", "index": 0 }]]
+    },
+    "Teams DM to Recipient": {
+      "main": [[{ "node": "Track in PostHog", "type": "main", "index": 0 }]]
+    },
+    "Create In-App Notification": {
+      "main": [[{ "node": "Track in PostHog", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": ["intinc-connect", "recognition", "notifications", "thank-you"],
+  "triggerCount": 0,
+  "updatedAt": "2025-11-25T00:00:00.000Z",
+  "versionId": "1.0.0"
+}

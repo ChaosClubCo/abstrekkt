@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: #07070f;
+  color: #e0e0e0;
+  font-family: -apple-system, 'Inter', BlinkMacSystemFont, sans-serif;
+  padding: 20px;
+  min-height: 100vh;
+}
+
+.header {
+  text-align: center;
+  margin-bottom: 18px;
+}
+
+.header h1 {
+  font-size: 18px;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: -0.4px;
+}
+
+.header p {
+  font-size: 11px;
+  color: #444;
+  margin-top: 4px;
+}
+
+.run-all-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  width: 100%;
+  padding: 11px;
+  background: #0d0d1a;
+  border: 1px solid #2a2a4e;
+  border-radius: 8px;
+  color: #8080ff;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-bottom: 14px;
+  transition: all 0.2s;
+  font-family: inherit;
+  letter-spacing: 0.3px;
+}
+.run-all-btn:hover:not(:disabled) { background: #12122a; border-color: #5555cc; color: #aaaaff; }
+.run-all-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+.personas-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(165px, 1fr));
+  gap: 9px;
+  margin-bottom: 16px;
+}
+
+.persona-card {
+  background: #0e0e18;
+  border: 1px solid #1a1a28;
+  border-radius: 9px;
+  padding: 13px;
+  cursor: pointer;
+  transition: all 0.18s;
+  position: relative;
+}
+.persona-card:hover { border-color: var(--accent); background: #12121e; transform: translateY(-1px); }
+.persona-card.active { border-color: var(--accent); background: #12121e; box-shadow: 0 0 0 1px var(--accent)40, 0 6px 20px #00000066; }
+.persona-card.loading { pointer-events: none; }
+
+.persona-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 7px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  margin-bottom: 9px;
+  background: var(--accent-bg);
+}
+
+.persona-name { font-size: 12px; font-weight: 700; color: #f0f0f0; margin-bottom: 1px; }
+.persona-title { font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.7px; font-weight: 700; color: var(--accent); margin-bottom: 3px; }
+.persona-role { font-size: 10px; color: #3a3a55; margin-bottom: 6px; }
+.persona-desc { font-size: 10.5px; color: #4a4a6a; line-height: 1.5; }
+.persona-status { margin-top: 8px; font-size: 10px; color: #3a3a55; min-height: 14px; }
+
+.progress-bar {
+  width: 100%;
+  height: 2px;
+  background: #1a1a28;
+  border-radius: 2px;
+  margin-bottom: 14px;
+  overflow: hidden;
+  display: none;
+}
+.progress-bar.visible { display: block; }
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #6060ff, #a060ff);
+  border-radius: 2px;
+  transition: width 0.4s ease;
+  width: 0%;
+}
+
+.output-panel {
+  display: none;
+  background: #0e0e18;
+  border: 1px solid #1a1a28;
+  border-radius: 9px;
+  padding: 18px;
+}
+.output-panel.visible { display: block; }
+
+.output-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #1a1a28;
+}
+.output-emoji { font-size: 18px; }
+.output-name { font-size: 13px; font-weight: 700; color: #fff; }
+.output-role { font-size: 10px; color: #444; }
+.output-badge {
+  margin-left: auto;
+  font-size: 9.5px;
+  padding: 3px 9px;
+  border-radius: 20px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  flex-shrink: 0;
+}
+
+.output-content {
+  font-size: 12.5px;
+  color: #b0b0c8;
+  line-height: 1.75;
+  white-space: pre-wrap;
+}
+
+.audit-block {
+  margin-bottom: 28px;
+  padding-bottom: 28px;
+  border-bottom: 1px solid #141420;
+}
+.audit-block:last-child { border-bottom: none; margin-bottom: 0; }
+
+.loading-dots span { animation: blink 1.2s infinite; opacity: 0; }
+.loading-dots span:nth-child(2) { animation-delay: 0.2s; }
+.loading-dots span:nth-child(3) { animation-delay: 0.4s; }
+@keyframes blink { 0%,80%,100%{opacity:0} 40%{opacity:1} }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>🏛️ Board of Advisors — Brand Architecture Audit</h1>
+  <p>kylerosebrook.com · FlashFusion · Chaos Club Co. &nbsp;|&nbsp; March 2026</p>
+</div>
+
+<button class="run-all-btn" id="runAllBtn" onclick="runAllAudits()">
+  ⚡ Run Full Board Session (All 7 Audits)
+</button>
+
+<div class="progress-bar" id="progressBar">
+  <div class="progress-fill" id="progressFill"></div>
+</div>
+
+<div class="personas-grid" id="personasGrid"></div>
+<div class="output-panel" id="outputPanel"></div>
+
+<script>
+const BRAND_CONTEXT = `
+BRAND ARCHITECTURE UNDER AUDIT:
+
+Three-layer structure:
+1. kylerosebrook.com — Personal brand/distribution hub. Author: self-taught (no CS degree), hospitality (bartending at O'Toole's) → QC → Staff-level AppSec/Platform Engineer. Founder of FlashFusion and Chaos Club Co. Father to Kinsley. Defining skill: diagnosing — reading rooms, reading processes, reading systems. This survived cognitive disruption and became the foundation for reconstruction.
+
+2. FlashFusion.co — B2B AI enablement (audits, consulting, skills frameworks). Merging under personal brand. 240+ tools in production. Practitioner-grade, not consulting theater.
+
+3. ChaosClubCo — Mental health/peer support platform. "Welcome to the Chaos Club: where no one has to pretend — but everyone understands." Staying completely separate. Crisis resources always free. Peer connection over clinical fixing.
+
+DRAFT VALUE PROPOSITIONS:
+- Kyle (personal brand): Help non-traditional builders stop apologizing for their path and start leveraging it — by showing what's possible when someone builds from necessity, not a playbook.
+- FlashFusion: Help mid-market teams stop drowning in AI vendor noise and start shipping real outcomes — via practitioner-grade AI audits and skills frameworks.
+- Chaos Club Co: Help people tired of performing okay build actual support systems — via peer connection, honest tools, and zero toxic positivity.
+
+KEY ARCHITECTURAL DECISIONS BEING EVALUATED:
+- FlashFusion merging under kylerosebrook.com (personal brand IS the differentiator)
+- Chaos Club staying fully separate (must feel like a platform/community, not one person's brand)
+- Three proposed tie-in levels: (1) Narrative — memoir explains why CC exists, (2) Founder credibility — lived experience as quiet CC backstory, (3) Distribution — personal brand drives traffic into CC funnel
+
+MEMOIR: Working thesis — "How does a person whose mind has been broken—by choice, by injury, by circumstance—rebuild agency not through recovery of what was lost, but through construction of what never existed?"
+
+CONSTRAINTS: Full-time Staff Engineer (public: self-taught, no employer to name), Friday custody of Kinsley, $1K budget, building Chaos Club simultaneously, writing memoir.
+
+LAUNCH STATUS: Personal brand launching Monday. Chaos Club separate. FlashFusion merging into personal brand.
+`;
+
+const personas = [
+  {
+    id: 'brand-architect', name: 'Elena Vasquez', title: 'Brand Architect', role: 'Ex-CMO, Nike & Apple',
+    emoji: '🏛️', accent: '#a78bfa', accentBg: 'rgba(167,139,250,0.08)',
+    desc: 'Architecture integrity, market clarity, long-term brand equity',
+    system: `You are Elena Vasquez, former CMO at Nike and Apple, now an independent brand architecture consultant with 25 years building multi-brand systems. You are direct, strategic, and allergic to vague positioning. You tell founders what they need to hear. Structure your audit exactly as: VERDICT (one sentence), WHAT'S WORKING, RISK FLAGS, ACTION PLAN (5 specific prioritized steps). Be blunt. Use line breaks between sections.`,
+    prompt: `Audit this three-layer brand architecture. Focus on: structural integrity of the three layers, whether the FlashFusion → personal brand merge is architecturally sound, the risk/benefit of the three Chaos Club tie-in levels, and whether this system creates clarity or confusion in market. Be direct. No softening.\n\n${BRAND_CONTEXT}`
+  },
+  {
+    id: 'venture-partner', name: 'Marcus Webb', title: 'Venture Partner', role: 'Mental Health + Creator Economy VC',
+    emoji: '💹', accent: '#34d399', accentBg: 'rgba(52,211,153,0.08)',
+    desc: 'Business thesis, monetization stack, market timing',
+    system: `You are Marcus Webb, General Partner at a fund focused on mental health tech and creator economy. You have backed several successful personal brand-to-product companies. You think in monetization stacks and revenue sequencing. You are here to find the holes. Structure as: INVESTMENT THESIS (Yes/No/Conditional + why), MONETIZATION STACK ASSESSMENT, SEQUENCING RISKS, 3 QUESTIONS YOU'D ASK IN A PITCH. Use line breaks between sections.`,
+    prompt: `Audit the business thesis and monetization potential. Is there a coherent revenue model across the three layers? What's the right monetization sequence? Is the merge financially sound? What's the Chaos Club monetization path given its peer support (not clinical) model? Where does the memoir fit financially?\n\n${BRAND_CONTEXT}`
+  },
+  {
+    id: 'mental-health', name: 'Dr. Aisha Thompson', title: 'Mental Health Platform Founder', role: 'Clinical Psychologist → Tech Founder',
+    emoji: '🧠', accent: '#f87171', accentBg: 'rgba(248,113,113,0.08)',
+    desc: 'Authenticity, user trust, ethical positioning',
+    system: `You are Dr. Aisha Thompson, a clinical psychologist who left practice to found a mental health tech platform. You are deeply skeptical of founder-centered mental health brands — you have seen too many that exploit vulnerability for growth. You will flag every place where the tie-in between the founder's personal brand and the mental health platform could erode user trust. Structure as: RED FLAGS (be specific), GREEN FLAGS, THE RIGHT WAY TO TIE IN. Use line breaks between sections.`,
+    prompt: `Audit the proposed relationship between kylerosebrook.com and Chaos Club Co. Does the three-level tie-in proposal protect user trust or compromise it? Is "built by someone who had to construct a support system from scratch" safe founder framing for a mental health platform? Where are the ethical risks? What's the right way to connect founder story to mental health community without users feeling like growth metrics?\n\n${BRAND_CONTEXT}`
+  },
+  {
+    id: 'literary-agent', name: 'James Calloway', title: 'Literary Agent', role: '20 Years, Literary Nonfiction',
+    emoji: '📖', accent: '#fbbf24', accentBg: 'rgba(251,191,36,0.08)',
+    desc: 'Memoir commerciality, narrative as connective tissue',
+    system: `You are James Calloway, senior literary agent specializing in literary nonfiction and memoir for 20 years. You've sold dozens of books that straddled personal narrative and larger cultural arguments. You know when memoirs function as brand assets and when they're actually compelling literature. Be honest about commercial viability. Structure as: COMMERCIAL VIABILITY ASSESSMENT, THE BOOK'S ROLE IN THE BRAND ARCHITECTURE, NARRATIVE RISKS, WHAT WOULD MAKE THIS SELL. Use line breaks between sections.`,
+    prompt: `Audit the memoir's role in this brand architecture. Working thesis: "How does a person whose mind has been broken rebuild agency not through recovery of what was lost, but through construction of what never existed?" Is using memoir as connective tissue between personal brand, B2B consulting, and mental health platform viable? Does it compromise literary integrity? What would make this book actually sell?\n\n${BRAND_CONTEXT}`
+  },
+  {
+    id: 'enterprise-sales', name: 'Sandra Park', title: 'VP Enterprise Sales', role: 'Ex-Salesforce, B2B GTM Expert',
+    emoji: '💼', accent: '#60a5fa', accentBg: 'rgba(96,165,250,0.08)',
+    desc: 'B2B credibility, pipeline, enterprise close rates',
+    system: `You are Sandra Park, former VP of Enterprise Sales at Salesforce, now a GTM consultant for B2B SaaS and services companies. You know exactly what makes buyers say yes and what makes them ghost. You will be blunt about whether this positioning can close enterprise contracts. Structure as: ENTERPRISE CREDIBILITY SCORE (1-10 with reasoning), WHAT WILL CLOSE DEALS, WHAT WILL KILL DEALS, 5 SPECIFIC POSITIONING FIXES. Use line breaks between sections.`,
+    prompt: `Audit FlashFusion's B2B positioning under the personal brand umbrella. Does merging FlashFusion under kylerosebrook.com help or hurt enterprise sales? Is "practitioner-grade, 240+ tools in production" sufficient credibility for mid-market B2B buyers? Does the founder's non-traditional path create enterprise sales risk or opportunity? How does the Chaos Club connection affect B2B buyer perception?\n\n${BRAND_CONTEXT}`
+  },
+  {
+    id: 'distribution', name: 'Theo Nakamura', title: 'Distribution Strategist', role: 'Personal Brand Architecture',
+    emoji: '📡', accent: '#fb923c', accentBg: 'rgba(251,146,60,0.08)',
+    desc: 'Audience building, distribution engine design, content flywheel',
+    system: `You are Theo Nakamura, architect behind several of the most successful personal brand-to-business flywheels in the creator economy. You think in systems: content → audience → trust → revenue → more content. You are specific about platforms, cadence, content types. You tell founders exactly what needs to be built to make personal brand a real distribution engine — not a vanity project. Structure as: DISTRIBUTION AUDIT, THE FLYWHEEL DESIGN, PLATFORM STRATEGY, 90-DAY BUILD PLAN. Use line breaks between sections.`,
+    prompt: `Audit kylerosebrook.com as a distribution engine for FlashFusion and Chaos Club Co. Is the personal brand positioned to actually drive traffic and trust into both? What content flywheel needs to exist? Which platforms matter and why? What's the risk of a Monday launch without these systems? Design the 90-day build plan that makes this architecture actually function.\n\n${BRAND_CONTEXT}`
+  },
+  {
+    id: 'systems-lead', name: 'Ravi Mehta', title: 'Systems Product Lead', role: 'Ex-Facebook, Reforge',
+    emoji: '⚙️', accent: '#22d3ee', accentBg: 'rgba(34,211,238,0.08)',
+    desc: 'Ecosystem design, dependency mapping, build sequencing',
+    system: `You are Ravi Mehta, former product lead at Facebook and founder of Reforge. You approach brand architecture like infrastructure — what are the load-bearing components, what breaks first under pressure, what's the correct build order. You are not interested in marketing strategy — you want to know if the system is structurally sound and executable given real constraints. Structure as: DEPENDENCY MAP (text format), CRITICAL PATH, FAILURE MODES (top 3), RECOMMENDED BUILD ORDER given constraints. Use line breaks between sections.`,
+    prompt: `Audit this three-layer brand architecture from a systems design perspective. Map the dependencies. What breaks if personal brand doesn't get traction? What's the load-bearing component? Given constraints (full-time Staff Engineer job, Friday custody of daughter, $1K budget, building Chaos Club simultaneously, writing memoir), what is the ACTUAL correct build sequence? What must be deferred?\n\n${BRAND_CONTEXT}`
+  }
+];
+
+let isRunningAll = false;
+
+function renderPersonas() {
+  document.getElementById('personasGrid').innerHTML = personas.map(p => `
+    <div class="persona-card" id="card-${p.id}" onclick="runAudit('${p.id}')"
+         style="--accent:${p.accent};--accent-bg:${p.accentBg}">
+      <div class="persona-icon">${p.emoji}</div>
+      <div class="persona-name">${p.name}</div>
+      <div class="persona-title">${p.title}</div>
+      <div class="persona-role">${p.role}</div>
+      <div class="persona-desc">${p.desc}</div>
+      <div class="persona-status" id="status-${p.id}"></div>
+    </div>
+  `).join('');
+}
+
+async function callClaude(system, user) {
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model: "claude-sonnet-4-20250514",
+      max_tokens: 1000,
+      system,
+      messages: [{ role: "user", content: user }]
+    })
+  });
+  const data = await res.json();
+  if (data.content?.[0]?.text) return data.content[0].text;
+  throw new Error(data.error?.message || "No response");
+}
+
+async function runAudit(id) {
+  if (isRunningAll) return;
+  const p = personas.find(x => x.id === id);
+  if (!p) return;
+
+  document.querySelectorAll('.persona-card').forEach(c => c.classList.remove('active'));
+  const card = document.getElementById(`card-${id}`);
+  card.classList.add('active', 'loading');
+
+  const panel = document.getElementById('outputPanel');
+  panel.className = 'output-panel visible';
+  panel.innerHTML = `
+    <div class="output-header">
+      <span class="output-emoji">${p.emoji}</span>
+      <div>
+        <div class="output-name">${p.name}</div>
+        <div class="output-role">${p.role}</div>
+      </div>
+      <span class="output-badge" style="background:${p.accentBg};color:${p.accent}">${p.title}</span>
+    </div>
+    <div class="output-content" style="color:#444">
+      <span class="loading-dots">Running audit<span>.</span><span>.</span><span>.</span></span>
+    </div>`;
+
+  document.getElementById(`status-${id}`).textContent = '⏳ Auditing...';
+
+  try {
+    const result = await callClaude(p.system, p.prompt);
+    card.classList.remove('loading');
+    document.getElementById(`status-${id}`).innerHTML = `<span style="color:${p.accent}">✓ Complete</span>`;
+    panel.innerHTML = `
+      <div class="output-header">
+        <span class="output-emoji">${p.emoji}</span>
+        <div>
+          <div class="output-name">${p.name}</div>
+          <div class="output-role">${p.role}</div>
+        </div>
+        <span class="output-badge" style="background:${p.accentBg};color:${p.accent}">${p.title}</span>
+      </div>
+      <div class="output-content">${result}</div>`;
+  } catch (err) {
+    card.classList.remove('loading');
+    document.getElementById(`status-${id}`).innerHTML = `<span style="color:#f87171">✗ Error</span>`;
+    panel.innerHTML = `<div class="output-content" style="color:#f87171">Error: ${err.message}</div>`;
+  }
+}
+
+async function runAllAudits() {
+  if (isRunningAll) return;
+  isRunningAll = true;
+  const btn = document.getElementById('runAllBtn');
+  btn.disabled = true;
+  btn.textContent = '⏳ Running full board session...';
+
+  const progressBar = document.getElementById('progressBar');
+  const progressFill = document.getElementById('progressFill');
+  progressBar.className = 'progress-bar visible';
+
+  const results = [];
+
+  for (let i = 0; i < personas.length; i++) {
+    const p = personas[i];
+    const card = document.getElementById(`card-${p.id}`);
+    document.querySelectorAll('.persona-card').forEach(c => c.classList.remove('active'));
+    card.classList.add('active', 'loading');
+    document.getElementById(`status-${p.id}`).textContent = '⏳ Auditing...';
+
+    const panel = document.getElementById('outputPanel');
+    panel.className = 'output-panel visible';
+    panel.innerHTML = `<div class="output-content" style="color:#444">Running ${p.name} (${i+1}/${personas.length})<span class="loading-dots"><span>.</span><span>.</span><span>.</span></span></div>`;
+
+    progressFill.style.width = `${((i) / personas.length) * 100}%`;
+
+    try {
+      const result = await callClaude(p.system, p.prompt);
+      results.push({ p, result, ok: true });
+      card.classList.remove('loading');
+      document.getElementById(`status-${p.id}`).innerHTML = `<span style="color:${p.accent}">✓ Done</span>`;
+    } catch (err) {
+      results.push({ p, result: `Error: ${err.message}`, ok: false });
+      card.classList.remove('loading');
+      document.getElementById(`status-${p.id}`).innerHTML = `<span style="color:#f87171">✗ Error</span>`;
+    }
+    await new Promise(r => setTimeout(r, 300));
+  }
+
+  progressFill.style.width = '100%';
+  setTimeout(() => { progressBar.className = 'progress-bar'; }, 800);
+
+  const panel = document.getElementById('outputPanel');
+  panel.className = 'output-panel visible';
+  panel.innerHTML = `
+    <div style="font-size:15px;font-weight:700;color:#fff;margin-bottom:22px;padding-bottom:14px;border-bottom:1px solid #1a1a28;">
+      📋 Full Board Audit — ${new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'})}
+    </div>
+    ${results.map(({p, result, ok}) => `
+      <div class="audit-block">
+        <div class="output-header" style="margin-bottom:12px;padding-bottom:10px;">
+          <span class="output-emoji">${p.emoji}</span>
+          <div>
+            <div class="output-name">${p.name}</div>
+            <div class="output-role">${p.role}</div>
+          </div>
+          <span class="output-badge" style="background:${p.accentBg};color:${p.accent}">${p.title}</span>
+        </div>
+        <div class="output-content" style="${ok?'':'color:#f87171'}">${result}</div>
+      </div>
+    `).join('')}`;
+
+  document.querySelectorAll('.persona-card').forEach(c => c.classList.remove('active'));
+  isRunningAll = false;
+  btn.disabled = false;
+  btn.textContent = '⚡ Run Full Board Session (All 7 Audits)';
+}
+
+renderPersonas();
+</script>
+</body>
+</html>

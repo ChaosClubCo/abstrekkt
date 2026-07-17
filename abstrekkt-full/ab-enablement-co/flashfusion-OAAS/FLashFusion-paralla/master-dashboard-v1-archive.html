@@ -1,0 +1,1661 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Claude Checklists — Homebase Command Center</title>
+<style>
+:root {
+  --bg:#0a0a0f; --surface:#12121a; --surface-2:#1a1a26; --surface-3:#222233;
+  --border:#2a2a3a; --border-light:#3a3a4e;
+  --text:#e4e4ef; --text-dim:#8888a0; --text-bright:#ffffff;
+  --accent:#6c5ce7; --accent-glow:rgba(108,92,231,.15);
+  --green:#00b894; --green-glow:rgba(0,184,148,.15);
+  --orange:#e17055; --red:#d63031; --yellow:#fdcb6e;
+  --claude:#d4a574; --gemini:#4285f4; --codex:#10a37f; --copilot:#0078d4;
+  --focus-ring:0 0 0 2px var(--accent);
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Segoe UI',-apple-system,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column;}
+
+/* === FOCUS & A11Y === */
+:focus-visible{outline:none;box-shadow:var(--focus-ring);}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;}
+[role="status"]{position:relative;}
+@media(prefers-reduced-motion:reduce){*{animation-duration:0s!important;transition-duration:0s!important;}}
+
+/* === SKIP LINK === */
+.skip-link{position:absolute;top:-100%;left:50%;transform:translateX(-50%);background:var(--accent);color:#fff;padding:8px 20px;border-radius:0 0 8px 8px;z-index:200;font-size:13px;}
+.skip-link:focus{top:0;}
+
+/* === TOP BAR === */
+.top-bar{display:flex;justify-content:space-between;align-items:center;padding:14px 20px;border-bottom:1px solid var(--border);flex-wrap:wrap;gap:10px;}
+.top-bar h1{font-size:18px;font-weight:600;letter-spacing:-.5px;white-space:nowrap;}
+.top-bar h1 .hl{color:var(--accent);}
+.top-bar-right{display:flex;align-items:center;gap:16px;flex-wrap:wrap;}
+.top-bar-stats{display:flex;gap:14px;font-size:12px;}
+.top-bar-stats .st{display:flex;align-items:center;gap:4px;}
+.dot{width:7px;height:7px;border-radius:50%;display:inline-block;}
+.dot-g{background:var(--green);box-shadow:0 0 5px var(--green);}
+.dot-o{background:var(--orange);}
+.dot-d{background:var(--text-dim);}
+.kbd-hint{font-size:10px;color:var(--text-dim);display:flex;gap:8px;}
+.kbd-hint kbd{background:var(--surface-2);border:1px solid var(--border);padding:1px 5px;border-radius:3px;font-family:inherit;font-size:10px;}
+.progress-global{height:4px;background:var(--surface-2);}
+.progress-global .fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--green));transition:width .4s;}
+
+/* === LAYOUT === */
+.main{display:flex;flex:1;overflow:hidden;position:relative;}
+.left-panel{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px;}
+.right-panel{width:420px;min-width:420px;border-left:1px solid var(--border);display:flex;flex-direction:column;background:var(--surface);}
+
+/* === SPOTLIGHT SEARCH === */
+.spotlight-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:150;align-items:flex-start;justify-content:center;padding-top:15vh;}
+.spotlight-overlay.open{display:flex;}
+.spotlight-box{background:var(--surface);border:1px solid var(--border);border-radius:12px;width:90%;max-width:560px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.5);}
+.spotlight-input{width:100%;background:transparent;border:none;border-bottom:1px solid var(--border);color:var(--text);padding:14px 18px;font-size:15px;font-family:inherit;}
+.spotlight-input::placeholder{color:var(--text-dim);}
+.spotlight-input:focus{outline:none;}
+.spotlight-results{max-height:320px;overflow-y:auto;}
+.spotlight-item{display:flex;justify-content:space-between;align-items:center;padding:10px 18px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--border);}
+.spotlight-item:hover,.spotlight-item.highlighted{background:var(--surface-2);}
+.spotlight-item .si-domain{font-size:10px;color:var(--accent);text-transform:uppercase;letter-spacing:.5px;}
+.spotlight-empty{padding:20px;text-align:center;color:var(--text-dim);font-size:13px;}
+
+/* === ACTIVITY LOG === */
+.activity-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:150;align-items:center;justify-content:center;}
+.activity-overlay.open{display:flex;}
+.activity-box{background:var(--surface);border:1px solid var(--border);border-radius:12px;width:90%;max-width:480px;max-height:70vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.5);}
+.activity-header{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid var(--border);}
+.activity-header h2{font-size:15px;font-weight:600;}
+.activity-close{background:none;border:none;color:var(--text-dim);font-size:18px;cursor:pointer;}
+.activity-list{flex:1;overflow-y:auto;padding:10px 0;}
+.activity-entry{display:flex;gap:10px;padding:8px 18px;font-size:12px;line-height:1.5;border-bottom:1px solid var(--border);}
+.activity-entry .ae-time{color:var(--text-dim);white-space:nowrap;min-width:55px;}
+.activity-entry .ae-icon{font-size:14px;}
+.activity-entry.ae-done .ae-icon{color:var(--green);}
+.activity-entry.ae-undo .ae-icon{color:var(--orange);}
+.activity-empty{padding:30px;text-align:center;color:var(--text-dim);font-size:13px;}
+
+/* === CONTROLS === */
+.controls{display:flex;gap:6px;flex-wrap:wrap;align-items:center;}
+.controls button,.ctrl-btn{background:var(--surface);border:1px solid var(--border);color:var(--text);padding:5px 11px;border-radius:6px;font-size:11px;cursor:pointer;transition:all .15s;white-space:nowrap;}
+.controls button:hover,.ctrl-btn:hover{border-color:var(--accent);background:var(--surface-2);}
+.controls button.active{background:var(--accent);border-color:var(--accent);color:#fff;}
+.scan-btn{background:linear-gradient(135deg,var(--accent),#a855f7)!important;border-color:var(--accent)!important;color:#fff!important;font-weight:600;}
+.scan-btn:hover{opacity:.9!important;}
+.ctrl-spacer{flex:1;}
+
+/* === GRID === */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px;}
+.domain-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;transition:all .2s;position:relative;}
+.domain-card:hover{border-color:var(--accent);box-shadow:0 0 16px var(--accent-glow);}
+.domain-card.complete{border-color:var(--green);box-shadow:0 0 16px var(--green-glow);}
+.domain-card.selected{border-color:var(--accent);border-width:2px;box-shadow:0 0 24px var(--accent-glow);}
+.domain-card.kb-focus{box-shadow:var(--focus-ring),0 0 16px var(--accent-glow);}
+.stale-badge{position:absolute;top:10px;right:42px;width:8px;height:8px;background:var(--orange);border-radius:50%;animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1);}50%{opacity:.4;transform:scale(1.4);}}
+.card-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;cursor:pointer;padding:2px 0;border-radius:4px;}
+.card-head:focus-visible{box-shadow:var(--focus-ring);}
+.card-title{font-size:14px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;}
+.badge{font-size:10px;padding:2px 7px;border-radius:99px;font-weight:600;}
+.badge-critical{background:rgba(214,48,49,.2);color:var(--red);}
+.badge-high{background:rgba(225,112,85,.2);color:var(--orange);}
+.badge-medium{background:rgba(253,203,110,.2);color:var(--yellow);}
+.card-prog{display:flex;align-items:center;gap:8px;margin-bottom:10px;}
+.pbar{flex:1;height:3px;background:var(--surface-2);border-radius:2px;overflow:hidden;}
+.pbar .fill{height:100%;background:var(--accent);border-radius:2px;transition:width .3s;}
+.pbar .fill.done{background:var(--green);}
+.ptext{font-size:11px;color:var(--text-dim);min-width:36px;text-align:right;}
+.sec-label{font-size:10px;font-weight:600;color:var(--text-dim);text-transform:uppercase;letter-spacing:.8px;margin:10px 0 4px;}
+.cl{list-style:none;}
+.cl li{display:flex;align-items:flex-start;gap:6px;padding:3px 0;font-size:12px;line-height:1.4;cursor:pointer;user-select:none;border-radius:3px;}
+.cl li:hover{color:var(--text-bright);}
+.cl li:focus-visible{box-shadow:var(--focus-ring);}
+.cl li.chk{color:var(--text-dim);text-decoration:line-through;}
+.cl li input[type="checkbox"]{appearance:none;width:14px;height:14px;min-width:14px;border:2px solid var(--border);border-radius:3px;margin-top:1px;cursor:pointer;position:relative;transition:all .15s;}
+.cl li input:checked{background:var(--green);border-color:var(--green);}
+.cl li input:checked::after{content:'';position:absolute;left:3px;top:0;width:4px;height:7px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg);}
+.cl li input:focus-visible{box-shadow:var(--focus-ring);}
+.card-more{font-size:11px;color:var(--accent);cursor:pointer;margin-top:6px;display:inline-block;background:none;border:none;font-family:inherit;}
+.card-more:hover{text-decoration:underline;}
+.card-ts{font-size:10px;color:var(--text-dim);margin-top:10px;padding-top:8px;border-top:1px solid var(--border);}
+
+/* === RIGHT PANEL: AI CHAT === */
+.provider-tabs{display:flex;border-bottom:1px solid var(--border);}
+.ptab{flex:1;padding:10px 6px;text-align:center;font-size:11px;font-weight:600;cursor:pointer;border:none;border-bottom:2px solid transparent;transition:all .15s;color:var(--text-dim);background:transparent;}
+.ptab:hover{color:var(--text);background:var(--surface-2);}
+.ptab:focus-visible{box-shadow:inset var(--focus-ring);}
+.ptab.active{border-bottom-color:var(--claude);color:var(--claude);}
+.ptab[data-p="gemini"].active{border-bottom-color:var(--gemini);color:var(--gemini);}
+.ptab[data-p="codex"].active{border-bottom-color:var(--codex);color:var(--codex);}
+.ptab[data-p="copilot"].active{border-bottom-color:var(--copilot);color:var(--copilot);}
+.key-bar{padding:8px 12px;background:var(--surface-2);border-bottom:1px solid var(--border);display:flex;gap:6px;align-items:center;}
+.key-bar input{flex:1;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;font-family:monospace;}
+.key-bar input::placeholder{color:var(--text-dim);}
+.key-bar .key-status{font-size:10px;padding:2px 7px;border-radius:4px;white-space:nowrap;}
+.key-ok{background:rgba(0,184,148,.15);color:var(--green);}
+.key-none{background:rgba(136,136,160,.15);color:var(--text-dim);}
+.key-bar button{background:var(--accent);border:none;color:#fff;padding:5px 10px;border-radius:6px;font-size:11px;cursor:pointer;}
+.placeholder-notice{padding:8px 12px;background:rgba(253,203,110,.08);border-bottom:1px solid var(--border);font-size:11px;color:var(--yellow);line-height:1.5;}
+.context-bar{padding:6px 12px;background:var(--bg);border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;font-size:11px;}
+.context-bar .ctx-domain{color:var(--accent);font-weight:600;}
+.ctx-toggle{display:flex;align-items:center;gap:5px;}
+.ctx-toggle label{color:var(--text-dim);cursor:pointer;font-size:11px;}
+.ctx-toggle input{accent-color:var(--accent);cursor:pointer;}
+.quick-actions{padding:8px 12px;border-bottom:1px solid var(--border);display:flex;gap:5px;flex-wrap:wrap;}
+.qa-btn{background:var(--surface-2);border:1px solid var(--border);color:var(--text);padding:3px 9px;border-radius:14px;font-size:10px;cursor:pointer;transition:all .15s;white-space:nowrap;}
+.qa-btn:hover{border-color:var(--accent);color:var(--text-bright);}
+.qa-btn:focus-visible{box-shadow:var(--focus-ring);}
+.refresh-spin { animation: spin 1s linear infinite; display: inline-block; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.explore-bar { padding:8px 12px; background:var(--surface-2); border-bottom:1px solid var(--border); display:flex; gap:6px; align-items:center; }
+.explore-bar .explore-label { font-size:10px; color:var(--text-dim); text-transform:uppercase; letter-spacing:.5px; margin-right:4px; }
+.explore-btn { background:var(--surface); border:1px solid var(--border); color:var(--text); padding:4px 10px; border-radius:14px; font-size:10px; cursor:pointer; transition:all .15s; white-space:nowrap; }
+.explore-btn:hover { border-color:var(--accent); color:var(--text-bright); }
+.explore-btn:focus-visible { box-shadow:var(--focus-ring); }
+.chat-messages{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px;}
+.msg{padding:9px 11px;border-radius:10px;font-size:12px;line-height:1.55;max-width:95%;word-wrap:break-word;white-space:pre-wrap;}
+.msg-user{background:var(--accent);color:#fff;align-self:flex-end;border-bottom-right-radius:3px;}
+.msg-ai{background:var(--surface-2);color:var(--text);align-self:flex-start;border-bottom-left-radius:3px;border:1px solid var(--border);}
+.msg-system{background:rgba(108,92,231,.1);color:var(--text-dim);align-self:center;font-size:11px;text-align:center;border:1px solid var(--border);}
+.msg-ai .model-tag{font-size:9px;color:var(--text-dim);margin-bottom:3px;text-transform:uppercase;letter-spacing:.5px;}
+.msg-error{background:rgba(214,48,49,.1);border:1px solid rgba(214,48,49,.3);color:var(--red);}
+.msg-scan{background:rgba(108,92,231,.08);border:1px solid rgba(108,92,231,.3);color:var(--text);align-self:stretch;max-width:100%;}
+.typing{display:flex;gap:4px;padding:10px;align-self:flex-start;}
+.typing span{width:5px;height:5px;background:var(--text-dim);border-radius:50%;animation:bounce .6s infinite alternate;}
+.typing span:nth-child(2){animation-delay:.2s;}
+.typing span:nth-child(3){animation-delay:.4s;}
+@keyframes bounce{to{transform:translateY(-5px);opacity:.3;}}
+.chat-input-area{padding:10px 12px;border-top:1px solid var(--border);background:var(--surface);}
+.chat-input-row{display:flex;gap:6px;}
+.chat-input-row textarea{flex:1;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:7px 10px;border-radius:8px;font-size:12px;font-family:inherit;resize:none;min-height:38px;max-height:110px;}
+.chat-input-row textarea:focus{outline:none;border-color:var(--accent);}
+.send-btn{background:var(--accent);border:none;color:#fff;padding:7px 14px;border-radius:8px;font-size:12px;cursor:pointer;font-weight:600;align-self:flex-end;}
+.send-btn:hover{opacity:.9;}
+.send-btn:disabled{opacity:.4;cursor:not-allowed;}
+.chat-input-row .copy-btn{background:var(--surface-2);border:1px solid var(--border);color:var(--text);padding:7px 10px;border-radius:8px;font-size:12px;cursor:pointer;align-self:flex-end;}
+.model-selector{display:flex;gap:5px;margin-top:6px;align-items:center;}
+.model-selector label{font-size:10px;color:var(--text-dim);}
+.model-selector select{background:var(--bg);border:1px solid var(--border);color:var(--text);padding:2px 6px;border-radius:4px;font-size:10px;}
+.model-selector select:focus-visible{box-shadow:var(--focus-ring);}
+.api-status{padding:4px 12px 6px;border-top:1px solid var(--border);background:var(--surface);}
+.api-progress{height:3px;background:var(--surface-2);border-radius:2px;overflow:hidden;}
+.api-progress-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--green),var(--accent));background-size:200% 100%;animation:shimmer 1.5s infinite linear;width:100%;transition:width .3s;}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+.api-status-text{font-size:10px;color:var(--text-dim);margin-top:3px;display:flex;justify-content:space-between;}
+
+/* === MOBILE CHAT TOGGLE === */
+.chat-toggle-btn{display:none;position:fixed;right:14px;bottom:14px;z-index:100;width:46px;height:46px;border-radius:50%;background:var(--accent);border:none;color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 16px rgba(108,92,231,.4);}
+.chat-toggle-btn:focus-visible{box-shadow:var(--focus-ring),0 4px 16px rgba(108,92,231,.4);}
+
+/* === PROJECTS VIEW === */
+.project-card { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:14px; transition:all .2s; }
+.project-card:hover { border-color:var(--accent); box-shadow:0 0 16px var(--accent-glow); }
+.project-card .pc-name { font-size:14px; font-weight:600; margin-bottom:4px; }
+.project-card .pc-domain { font-size:10px; color:var(--accent); text-transform:uppercase; letter-spacing:.5px; }
+.project-card .pc-desc { font-size:12px; color:var(--text-dim); margin:8px 0; line-height:1.4; }
+.project-card .pc-path { font-size:10px; color:var(--text-dim); font-family:monospace; word-break:break-all; padding-top:8px; border-top:1px solid var(--border); margin-top:8px; }
+.project-card .pc-drive { display:inline-block; font-size:10px; padding:1px 6px; border-radius:4px; background:var(--surface-2); color:var(--text-dim); margin-left:6px; }
+.project-card .pc-actions { display:flex; gap:6px; margin-top:10px; }
+.project-card .pc-actions button { background:var(--surface-2); border:1px solid var(--border); color:var(--text); padding:4px 10px; border-radius:6px; font-size:10px; cursor:pointer; }
+.project-card .pc-actions button:hover { border-color:var(--accent); }
+.projects-empty { text-align:center; padding:40px; color:var(--text-dim); }
+.projects-empty code { background:var(--surface-2); padding:2px 8px; border-radius:4px; font-size:12px; }
+.domain-filter-bar { display:flex; gap:5px; flex-wrap:wrap; margin-bottom:12px; }
+.df-btn { background:var(--surface-2); border:1px solid var(--border); color:var(--text-dim); padding:3px 10px; border-radius:14px; font-size:10px; cursor:pointer; }
+.df-btn:hover, .df-btn.active { border-color:var(--accent); color:var(--text); }
+
+/* === PROMPT LIBRARY === */
+.prompt-library{border-bottom:1px solid var(--border);max-height:0;overflow:hidden;transition:max-height .3s ease;}
+.prompt-library.open{max-height:1200px;overflow-y:auto;}
+.prompt-lib-toggle{display:flex;justify-content:space-between;align-items:center;padding:7px 12px;background:var(--surface-2);border-bottom:1px solid var(--border);cursor:pointer;font-size:11px;font-weight:600;color:var(--text-dim);text-transform:uppercase;letter-spacing:.5px;user-select:none;}
+.prompt-lib-toggle:hover{color:var(--text);background:var(--surface-3);}
+.prompt-lib-toggle .pl-arrow{transition:transform .2s;font-size:9px;}
+.prompt-lib-toggle.open .pl-arrow{transform:rotate(90deg);}
+.prompt-lib-help{padding:10px 12px;font-size:11px;color:var(--text-dim);line-height:1.6;border-bottom:1px solid var(--border);background:rgba(108,92,231,.05);}
+.prompt-lib-help b{color:var(--text);}
+.prompt-card{padding:14px 16px;border-bottom:1px solid var(--border);}
+.prompt-card:last-child{border-bottom:none;}
+.prompt-card .pc-title{font-size:14px;font-weight:600;color:var(--text);margin-bottom:3px;}
+.prompt-card .pc-summary{font-size:12px;color:var(--text-dim);margin-bottom:4px;line-height:1.5;}
+.prompt-card .pc-desc{font-size:11px;color:var(--text-dim);margin-bottom:8px;line-height:1.5;opacity:.8;}
+.prompt-card .pc-btns{display:flex;gap:6px;}
+.prompt-card .pc-btns button{background:var(--surface);border:1px solid var(--border);color:var(--text);padding:6px 14px;border-radius:5px;font-size:11px;cursor:pointer;transition:all .15s;}
+.prompt-card .pc-btns button:hover{border-color:var(--accent);color:var(--text-bright);}
+.prompt-card .pc-btns .pc-chat{background:var(--accent);border-color:var(--accent);color:#fff;}
+.prompt-card .pc-btns .pc-chat:hover{opacity:.9;}
+.prompt-no-project{padding:12px;text-align:center;font-size:11px;color:var(--text-dim);}
+
+/* === RESPONSIVE === */
+@media(max-width:1100px){
+  .right-panel{width:360px;min-width:360px;}
+}
+@media(max-width:860px){
+  .right-panel{display:none;position:fixed;top:0;right:0;bottom:0;width:100%;min-width:unset;z-index:99;}
+  .right-panel.open{display:flex;}
+  .chat-toggle-btn{display:block;}
+  .grid{grid-template-columns:1fr 1fr;}
+  .kbd-hint{display:none;}
+}
+@media(max-width:600px){
+  .grid{grid-template-columns:1fr;}
+  .top-bar{padding:10px 14px;}
+  .left-panel{padding:12px;}
+  .top-bar h1{font-size:16px;}
+}
+</style>
+</head>
+<body>
+
+<a class="skip-link" href="#grid">Skip to checklist</a>
+<a class="skip-link" href="#chatInput" style="left:calc(50% + 120px)">Skip to AI chat</a>
+
+<!-- TOP BAR -->
+<header class="top-bar" role="banner">
+  <h1><span class="hl">Claude</span> Checklists <span style="font-size:11px;color:var(--text-dim);font-weight:400">AI Command Center</span></h1>
+  <div class="top-bar-right">
+    <div class="top-bar-stats" role="status" aria-live="polite" aria-label="Progress summary">
+      <div class="st"><span class="dot dot-g" aria-hidden="true"></span><span id="gDone">0</span> done</div>
+      <div class="st"><span class="dot dot-o" aria-hidden="true"></span><span id="gRem">0</span> open</div>
+      <div class="st"><span class="dot dot-d" aria-hidden="true"></span><span id="gTot">0</span> total</div>
+    </div>
+    <div class="kbd-hint" aria-hidden="true"><kbd>Ctrl+K</kbd> Search <kbd>Ctrl+Z</kbd> Undo <kbd>J/K</kbd> Nav</div>
+  </div>
+</header>
+<div class="progress-global" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" id="gBar"><div class="fill" id="gFill"></div></div>
+
+<!-- SPOTLIGHT SEARCH -->
+<div class="spotlight-overlay" id="spotlight" role="dialog" aria-label="Search checklist items" aria-modal="true">
+  <div class="spotlight-box">
+    <input class="spotlight-input" id="spotlightInput" type="text" placeholder="Search all checklist items..." autocomplete="off" aria-label="Search checklist items" />
+    <div class="spotlight-results" id="spotlightResults" role="listbox"></div>
+  </div>
+</div>
+
+<!-- ACTIVITY LOG -->
+<div class="activity-overlay" id="activityOverlay" role="dialog" aria-label="Activity log" aria-modal="true">
+  <div class="activity-box">
+    <div class="activity-header">
+      <h2>Activity Log</h2>
+      <button class="activity-close" id="activityClose" aria-label="Close activity log">&times;</button>
+    </div>
+    <div class="activity-list" id="activityList" role="log" aria-live="polite"></div>
+  </div>
+</div>
+
+<div class="main">
+
+<!-- LEFT PANEL -->
+<main class="left-panel" id="leftPanel" role="main">
+  <nav class="controls" aria-label="Dashboard filters">
+    <button class="active" data-filter="all" aria-pressed="true">All</button>
+    <button data-filter="critical" aria-pressed="false">Critical</button>
+    <button data-filter="high" aria-pressed="false">High</button>
+    <button data-filter="medium" aria-pressed="false">Medium</button>
+    <button class="ctrl-btn" id="viewToggle" data-view="domains" aria-pressed="false">Projects View</button>
+    <div class="ctrl-spacer"></div>
+    <button class="ctrl-btn" id="refreshBtn" aria-label="Refresh dashboard data">Refresh</button>
+    <button class="ctrl-btn scan-btn" id="scanBtn" aria-label="AI scan and suggest">AI Scan</button>
+    <button class="ctrl-btn" id="activityBtn" aria-label="View activity log">Activity</button>
+    <button class="ctrl-btn" id="exportBtn" aria-label="Export as markdown">Export</button>
+  </nav>
+  <div class="grid" id="grid" role="list" aria-label="Domain checklists"></div>
+  <div class="domain-filter-bar" id="domainFilterBar" style="display:none"></div>
+  <div class="grid" id="projectsGrid" role="list" aria-label="Registered projects" style="display:none"></div>
+</main>
+
+<!-- RIGHT PANEL: AI CHAT -->
+<aside class="right-panel" id="chatPanel" role="complementary" aria-label="AI Chat">
+  <div class="provider-tabs" role="tablist" aria-label="AI provider tabs">
+    <button class="ptab active" data-p="claude" role="tab" aria-selected="true" id="tab-claude">Claude</button>
+    <button class="ptab" data-p="gemini" role="tab" aria-selected="false" id="tab-gemini">Gemini</button>
+    <button class="ptab" data-p="codex" role="tab" aria-selected="false" id="tab-codex">Codex</button>
+    <button class="ptab" data-p="copilot" role="tab" aria-selected="false" id="tab-copilot">Copilot</button>
+  </div>
+  <div class="key-bar" id="keyBar">
+    <input type="password" id="apiKeyInput" placeholder="sk-ant-... (session only)" aria-label="Anthropic API key" />
+    <button id="keySetBtn">Set</button>
+    <span class="key-status key-none" id="keyStatus" role="status">No key</span>
+  </div>
+  <div class="placeholder-notice" id="placeholderNotice" style="display:none" role="status">API coming soon. Compose prompts here — click <b>Copy</b> to include checklist context.</div>
+  <div class="context-bar">
+    <div>Context: <span class="ctx-domain" id="ctxDomain">All Domains</span><button id="ctxClearBtn" style="display:none;background:none;border:none;color:var(--text-dim);cursor:pointer;font-size:14px;margin-left:4px;padding:0 2px" title="Clear selection" aria-label="Clear domain selection">&times;</button></div>
+    <div class="ctx-toggle"><label for="ctxFull">Full context</label><input type="checkbox" id="ctxFull" /></div>
+  </div>
+  <div class="quick-actions" id="quickActions" role="toolbar" aria-label="Quick actions">
+    <button class="qa-btn" data-qa="status">What's my status?</button>
+    <button class="qa-btn" data-qa="next">What should I do next?</button>
+    <button class="qa-btn" data-qa="audit">Audit this domain</button>
+    <button class="qa-btn" data-qa="blockers">Find blockers</button>
+    <button class="qa-btn" data-qa="summarize">Summarize progress</button>
+  </div>
+  <div class="explore-bar" id="exploreBar">
+    <span class="explore-label">Explore:</span>
+    <button class="explore-btn" data-explore="scout" title="Scan all drives for new/changed projects">Scout Drives</button>
+    <button class="explore-btn" data-explore="health" title="Check build status and git state of registered projects">Health Check</button>
+    <button class="explore-btn" data-explore="suggest" title="Analyze gaps and suggest new checklist items">Smart Suggest</button>
+  </div>
+  <div class="prompt-lib-toggle" id="promptLibToggle" role="button" aria-expanded="false" aria-controls="promptLibrary">
+    <span>Prompts <span id="promptLibCount"></span></span>
+    <span class="pl-arrow">&#9654;</span>
+  </div>
+  <div class="prompt-library" id="promptLibrary" role="region" aria-label="Prompt library"></div>
+  <div class="chat-messages" id="chatMessages" role="log" aria-live="polite" aria-label="Chat messages">
+    <div class="msg msg-system">Select a domain card to set context. Paste API key above for live Claude chat. <kbd>Ctrl+K</kbd> to search.</div>
+  </div>
+  <div class="chat-input-area">
+    <div class="chat-input-row">
+      <textarea id="chatInput" placeholder="Ask anything... (Enter to send, Shift+Enter for newline)" rows="1" aria-label="Chat message input"></textarea>
+      <button class="send-btn" id="sendBtn" aria-label="Send message">Send</button>
+      <button class="copy-btn" id="copyBtn" style="display:none" aria-label="Copy prompt with context to clipboard">Copy</button>
+    </div>
+    <div class="model-selector" id="modelSelector">
+      <label for="modelSelect">Model:</label>
+      <select id="modelSelect">
+        <option value="auto">Auto (smart)</option>
+        <option value="claude-sonnet-4-6-20250514">Sonnet 4.6</option>
+        <option value="claude-opus-4-6-20250514">Opus 4.6</option>
+        <option value="claude-haiku-4-5-20251001">Haiku 4.5</option>
+      </select>
+      <span id="modelNote" style="font-size:10px;color:var(--text-dim);margin-left:4px" role="status"></span>
+    </div>
+  </div>
+  <div class="api-status" id="apiStatus" style="display:none">
+    <div class="api-progress"><div class="api-progress-fill" id="apiProgressFill"></div></div>
+    <div class="api-status-text" id="apiStatusText"></div>
+  </div>
+</aside>
+
+</div>
+
+<div id="shortcutHelp" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.6);justify-content:center;align-items:center" role="dialog" aria-label="Keyboard shortcuts">
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px 32px;max-width:420px;width:90%;color:var(--text);font-size:13px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px"><h3 style="margin:0;font-size:16px">Keyboard Shortcuts</h3><button onclick="document.getElementById('shortcutHelp').style.display='none'" style="background:none;border:none;color:var(--text-dim);cursor:pointer;font-size:18px">&times;</button></div>
+    <table style="width:100%;border-collapse:collapse">
+      <tr><td style="padding:4px 12px 4px 0"><kbd style="background:var(--bg);padding:2px 6px;border-radius:3px;border:1px solid var(--border)">?</kbd></td><td>Show this help</td></tr>
+      <tr><td style="padding:4px 12px 4px 0"><kbd style="background:var(--bg);padding:2px 6px;border-radius:3px;border:1px solid var(--border)">j</kbd> / <kbd style="background:var(--bg);padding:2px 6px;border-radius:3px;border:1px solid var(--border)">k</kbd></td><td>Navigate cards down/up</td></tr>
+      <tr><td style="padding:4px 12px 4px 0"><kbd style="background:var(--bg);padding:2px 6px;border-radius:3px;border:1px solid var(--border)">Enter</kbd></td><td>Select focused card</td></tr>
+      <tr><td style="padding:4px 12px 4px 0"><kbd style="background:var(--bg);padding:2px 6px;border-radius:3px;border:1px solid var(--border)">1</kbd>–<kbd style="background:var(--bg);padding:2px 6px;border-radius:3px;border:1px solid var(--border)">4</kbd></td><td>Switch provider tabs</td></tr>
+      <tr><td style="padding:4px 12px 4px 0"><kbd style="background:var(--bg);padding:2px 6px;border-radius:3px;border:1px solid var(--border)">/</kbd></td><td>Focus chat input</td></tr>
+      <tr><td style="padding:4px 12px 4px 0"><kbd style="background:var(--bg);padding:2px 6px;border-radius:3px;border:1px solid var(--border)">Ctrl+K</kbd></td><td>Spotlight search</td></tr>
+      <tr><td style="padding:4px 12px 4px 0"><kbd style="background:var(--bg);padding:2px 6px;border-radius:3px;border:1px solid var(--border)">Ctrl+Z</kbd></td><td>Undo last action</td></tr>
+      <tr><td style="padding:4px 12px 4px 0"><kbd style="background:var(--bg);padding:2px 6px;border-radius:3px;border:1px solid var(--border)">Esc</kbd></td><td>Close overlays</td></tr>
+    </table>
+  </div>
+</div>
+
+<button class="chat-toggle-btn" id="chatToggle" aria-label="Toggle AI chat panel">AI</button>
+
+<script src="projects/projects-data.js"></script>
+<script src="templates/prompts-data.js"></script>
+<script>
+// ============================================================
+// DOMAINS
+// ============================================================
+const DOMAINS=[
+{id:'homebase',title:'Homebase',priority:'critical',sections:{'Setup & Organization':['Audit Downloads folder — categorize all files by domain','Move project folders to their correct domain locations','Establish folder structure convention for all domains','Create symlinks or references between related projects'],'Cross-Domain Coordination':['Map dependencies between domains','Define handoff protocols between domains','Set up unified inventory across all active projects'],'Tracking System':['Create claude-checklists system','Create interactive dashboard','Validate dashboard works across all domains','Establish weekly review cadence']}},
+{id:'system',title:'System',priority:'high',sections:{'Environment':['Document current Windows 11 environment setup','Audit installed CLI tools and versions','Verify Node, Python, Git, Docker are current','Review shell config (bash/zsh/PowerShell profiles)'],'Claude Code Setup':['Audit installed plugins and MCP servers','Review CLAUDE.md files across all projects','Verify memory system is organized and current','Document custom keybindings and preferences'],'Security & Credentials':['Audit stored credentials and API keys','Rotate any stale keys','Verify .env files are gitignored everywhere','Document which services use which auth method']}},
+{id:'development',title:'Development',priority:'high',sections:{'Active Repos':['Inventory all git repos in working directories','Check for uncommitted changes across all repos','Identify repos that need cleanup or archiving','Verify remote origins are correct and accessible'],'Build & CI/CD':['Document build processes per project','Set up shared CI/CD templates','Verify all projects have working test suites'],'Code Quality':['Establish linting/formatting standards','Set up pre-commit hooks for active projects','Review and consolidate shared dependencies']}},
+{id:'intinc',title:'INTINC',priority:'critical',sections:{'Business Operations':['Document current INTINC product/service inventory','Map active revenue streams','Identify operational bottlenecks','Review and update business documentation'],'Products & Services':['Audit active products — status and health','Identify products needing updates or deprecation','Document product roadmaps'],'Infrastructure':['Map hosting and deployment infrastructure','Review costs and optimize spend','Verify monitoring and alerting is in place']}},
+{id:'flashfusion',title:'FlashFusion',priority:'critical',sections:{
+'UPE Phase 1.5 — Gap Closure':[
+'Build Quick Add mode (name + lane + category only, smart defaults)',
+'Build Bulk Status Update (multi-select + batch action bar)',
+'Build CSV Export (columns: name, lane, category, scores, effort)',
+'Build Clipboard Copy for single items (formatted for Slack/tickets)',
+'Build Hard Delete from Archived items (with confirmation dialog)',
+'Wire Undo action on Archive toast (5-second revert window)',
+'Build Category + Status multi-select filter dropdowns'],
+'UPE Phase 2 — Intelligence':[
+'Implement Stale Item Detection (14-day threshold + amber badge)',
+'Implement Confidence Decay warnings (30-day + re-evaluate button)',
+'Wire Keyboard Shortcuts (n/e/d/f/Esc/arrows/1-9/?)',
+'Build Burndown + Velocity mini-charts (requires history tracking)',
+'Build Settings Panel (defaults, thresholds, theme, data management)',
+'Implement Dark/Light Theme Toggle',
+'Build Item Duplication',
+'Implement Drag-and-Drop manual reorder'],
+'UPE Phase 3 — Deployment':[
+'Run Supabase migrations (items + settings + RLS)',
+'Build login page with magic link auth',
+'Integrate Phase 1.5 + Phase 2 into deployed app',
+'Deploy to Vercel with environment variables',
+'Mobile responsiveness pass',
+'Smoke test on live URL'],
+'Command Center Fixes':[
+'Fix auth.ts (4 errors — escaped template literals)',
+'Fix api/chat/route.ts (2 errors)',
+'Fix api/webhooks/trigger/route.ts (2 errors)',
+'Fix lib/chunker.ts (3 errors)',
+'Fix lib/watcher.ts (2 errors)',
+'Fix AnalyticsCharts.tsx (2 errors)',
+'Add npm run build script to package.json'],
+'FlashFusion Platform':[
+'Review FlashFusion-Enterprise codebase state',
+'Document architecture and tech stack',
+'Identify MVP blockers',
+'Define launch criteria',
+'Prepare demo / pitch materials']}},
+{id:'media',title:'Media',priority:'medium',sections:{'Audio':['Inventory audio files and projects','Organize by project / purpose','Back up to cloud storage'],'Design':['Consolidate design system files','Review design-system-encyclopedia','Organize Figma / design tool references'],'Content Pipeline':['Document content creation workflow','Set up templates for recurring content types','Establish review/approval process']}},
+{id:'anthropic',title:'Anthropic',priority:'high',sections:{'Claude Code':['Audit installed plugins and their health','Review custom skills — update or deprecate stale ones','Document MCP server configurations','Optimize memory system'],'API Integrations':['Document all projects using Claude/Anthropic API','Verify API key management and rotation','Review usage and costs','Test current integrations are functional'],'Skills & Plugins':['Inventory custom-built skills','Review superpowers plugin configuration','Document plugin dependencies and versions']}},
+{id:'google',title:'Google',priority:'medium',sections:{'Google Cloud Platform':['Audit active GCP projects','Review IAM and permissions','Check billing and cost optimization','Document deployed services'],'AI Studio / Gemini':['Document AI Studio prompt chains and configs','Review prompt chain config file','Test Gemini API integrations','Compare pricing vs other providers'],'Google Workspace':['Review connected apps and integrations','Audit OAuth scopes and permissions','Document automation workflows']}},
+{id:'openai',title:'OpenAI',priority:'medium',sections:{'API Integrations':['Inventory all projects using OpenAI API','Verify API key management','Review usage, costs, and rate limits','Document model versions in use'],'Assistants & GPTs':['Audit custom GPTs / Assistants','Document configurations and system prompts','Identify overlap with Claude-based solutions']}},
+{id:'microsoft-copilot',title:'Microsoft & Copilot',priority:'medium',sections:{'Azure':['Audit active Azure resources','Review cost management and budgets','Document deployed services and regions','Verify security and compliance settings'],'Copilot':['Document Copilot integrations in use','Review Copilot Studio configurations','Audit custom copilot agents'],'Dev Tools':['Review VS Code extensions and settings','Document workspace configurations','Sync settings across environments']}},
+{id:'aws',title:'AWS',priority:'medium',sections:{'Infrastructure':['Audit active AWS resources across all regions','Review IAM users, roles, and policies','Check billing alerts and cost optimization','Document VPC and networking setup'],'Services in Use':['Inventory Lambda functions — status and triggers','Audit S3 buckets — permissions and lifecycle','Review EC2 instances — right-sizing','Document RDS/DynamoDB databases'],'Security':['Run AWS Trusted Advisor checks','Review Security Hub findings','Verify CloudTrail is enabled','Audit access keys and rotation schedule']}}
+];
+
+// ============================================================
+// STATE
+// ============================================================
+const CK='claude-checklists-state', AL='claude-checklists-activity', UNDO='claude-checklists-undo';
+const loadCK=()=>{try{return JSON.parse(localStorage.getItem(CK))||{};}catch{return{};}};
+const saveCK=s=>localStorage.setItem(CK,JSON.stringify(s));
+const ik=(d,s,i)=>`${d}::${s}::${i}`;
+const loadActivity=()=>{try{return JSON.parse(localStorage.getItem(AL))||[];}catch{return[];}};
+const saveActivity=a=>localStorage.setItem(AL,JSON.stringify(a.slice(-200)));
+const loadUndo=()=>{try{return JSON.parse(sessionStorage.getItem(UNDO))||[];}catch{return[];}};
+const saveUndo=u=>sessionStorage.setItem(UNDO,JSON.stringify(u.slice(-20)));
+
+// Stale tracking: store first-seen timestamps for unchecked items
+const STALE_KEY='claude-checklists-stale';
+const loadStale=()=>{try{return JSON.parse(localStorage.getItem(STALE_KEY))||{};}catch{return{};}};
+const saveStale=s=>localStorage.setItem(STALE_KEY,JSON.stringify(s));
+function initStale(){const st=loadStale(),now=Date.now();DOMAINS.forEach(d=>Object.entries(d.sections).forEach(([sec,items])=>items.forEach(i=>{const k=ik(d.id,sec,i);if(!st[k])st[k]=now;})));saveStale(st);return st;}
+function isStale(key,domainPriority){const st=loadStale(),ck=loadCK();if(ck[key])return false;const age=(Date.now()-(st[key]||Date.now()))/864e5;return domainPriority==='critical'?age>5:domainPriority==='high'?age>7:age>14;}
+
+const PRE=['homebase::Tracking System::Create claude-checklists system','homebase::Tracking System::Create interactive dashboard'];
+function initCK(){const s=loadCK();PRE.forEach(k=>{if(!(k in s))s[k]=true;});saveCK(s);return s;}
+function domainStats(d,s){let t=0,c=0;Object.entries(d.sections).forEach(([sec,items])=>items.forEach(i=>{t++;if(s[ik(d.id,sec,i)])c++;}));return{t,c,p:t?Math.round(c/t*100):0};}
+function globalStats(s){let t=0,c=0;DOMAINS.forEach(d=>{const x=domainStats(d,s);t+=x.t;c+=x.c;});return{t,c,r:t-c,p:t?Math.round(c/t*100):0};}
+function domainHasStale(d){let found=false;Object.entries(d.sections).forEach(([sec,items])=>items.forEach(i=>{if(isStale(ik(d.id,sec,i),d.priority))found=true;}));return found;}
+
+// Activity logging
+function logActivity(key,checked){const a=loadActivity();const parts=key.split('::');a.push({time:Date.now(),domain:parts[0],item:parts[2],checked});saveActivity(a);}
+
+// Undo
+function pushUndo(key,prevValue){const u=loadUndo();u.push({key,prev:prevValue,time:Date.now()});saveUndo(u);}
+function popUndo(){const u=loadUndo();if(!u.length)return null;const item=u.pop();saveUndo(u);return item;}
+
+// ============================================================
+// DOMAIN SELECTION + CONTEXT
+// ============================================================
+let selectedDomain=null,currentFilter='all',activeProvider='claude';
+let chatHistory={claude:[],gemini:[],codex:[],copilot:[]};
+let kbFocusIdx=-1;
+let selectedProject=null; // Currently selected project from PROJECT_PROMPTS
+
+function getProjectPrompts() { return window.PROJECT_PROMPTS || {}; }
+function getSelectedProjectData() {
+  if (!selectedProject) return null;
+  return getProjectPrompts()[selectedProject] || null;
+}
+function selectProject(projectId) {
+  const prompts = getProjectPrompts();
+  const proj = prompts[projectId];
+  if (!proj) { selectedProject = null; updateProjectUI(); return; }
+  selectedProject = projectId;
+  if (proj.domain) { selectedDomain = proj.domain; }
+  document.getElementById('ctxDomain').textContent = proj.label || projectId;
+  updateProjectUI();
+  renderGrid();
+}
+function deselectProject() {
+  selectedProject = null;
+  selectedDomain = null;
+  document.getElementById('ctxDomain').textContent = 'All Domains';
+  document.getElementById('ctxClearBtn').style.display = 'none';
+  updateProjectUI();
+  renderGrid();
+}
+function updateProjectUI() {
+  renderPromptLibrary();
+  updateQuickActions();
+  document.getElementById('ctxClearBtn').style.display = (selectedDomain || selectedProject) ? 'inline' : 'none';
+}
+
+// Format a prompt + project context for pasting into Claude Desktop / Cowork
+function formatForCowork(promptText, projectId) {
+  const prompts = getProjectPrompts();
+  const proj = prompts[projectId || selectedProject];
+  if (!proj) return promptText;
+  const s = loadCK();
+  // Build checklist state for the project's domain
+  let checklistState = '';
+  if (proj.domain) {
+    const domain = DOMAINS.find(d => d.id === proj.domain);
+    if (domain) {
+      const st = domainStats(domain, s);
+      checklistState += `Progress: ${st.c}/${st.t} (${st.p}%)\n\n`;
+      Object.entries(domain.sections).forEach(([sec, items]) => {
+        checklistState += `### ${sec}\n`;
+        items.forEach(i => { checklistState += `- [${s[ik(domain.id, sec, i)] ? 'x' : ' '}] ${i}\n`; });
+        checklistState += '\n';
+      });
+    }
+  }
+  return `## Project: ${proj.label || projectId}
+## Location: ${proj.path || 'unknown'}
+## Domain: ${proj.domain || 'unassigned'} | Priority: ${(DOMAINS.find(d => d.id === proj.domain) || {}).priority || 'medium'}
+
+## Project Context
+${proj.cowork_context || '(no context available)'}
+
+## Current Checklist State
+${checklistState || '(no checklist data)'}
+
+## Instructions
+${promptText}`;
+}
+
+function copyToClipboard(text, btnEl) {
+  navigator.clipboard.writeText(text).then(() => {
+    if (btnEl) { const orig = btnEl.textContent; btnEl.textContent = 'Copied!'; setTimeout(() => btnEl.textContent = orig, 1500); }
+  });
+}
+
+function getContextText(full){
+  const s=loadCK();
+  if(!selectedDomain){
+    if(!full)return'No specific domain selected. User is viewing all domains.';
+    let c='Full dashboard state:\n';
+    DOMAINS.forEach(d=>{const st=domainStats(d,s);c+=`\n## ${d.title} (${st.c}/${st.t})\n`;Object.entries(d.sections).forEach(([sec,items])=>{c+=`### ${sec}\n`;items.forEach(i=>c+=`- [${s[ik(d.id,sec,i)]?'x':' '}] ${i}\n`);});});
+    return c;
+  }
+  const d=DOMAINS.find(x=>x.id===selectedDomain);const st=domainStats(d,s);
+  let c=`Domain: ${d.title} | Priority: ${d.priority} | Progress: ${st.c}/${st.t} (${st.p}%)\n\n`;
+  Object.entries(d.sections).forEach(([sec,items])=>{c+=`## ${sec}\n`;items.forEach(i=>c+=`- [${s[ik(d.id,sec,i)]?'x':' '}] ${i}\n`);c+='\n';});
+  if(full){c+='\n--- Other domains ---\n';DOMAINS.filter(x=>x.id!==selectedDomain).forEach(d2=>{const st2=domainStats(d2,s);c+=`${d2.title}: ${st2.c}/${st2.t} (${st2.p}%)\n`;});}
+  return c;
+}
+
+// ============================================================
+// MODEL AUTO-SELECT
+// ============================================================
+function autoModel(p){const l=p.toLowerCase();if(l.length<80||/status|list|what's next|mark|check/i.test(l)){setMN('Haiku 4.5 — quick');return'claude-haiku-4-5-20251001';}if(l.length>300||/audit|architect|design|plan|analyze|refactor|review all|security|scan/i.test(l)){setMN('Opus 4.6 — complex');return'claude-opus-4-6-20250514';}setMN('Sonnet 4.6 — balanced');return'claude-sonnet-4-6-20250514';}
+function setMN(t){document.getElementById('modelNote').textContent=t;}
+function getModel(p){const v=document.getElementById('modelSelect').value;if(v==='auto')return autoModel(p);setMN('Override');return v;}
+
+// ============================================================
+// CLAUDE API — WITH TOOL USE (board manipulation)
+// ============================================================
+function showApiStatus(text){const el=document.getElementById('apiStatus');el.style.display='block';document.getElementById('apiStatusText').textContent=text;}
+function updateApiStatus(text){document.getElementById('apiStatusText').textContent=text;}
+function hideApiStatus(){document.getElementById('apiStatus').style.display='none';}
+function getApiKey(){return sessionStorage.getItem('anthropic_key')||'';}
+
+const BOARD_TOOLS = [
+  {
+    name: 'check_item',
+    description: 'Mark a checklist item as complete. Use the exact item text and domain ID.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        domain_id: { type: 'string', description: 'Domain ID (e.g., "homebase", "flashfusion", "aws")' },
+        section: { type: 'string', description: 'Exact section name (e.g., "Setup & Organization")' },
+        item: { type: 'string', description: 'Exact item text to check off' }
+      },
+      required: ['domain_id', 'section', 'item']
+    }
+  },
+  {
+    name: 'uncheck_item',
+    description: 'Mark a checklist item as incomplete.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        domain_id: { type: 'string', description: 'Domain ID' },
+        section: { type: 'string', description: 'Exact section name' },
+        item: { type: 'string', description: 'Exact item text to uncheck' }
+      },
+      required: ['domain_id', 'section', 'item']
+    }
+  },
+  {
+    name: 'add_item',
+    description: 'Add a new checklist item to a domain section. Creates the section if it does not exist.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        domain_id: { type: 'string', description: 'Domain ID to add item to' },
+        section: { type: 'string', description: 'Section name (existing or new)' },
+        item: { type: 'string', description: 'New item text (should be actionable, start with a verb)' }
+      },
+      required: ['domain_id', 'section', 'item']
+    }
+  },
+  {
+    name: 'remove_item',
+    description: 'Remove a checklist item from a domain section.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        domain_id: { type: 'string', description: 'Domain ID' },
+        section: { type: 'string', description: 'Section name' },
+        item: { type: 'string', description: 'Exact item text to remove' }
+      },
+      required: ['domain_id', 'section', 'item']
+    }
+  },
+  {
+    name: 'add_section',
+    description: 'Add a new section with items to an existing domain.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        domain_id: { type: 'string', description: 'Domain ID' },
+        section: { type: 'string', description: 'New section name' },
+        items: { type: 'array', items: { type: 'string' }, description: 'Array of checklist item texts' }
+      },
+      required: ['domain_id', 'section', 'items']
+    }
+  },
+  {
+    name: 'add_domain',
+    description: 'Add an entirely new domain card to the dashboard.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string', description: 'Unique domain ID (lowercase, hyphens, e.g., "vercel")' },
+        title: { type: 'string', description: 'Display title (e.g., "Vercel")' },
+        priority: { type: 'string', enum: ['critical', 'high', 'medium', 'low'], description: 'Priority level' },
+        sections: {
+          type: 'object',
+          description: 'Object mapping section names to arrays of item strings',
+          additionalProperties: { type: 'array', items: { type: 'string' } }
+        }
+      },
+      required: ['id', 'title', 'priority', 'sections']
+    }
+  },
+  {
+    name: 'get_board_state',
+    description: 'Read the current state of the board — all domains or a specific one. Returns checked/unchecked status for every item.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        domain_id: { type: 'string', description: 'Optional: specific domain ID. Omit for all domains.' }
+      }
+    }
+  },
+  {
+    name: 'bulk_check',
+    description: 'Mark multiple items as complete at once.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        items: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              domain_id: { type: 'string' },
+              section: { type: 'string' },
+              item: { type: 'string' }
+            },
+            required: ['domain_id', 'section', 'item']
+          },
+          description: 'Array of items to check off'
+        }
+      },
+      required: ['items']
+    }
+  }
+];
+
+// Execute a board tool and return the result string
+function executeBoardTool(name, input) {
+  const s = loadCK();
+  let result = '';
+
+  switch (name) {
+    case 'check_item': {
+      const k = ik(input.domain_id, input.section, input.item);
+      const domain = DOMAINS.find(d => d.id === input.domain_id);
+      if (!domain) return 'Error: domain "' + input.domain_id + '" not found. Available: ' + DOMAINS.map(d=>d.id).join(', ');
+      if (!domain.sections[input.section]) return 'Error: section "' + input.section + '" not found in ' + input.domain_id + '. Available: ' + Object.keys(domain.sections).join(', ');
+      if (!domain.sections[input.section].includes(input.item)) return 'Error: item not found in section. Available items: ' + domain.sections[input.section].join(' | ');
+      pushUndo(k, !!s[k]);
+      s[k] = true;
+      saveCK(s);
+      logActivity(k, true);
+      renderGrid();
+      result = 'Checked: "' + input.item + '" in ' + input.domain_id + '/' + input.section;
+      break;
+    }
+    case 'uncheck_item': {
+      const k = ik(input.domain_id, input.section, input.item);
+      pushUndo(k, !!s[k]);
+      s[k] = false;
+      saveCK(s);
+      logActivity(k, false);
+      renderGrid();
+      result = 'Unchecked: "' + input.item + '"';
+      break;
+    }
+    case 'add_item': {
+      const domain = DOMAINS.find(d => d.id === input.domain_id);
+      if (!domain) return 'Error: domain "' + input.domain_id + '" not found.';
+      if (!domain.sections[input.section]) {
+        domain.sections[input.section] = [];
+      }
+      if (domain.sections[input.section].includes(input.item)) return 'Item already exists in that section.';
+      domain.sections[input.section].push(input.item);
+      saveDomainChanges();
+      renderGrid();
+      result = 'Added: "' + input.item + '" to ' + input.domain_id + '/' + input.section;
+      break;
+    }
+    case 'remove_item': {
+      const domain = DOMAINS.find(d => d.id === input.domain_id);
+      if (!domain) return 'Error: domain not found.';
+      if (!domain.sections[input.section]) return 'Error: section not found.';
+      const idx = domain.sections[input.section].indexOf(input.item);
+      if (idx === -1) return 'Error: item not found in section.';
+      domain.sections[input.section].splice(idx, 1);
+      // Clean up checked state
+      const k = ik(input.domain_id, input.section, input.item);
+      delete s[k];
+      saveCK(s);
+      // Remove empty sections
+      if (domain.sections[input.section].length === 0) delete domain.sections[input.section];
+      saveDomainChanges();
+      renderGrid();
+      result = 'Removed: "' + input.item + '" from ' + input.domain_id + '/' + input.section;
+      break;
+    }
+    case 'add_section': {
+      const domain = DOMAINS.find(d => d.id === input.domain_id);
+      if (!domain) return 'Error: domain not found.';
+      if (domain.sections[input.section]) return 'Section already exists. Use add_item to add items to it.';
+      domain.sections[input.section] = input.items || [];
+      saveDomainChanges();
+      renderGrid();
+      result = 'Added section "' + input.section + '" with ' + (input.items?.length || 0) + ' items to ' + input.domain_id;
+      break;
+    }
+    case 'add_domain': {
+      if (DOMAINS.find(d => d.id === input.id)) return 'Error: domain "' + input.id + '" already exists.';
+      DOMAINS.push({ id: input.id, title: input.title, priority: input.priority, sections: input.sections || {} });
+      saveDomainChanges();
+      renderGrid();
+      result = 'Added new domain: ' + input.title + ' (' + input.id + ') [' + input.priority + '] with ' + Object.keys(input.sections || {}).length + ' sections';
+      break;
+    }
+    case 'get_board_state': {
+      const domains = input.domain_id ? DOMAINS.filter(d => d.id === input.domain_id) : DOMAINS;
+      if (input.domain_id && !domains.length) return 'Error: domain not found.';
+      let state = '';
+      domains.forEach(d => {
+        const st = domainStats(d, s);
+        state += '\n## ' + d.title + ' [' + d.priority + '] — ' + st.c + '/' + st.t + ' (' + st.p + '%)\n';
+        Object.entries(d.sections).forEach(([sec, items]) => {
+          state += '### ' + sec + '\n';
+          items.forEach(i => {
+            state += '- [' + (s[ik(d.id, sec, i)] ? 'x' : ' ') + '] ' + i + '\n';
+          });
+        });
+      });
+      result = state || 'No domains found.';
+      break;
+    }
+    case 'bulk_check': {
+      let count = 0;
+      (input.items || []).forEach(item => {
+        const k = ik(item.domain_id, item.section, item.item);
+        const domain = DOMAINS.find(d => d.id === item.domain_id);
+        if (domain && domain.sections[item.section] && domain.sections[item.section].includes(item.item)) {
+          pushUndo(k, !!s[k]);
+          s[k] = true;
+          logActivity(k, true);
+          count++;
+        }
+      });
+      saveCK(s);
+      renderGrid();
+      result = 'Bulk checked ' + count + ' items.';
+      break;
+    }
+    default:
+      result = 'Unknown tool: ' + name;
+  }
+  return result;
+}
+
+// Save domain changes to localStorage (for added items/sections/domains to persist)
+const DOMAINS_CUSTOM_KEY = 'claude-checklists-domains-custom';
+function saveDomainChanges() {
+  localStorage.setItem(DOMAINS_CUSTOM_KEY, JSON.stringify(DOMAINS));
+}
+function loadDomainChanges() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(DOMAINS_CUSTOM_KEY));
+    if (saved && Array.isArray(saved)) {
+      // Remove any previously added custom domains before re-merging
+      const defaultIds = new Set(['homebase','system','development','intinc','flashfusion','media','anthropic','google','openai','microsoft-copilot','aws']);
+      for (let i = DOMAINS.length - 1; i >= 0; i--) {
+        if (!defaultIds.has(DOMAINS[i].id)) DOMAINS.splice(i, 1);
+      }
+      // Merge: keep saved structure but don't lose new defaults
+      saved.forEach(sd => {
+        const existing = DOMAINS.find(d => d.id === sd.id);
+        if (existing) {
+          existing.sections = sd.sections;
+        } else {
+          DOMAINS.push(sd);
+        }
+      });
+    }
+  } catch {}
+}
+
+async function callClaude(userMsg) {
+  const key = getApiKey();
+  if (!key) throw new Error('No API key. Paste your key above (session only — cleared on tab close).');
+  const full = document.getElementById('ctxFull').checked;
+  const ctx = getContextText(full);
+  const model = getModel(userMsg);
+  // Build project-aware system prompt
+  let projectCtx = '';
+  const projData = getSelectedProjectData();
+  if (projData) {
+    projectCtx = `\n\nACTIVE PROJECT: ${projData.label || selectedProject}
+Location: ${projData.path || 'unknown'}
+Domain: ${projData.domain || 'unassigned'}
+${projData.cowork_context ? 'Tech Context: ' + projData.cowork_context : ''}
+Available build prompts: ${(projData.prompts || []).map(p => p.id + ' (' + p.label + ')').join(', ')}`;
+  }
+
+  const sys = `You are an AI assistant embedded in a project checklist dashboard. You can READ and WRITE to the board using your tools.
+
+IMPORTANT RULES:
+- When the user asks you to add, check, uncheck, or remove items — USE THE TOOLS. Do not just describe what you would do.
+- When adding items, make them actionable (start with a verb).
+- Use get_board_state first if you need to see current state before making changes.
+- After making changes, briefly confirm what you did.
+- You can make multiple tool calls in sequence (e.g., check 3 items, add 2 new ones).
+- Available domain IDs: ${DOMAINS.map(d => d.id).join(', ')}
+${projectCtx}
+
+Current context:
+${ctx}`;
+
+  let msgs = [];
+  chatHistory.claude.slice(-6).forEach(m => msgs.push({ role: m.role, content: m.content }));
+  msgs.push({ role: 'user', content: userMsg });
+
+  // Tool use loop — keep going until Claude stops calling tools
+  let finalText = '';
+  let finalModel = model;
+  let toolActions = [];
+  const MAX_TURNS = 10;
+
+  for (let turn = 0; turn < MAX_TURNS; turn++) {
+    showApiStatus(turn === 0 ? 'Connecting to ' + model.split('-').slice(0,3).join(' ') + '...' : 'Tool loop turn ' + (turn+1) + '...');
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': key,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model,
+        max_tokens: 4096,
+        system: sys,
+        tools: BOARD_TOOLS,
+        messages: msgs
+      })
+    });
+
+    if (!resp.ok) {
+      const e = await resp.json().catch(() => ({}));
+      throw new Error(e.error?.message || 'API error ' + resp.status);
+    }
+
+    const data = await resp.json();
+    updateApiStatus('Processing response...');
+    finalModel = data.model;
+
+    // Process response content blocks
+    const assistantContent = data.content;
+    let hasToolUse = false;
+    let toolResultBlocks = [];
+
+    for (const block of assistantContent) {
+      if (block.type === 'text' && block.text) {
+        finalText += (finalText ? '\n' : '') + block.text;
+      }
+      if (block.type === 'tool_use') {
+        hasToolUse = true;
+        updateApiStatus('Tool ' + (turn+1) + ': ' + block.name + '...');
+        const result = executeBoardTool(block.name, block.input);
+        toolActions.push({ tool: block.name, input: block.input, result });
+        // Show action in chat
+        addMsg('system', '⚡ ' + block.name + ': ' + result);
+        toolResultBlocks.push({
+          type: 'tool_result',
+          tool_use_id: block.id,
+          content: result
+        });
+      }
+    }
+
+    // If no tool use, we're done
+    if (!hasToolUse || data.stop_reason === 'end_turn') break;
+
+    // Continue the conversation with tool results
+    msgs.push({ role: 'assistant', content: assistantContent });
+    msgs.push({ role: 'user', content: toolResultBlocks });
+  }
+
+  return { text: finalText, model: finalModel, actions: toolActions };
+}
+
+// ============================================================
+// AI SCAN
+// ============================================================
+function generateScanPrompt(){
+  const s=loadCK(),staleData=loadStale(),now=Date.now();
+  let scan=`Scan my entire checklist dashboard and provide actionable recommendations.\n\n`;
+  scan+=`## Current State\n`;
+  const g=globalStats(s);
+  scan+=`Overall: ${g.c}/${g.t} (${g.p}%)\n\n`;
+  DOMAINS.forEach(d=>{
+    const st=domainStats(d,s);
+    const staleItems=[];
+    Object.entries(d.sections).forEach(([sec,items])=>items.forEach(i=>{
+      const k=ik(d.id,sec,i);
+      if(!s[k]){const age=Math.round((now-(staleData[k]||now))/864e5);if(age>3)staleItems.push({item:i,age});}
+    }));
+    scan+=`### ${d.title} [${d.priority}] — ${st.c}/${st.t}\n`;
+    if(staleItems.length)scan+=`Stale items: ${staleItems.map(x=>`"${x.item}" (${x.age}d)`).join(', ')}\n`;
+    scan+='\n';
+  });
+  scan+=`\nProvide:\n1. Top 3 highest-priority actions right now\n2. Stale items that should be escalated or dropped\n3. Missing items I should add (use the add_item tool to add them directly!)\n4. Cross-domain dependencies or blockers\n5. A suggested focus order for today\n\nBe specific — name domains and exact items. If you identify missing items, USE your add_item tool to add them to the board directly.`;
+  return scan;
+}
+
+// ============================================================
+// CHAT UI
+// ============================================================
+const msgBox=()=>document.getElementById('chatMessages');
+function escH(t){return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');}
+function addMsg(type,text,meta){
+  const d=document.createElement('div');d.className=`msg msg-${type}`;d.setAttribute('role','article');
+  if(type==='ai'&&meta?.model)d.innerHTML=`<div class="model-tag">${meta.model}</div>${escH(text)}`;
+  else d.textContent=text;
+  msgBox().appendChild(d);msgBox().scrollTop=msgBox().scrollHeight;
+}
+function showTyping(){const d=document.createElement('div');d.className='typing';d.id='typInd';d.setAttribute('role','status');d.setAttribute('aria-label','AI is typing');d.innerHTML='<span></span><span></span><span></span>';msgBox().appendChild(d);msgBox().scrollTop=msgBox().scrollHeight;}
+function hideTyping(){document.getElementById('typInd')?.remove();}
+
+let _sendBusy = false;
+async function sendMessage(overrideText){
+  if (_sendBusy) { addMsg('system', 'Please wait — a request is still in progress.'); return; }
+  const input=document.getElementById('chatInput');
+  const text=overrideText||input.value.trim();
+  if(!text)return;
+  if(!overrideText)input.value='';
+  input.style.height='auto';
+  addMsg('user',text);
+  if(activeProvider==='claude'){
+    _sendBusy = true;
+    chatHistory.claude.push({role:'user',content:text});
+    document.getElementById('sendBtn').disabled=true;showTyping();
+    try{const r=await callClaude(text);hideTyping();hideApiStatus();if(r.text)addMsg('ai',r.text,{model:r.model});if(r.actions?.length&&!r.text)addMsg('ai','Done — ' + r.actions.length + ' action(s) executed.',{model:r.model});chatHistory.claude.push({role:'assistant',content:r.text||('Executed ' + (r.actions?.length||0) + ' board actions.')});}
+    catch(e){hideTyping();hideApiStatus();addMsg('error',e.message);}
+    document.getElementById('sendBtn').disabled=false;
+    _sendBusy = false;
+  }else{
+    chatHistory[activeProvider].push({role:'user',content:text});
+    addMsg('system',`Click Copy to send to ${activeProvider} with full context.`);
+  }
+}
+
+function copyPrompt(){
+  const text=document.getElementById('chatInput').value.trim();
+  const ctx=getContextText(document.getElementById('ctxFull').checked);
+  const p=`Context from my checklist dashboard:\n\n${ctx}\n\n---\n\n${text||'(compose your prompt in the dashboard)'}`;
+  navigator.clipboard.writeText(p).then(()=>{const b=document.getElementById('copyBtn');b.textContent='Copied!';setTimeout(()=>b.textContent='Copy',1500);});
+}
+
+const QA={
+  status:"Use get_board_state to read the full board, then give me a quick status. For each domain: emoji + name + fraction + one-word verdict (crushing it / on track / behind / stalled). Then the single highest-impact next action.",
+  next:"Use get_board_state first. Based on priorities (critical first) and completion, what are the top 5 items to tackle next? Name domain, section, exact item, estimated effort.",
+  audit:"Use get_board_state for the selected domain. For each unchecked item: still relevant? blocking? what does done look like? If you find missing items, use add_item to add them directly.",
+  blockers:"Use get_board_state to read all domains. Find cross-domain blockers: items depending on other unchecked items, stale critical items, gaps. Top 3 risks.",
+  summarize:"Use get_board_state to read the full board. Executive summary: wins, gaps, critical items still open. One paragraph I could share with a team."
+};
+
+// ============================================================
+// PROMPT LIBRARY
+// ============================================================
+function renderPromptLibrary() {
+  const lib = document.getElementById('promptLibrary');
+  const countEl = document.getElementById('promptLibCount');
+  const prompts = getProjectPrompts();
+  const proj = selectedProject ? prompts[selectedProject] : null;
+
+  if (!proj || !proj.prompts || !proj.prompts.length) {
+    // Show all projects' prompts if none selected, or empty message
+    const allProjects = Object.entries(prompts);
+    if (!allProjects.length) {
+      lib.innerHTML = '<div class="prompt-no-project">No prompts registered. Add projects to <code>templates/prompts-data.js</code></div>';
+      countEl.textContent = '';
+      return;
+    }
+    if (!selectedProject) {
+      let html = '<div class="prompt-lib-help">Build prompts for your projects. <b>Send to Chat</b> runs it here via API. <b>Copy for Cowork</b> bundles full context for Claude Desktop. <b>Copy CLI Command</b> gives you a terminal one-liner.</div>';
+      let total = 0;
+      allProjects.forEach(([pid, p]) => {
+        (p.prompts || []).forEach(pr => {
+          total++;
+          html += buildPromptCard(pr, pid, p);
+        });
+      });
+      lib.innerHTML = total ? html : '<div class="prompt-no-project">No prompts available</div>';
+      countEl.textContent = total ? '(' + total + ')' : '';
+      wirePromptCardButtons();
+      return;
+    }
+    lib.innerHTML = '<div class="prompt-no-project">No prompts for this project</div>';
+    countEl.textContent = '';
+    return;
+  }
+
+  let html = '<div class="prompt-lib-help">Build prompts for your projects. <b>Send to Chat</b> runs it here via API. <b>Copy for Cowork</b> bundles full context for Claude Desktop. <b>Copy CLI Command</b> gives you a terminal one-liner.</div>';
+  proj.prompts.forEach(pr => { html += buildPromptCard(pr, selectedProject, proj); });
+  lib.innerHTML = html;
+  countEl.textContent = '(' + proj.prompts.length + ')';
+  wirePromptCardButtons();
+}
+
+function buildPromptCard(pr, projectId, proj) {
+  return '<div class="prompt-card" data-prompt-id="' + pr.id + '" data-project-id="' + projectId + '">' +
+    '<div class="pc-title">' + pr.label + '</div>' +
+    '<div class="pc-summary">' + (pr.summary || '') + '</div>' +
+    (pr.description ? '<div class="pc-desc">' + pr.description + '</div>' : '') +
+    '<div class="pc-btns">' +
+      '<button class="pc-chat" data-action="chat" title="Send this prompt to Claude via API — Claude will analyze your board and execute the instructions">Send to Chat</button>' +
+      '<button data-action="cowork" title="Copy a full context bundle (project info + checklist state + prompt) to clipboard — paste into Claude Desktop app">Copy for Cowork</button>' +
+      '<button data-action="cli" title="Copy a terminal command to clipboard — paste into any terminal to open Claude Code in the project folder">Copy CLI Command</button>' +
+    '</div></div>';
+}
+
+function wirePromptCardButtons() {
+  document.querySelectorAll('.prompt-card .pc-btns button').forEach(btn => {
+    btn.addEventListener('click', function() {
+      const card = this.closest('.prompt-card');
+      const promptId = card.dataset.promptId;
+      const projectId = card.dataset.projectId;
+      const prompts = getProjectPrompts();
+      const proj = prompts[projectId];
+      if (!proj) return;
+      const pr = proj.prompts.find(p => p.id === promptId);
+      if (!pr) return;
+
+      const action = this.dataset.action;
+      if (action === 'chat') {
+        // Load prompt into chat and send via Claude API
+        if (activeProvider !== 'claude') document.querySelector('[data-p="claude"]').click();
+        selectProject(projectId);
+        sendMessage(pr.prompt);
+      } else if (action === 'cowork') {
+        // Format for Cowork and copy to clipboard
+        const formatted = formatForCowork(pr.prompt, projectId);
+        copyToClipboard(formatted, this);
+      } else if (action === 'cli') {
+        // Copy CLI command + prompt reference
+        const cmd = (proj.cli_command || 'cd /d ' + (proj.path || '.') + ' && claude');
+        copyToClipboard(cmd, this);
+      }
+    });
+  });
+}
+
+// Prompt library toggle
+document.getElementById('promptLibToggle').addEventListener('click', function() {
+  const lib = document.getElementById('promptLibrary');
+  const isOpen = lib.classList.toggle('open');
+  this.classList.toggle('open', isOpen);
+  this.setAttribute('aria-expanded', isOpen);
+});
+
+// ============================================================
+// PROJECT-AWARE QUICK ACTIONS
+// ============================================================
+const PROJECT_QA = {
+  'start-next': { label: 'Start next phase', getPrompt: (proj, pid) => {
+    const p = proj.prompts && proj.prompts[0];
+    return p ? p.prompt : 'What is the next phase of work for ' + pid + '?';
+  }},
+  'audit-project': { label: 'Audit project', getPrompt: (proj, pid) => {
+    const audit = proj.prompts && proj.prompts.find(p => p.id === 'audit');
+    return audit ? audit.prompt : 'Use get_board_state for ' + (proj.domain || 'all') + '. Audit the project: what is done, what remains, what are the blockers?';
+  }},
+  'draft-cowork': { label: 'Draft for Cowork', getPrompt: (proj, pid) => {
+    return 'Based on the current board state for ' + (proj.domain || 'this project') + ', draft a complete context-engineered prompt I can paste into Claude Desktop. Include: project location, tech stack, current checklist state, and the most impactful next task. Format it ready to copy-paste.';
+  }},
+  'whats-blocking': { label: "What's blocking?", getPrompt: (proj, pid) => {
+    return 'Use get_board_state to read ' + (proj.domain || 'all domains') + '. What items are blocking progress on ' + pid + '? Look for: unchecked dependencies, stale items, items that should be split or clarified. Top 3 blockers with suggested actions.';
+  }}
+};
+
+function updateQuickActions() {
+  const qa = document.getElementById('quickActions');
+  const proj = getSelectedProjectData();
+
+  if (!proj) {
+    // Restore default quick actions
+    qa.innerHTML = '';
+    Object.entries(QA).forEach(([key, prompt]) => {
+      const btn = document.createElement('button');
+      btn.className = 'qa-btn';
+      btn.dataset.qa = key;
+      btn.textContent = key === 'status' ? "What's my status?" : key === 'next' ? 'What should I do next?' : key === 'audit' ? 'Audit this domain' : key === 'blockers' ? 'Find blockers' : 'Summarize progress';
+      btn.addEventListener('click', () => {
+        if (activeProvider === 'claude') sendMessage(QA[key]);
+        else document.getElementById('chatInput').value = QA[key];
+      });
+      qa.appendChild(btn);
+    });
+    return;
+  }
+
+  // Project-specific quick actions
+  qa.innerHTML = '';
+  Object.entries(PROJECT_QA).forEach(([key, def]) => {
+    const btn = document.createElement('button');
+    btn.className = 'qa-btn';
+    btn.textContent = def.label;
+    btn.addEventListener('click', () => {
+      const prompt = def.getPrompt(proj, selectedProject);
+      if (activeProvider === 'claude') sendMessage(prompt);
+      else document.getElementById('chatInput').value = prompt;
+    });
+    qa.appendChild(btn);
+  });
+
+  // Add prompt-specific quick actions for each registered prompt
+  (proj.prompts || []).forEach(pr => {
+    const btn = document.createElement('button');
+    btn.className = 'qa-btn';
+    btn.style.borderColor = 'var(--accent)';
+    btn.textContent = pr.label.length > 25 ? pr.label.substring(0, 25) + '...' : pr.label;
+    btn.title = pr.label + ' — ' + (pr.summary || '');
+    btn.addEventListener('click', () => {
+      if (activeProvider === 'claude') sendMessage(pr.prompt);
+      else document.getElementById('chatInput').value = pr.prompt;
+    });
+    qa.appendChild(btn);
+  });
+}
+
+// ============================================================
+// SPOTLIGHT SEARCH
+// ============================================================
+let spotlightHighlight=0;
+function openSpotlight(){document.getElementById('spotlight').classList.add('open');const inp=document.getElementById('spotlightInput');inp.value='';inp.focus();renderSpotlight('');}
+function closeSpotlight(){document.getElementById('spotlight').classList.remove('open');}
+function renderSpotlight(q){
+  const box=document.getElementById('spotlightResults');box.innerHTML='';
+  const s=loadCK(),low=q.toLowerCase();
+  let results=[];
+  DOMAINS.forEach(d=>Object.entries(d.sections).forEach(([sec,items])=>items.forEach(i=>{
+    if(!q||i.toLowerCase().includes(low)||d.title.toLowerCase().includes(low)){
+      results.push({domain:d,section:sec,item:i,key:ik(d.id,sec,i),checked:!!s[ik(d.id,sec,i)]});
+    }
+  })));
+  if(!results.length){box.innerHTML='<div class="spotlight-empty">No items found</div>';return;}
+  spotlightHighlight=0;
+  results.slice(0,20).forEach((r,i)=>{
+    const div=document.createElement('div');div.className=`spotlight-item${i===0?' highlighted':''}`;div.setAttribute('role','option');
+    div.innerHTML=`<span>${r.checked?'<s style="color:var(--text-dim)">':''}${r.item}${r.checked?'</s>':''}</span><span class="si-domain">${r.domain.title}</span>`;
+    div.addEventListener('click',()=>{closeSpotlight();selectedDomain=r.domain.id;document.getElementById('ctxDomain').textContent=r.domain.title;renderGrid();
+      setTimeout(()=>{const card=document.querySelector(`[data-domain="${r.domain.id}"]`);if(card)card.scrollIntoView({behavior:'smooth',block:'center'});},100);
+    });
+    box.appendChild(div);
+  });
+}
+
+// ============================================================
+// ACTIVITY LOG
+// ============================================================
+function renderActivity(){
+  const list=document.getElementById('activityList'),a=loadActivity().reverse();
+  list.innerHTML='';
+  if(!a.length){list.innerHTML='<div class="activity-empty">No activity yet. Check off items to start logging.</div>';return;}
+  a.slice(0,50).forEach(e=>{
+    const div=document.createElement('div');
+    div.className=`activity-entry ${e.checked?'ae-done':'ae-undo'}`;
+    const t=new Date(e.time);
+    div.innerHTML=`<span class="ae-time">${t.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</span><span class="ae-icon">${e.checked?'&#10003;':'&#8634;'}</span><span><strong>${e.domain}</strong>: ${e.item}</span>`;
+    list.appendChild(div);
+  });
+}
+
+// ============================================================
+// RENDER GRID
+// ============================================================
+function renderCard(domain,state){
+  const st=domainStats(domain,state),hasStale=domainHasStale(domain);
+  const card=document.createElement('div');
+  card.className=`domain-card${st.p===100?' complete':''}${selectedDomain===domain.id?' selected':''}`;
+  card.dataset.priority=domain.priority;card.dataset.domain=domain.id;
+  card.setAttribute('role','listitem');card.setAttribute('aria-label',`${domain.title}: ${st.c} of ${st.t} complete`);
+
+  let html='',idx=0;
+  Object.entries(domain.sections).forEach(([sec,items])=>{
+    html+=`<div class="sec-label" aria-hidden="true">${sec}</div><ul class="cl" role="group" aria-label="${sec}">`;
+    items.forEach(i=>{
+      const k=ik(domain.id,sec,i),c=state[k],stale=isStale(k,domain.priority);
+      html+=`<li${c?' class="chk"':''}${idx>=5?` style="display:none" data-ov="${domain.id}"`:''}tabindex="0" role="checkbox" aria-checked="${!!c}" aria-label="${i}${stale?' (stale)':''}">
+        <input type="checkbox" ${c?'checked':''} data-key="${k}" tabindex="-1" aria-hidden="true"><span>${i}</span>${stale?'<span style="color:var(--orange);margin-left:auto;font-size:10px" aria-label="stale" title="Stale — unchecked too long">&#9679;</span>':''}</li>`;
+      idx++;
+    });
+    html+='</ul>';
+  });
+
+  card.innerHTML=`
+    ${hasStale?'<div class="stale-badge" aria-label="Has stale items" title="Domain has stale items"></div>':''}
+    <div class="card-head" tabindex="0" role="button" aria-label="Select ${domain.title} as context"><div class="card-title">${domain.title}</div><div class="badge badge-${domain.priority}" aria-label="Priority: ${domain.priority}">${domain.priority}</div></div>
+    <div class="card-prog" aria-hidden="true"><div class="pbar"><div class="fill${st.p===100?' done':''}" style="width:${st.p}%"></div></div><div class="ptext">${st.c}/${st.t}</div></div>
+    ${html}
+    ${idx>5?`<button class="card-more" data-d="${domain.id}" data-exp="0" aria-expanded="false">Show all ${idx} items</button>`:''}
+    <div class="card-ts" aria-hidden="true">${new Date().toLocaleDateString()}</div>`;
+
+  card.querySelector('.card-head').addEventListener('click',e=>{e.stopPropagation();selectedDomain=selectedDomain===domain.id?null:domain.id;document.getElementById('ctxDomain').textContent=selectedDomain?domain.title:'All Domains';document.getElementById('ctxClearBtn').style.display=selectedDomain?'inline':'none';renderGrid();});
+  card.querySelector('.card-head').addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();e.target.click();}});
+
+  card.querySelectorAll('input[type="checkbox"]').forEach(cb=>{
+    cb.addEventListener('change',e=>{e.stopPropagation();const s=loadCK(),k=e.target.dataset.key;pushUndo(k,!!s[k]);s[k]=e.target.checked;saveCK(s);logActivity(k,e.target.checked);renderGrid();});
+  });
+  card.querySelectorAll('.cl li').forEach(li=>{
+    li.addEventListener('click',e=>{if(e.target.tagName==='INPUT')return;e.stopPropagation();const cb=li.querySelector('input');cb.checked=!cb.checked;cb.dispatchEvent(new Event('change'));});
+    li.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '||e.key==='x'){e.preventDefault();const cb=li.querySelector('input');cb.checked=!cb.checked;cb.dispatchEvent(new Event('change'));}});
+  });
+
+  const more=card.querySelector('.card-more');
+  if(more)more.addEventListener('click',e=>{e.stopPropagation();const exp=more.dataset.exp==='1';card.querySelectorAll(`[data-ov="${domain.id}"]`).forEach(el=>el.style.display=exp?'none':'');more.dataset.exp=exp?'0':'1';more.setAttribute('aria-expanded',!exp);more.textContent=exp?`Show all ${idx} items`:'Show less';});
+
+  return card;
+}
+
+function renderGrid(){
+  const s=loadCK(),grid=document.getElementById('grid');grid.innerHTML='';
+  DOMAINS.forEach(d=>{if(currentFilter!=='all'&&d.priority!==currentFilter)return;grid.appendChild(renderCard(d,s));});
+  const g=globalStats(s);
+  document.getElementById('gDone').textContent=g.c;
+  document.getElementById('gRem').textContent=g.r;
+  document.getElementById('gTot').textContent=g.t;
+  document.getElementById('gFill').style.width=g.p+'%';
+  const bar=document.getElementById('gBar');bar.setAttribute('aria-valuenow',g.p);bar.setAttribute('aria-label',`Overall progress: ${g.p}%`);
+}
+
+// ============================================================
+// EVENTS
+// ============================================================
+
+// Filters
+document.querySelectorAll('.controls button[data-filter]').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('.controls button[data-filter]').forEach(x=>{x.classList.remove('active');x.setAttribute('aria-pressed','false');});
+  b.classList.add('active');b.setAttribute('aria-pressed','true');currentFilter=b.dataset.filter;renderGrid();
+}));
+
+// Export
+document.getElementById('exportBtn').addEventListener('click',()=>{
+  const s=loadCK();let md=`# Claude Checklists Export\n_${new Date().toISOString().split('T')[0]}_\n\n`;
+  const g=globalStats(s);md+=`**Progress: ${g.c}/${g.t} (${g.p}%)**\n\n---\n\n`;
+  DOMAINS.forEach(d=>{const st=domainStats(d,s);md+=`## ${d.title} — ${st.c}/${st.t}\n\n`;Object.entries(d.sections).forEach(([sec,items])=>{md+=`### ${sec}\n`;items.forEach(i=>md+=`- [${s[ik(d.id,sec,i)]?'x':' '}] ${i}\n`);md+='\n';});md+='---\n\n';});
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([md],{type:'text/markdown'}));a.download=`claude-checklists-${new Date().toISOString().split('T')[0]}.md`;a.click();
+});
+
+// AI Scan button
+document.getElementById('scanBtn').addEventListener('click',()=>{
+  // Switch to Claude tab if not already
+  if(activeProvider!=='claude'){document.querySelector('[data-p="claude"]').click();}
+  const prompt=generateScanPrompt();
+  sendMessage(prompt);
+});
+
+// Activity log
+document.getElementById('activityBtn').addEventListener('click',()=>{renderActivity();document.getElementById('activityOverlay').classList.add('open');});
+document.getElementById('activityClose').addEventListener('click',()=>document.getElementById('activityOverlay').classList.remove('open'));
+document.getElementById('activityOverlay').addEventListener('click',e=>{if(e.target===e.currentTarget)e.currentTarget.classList.remove('open');});
+
+// Provider tabs
+document.querySelectorAll('.ptab').forEach(tab=>tab.addEventListener('click',()=>{
+  document.querySelectorAll('.ptab').forEach(t=>{t.classList.remove('active');t.setAttribute('aria-selected','false');});
+  tab.classList.add('active');tab.setAttribute('aria-selected','true');
+  activeProvider=tab.dataset.p;
+  const isLive=activeProvider==='claude';
+  document.getElementById('keyBar').style.display=isLive?'flex':'none';
+  document.getElementById('placeholderNotice').style.display=isLive?'none':'block';
+  document.getElementById('sendBtn').style.display=isLive?'block':'none';
+  document.getElementById('copyBtn').style.display=isLive?'none':'block';
+  document.getElementById('modelSelector').style.display=isLive?'flex':'none';
+  const box=msgBox();box.innerHTML='';
+  if(!chatHistory[activeProvider].length){addMsg('system',isLive?'Claude is live. Type or use a quick action.':'Compose for '+activeProvider+'. Click Copy for context.');}
+  else chatHistory[activeProvider].forEach(m=>addMsg(m.role==='user'?'user':'ai',m.content));
+}));
+
+// API key
+document.getElementById('keySetBtn').addEventListener('click',()=>{
+  const v=document.getElementById('apiKeyInput').value.trim();
+  if(v){sessionStorage.setItem('anthropic_key',v);document.getElementById('apiKeyInput').value='';document.getElementById('keyStatus').className='key-status key-ok';document.getElementById('keyStatus').textContent='Key set';addMsg('system','API key set for this session. Cleared when tab closes.');}
+});
+if(getApiKey()){document.getElementById('keyStatus').className='key-status key-ok';document.getElementById('keyStatus').textContent='Key set';}
+
+// Send / Copy
+document.getElementById('sendBtn').addEventListener('click',()=>sendMessage());
+document.getElementById('chatInput').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMessage();}});
+document.getElementById('chatInput').addEventListener('input',function(){this.style.height='auto';this.style.height=Math.min(this.scrollHeight,110)+'px';});
+document.getElementById('copyBtn').addEventListener('click',copyPrompt);
+
+// Quick actions
+document.querySelectorAll('.qa-btn').forEach(btn=>btn.addEventListener('click',()=>{
+  const qa=btn.dataset.qa;
+  if(activeProvider==='claude')sendMessage(QA[qa]);
+  else{document.getElementById('chatInput').value=QA[qa];}
+}));
+
+// Mobile toggle
+document.getElementById('chatToggle').addEventListener('click',()=>document.getElementById('chatPanel').classList.toggle('open'));
+
+// Clear context button
+document.getElementById('ctxClearBtn').addEventListener('click',()=>deselectProject());
+
+// ============================================================
+// KEYBOARD SHORTCUTS
+// ============================================================
+document.addEventListener('keydown',e=>{
+  const tag=document.activeElement?.tagName;
+  const inInput=tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT';
+
+  // Ctrl+K: Spotlight
+  if((e.ctrlKey||e.metaKey)&&e.key==='k'){e.preventDefault();openSpotlight();return;}
+
+  // Ctrl+Z: Undo
+  if((e.ctrlKey||e.metaKey)&&e.key==='z'&&!inInput){
+    e.preventDefault();
+    const item=popUndo();
+    if(item){const s=loadCK();s[item.key]=item.prev;saveCK(s);logActivity(item.key,item.prev);renderGrid();addMsg('system',`Undo: reverted "${item.key.split('::')[2]}"`);}
+    return;
+  }
+
+  // Escape: close overlays
+  if(e.key==='Escape'){closeSpotlight();document.getElementById('activityOverlay').classList.remove('open');document.getElementById('shortcutHelp').style.display='none';return;}
+
+  if(inInput)return;
+
+  // J/K: navigate cards
+  const cards=[...document.querySelectorAll('.domain-card')];
+  if(e.key==='j'||e.key==='k'){
+    e.preventDefault();
+    cards.forEach(c=>c.classList.remove('kb-focus'));
+    if(e.key==='j')kbFocusIdx=Math.min(kbFocusIdx+1,cards.length-1);
+    else kbFocusIdx=Math.max(kbFocusIdx-1,0);
+    if(cards[kbFocusIdx]){cards[kbFocusIdx].classList.add('kb-focus');cards[kbFocusIdx].scrollIntoView({behavior:'smooth',block:'nearest'});}
+    return;
+  }
+
+  // Enter on focused card: select it
+  if(e.key==='Enter'&&kbFocusIdx>=0&&cards[kbFocusIdx]){
+    e.preventDefault();cards[kbFocusIdx].querySelector('.card-head')?.click();return;
+  }
+
+  // 1-4: provider tabs
+  if(e.key>='1'&&e.key<='4'){
+    const tabs=document.querySelectorAll('.ptab');
+    const idx=parseInt(e.key)-1;
+    if(tabs[idx])tabs[idx].click();
+    return;
+  }
+
+  // ?: show shortcut help
+  if(e.key==='?'){e.preventDefault();const h=document.getElementById('shortcutHelp');h.style.display=h.style.display==='none'?'flex':'none';return;}
+
+  // /: focus chat input
+  if(e.key==='/'){e.preventDefault();document.getElementById('chatInput').focus();return;}
+});
+
+// Spotlight input
+document.getElementById('spotlightInput').addEventListener('input',e=>renderSpotlight(e.target.value));
+document.getElementById('spotlightInput').addEventListener('keydown',e=>{
+  const items=document.querySelectorAll('.spotlight-item');
+  if(e.key==='ArrowDown'){e.preventDefault();spotlightHighlight=Math.min(spotlightHighlight+1,items.length-1);items.forEach((x,i)=>x.classList.toggle('highlighted',i===spotlightHighlight));}
+  if(e.key==='ArrowUp'){e.preventDefault();spotlightHighlight=Math.max(spotlightHighlight-1,0);items.forEach((x,i)=>x.classList.toggle('highlighted',i===spotlightHighlight));}
+  if(e.key==='Enter'&&items[spotlightHighlight])items[spotlightHighlight].click();
+  if(e.key==='Escape')closeSpotlight();
+});
+document.getElementById('spotlight').addEventListener('click',e=>{if(e.target===e.currentTarget)closeSpotlight();});
+
+// ============================================================
+// REFRESH
+// ============================================================
+document.getElementById('refreshBtn').addEventListener('click', () => {
+  const btn = document.getElementById('refreshBtn');
+  btn.innerHTML = '<span class="refresh-spin">↻</span> Refreshing...';
+  btn.disabled = true;
+  // Re-load domain customizations, re-init stale, re-render
+  loadDomainChanges();
+  initStale();
+  renderGrid();
+  setTimeout(() => {
+    btn.innerHTML = 'Refresh';
+    btn.disabled = false;
+    addMsg('system', 'Dashboard refreshed — ' + new Date().toLocaleTimeString());
+  }, 800);
+});
+
+// ============================================================
+// EXPLORATION AGENTS
+// ============================================================
+const EXPLORE_PROMPTS = {
+  scout: `You have access to the board tools. I need you to scan my project landscape.
+
+Use get_board_state to see what's currently tracked. Then analyze:
+1. Are there domains with zero progress that might have active work I'm not tracking?
+2. Based on the domain names (homebase, system, development, intinc, flashfusion, media, anthropic, google, openai, microsoft-copilot, aws), what projects am I likely missing?
+3. Suggest 3-5 specific items to add to underpopulated domains.
+
+Use add_item to add any items you think are clearly missing. Ask me before adding anything you're unsure about.`,
+
+  health: `Use get_board_state to read the full board. Then perform a health check:
+
+1. Which domains have the lowest completion percentage? Flag them.
+2. Are there items marked complete that have downstream items still open? (dependency issues)
+3. Which critical/high priority domains have stale items (many unchecked)?
+4. Rate each domain: GREEN (>60% or on track), YELLOW (30-60%), RED (<30% or stalled).
+
+Present as a table. For any RED domains, suggest the single most impactful next action.`,
+
+  suggest: `Use get_board_state to read everything. Then analyze gaps:
+
+1. For each domain, are the checklist items specific enough to be actionable?
+2. Are there obvious missing items based on the domain name? (e.g., does "aws" have items about cost optimization? Does "anthropic" track plugin updates?)
+3. Are there cross-domain items that should exist? (e.g., "Set up CI/CD" should appear in development AND any domain with deployable code)
+
+Use add_item to add the top 5 most valuable missing items directly to the board. Explain why you added each one.`
+};
+
+document.querySelectorAll('.explore-btn').forEach(btn => btn.addEventListener('click', () => {
+  const type = btn.dataset.explore;
+  if (activeProvider !== 'claude') { document.querySelector('[data-p="claude"]').click(); }
+  sendMessage(EXPLORE_PROMPTS[type]);
+}));
+
+// ============================================================
+// INIT
+// ============================================================
+initCK();
+loadDomainChanges();
+initStale();
+renderGrid();
+renderPromptLibrary();
+// Start prompt library open by default
+document.getElementById('promptLibrary').classList.add('open');
+document.getElementById('promptLibToggle').classList.add('open');
+document.getElementById('promptLibToggle').setAttribute('aria-expanded', 'true');
+
+// ============================================================
+// PROJECTS VIEW
+// ============================================================
+let projectsView = false;
+let projectDomainFilter = 'all';
+
+function renderProjects() {
+  const grid = document.getElementById('projectsGrid');
+  const filterBar = document.getElementById('domainFilterBar');
+  grid.innerHTML = '';
+  filterBar.innerHTML = '';
+
+  const registry = window.PROJECT_REGISTRY || [];
+
+  if (!registry.length) {
+    grid.innerHTML = '<div class="projects-empty"><p style="font-size:14px;margin-bottom:12px">No projects registered yet.</p><p>Run <code>D:\\scan.bat</code> to discover projects across all drives</p><p style="margin-top:8px">Or run <code>D:\\setup-project.bat</code> in any folder to register it</p></div>';
+    return;
+  }
+
+  // Build domain filter buttons
+  const domains = [...new Set(registry.map(p => p.domain).filter(Boolean))];
+  let fhtml = '<button class="df-btn active" data-df="all">All (' + registry.length + ')</button>';
+  domains.forEach(d => {
+    const count = registry.filter(p => p.domain === d).length;
+    fhtml += '<button class="df-btn" data-df="' + d + '">' + d + ' (' + count + ')</button>';
+  });
+  filterBar.innerHTML = fhtml;
+
+  // Wire filter buttons
+  filterBar.querySelectorAll('.df-btn').forEach(btn => btn.addEventListener('click', () => {
+    filterBar.querySelectorAll('.df-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    projectDomainFilter = btn.dataset.df;
+    renderProjectCards(registry);
+  }));
+
+  renderProjectCards(registry);
+}
+
+function renderProjectCards(registry) {
+  const grid = document.getElementById('projectsGrid');
+  grid.innerHTML = '';
+
+  const filtered = projectDomainFilter === 'all' ? registry : registry.filter(p => p.domain === projectDomainFilter);
+
+  // Group by drive
+  const byDrive = {};
+  filtered.forEach(p => {
+    const drive = p.drive || p.path?.substring(0, 2) || '??';
+    if (!byDrive[drive]) byDrive[drive] = [];
+    byDrive[drive].push(p);
+  });
+
+  Object.entries(byDrive).sort().forEach(([drive, projects]) => {
+    projects.forEach(p => {
+      const card = document.createElement('div');
+      card.className = 'project-card';
+      card.setAttribute('role', 'listitem');
+
+      const displayPath = (p.path || '').replace(/\\\\/g, '\\');
+
+      const hasPrompts = !!(getProjectPrompts()[p.name]);
+      const escapedName = (p.name || '').replace(/'/g, "\\'");
+      const escapedDomain = (p.domain || '').replace(/'/g, "\\'");
+      const escapedPath = displayPath.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+
+      card.innerHTML =
+        '<div style="display:flex;justify-content:space-between;align-items:center">' +
+          '<div class="pc-name">' + (p.name || 'Unknown') + '</div>' +
+          '<span class="pc-drive">' + drive + '</span>' +
+        '</div>' +
+        (p.domain ? '<div class="pc-domain">' + p.domain + (p.priority ? ' &middot; ' + p.priority : '') + '</div>' : '') +
+        (p.description ? '<div class="pc-desc">' + p.description + '</div>' : '') +
+        '<div class="pc-path">' + displayPath + '</div>' +
+        '<div class="pc-actions">' +
+          (hasPrompts ? '<button class="pc-work-btn" data-project="' + escapedName + '" style="background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600">Work on this</button>' : '') +
+          (hasPrompts ? '<button class="pc-cowork-btn" data-project="' + escapedName + '">Cowork</button>' : '') +
+          '<button class="pc-cli-btn" data-project="' + escapedName + '" data-path="' + escapedPath + '">CLI</button>' +
+          '<button class="pc-ctx-btn" data-name="' + escapedName + '" data-domain="' + escapedDomain + '">Set as Context</button>' +
+          '<button class="pc-copy-btn" data-path="' + escapedPath + '">Copy Path</button>' +
+        '</div>';
+
+      // Wire "Work on this" button
+      const workBtn = card.querySelector('.pc-work-btn');
+      if (workBtn) workBtn.addEventListener('click', () => {
+        selectProject(workBtn.dataset.project);
+        // Switch to domains view and open chat
+        if (projectsView) document.getElementById('viewToggle').click();
+        document.getElementById('chatInput').focus();
+        // Open prompt library
+        const lib = document.getElementById('promptLibrary');
+        if (!lib.classList.contains('open')) document.getElementById('promptLibToggle').click();
+      });
+
+      // Wire "Cowork" button
+      const coworkBtn = card.querySelector('.pc-cowork-btn');
+      if (coworkBtn) coworkBtn.addEventListener('click', () => {
+        const proj = getProjectPrompts()[coworkBtn.dataset.project];
+        if (!proj) return;
+        const firstPrompt = proj.prompts && proj.prompts[0];
+        const formatted = formatForCowork(firstPrompt ? firstPrompt.prompt : 'Continue work on ' + coworkBtn.dataset.project, coworkBtn.dataset.project);
+        copyToClipboard(formatted, coworkBtn);
+      });
+
+      // Wire "CLI" button
+      const cliBtn = card.querySelector('.pc-cli-btn');
+      if (cliBtn) cliBtn.addEventListener('click', () => {
+        const proj = getProjectPrompts()[cliBtn.dataset.project];
+        const cmd = proj ? (proj.cli_command || 'cd /d ' + cliBtn.dataset.path + ' && claude') : 'cd /d ' + cliBtn.dataset.path + ' && claude';
+        copyToClipboard(cmd, cliBtn);
+      });
+
+      // Wire "Set as Context" button
+      const ctxBtn = card.querySelector('.pc-ctx-btn');
+      if (ctxBtn) ctxBtn.addEventListener('click', () => {
+        selectProjectContext(ctxBtn.dataset.name, ctxBtn.dataset.domain);
+      });
+
+      // Wire "Copy Path" button
+      const copyBtn = card.querySelector('.pc-copy-btn');
+      if (copyBtn) copyBtn.addEventListener('click', () => {
+        const path = (copyBtn.dataset.path || '').replace(/\\\\/g, '\\');
+        copyToClipboard(path, copyBtn);
+      });
+
+      grid.appendChild(card);
+    });
+  });
+}
+
+function selectProjectContext(name, domain) {
+  // If this project has prompts registered, use the full project selection
+  if (getProjectPrompts()[name]) {
+    selectProject(name);
+    return;
+  }
+  document.getElementById('ctxDomain').textContent = name + ' (' + domain + ')';
+  selectedDomain = domain;
+}
+
+// View toggle
+document.getElementById('viewToggle').addEventListener('click', () => {
+  projectsView = !projectsView;
+  const btn = document.getElementById('viewToggle');
+  btn.textContent = projectsView ? 'Domains View' : 'Projects View';
+  btn.setAttribute('aria-pressed', projectsView);
+
+  document.getElementById('grid').style.display = projectsView ? 'none' : 'grid';
+  document.getElementById('projectsGrid').style.display = projectsView ? 'grid' : 'none';
+  document.getElementById('domainFilterBar').style.display = projectsView ? 'flex' : 'none';
+
+  // Hide/show domain filter buttons
+  document.querySelectorAll('.controls button[data-filter]').forEach(b => b.style.display = projectsView ? 'none' : '');
+
+  if (projectsView) renderProjects();
+});
+</script>
+</body>
+</html>

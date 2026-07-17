@@ -1,0 +1,2658 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FlashFusion — 3D Asset Generator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+/* ============================================================
+   BASE
+============================================================ */
+:root {
+  --bg:      #07070F;
+  --bg2:     #0D0D1A;
+  --bg3:     #111120;
+  --surface: #14142A;
+  --surface2:#1C1C34;
+  --border:  rgba(255,154,31,0.14);
+  --border2: rgba(255,154,31,0.07);
+  --amber:   #FF9A1F;
+  --amber2:  #FFB547;
+  --amber-d: rgba(255,154,31,0.15);
+  --cyan:    #00D4FF;
+  --cyan-d:  rgba(0,212,255,0.1);
+  --red:     #FF4D4D;
+  --green:   #22C55E;
+  --text:    #F0EEF8;
+  --muted:   #8884A8;
+  --dim:     #4A4868;
+  --fd: 'Syne', sans-serif;
+  --fb: 'DM Sans', sans-serif;
+  --fm: 'DM Mono', monospace;
+  --ease: cubic-bezier(.4,0,.2,1);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; overflow: hidden; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--fb);
+  font-size: 14px;
+  -webkit-font-smoothing: antialiased;
+  display: flex;
+  flex-direction: column;
+}
+
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--surface2); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--border); }
+
+/* ============================================================
+   TOP NAV
+============================================================ */
+.topnav {
+  flex-shrink: 0;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  border-bottom: 1px solid var(--border2);
+  background: rgba(7,7,15,0.8);
+  backdrop-filter: blur(16px);
+  z-index: 10;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--fd);
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+.logo-bolt {
+  width: 26px; height: 26px;
+  background: linear-gradient(135deg, var(--amber), var(--cyan));
+  border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px;
+  box-shadow: 0 0 14px rgba(255,154,31,0.4);
+  flex-shrink: 0;
+}
+.logo span { color: var(--amber); }
+
+.nav-tag {
+  font-family: var(--fm);
+  font-size: 10px;
+  color: var(--muted);
+  padding: 3px 8px;
+  border: 1px solid var(--border2);
+  border-radius: 100px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.nav-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Provider pills in nav */
+.provider-pills {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.provider-pill {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 100px;
+  border: 1px solid var(--border2);
+  background: var(--surface);
+  font-family: var(--fm);
+  font-size: 9px;
+  color: var(--dim);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  cursor: default;
+  user-select: none;
+  transition: border-color 0.2s;
+}
+.provider-pill.keyed {
+  border-color: rgba(34,197,94,0.2);
+  color: var(--muted);
+}
+
+.pill-dot {
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: var(--dim);
+  flex-shrink: 0;
+  transition: all 0.25s;
+}
+
+/* Shared key status dot */
+.api-key-status {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--dim);
+  transition: background 0.2s;
+  flex-shrink: 0;
+}
+.api-key-status.active { background: var(--green); box-shadow: 0 0 6px var(--green); }
+.api-key-status.error  { background: var(--red);   box-shadow: 0 0 6px var(--red);   }
+
+.api-input {
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: 6px;
+  padding: 5px 10px;
+  color: var(--text);
+  font-family: var(--fm);
+  font-size: 12px;
+  width: 220px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.api-input::placeholder { color: var(--dim); }
+.api-input:focus { border-color: rgba(255,154,31,0.4); }
+
+/* ============================================================
+   API KEYS MODAL
+============================================================ */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(7,7,15,0.88);
+  backdrop-filter: blur(14px);
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: fadeIn 0.15s ease;
+}
+
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes slideUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+
+.modal-inner {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  width: 100%;
+  max-width: 540px;
+  max-height: 88vh;
+  overflow-y: auto;
+  box-shadow: 0 32px 96px rgba(0,0,0,0.7);
+  display: flex;
+  flex-direction: column;
+  animation: slideUp 0.2s ease;
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 22px 24px 0;
+}
+.modal-title {
+  font-family: var(--fd);
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+.modal-close {
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  border: 1px solid var(--border2);
+  background: var(--surface);
+  color: var(--muted);
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px;
+  transition: all 0.15s;
+}
+.modal-close:hover { border-color: var(--border); color: var(--text); }
+
+.modal-note {
+  margin: 12px 24px 0;
+  padding: 8px 12px;
+  background: var(--cyan-d);
+  border: 1px solid rgba(0,212,255,0.14);
+  border-radius: 8px;
+  font-size: 11px;
+  color: var(--cyan);
+  font-family: var(--fm);
+  line-height: 1.6;
+}
+
+.modal-section {
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--border2);
+}
+.modal-section:last-child { border-bottom: none; }
+
+.modal-section-title {
+  font-family: var(--fm);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--dim);
+  margin-bottom: 14px;
+}
+.modal-section-sub {
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 14px;
+  line-height: 1.55;
+}
+
+/* Key rows */
+.key-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.key-row:last-child { margin-bottom: 0; }
+
+.key-row-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.key-provider-name { font-size: 13px; font-weight: 600; color: var(--text); }
+.key-provider-tag {
+  font-family: var(--fm);
+  font-size: 10px;
+  color: var(--dim);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.key-input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.key-input { flex: 1; width: auto !important; }
+
+.key-link {
+  font-family: var(--fm);
+  font-size: 10px;
+  color: var(--amber);
+  text-decoration: none;
+  white-space: nowrap;
+  opacity: 0.75;
+  transition: opacity 0.15s;
+}
+.key-link:hover { opacity: 1; }
+
+.key-notice {
+  padding: 7px 11px;
+  background: rgba(255,154,31,0.06);
+  border: 1px solid rgba(255,154,31,0.14);
+  border-radius: 7px;
+  font-size: 11px;
+  color: var(--amber2);
+  font-family: var(--fm);
+  line-height: 1.55;
+}
+
+/* Provider tabs inside modal */
+.ai-provider-tabs {
+  display: flex;
+  gap: 5px;
+  margin-bottom: 14px;
+  background: var(--bg);
+  border-radius: 8px;
+  padding: 4px;
+  border: 1px solid var(--border2);
+}
+.prov-tab {
+  flex: 1;
+  padding: 6px;
+  border-radius: 5px;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  font-family: var(--fb);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.prov-tab:hover { color: var(--text); }
+.prov-tab.active { background: var(--surface2); color: var(--text); }
+
+.prov-panel { animation: slideUp 0.12s ease; }
+
+/* Coming soon grid */
+.coming-soon-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.coming-soon-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px dashed var(--border2);
+  background: rgba(255,255,255,0.01);
+}
+.coming-soon-icon { font-size: 16px; flex-shrink: 0; }
+.coming-soon-name { font-size: 12px; font-weight: 600; color: var(--muted); }
+.coming-soon-desc { font-size: 10px; color: var(--dim); font-family: var(--fm); }
+.coming-soon-tag {
+  margin-left: auto;
+  font-family: var(--fm);
+  font-size: 9px;
+  color: var(--dim);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  border: 1px solid var(--border2);
+  border-radius: 100px;
+  padding: 2px 7px;
+  white-space: nowrap;
+}
+
+.modal-footer {
+  padding: 16px 24px;
+  display: flex;
+  justify-content: flex-end;
+}
+.modal-save-btn {
+  padding: 10px 24px;
+  border-radius: 8px;
+  border: none;
+  background: linear-gradient(135deg, var(--amber), #FF6B1F);
+  color: #07070F;
+  font-family: var(--fd);
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 0 16px rgba(255,154,31,0.2);
+  letter-spacing: -0.01em;
+}
+.modal-save-btn:hover { transform: translateY(-1px); box-shadow: 0 0 28px rgba(255,154,31,0.38); }
+
+/* ============================================================
+   MAIN LAYOUT
+============================================================ */
+.app {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 360px 1fr;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* ============================================================
+   LEFT PANEL
+============================================================ */
+.panel-left {
+  border-right: 1px solid var(--border2);
+  background: var(--bg2);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.panel-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Mode tabs */
+.mode-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  background: var(--bg);
+  border-radius: 10px;
+  padding: 5px;
+  border: 1px solid var(--border2);
+}
+
+.tab-btn {
+  padding: 8px 12px;
+  border-radius: 7px;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  font-family: var(--fb);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex; align-items: center; justify-content: center;
+  gap: 6px;
+}
+.tab-btn:hover { color: var(--text); }
+.tab-btn.active {
+  background: var(--surface2);
+  color: var(--text);
+  box-shadow: 0 1px 6px rgba(0,0,0,0.3);
+}
+
+/* Section label */
+.sec-label {
+  font-family: var(--fm);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--dim);
+  margin-bottom: 8px;
+}
+
+/* Prompt */
+.prompt-wrap { position: relative; }
+.prompt-area {
+  width: 100%;
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: 10px;
+  padding: 14px;
+  color: var(--text);
+  font-family: var(--fb);
+  font-size: 14px;
+  line-height: 1.5;
+  resize: none;
+  outline: none;
+  transition: border-color 0.2s;
+  min-height: 110px;
+}
+.prompt-area::placeholder { color: var(--dim); }
+.prompt-area:focus { border-color: rgba(255,154,31,0.35); }
+
+.prompt-chars {
+  position: absolute;
+  bottom: 10px; right: 12px;
+  font-family: var(--fm);
+  font-size: 10px;
+  color: var(--dim);
+}
+
+/* AI Enhance bar */
+.enhance-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+.enhance-provider-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+}
+.enhance-label {
+  font-family: var(--fm);
+  font-size: 10px;
+  color: var(--dim);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+}
+.enhance-select {
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: 6px;
+  padding: 4px 8px;
+  color: var(--muted);
+  font-family: var(--fm);
+  font-size: 11px;
+  outline: none;
+  cursor: pointer;
+  -webkit-appearance: none;
+  flex: 1;
+  transition: border-color 0.2s;
+}
+.enhance-select:focus { border-color: rgba(255,154,31,0.3); }
+
+.enhance-btn {
+  padding: 6px 12px;
+  border-radius: 7px;
+  border: 1px solid var(--border);
+  background: var(--amber-d);
+  color: var(--amber2);
+  font-family: var(--fb);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+  display: flex; align-items: center; gap: 4px;
+}
+.enhance-btn:hover:not(:disabled) {
+  background: rgba(255,154,31,0.22);
+  color: var(--amber);
+}
+.enhance-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+/* Quick prompts */
+.quick-prompts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+.qp-chip {
+  padding: 4px 10px;
+  border-radius: 100px;
+  border: 1px solid var(--border2);
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.qp-chip:hover { border-color: var(--border); color: var(--text); background: var(--surface2); }
+
+/* Image drop zone */
+.drop-zone {
+  border: 2px dashed var(--border2);
+  border-radius: 12px;
+  background: var(--surface);
+  padding: 28px 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+}
+.drop-zone:hover, .drop-zone.drag-over {
+  border-color: rgba(255,154,31,0.4);
+  background: var(--amber-d);
+}
+.drop-zone input[type="file"] {
+  position: absolute; inset: 0;
+  opacity: 0; cursor: pointer;
+  width: 100%; height: 100%;
+}
+.drop-icon { font-size: 28px; margin-bottom: 8px; }
+.drop-title { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+.drop-sub { font-size: 12px; color: var(--muted); }
+.drop-limit { font-family: var(--fm); font-size: 10px; color: var(--dim); margin-top: 6px; }
+
+/* Image preview grid */
+.img-previews {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+  margin-top: 8px;
+}
+.img-thumb {
+  aspect-ratio: 1;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--border2);
+  position: relative;
+  background: var(--surface);
+}
+.img-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.img-thumb-remove {
+  position: absolute;
+  top: 2px; right: 2px;
+  width: 16px; height: 16px;
+  background: rgba(0,0,0,0.7);
+  border-radius: 50%;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 9px; line-height: 1;
+  transition: color 0.15s;
+}
+.img-thumb-remove:hover { color: var(--red); }
+
+/* Settings */
+.settings-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.setting-group { display: flex; flex-direction: column; gap: 6px; }
+.setting-group.full { grid-column: 1 / -1; }
+
+.setting-label {
+  font-family: var(--fm);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+.setting-select {
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: 7px;
+  padding: 7px 10px;
+  color: var(--text);
+  font-family: var(--fb);
+  font-size: 13px;
+  outline: none;
+  cursor: pointer;
+  width: 100%;
+  transition: border-color 0.2s;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' fill='none'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%238884A8' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  padding-right: 28px;
+}
+.setting-select:focus { border-color: rgba(255,154,31,0.35); }
+
+/* Toggle */
+.toggle-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: 7px;
+  padding: 8px 10px;
+}
+.toggle-label-text { font-size: 13px; color: var(--muted); }
+.toggle { position: relative; width: 32px; height: 18px; }
+.toggle input { opacity: 0; width: 0; height: 0; }
+.toggle-slider {
+  position: absolute; inset: 0;
+  background: var(--surface2);
+  border-radius: 100px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.toggle-slider::after {
+  content: '';
+  position: absolute;
+  width: 12px; height: 12px;
+  left: 3px; top: 3px;
+  background: var(--dim);
+  border-radius: 50%;
+  transition: all 0.2s;
+}
+.toggle input:checked + .toggle-slider { background: var(--amber-d); }
+.toggle input:checked + .toggle-slider::after { transform: translateX(14px); background: var(--amber); }
+
+/* Cond tabs */
+.cond-tabs { display: flex; gap: 6px; }
+.cond-tab {
+  flex: 1; padding: 7px;
+  border-radius: 7px;
+  border: 1px solid var(--border2);
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 12px;
+  font-family: var(--fb);
+  font-weight: 600;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.15s;
+}
+.cond-tab:hover { color: var(--text); }
+.cond-tab.active { background: var(--amber-d); border-color: var(--border); color: var(--amber2); }
+
+/* Panel footer */
+.panel-footer {
+  padding: 16px 20px;
+  border-top: 1px solid var(--border2);
+  background: var(--bg2);
+}
+.generate-btn {
+  width: 100%;
+  padding: 13px;
+  border-radius: 10px;
+  border: none;
+  background: linear-gradient(135deg, var(--amber), #FF6B1F);
+  color: #07070F;
+  font-family: var(--fd);
+  font-size: 15px;
+  font-weight: 800;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  gap: 8px;
+  transition: all 0.2s;
+  box-shadow: 0 0 20px rgba(255,154,31,0.25);
+  letter-spacing: -0.01em;
+}
+.generate-btn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 0 32px rgba(255,154,31,0.4); }
+.generate-btn:active:not(:disabled) { transform: translateY(0); }
+.generate-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
+.generate-btn .btn-icon { font-size: 18px; }
+
+.credits-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 10px;
+}
+.credits-label { font-size: 11px; color: var(--dim); }
+.credits-cost { font-family: var(--fm); font-size: 11px; color: var(--amber); }
+
+/* ============================================================
+   RIGHT PANEL — VIEWER
+============================================================ */
+.panel-right {
+  display: flex;
+  flex-direction: column;
+  background: var(--bg3);
+  overflow: hidden;
+}
+.viewer-topbar {
+  flex-shrink: 0;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--border2);
+}
+.viewer-title {
+  font-family: var(--fm);
+  font-size: 11px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  display: flex; align-items: center; gap: 8px;
+}
+.viewer-actions { display: flex; align-items: center; gap: 8px; }
+
+.action-btn {
+  padding: 5px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--border2);
+  background: var(--surface);
+  color: var(--muted);
+  font-family: var(--fb);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+  display: flex; align-items: center; gap: 5px;
+}
+.action-btn:hover { border-color: var(--border); color: var(--text); }
+.action-btn.primary { background: var(--amber-d); border-color: var(--border); color: var(--amber2); }
+.action-btn.primary:hover { background: rgba(255,154,31,0.25); color: var(--amber); }
+.action-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+.viewer-canvas-wrap {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+}
+#three-canvas { display: block; width: 100%; height: 100%; }
+
+/* Empty state */
+.viewer-empty {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 16px; pointer-events: none;
+}
+.empty-graphic { position: relative; width: 120px; height: 120px; }
+.empty-ring {
+  position: absolute;
+  border-radius: 50%;
+  border: 1px solid var(--border2);
+  animation: spin-slow 20s linear infinite;
+}
+.ring1 { inset: 0; border-color: rgba(255,154,31,0.12); animation-duration: 15s; }
+.ring2 { inset: 15px; border-color: rgba(0,212,255,0.08); animation-direction: reverse; animation-duration: 22s; }
+.ring3 { inset: 32px; border-color: rgba(255,154,31,0.06); animation-duration: 18s; }
+.empty-dot {
+  position: absolute; top: 50%; left: 50%;
+  transform: translate(-50%,-50%);
+  width: 24px; height: 24px;
+  background: var(--surface2);
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px;
+}
+@keyframes spin-slow { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+.empty-title { font-family: var(--fd); font-size: 18px; font-weight: 700; color: var(--muted); letter-spacing: -0.01em; }
+.empty-sub { font-size: 13px; color: var(--dim); text-align: center; max-width: 280px; line-height: 1.5; }
+
+/* Progress overlay */
+.progress-overlay {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  background: rgba(7,7,15,0.85);
+  backdrop-filter: blur(8px);
+  gap: 20px; z-index: 5;
+}
+.progress-ring-wrap { position: relative; width: 80px; height: 80px; }
+.progress-ring-wrap svg { transform: rotate(-90deg); }
+.progress-track { fill: none; stroke: var(--surface2); stroke-width: 4; }
+.progress-fill {
+  fill: none;
+  stroke: url(#progressGrad);
+  stroke-width: 4;
+  stroke-linecap: round;
+  stroke-dasharray: 220;
+  stroke-dashoffset: 220;
+  transition: stroke-dashoffset 0.4s ease;
+}
+.progress-pct {
+  position: absolute; top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  font-family: var(--fd); font-size: 16px; font-weight: 800; color: var(--amber);
+}
+.progress-status { font-family: var(--fm); font-size: 13px; color: var(--muted); text-align: center; max-width: 300px; }
+.progress-steps { display: flex; flex-direction: column; gap: 6px; width: 260px; }
+.progress-step { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--dim); transition: color 0.2s; }
+.progress-step.done { color: var(--green); }
+.progress-step.active { color: var(--amber2); }
+.step-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--dim); flex-shrink: 0; transition: all 0.2s; }
+.progress-step.done .step-dot { background: var(--green); box-shadow: 0 0 6px var(--green); }
+.progress-step.active .step-dot { background: var(--amber); box-shadow: 0 0 6px var(--amber); animation: pulse-dot 1.2s ease infinite; }
+@keyframes pulse-dot { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.5); opacity: 0.6; } }
+
+/* Error overlay */
+.error-overlay {
+  position: absolute; inset: 0;
+  display: none; flex-direction: column;
+  align-items: center; justify-content: center;
+  background: rgba(7,7,15,0.85);
+  backdrop-filter: blur(8px);
+  gap: 12px; z-index: 5;
+}
+.error-icon { font-size: 36px; }
+.error-title { font-family: var(--fd); font-size: 18px; font-weight: 700; color: var(--red); }
+.error-msg { font-size: 13px; color: var(--muted); text-align: center; max-width: 340px; line-height: 1.5; }
+.error-retry {
+  margin-top: 8px;
+  padding: 8px 20px;
+  border-radius: 7px;
+  border: 1px solid rgba(255,77,77,0.3);
+  background: rgba(255,77,77,0.1);
+  color: var(--red);
+  font-family: var(--fb); font-size: 13px; font-weight: 600;
+  cursor: pointer; transition: all 0.15s;
+}
+.error-retry:hover { background: rgba(255,77,77,0.2); }
+
+/* Success bar */
+.success-bar {
+  display: none;
+  flex-shrink: 0;
+  padding: 10px 16px;
+  background: rgba(34,197,94,0.08);
+  border-top: 1px solid rgba(34,197,94,0.15);
+  align-items: center; gap: 10px; flex-wrap: wrap;
+}
+.success-icon { font-size: 14px; }
+.success-text { font-size: 12px; color: var(--muted); flex: 1; }
+.success-text strong { color: var(--green); }
+.download-list { display: flex; gap: 6px; flex-wrap: wrap; }
+.dl-btn {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 4px 10px;
+  border-radius: 5px;
+  background: rgba(255,154,31,0.1);
+  border: 1px solid var(--border);
+  color: var(--amber2);
+  font-family: var(--fm); font-size: 11px;
+  text-decoration: none; cursor: pointer; transition: all 0.15s;
+}
+.dl-btn:hover { background: rgba(255,154,31,0.2); color: var(--amber); }
+
+/* Controls hint */
+.controls-hint {
+  position: absolute;
+  bottom: 12px; left: 50%;
+  transform: translateX(-50%);
+  display: none;
+  align-items: center; gap: 12px;
+  background: rgba(7,7,15,0.7);
+  border: 1px solid var(--border2);
+  border-radius: 100px;
+  padding: 5px 14px;
+  backdrop-filter: blur(8px);
+  pointer-events: none;
+}
+.hint-item { display: flex; align-items: center; gap: 4px; font-size: 11px; color: var(--dim); font-family: var(--fm); }
+.hint-key { background: var(--surface2); border-radius: 3px; padding: 1px 5px; font-size: 10px; color: var(--muted); }
+
+/* Toast */
+.toast {
+  position: fixed;
+  bottom: 20px; right: 20px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 16px;
+  font-size: 13px; color: var(--text);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+  transform: translateY(60px); opacity: 0;
+  transition: all 0.3s var(--ease);
+  z-index: 999; max-width: 320px;
+  display: flex; align-items: center; gap: 8px;
+}
+.toast.show { transform: translateY(0); opacity: 1; }
+.toast.success { border-color: rgba(34,197,94,0.3); }
+.toast.error   { border-color: rgba(255,77,77,0.3); }
+
+
+/* ============================================================
+   PROMPT COACH
+============================================================ */
+.coach-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 10px;
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: 6px;
+  margin-top: 6px;
+  font-family: var(--fm);
+  font-size: 11px;
+  flex-wrap: wrap;
+}
+.coach-score { font-weight: 600; }
+.coach-warn  { color: var(--amber2); }
+.coach-ok    { color: var(--green); }
+.coach-info  { color: var(--cyan); }
+
+/* ============================================================
+   ADVISORY CHIPS
+============================================================ */
+.advisory-chips { margin-top: 8px; }
+.advisor-row { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
+.advisor-type-chip {
+  padding: 3px 8px; border-radius: 100px;
+  background: rgba(255,154,31,0.12);
+  border: 1px solid rgba(255,154,31,0.25);
+  color: var(--amber2); font-family: var(--fm);
+  font-size: 10px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.05em;
+}
+.advisor-chip {
+  padding: 3px 8px; border-radius: 100px;
+  background: var(--surface); border: 1px solid var(--border2);
+  color: var(--muted); font-family: var(--fm); font-size: 10px;
+}
+
+/* ============================================================
+   RESCUE UI
+============================================================ */
+.rescue-section {
+  display: flex; flex-direction: column; align-items: center;
+  gap: 8px; width: 100%; max-width: 380px;
+}
+.rescue-btn {
+  padding: 8px 18px; border-radius: 7px;
+  border: 1px solid rgba(0,212,255,0.3);
+  background: rgba(0,212,255,0.08); color: var(--cyan);
+  font-family: var(--fb); font-size: 13px; font-weight: 600;
+  cursor: pointer; transition: all 0.15s;
+}
+.rescue-btn:hover { background: rgba(0,212,255,0.15); }
+.rescue-btn:disabled { opacity: 0.5; cursor: default; }
+.rescue-panel {
+  width: 100%; background: var(--surface);
+  border: 1px solid var(--border); border-radius: 8px; padding: 10px;
+}
+.rescue-panel-label {
+  font-family: var(--fm); font-size: 10px; color: var(--cyan);
+  text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 6px;
+}
+.rescue-text {
+  width: 100%; background: transparent; border: none;
+  color: var(--text); font-family: var(--fm); font-size: 12px;
+  line-height: 1.5; resize: vertical; min-height: 60px; outline: none;
+}
+.rescue-apply-btn {
+  margin-top: 8px; width: 100%; padding: 7px; border-radius: 6px;
+  border: 1px solid rgba(34,197,94,0.3); background: rgba(34,197,94,0.1);
+  color: var(--green); font-family: var(--fb); font-size: 12px;
+  font-weight: 600; cursor: pointer; transition: all 0.15s;
+}
+.rescue-apply-btn:hover { background: rgba(34,197,94,0.18); }
+
+/* ============================================================
+   GPU BADGE + LLM LOG BADGE
+============================================================ */
+.gpu-badge {
+  font-family: var(--fm); font-size: 10px; color: var(--muted);
+  padding: 2px 7px; border-radius: 100px;
+  border: 1px solid var(--border2); display: none;
+}
+.llm-log-badge {
+  font-family: var(--fm); font-size: 10px; color: var(--amber2);
+  padding: 2px 8px; border-radius: 100px;
+  border: 1px solid rgba(255,154,31,0.2);
+  background: rgba(255,154,31,0.06); transition: opacity 0.4s;
+}
+
+/* ============================================================
+   ANALYSIS PANEL
+============================================================ */
+.analysis-panel {
+  display: none; padding: 10px 16px;
+  background: rgba(0,212,255,0.04);
+  border-top: 1px solid rgba(0,212,255,0.1);
+}
+.analysis-header {
+  display: flex; align-items: center;
+  justify-content: space-between; margin-bottom: 6px;
+}
+.analysis-title {
+  font-family: var(--fm); font-size: 11px; color: var(--muted);
+  text-transform: uppercase; letter-spacing: 0.06em;
+}
+.analysis-score { font-family: var(--fd); font-size: 13px; font-weight: 700; }
+.analysis-row { display: flex; gap: 8px; margin-bottom: 4px; font-size: 12px; line-height: 1.4; }
+.analysis-label { color: var(--dim); font-family: var(--fm); font-size: 11px; white-space: nowrap; min-width: 70px; }
+.analysis-value { color: var(--muted); }
+.analysis-delta {
+  margin-top: 6px; padding: 6px 8px; background: var(--surface);
+  border-radius: 6px; font-size: 12px; color: var(--muted);
+  display: flex; align-items: flex-start; gap: 6px; flex-wrap: wrap; line-height: 1.5;
+}
+.analysis-apply-btn {
+  padding: 2px 8px; border-radius: 4px;
+  border: 1px solid var(--border); background: var(--surface2);
+  color: var(--amber2); font-size: 11px; cursor: pointer;
+  white-space: nowrap; transition: all 0.15s;
+}
+.analysis-apply-btn:hover { background: var(--amber-d); }
+
+/* Utility */
+.hidden { display: none !important; }
+.divider { height: 1px; background: var(--border2); margin: 4px 0; }
+</style>
+</head>
+<body>
+
+<!-- TOP NAV -->
+<nav class="topnav">
+  <div style="display:flex;align-items:center;gap:12px">
+    <div class="logo">
+      <div class="logo-bolt">⚡</div>
+      Flash<span>Fusion</span>
+    </div>
+    <span class="nav-tag">3D Asset Generator · Rodin v2</span>
+  </div>
+
+  <div class="nav-right">
+    <!-- Provider status pills -->
+    <div class="provider-pills">
+      <div class="provider-pill" id="pill-hyper3d" title="Hyper3D / Rodin — 3D Engine">3D <span class="pill-dot"></span></div>
+      <div class="provider-pill" id="pill-openai" title="OpenAI GPT-4o — AI Assist">OAI <span class="pill-dot"></span></div>
+      <div class="provider-pill" id="pill-anthropic" title="Anthropic Claude — AI Assist">ANT <span class="pill-dot"></span></div>
+      <div class="provider-pill" id="pill-google" title="Google Gemini — AI Assist">GGL <span class="pill-dot"></span></div>
+    </div>
+    <button class="action-btn" onclick="openApiModal()">🗝 API Keys</button>
+  </div>
+</nav>
+
+<!-- MAIN APP -->
+<div class="app">
+
+  <!-- LEFT PANEL -->
+  <div class="panel-left">
+    <div class="panel-scroll">
+
+      <!-- Mode Tabs -->
+      <div>
+        <div class="sec-label">Generation Mode</div>
+        <div class="mode-tabs">
+          <button class="tab-btn active" onclick="setMode('text')" id="tab-text">✍️ Text to 3D</button>
+          <button class="tab-btn" onclick="setMode('image')" id="tab-image">🖼️ Image to 3D</button>
+        </div>
+      </div>
+
+      <!-- TEXT INPUT -->
+      <div id="text-inputs">
+        <div class="sec-label">Describe your 3D object</div>
+        <div class="prompt-wrap">
+          <textarea
+            class="prompt-area"
+            id="promptInput"
+            placeholder="A futuristic robot suit, metallic finish, detailed mechanical joints, sci-fi aesthetic..."
+            maxlength="1000"
+            oninput="updateCharCount(); debouncedCoach(this.value);"
+            rows="5"
+          ></textarea>
+          <span class="prompt-chars" id="charCount">0 / 1000</span>
+        </div>
+        <div class="coach-badge hidden" id="coachBadge"></div>
+        <div class="advisory-chips hidden" id="advisoryChips"></div>
+
+        <!-- AI Enhance bar -->
+        <div class="enhance-bar">
+          <div class="enhance-provider-wrap">
+            <span class="enhance-label">via</span>
+            <select class="enhance-select" id="aiProviderSelect" onchange="setAiProvider(this.value)">
+              <option value="openai">OpenAI GPT-4o</option>
+              <option value="anthropic">Anthropic Claude</option>
+              <option value="google">Google Gemini</option>
+            </select>
+          </div>
+          <button class="enhance-btn" id="enhanceBtn" onclick="aiEnhancePrompt()">
+            ✨ AI Enhance
+          </button>
+        </div>
+
+        <div class="quick-prompts">
+          <div class="qp-chip" onclick="usePrompt('A sleek sci-fi helmet with glowing visor')">🪖 Sci-fi helmet</div>
+          <div class="qp-chip" onclick="usePrompt('A detailed medieval longsword with ornate hilt')">⚔️ Medieval sword</div>
+          <div class="qp-chip" onclick="usePrompt('A futuristic sports car, low profile, aerodynamic')">🚗 Sports car</div>
+          <div class="qp-chip" onclick="usePrompt('A dragon figurine, scaled texture, spread wings')">🐉 Dragon</div>
+          <div class="qp-chip" onclick="usePrompt('A stylized potion bottle with glowing liquid inside')">🧪 Potion bottle</div>
+          <div class="qp-chip" onclick="usePrompt('An ornate wooden chest with gold trim and lock')">📦 Treasure chest</div>
+        </div>
+      </div>
+
+      <!-- IMAGE INPUT -->
+      <div id="image-inputs" class="hidden">
+        <div class="sec-label">Upload reference images (up to 5)</div>
+        <div class="drop-zone" id="dropZone"
+          ondragover="handleDragOver(event)"
+          ondragleave="handleDragLeave(event)"
+          ondrop="handleDrop(event)"
+        >
+          <input type="file" id="imgFileInput" accept="image/*" multiple onchange="handleFileSelect(event)">
+          <div class="drop-icon">📷</div>
+          <div class="drop-title">Drop images here or click to browse</div>
+          <div class="drop-sub">PNG, JPG, WEBP supported</div>
+          <div class="drop-limit">Up to 5 images · Max 10MB each</div>
+        </div>
+
+        <div class="img-previews" id="imgPreviews"></div>
+
+        <div id="condModeWrap" class="hidden" style="margin-top:12px">
+          <div class="sec-label">Multi-image mode</div>
+          <div class="cond-tabs">
+            <div class="cond-tab active" onclick="setCondMode('concat')" id="cond-concat">Concat — Multi-view</div>
+            <div class="cond-tab" onclick="setCondMode('fuse')" id="cond-fuse">Fuse — Multi-object</div>
+          </div>
+        </div>
+
+        <div style="margin-top:12px">
+          <div class="sec-label">Optional prompt hint</div>
+          <div class="prompt-wrap">
+            <textarea
+              class="prompt-area"
+              id="imgPromptInput"
+              placeholder="Optional: describe material, style, or extra details..."
+              maxlength="500"
+              rows="3"
+            ></textarea>
+          </div>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- SETTINGS -->
+      <div>
+        <div class="sec-label">Generation Settings</div>
+        <div class="settings-grid">
+
+          <div class="setting-group">
+            <label class="setting-label">Engine</label>
+            <select class="setting-select" id="tierSelect" onchange="updateCostEstimate()">
+              <option value="Gen-2">Rodin Gen-2 ✦</option>
+              <option value="">Rodin Gen-1</option>
+            </select>
+          </div>
+
+          <div class="setting-group">
+            <label class="setting-label">Quality</label>
+            <select class="setting-select" id="qualitySelect" onchange="updateCostEstimate()">
+              <option value="sketch">Sketch — Fast</option>
+              <option value="regular" selected>Regular — Balanced</option>
+              <option value="detail">Detail — Sharp</option>
+              <option value="smooth">Smooth — Clean</option>
+            </select>
+          </div>
+
+          <div class="setting-group">
+            <label class="setting-label">File Format</label>
+            <select class="setting-select" id="formatSelect">
+              <option value="glb" selected>GLB (Universal)</option>
+              <option value="obj">OBJ</option>
+              <option value="fbx">FBX</option>
+              <option value="stl">STL</option>
+              <option value="usdz">USDZ (Apple)</option>
+            </select>
+          </div>
+
+          <div class="setting-group">
+            <label class="setting-label">Material</label>
+            <select class="setting-select" id="materialSelect">
+              <option value="PBR" selected>PBR (Realistic)</option>
+              <option value="Shaded">Shaded (Stylized)</option>
+            </select>
+          </div>
+
+          <div class="setting-group full">
+            <div class="toggle-wrap">
+              <span class="toggle-label-text">T/A Pose (Gen-2 only)</span>
+              <label class="toggle"><input type="checkbox" id="taPoseToggle"><span class="toggle-slider"></span></label>
+            </div>
+          </div>
+
+          <div class="setting-group full">
+            <div class="toggle-wrap">
+              <span class="toggle-label-text">Preview render in download</span>
+              <label class="toggle"><input type="checkbox" id="previewRenderToggle" checked><span class="toggle-slider"></span></label>
+            </div>
+          </div>
+
+          <div class="setting-group full">
+            <div class="toggle-wrap">
+              <span class="toggle-label-text">4K textures (HighPack)</span>
+              <label class="toggle"><input type="checkbox" id="highpackToggle"><span class="toggle-slider"></span></label>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </div><!-- /panel-scroll -->
+
+    <div class="panel-footer">
+      <button class="generate-btn" id="generateBtn" onclick="generate()">
+        <span class="btn-icon">⚡</span>
+        Generate 3D Asset
+      </button>
+      <div class="credits-row">
+        <span class="credits-label">Estimated cost</span>
+        <span class="credits-cost" id="costEstimate">~$0.30 / generation</span>
+      </div>
+    </div>
+  </div><!-- /panel-left -->
+
+
+  <!-- RIGHT PANEL — VIEWER -->
+  <div class="panel-right">
+    <div class="viewer-topbar">
+      <div class="viewer-title">
+        <span id="viewerStatusDot" style="width:7px;height:7px;border-radius:50%;background:var(--dim);display:inline-block;flex-shrink:0"></span>
+        <span id="viewerTitleText">3D Viewport — Awaiting generation</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span class="gpu-badge" id="gpuBadge"></span>
+        <span class="llm-log-badge hidden" id="llmLogBadge"></span>
+      </div>
+      <div class="viewer-actions">
+        <button class="action-btn" id="resetCamBtn" onclick="resetCamera()" disabled>↺ Reset View</button>
+        <button class="action-btn" id="wireframeBtn" onclick="toggleWireframe()" disabled>◻ Wireframe</button>
+        <button class="action-btn primary" id="downloadAllBtn" onclick="downloadAll()" disabled>↓ Download All</button>
+      </div>
+    </div>
+
+    <div class="viewer-canvas-wrap">
+      <canvas id="three-canvas"></canvas>
+
+      <div class="viewer-empty" id="emptyState">
+        <div class="empty-graphic">
+          <div class="empty-ring ring1"></div>
+          <div class="empty-ring ring2"></div>
+          <div class="empty-ring ring3"></div>
+          <div class="empty-dot">⬡</div>
+        </div>
+        <div class="empty-title">No asset generated yet</div>
+        <div class="empty-sub">Configure your prompt or upload an image, then hit Generate to create a production-ready 3D model.</div>
+      </div>
+
+      <div class="progress-overlay hidden" id="progressOverlay">
+        <div class="progress-ring-wrap">
+          <svg width="80" height="80" viewBox="0 0 80 80">
+            <defs>
+              <linearGradient id="progressGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stop-color="#FF9A1F"/>
+                <stop offset="100%" stop-color="#00D4FF"/>
+              </linearGradient>
+            </defs>
+            <circle class="progress-track" cx="40" cy="40" r="35"/>
+            <circle class="progress-fill" id="progressCircle" cx="40" cy="40" r="35"/>
+          </svg>
+          <div class="progress-pct" id="progressPct">0%</div>
+        </div>
+        <div class="progress-status" id="progressStatus">Submitting job to Rodin...</div>
+        <div class="progress-steps">
+          <div class="progress-step active" id="step-submit"><div class="step-dot"></div>Submitting to Rodin API</div>
+          <div class="progress-step" id="step-queue"><div class="step-dot"></div>Job queued &amp; processing</div>
+          <div class="progress-step" id="step-mesh"><div class="step-dot"></div>Generating mesh geometry</div>
+          <div class="progress-step" id="step-texture"><div class="step-dot"></div>Applying textures &amp; materials</div>
+          <div class="progress-step" id="step-download"><div class="step-dot"></div>Packaging &amp; downloading</div>
+        </div>
+      </div>
+
+      <div class="error-overlay" id="errorOverlay">
+        <div class="error-icon">⚠️</div>
+        <div class="error-title">Generation Failed</div>
+        <div class="error-msg" id="errorMsg">An unexpected error occurred. Check your API key and try again.</div>
+        <button class="error-retry" onclick="resetState()">Try Again</button>
+        <div class="rescue-section" id="rescueSection" style="display:none">
+          <button class="rescue-btn" id="rescueBtn" onclick="rescuePrompt()">🤖 AI Rescue Prompt</button>
+          <div class="rescue-panel hidden" id="rescuePanel">
+            <div class="rescue-panel-label">Rescued prompt — edit if needed</div>
+            <textarea class="rescue-text" id="rescuedText" rows="4"></textarea>
+            <button class="rescue-apply-btn" onclick="applyRescueAndRetry()">⚡ Apply & Retry</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="controls-hint" id="controlsHint">
+        <div class="hint-item"><span class="hint-key">Drag</span> Orbit</div>
+        <div class="hint-item"><span class="hint-key">Scroll</span> Zoom</div>
+        <div class="hint-item"><span class="hint-key">Right-drag</span> Pan</div>
+      </div>
+    </div>
+
+    <div class="success-bar" id="successBar">
+      <span class="success-icon">✓</span>
+      <span class="success-text"><strong>Asset generated successfully.</strong> Download your files below.</span>
+      <div class="download-list" id="downloadList"></div>
+    </div>
+
+    <div class="analysis-panel" id="analysisPanel"></div>
+  </div><!-- /panel-right -->
+</div><!-- /app -->
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<!-- ============================================================
+     API KEYS MODAL
+============================================================ -->
+<div class="modal-overlay hidden" id="apiModal">
+  <div class="modal-inner">
+    <div class="modal-header">
+      <div class="modal-title">API Keys</div>
+      <button class="modal-close" onclick="closeApiModal()">✕</button>
+    </div>
+    <div class="modal-note">
+      🔒 Keys stored in memory only — never persisted, logged, or sent anywhere except directly to their respective APIs.
+    </div>
+
+    <!-- 3D ENGINE -->
+    <div class="modal-section">
+      <div class="modal-section-title">3D Generation Engine</div>
+      <div class="key-row">
+        <div class="key-row-header">
+          <div class="key-provider-name">Hyper3D (Rodin)</div>
+          <div class="key-provider-tag">Required for generation</div>
+        </div>
+        <div class="key-input-wrap">
+          <div class="api-key-status" id="dot-hyper3d"></div>
+          <input type="password" class="api-input key-input" id="key-hyper3d"
+            placeholder="hyper3d_xxxxxxxxxxxxxxxx"
+            oninput="validateKeyInput('hyper3d')"
+            autocomplete="off" spellcheck="false">
+          <a class="key-link" href="https://developer.hyper3d.ai" target="_blank" rel="noopener">Get key →</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- AI PROMPT ENHANCEMENT -->
+    <div class="modal-section">
+      <div class="modal-section-title">AI Prompt Enhancement</div>
+      <div class="modal-section-sub">
+        Powers the ✨ AI Enhance button. Sends your rough description to the selected LLM and returns a detailed, Rodin-optimized prompt.
+      </div>
+
+      <div class="ai-provider-tabs">
+        <button class="prov-tab active" onclick="selectProviderTab('openai')" id="ptab-openai">OpenAI</button>
+        <button class="prov-tab" onclick="selectProviderTab('anthropic')" id="ptab-anthropic">Anthropic</button>
+        <button class="prov-tab" onclick="selectProviderTab('google')" id="ptab-google">Google</button>
+      </div>
+
+      <!-- OpenAI panel -->
+      <div class="prov-panel" id="ppanel-openai">
+        <div class="key-row">
+          <div class="key-row-header">
+            <div class="key-provider-name">OpenAI</div>
+            <div class="key-provider-tag">GPT-4o · browser-compatible</div>
+          </div>
+          <div class="key-input-wrap">
+            <div class="api-key-status" id="dot-openai"></div>
+            <input type="password" class="api-input key-input" id="key-openai"
+              placeholder="sk-proj-xxxxxxxxxxxxxxxx"
+              oninput="validateKeyInput('openai')"
+              autocomplete="off" spellcheck="false">
+            <a class="key-link" href="https://platform.openai.com/api-keys" target="_blank" rel="noopener">Get key →</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Anthropic panel -->
+      <div class="prov-panel hidden" id="ppanel-anthropic">
+        <div class="key-row">
+          <div class="key-row-header">
+            <div class="key-provider-name">Anthropic (Claude)</div>
+            <div class="key-provider-tag">claude-sonnet-4-20250514</div>
+          </div>
+          <div class="key-input-wrap">
+            <div class="api-key-status" id="dot-anthropic"></div>
+            <input type="password" class="api-input key-input" id="key-anthropic"
+              placeholder="sk-ant-xxxxxxxxxxxxxxxx"
+              oninput="validateKeyInput('anthropic')"
+              autocomplete="off" spellcheck="false">
+            <a class="key-link" href="https://console.anthropic.com/keys" target="_blank" rel="noopener">Get key →</a>
+          </div>
+          <div class="key-notice">
+            ⚠️ Anthropic requires <code>anthropic-dangerous-direct-browser-access: true</code> for browser calls. Works from localhost. If CORS blocked, switch to OpenAI or Google.
+          </div>
+        </div>
+      </div>
+
+      <!-- Google panel -->
+      <div class="prov-panel hidden" id="ppanel-google">
+        <div class="key-row">
+          <div class="key-row-header">
+            <div class="key-provider-name">Google Gemini</div>
+            <div class="key-provider-tag">gemini-1.5-flash · browser-compatible</div>
+          </div>
+          <div class="key-input-wrap">
+            <div class="api-key-status" id="dot-google"></div>
+            <input type="password" class="api-input key-input" id="key-google"
+              placeholder="AIzaSyxxxxxxxxxxxxxxxx"
+              oninput="validateKeyInput('google')"
+              autocomplete="off" spellcheck="false">
+            <a class="key-link" href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener">Get key →</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- COMING SOON -->
+    <div class="modal-section">
+      <div class="modal-section-title">Coming Soon</div>
+      <div class="coming-soon-grid">
+        <div class="coming-soon-item">
+          <div class="coming-soon-icon">🧊</div>
+          <div><div class="coming-soon-name">Meshy</div><div class="coming-soon-desc">Alt 3D engine</div></div>
+          <div class="coming-soon-tag">Q3 2026</div>
+        </div>
+        <div class="coming-soon-item">
+          <div class="coming-soon-icon">🎨</div>
+          <div><div class="coming-soon-name">Stability AI</div><div class="coming-soon-desc">Image gen → 3D</div></div>
+          <div class="coming-soon-tag">Q3 2026</div>
+        </div>
+        <div class="coming-soon-item">
+          <div class="coming-soon-icon">🤖</div>
+          <div><div class="coming-soon-name">Tripo3D</div><div class="coming-soon-desc">Alt 3D engine</div></div>
+          <div class="coming-soon-tag">Q4 2026</div>
+        </div>
+        <div class="coming-soon-item">
+          <div class="coming-soon-icon">💬</div>
+          <div><div class="coming-soon-name">Mistral</div><div class="coming-soon-desc">AI prompt assist</div></div>
+          <div class="coming-soon-tag">Q4 2026</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="modal-save-btn" onclick="closeApiModal()">Save & Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     SCRIPTS
+============================================================ -->
+<script>
+/* ============================================================
+   STATE
+============================================================ */
+const state = {
+  mode: 'text',
+  condMode: 'concat',
+  images: [],
+  generating: false,
+  enhancing: false,
+  taskUuid: null,
+  jobUuids: [],
+  subscriptionKey: null,
+  downloadUrls: [],
+  glbUrl: null,
+  pollInterval: null,
+  pollCount: 0,
+  model: null,
+  wireframe: false,
+  keys: {
+    hyper3d:   '',
+    openai:    '',
+    anthropic: '',
+    google:    '',
+  },
+  aiProvider: 'openai',
+  // Provider router + failover
+  llmLog: [],
+  // Stall detection
+  lastSeenProgress: -1,
+  progressUnchangedCount: 0,
+  // Rescue
+  lastFailedPrompt: '',
+  pendingRescue: false,
+  // GPU
+  gpuTier: null,
+  // Vision
+  visionAnalyzed: false,
+  // Debounce handles
+  coachTimer: null,
+  advisorTimer: null,
+};
+
+/* ============================================================
+   THREE.JS VIEWER
+============================================================ */
+let renderer, scene, camera;
+let isDragging = false, isRightDrag = false;
+let lastMouse = { x: 0, y: 0 };
+let spherical = { theta: 0.5, phi: 1.0, radius: 5 };
+let panOffset = { x: 0, y: 0 };
+
+function initThree() {
+  const canvas = document.getElementById('three-canvas');
+  const wrap = canvas.parentElement;
+
+  renderer = new THREE.WebGLRenderer({
+    canvas, antialias: true, alpha: true, powerPreference: 'high-performance',
+  });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.outputEncoding = THREE.sRGBEncoding;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.2;
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+  scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x111120);
+
+  const grid = new THREE.GridHelper(10, 20, 0x1C1C34, 0x1C1C34);
+  grid.position.y = -1.5;
+  scene.add(grid);
+
+  scene.add(new THREE.AmbientLight(0xffffff, 0.4));
+  const key = new THREE.DirectionalLight(0xffeedd, 1.2);
+  key.position.set(5, 8, 5); key.castShadow = true;
+  scene.add(key);
+  const fill = new THREE.DirectionalLight(0x00D4FF, 0.4);
+  fill.position.set(-5, 3, -5); scene.add(fill);
+  const rim = new THREE.DirectionalLight(0xFF9A1F, 0.3);
+  rim.position.set(0, -3, -8); scene.add(rim);
+
+  camera = new THREE.PerspectiveCamera(45, wrap.clientWidth / wrap.clientHeight, 0.01, 1000);
+  updateCamera();
+
+  new ResizeObserver(() => resizeRenderer()).observe(wrap);
+  resizeRenderer();
+
+  canvas.addEventListener('mousedown', onMouseDown);
+  canvas.addEventListener('mousemove', onMouseMove);
+  canvas.addEventListener('mouseup', () => isDragging = false);
+  canvas.addEventListener('mouseleave', () => isDragging = false);
+  canvas.addEventListener('wheel', onWheel, { passive: true });
+  canvas.addEventListener('contextmenu', e => e.preventDefault());
+
+  (function loop() { requestAnimationFrame(loop); renderer.render(scene, camera); })();
+  // GPU tier detection
+  setTimeout(detectGpuTier, 100);
+}
+
+function resizeRenderer() {
+  const wrap = document.getElementById('three-canvas').parentElement;
+  const w = wrap.clientWidth, h = wrap.clientHeight;
+  renderer.setSize(w, h);
+  if (camera) { camera.aspect = w / h; camera.updateProjectionMatrix(); }
+}
+
+function updateCamera() {
+  const { theta, phi, radius } = spherical;
+  camera.position.set(
+    radius * Math.sin(phi) * Math.sin(theta) + panOffset.x,
+    radius * Math.cos(phi) + panOffset.y,
+    radius * Math.sin(phi) * Math.cos(theta)
+  );
+  camera.lookAt(panOffset.x, panOffset.y, 0);
+}
+
+function onMouseDown(e) {
+  isDragging = true;
+  isRightDrag = e.button === 2;
+  lastMouse = { x: e.clientX, y: e.clientY };
+}
+
+function onMouseMove(e) {
+  if (!isDragging) return;
+  const dx = e.clientX - lastMouse.x;
+  const dy = e.clientY - lastMouse.y;
+  lastMouse = { x: e.clientX, y: e.clientY };
+  if (isRightDrag) {
+    panOffset.x -= dx * 0.001 * spherical.radius;
+    panOffset.y += dy * 0.001 * spherical.radius;
+  } else {
+    spherical.theta -= dx * 0.008;
+    spherical.phi = Math.max(0.1, Math.min(Math.PI - 0.1, spherical.phi + dy * 0.008));
+  }
+  updateCamera();
+}
+
+function onWheel(e) {
+  spherical.radius = Math.max(0.5, Math.min(30, spherical.radius + e.deltaY * 0.01));
+  updateCamera();
+}
+
+function resetCamera() {
+  spherical = { theta: 0.5, phi: 1.0, radius: 5 };
+  panOffset = { x: 0, y: 0 };
+  updateCamera();
+}
+
+function toggleWireframe() {
+  if (!state.model) return;
+  state.wireframe = !state.wireframe;
+  state.model.traverse(child => {
+    if (child.isMesh && child.material) {
+      (Array.isArray(child.material) ? child.material : [child.material])
+        .forEach(m => m.wireframe = state.wireframe);
+    }
+  });
+  document.getElementById('wireframeBtn').textContent = state.wireframe ? '◼ Solid' : '◻ Wireframe';
+}
+
+function loadGLB(arrayBuffer) {
+  if (state.model) { scene.remove(state.model); state.model = null; }
+
+  const script = document.createElement('script');
+  script.src = 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/examples/js/loaders/GLTFLoader.min.js';
+  script.onload = () => {
+    new THREE.GLTFLoader().parse(arrayBuffer, '', (gltf) => {
+      const model = gltf.scene;
+      const box = new THREE.Box3().setFromObject(model);
+      const center = box.getCenter(new THREE.Vector3());
+      const size = box.getSize(new THREE.Vector3());
+      const scale = 3 / Math.max(size.x, size.y, size.z);
+      model.position.sub(center.multiplyScalar(scale));
+      model.scale.setScalar(scale);
+      model.traverse(c => { if (c.isMesh) { c.castShadow = true; c.receiveShadow = true; } });
+      scene.add(model);
+      state.model = model;
+      spherical.radius = 4;
+      updateCamera();
+      document.getElementById('wireframeBtn').disabled = false;
+      document.getElementById('resetCamBtn').disabled = false;
+      document.getElementById('controlsHint').style.display = 'flex';
+      setViewerStatus('active', `3D Asset Loaded — ${formatBytes(arrayBuffer.byteLength)}`);
+    }, err => {
+      console.error('GLB parse error:', err);
+      setViewerStatus('error', 'Failed to parse GLB model');
+    });
+  };
+  script.onerror = () => { showPlaceholderModel(); setViewerStatus('active', 'Preview unavailable — download to view'); };
+  document.head.appendChild(script);
+}
+
+function showPlaceholderModel() {
+  if (state.model) scene.remove(state.model);
+  const mesh = new THREE.Mesh(
+    new THREE.BoxGeometry(1.5, 1.5, 1.5),
+    new THREE.MeshStandardMaterial({ color: 0xFF9A1F, metalness: 0.6, roughness: 0.3 })
+  );
+  scene.add(mesh);
+  state.model = mesh;
+}
+
+/* ============================================================
+   MODAL MANAGEMENT
+============================================================ */
+function openApiModal() {
+  // Restore saved values into modal inputs
+  Object.keys(state.keys).forEach(p => {
+    const input = document.getElementById(`key-${p}`);
+    if (input && state.keys[p]) input.value = state.keys[p];
+    validateKeyInput(p);
+  });
+  selectProviderTab(state.aiProvider);
+  document.getElementById('apiModal').classList.remove('hidden');
+}
+
+function closeApiModal() {
+  // Persist values from modal inputs into state
+  Object.keys(state.keys).forEach(p => {
+    const input = document.getElementById(`key-${p}`);
+    if (input) state.keys[p] = input.value.trim();
+    validateKeyInput(p);
+  });
+  updateProviderPills();
+  document.getElementById('apiModal').classList.add('hidden');
+}
+
+function selectProviderTab(provider) {
+  ['openai', 'anthropic', 'google'].forEach(p => {
+    document.getElementById(`ptab-${p}`)?.classList.toggle('active', p === provider);
+    document.getElementById(`ppanel-${p}`)?.classList.toggle('hidden', p !== provider);
+  });
+  const sel = document.getElementById('aiProviderSelect');
+  if (sel) sel.value = provider;
+  state.aiProvider = provider;
+}
+
+function validateKeyInput(provider) {
+  const input = document.getElementById(`key-${provider}`);
+  const dot   = document.getElementById(`dot-${provider}`);
+  if (!input || !dot) return;
+  const len = input.value.trim().length;
+  dot.className = len > 10 ? 'api-key-status active' : len > 0 ? 'api-key-status error' : 'api-key-status';
+}
+
+function updateProviderPills() {
+  Object.keys(state.keys).forEach(p => {
+    const pill = document.getElementById(`pill-${p}`);
+    if (!pill) return;
+    const dot = pill.querySelector('.pill-dot');
+    if (!dot) return;
+    const active = (state.keys[p]?.length ?? 0) > 10;
+    dot.style.background  = active ? 'var(--green)' : 'var(--dim)';
+    dot.style.boxShadow   = active ? '0 0 5px var(--green)' : 'none';
+    pill.classList.toggle('keyed', active);
+  });
+}
+
+// Close on overlay click
+document.getElementById('apiModal').addEventListener('click', e => {
+  if (e.target === document.getElementById('apiModal')) closeApiModal();
+});
+
+/* ============================================================
+   AI PROVIDER SELECTOR (from prompt panel)
+============================================================ */
+function setAiProvider(provider) {
+  state.aiProvider = provider;
+  // Sync modal tabs if modal is open
+  ['openai', 'anthropic', 'google'].forEach(p => {
+    document.getElementById(`ptab-${p}`)?.classList.toggle('active', p === provider);
+    document.getElementById(`ppanel-${p}`)?.classList.toggle('hidden', p !== provider);
+  });
+}
+
+/* ============================================================
+   AI PROMPT ENHANCEMENT
+============================================================ */
+const ENHANCE_SYSTEM = `You are a 3D asset prompt engineer specialized in Rodin/Hyper3D generation. The user will give you a rough description. Rewrite it as a highly detailed, generation-optimized prompt.
+
+Include where relevant:
+- Material properties: metalness, roughness, PBR surface characteristics, subsurface scattering
+- Surface texture detail: scratches, patina, grain, weave, engraving, imperfections
+- Geometry: polygon density, edge sharpness, organic vs hard-surface definition
+- Scale and proportion references
+- Style: realistic, stylized, photorealistic, low-poly, sci-fi, fantasy
+- Lighting-reactive descriptors: specularity, translucency, emission, iridescence
+
+Output ONLY the enhanced prompt. No preamble, explanation, quotes, or markdown. Max 180 words.`;
+
+async function aiEnhancePrompt() {
+  const prompt = document.getElementById('promptInput').value.trim();
+  if (!prompt) { showToast('⚠️ Enter a rough description first', 'error'); return; }
+
+  const key = state.keys[state.aiProvider];
+  if (!key) {
+    showToast(`⚠️ Add your ${state.aiProvider} API key first`, 'error');
+    openApiModal();
+    selectProviderTab(state.aiProvider);
+    return;
+  }
+
+  if (state.enhancing) return;
+  state.enhancing = true;
+
+  const btn = document.getElementById('enhanceBtn');
+  btn.disabled = true;
+  btn.textContent = '✦ Enhancing...';
+
+  try {
+    const enhanced = await callLLM(prompt);
+    document.getElementById('promptInput').value = enhanced;
+    updateCharCount();
+    showToast('✨ Prompt enhanced!', 'success');
+  } catch (err) {
+    const msg = String(err.message || err);
+    if (msg.toLowerCase().includes('cors') || msg.toLowerCase().includes('failed to fetch')) {
+      showToast('CORS blocked — try Google Gemini or OpenAI from browser', 'error');
+    } else {
+      showToast(`⚠️ ${msg.substring(0, 70)}`, 'error');
+    }
+    console.error('[AI Enhance]', err);
+  } finally {
+    state.enhancing = false;
+    btn.disabled = false;
+    btn.textContent = '✨ AI Enhance';
+  }
+}
+
+async function callLLM(userPrompt) { return callLLMWithFailover(userPrompt); }
+
+async function callOpenAI(userPrompt, system = null) {
+  const res = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${state.keys.openai}`,
+    },
+    body: JSON.stringify({
+      model: 'gpt-4o',
+      max_tokens: 300,
+      temperature: 0.7,
+      messages: [
+        { role: 'system', content: system || ENHANCE_SYSTEM },
+        { role: 'user', content: userPrompt },
+      ],
+    }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error?.message || `OpenAI HTTP ${res.status}`);
+  }
+  const data = await res.json();
+  const text = data.choices?.[0]?.message?.content?.trim();
+  if (!text) throw new Error('OpenAI returned empty response');
+  return text;
+}
+
+async function callAnthropic(userPrompt, system = null) {
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': state.keys.anthropic,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true',
+    },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 300,
+      system: system || ENHANCE_SYSTEM,
+      messages: [{ role: 'user', content: userPrompt }],
+    }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error?.message || `Anthropic HTTP ${res.status}`);
+  }
+  const data = await res.json();
+  const text = data.content?.[0]?.text?.trim();
+  if (!text) throw new Error('Anthropic returned empty response');
+  return text;
+}
+
+async function callGoogle(userPrompt, system = null) {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${state.keys.google}`;
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      system_instruction: { parts: [{ text: system || ENHANCE_SYSTEM }] },
+      contents: [{ parts: [{ text: userPrompt }] }],
+      generationConfig: { maxOutputTokens: 300, temperature: 0.7 },
+    }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error?.message || `Google HTTP ${res.status}`);
+  }
+  const data = await res.json();
+  const text = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+  if (!text) throw new Error('Google Gemini returned empty response');
+  return text;
+}
+
+/* ============================================================
+   UI HELPERS
+============================================================ */
+function setMode(mode) {
+  state.mode = mode;
+  document.getElementById('tab-text').classList.toggle('active', mode === 'text');
+  document.getElementById('tab-image').classList.toggle('active', mode === 'image');
+  document.getElementById('text-inputs').classList.toggle('hidden', mode !== 'text');
+  document.getElementById('image-inputs').classList.toggle('hidden', mode !== 'image');
+  updateCostEstimate();
+}
+
+function setCondMode(m) {
+  state.condMode = m;
+  document.getElementById('cond-concat').classList.toggle('active', m === 'concat');
+  document.getElementById('cond-fuse').classList.toggle('active', m === 'fuse');
+}
+
+function updateCharCount() {
+  document.getElementById('charCount').textContent = `${document.getElementById('promptInput').value.length} / 1000`;
+}
+
+function usePrompt(text) {
+  document.getElementById('promptInput').value = text;
+  updateCharCount();
+  showToast('✦ Prompt applied', 'success');
+}
+
+function handleDragOver(e) { e.preventDefault(); document.getElementById('dropZone').classList.add('drag-over'); }
+function handleDragLeave()  { document.getElementById('dropZone').classList.remove('drag-over'); }
+
+function handleDrop(e) {
+  e.preventDefault();
+  document.getElementById('dropZone').classList.remove('drag-over');
+  addImages(Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/')));
+}
+
+function handleFileSelect(e) {
+  addImages(Array.from(e.target.files).filter(f => f.type.startsWith('image/')));
+  e.target.value = '';
+}
+
+function addImages(files) {
+  const remaining = 5 - state.images.length;
+  files.slice(0, remaining).forEach(file => {
+    const reader = new FileReader();
+    reader.onload = e => { state.images.push({ file, dataUrl: e.target.result }); renderImagePreviews(); };
+    reader.readAsDataURL(file);
+  });
+  if (files.length > remaining) showToast('Max 5 images allowed', 'error');
+}
+
+function removeImage(idx) { state.images.splice(idx, 1); renderImagePreviews(); }
+
+function renderImagePreviews() {
+  document.getElementById('imgPreviews').innerHTML = state.images.map((img, i) => `
+    <div class="img-thumb">
+      <img src="${img.dataUrl}" alt="img ${i+1}">
+      <button class="img-thumb-remove" onclick="removeImage(${i})">✕</button>
+    </div>
+  `).join('');
+  document.getElementById('condModeWrap').classList.toggle('hidden', state.images.length < 2);
+}
+
+function updateCostEstimate() {
+  const highpack = document.getElementById('highpackToggle')?.checked;
+  document.getElementById('costEstimate').textContent = `~$${(0.30 + (highpack ? 0.10 : 0)).toFixed(2)} / generation`;
+}
+
+function setViewerStatus(status, text) {
+  const dot = document.getElementById('viewerStatusDot');
+  document.getElementById('viewerTitleText').textContent = text;
+  const c = { idle:'var(--dim)', active:'var(--amber)', done:'var(--green)', error:'var(--red)' };
+  dot.style.background = c[status] || c.idle;
+  dot.style.boxShadow  = status === 'done' ? '0 0 6px var(--green)'
+                        : status === 'active' ? '0 0 6px var(--amber)' : 'none';
+}
+
+function setProgress(pct, statusText, stepIdx) {
+  const offset = 2 * Math.PI * 35 * (1 - pct / 100);
+  document.getElementById('progressCircle').style.strokeDashoffset = offset;
+  document.getElementById('progressPct').textContent = `${Math.round(pct)}%`;
+  document.getElementById('progressStatus').textContent = statusText;
+
+  ['step-submit','step-queue','step-mesh','step-texture','step-download'].forEach((id, i) => {
+    const el = document.getElementById(id);
+    el.classList.remove('done', 'active');
+    if (i < stepIdx) el.classList.add('done');
+    else if (i === stepIdx) el.classList.add('active');
+  });
+}
+
+function showToast(msg, type = 'info') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = `toast ${type} show`;
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.classList.remove('show'), 3500);
+}
+
+function formatBytes(b) {
+  return b < 1024 ? b + ' B' : b < 1048576 ? (b/1024).toFixed(1) + ' KB' : (b/1048576).toFixed(1) + ' MB';
+}
+
+function resetState() {
+  clearInterval(state.pollInterval);
+  state.generating = false;
+  state.taskUuid = null;
+  state.pollCount = 0;
+  state.downloadUrls = [];
+  document.getElementById('generateBtn').disabled = false;
+  document.getElementById('progressOverlay').classList.add('hidden');
+  document.getElementById('errorOverlay').style.display = 'none';
+  setViewerStatus('idle', '3D Viewport — Awaiting generation');
+  document.getElementById('rescueSection').style.display = 'none';
+  document.getElementById('rescuePanel').classList.add('hidden');
+  document.getElementById('analysisPanel').style.display = 'none';
+}
+
+/* ============================================================
+   RODIN API — uses state.keys.hyper3d
+============================================================ */
+const RODIN_BASE = 'https://api.hyper3d.com/api/v2';
+
+async function generate() {
+  const apiKey = state.keys.hyper3d;
+  if (!apiKey) {
+    showToast('⚠️ Add your Hyper3D API key first', 'error');
+    openApiModal();
+    return;
+  }
+
+  if (state.mode === 'text') {
+    if (!document.getElementById('promptInput').value.trim()) {
+      showToast('⚠️ Enter a prompt to describe your 3D object', 'error');
+      return;
+    }
+  } else {
+    if (state.images.length === 0) {
+      showToast('⚠️ Upload at least one reference image', 'error');
+      return;
+    }
+  }
+
+  state.generating = true;
+  state.pollCount = 0;
+  state.downloadUrls = [];
+  state.lastSeenProgress = -1;
+  state.progressUnchangedCount = 0;
+  state.visionAnalyzed = false;
+  state.lastFailedPrompt = document.getElementById('promptInput').value.trim();
+  document.getElementById('analysisPanel').style.display = 'none';
+  document.getElementById('rescueSection').style.display = 'none';
+  document.getElementById('rescuePanel').classList.add('hidden');
+
+  document.getElementById('generateBtn').disabled = true;
+  document.getElementById('emptyState').style.display = 'none';
+  document.getElementById('progressOverlay').classList.remove('hidden');
+  document.getElementById('errorOverlay').style.display = 'none';
+  document.getElementById('successBar').style.display = 'none';
+  document.getElementById('downloadAllBtn').disabled = true;
+
+  setProgress(5, 'Submitting job to Rodin API...', 0);
+  setViewerStatus('active', 'Generating 3D asset...');
+
+  try {
+    const fd = new FormData();
+
+    if (state.mode === 'text') {
+      fd.append('prompt', document.getElementById('promptInput').value.trim());
+    } else {
+      for (const imgObj of state.images) fd.append('images', imgObj.file, imgObj.file.name);
+      const imgPrompt = document.getElementById('imgPromptInput').value.trim();
+      if (imgPrompt) fd.append('prompt', imgPrompt);
+      if (state.images.length > 1) fd.append('condition_mode', state.condMode);
+    }
+
+    const tier = document.getElementById('tierSelect').value;
+    if (tier) fd.append('tier', tier);
+
+    fd.append('material', document.getElementById('materialSelect').value);
+
+    if (document.getElementById('qualitySelect').value === 'sketch') fd.append('tier', 'Sketch');
+
+    fd.append('geometry_file_format', document.getElementById('formatSelect').value);
+
+    if (document.getElementById('taPoseToggle').checked)      fd.append('TAPose', 'true');
+    if (document.getElementById('previewRenderToggle').checked) fd.append('preview_render', 'true');
+    if (document.getElementById('highpackToggle').checked)    fd.append('addons', 'HighPack');
+
+    const res = await fetch(`${RODIN_BASE}/rodin`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${apiKey}` },
+      body: fd,
+    });
+
+    if (!res.ok) {
+      const e = await res.json().catch(() => ({}));
+      throw new Error(e.message || e.error || `HTTP ${res.status}`);
+    }
+
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+
+    state.taskUuid        = data.uuid;
+    state.jobUuids        = data.jobs?.uuids || [];
+    state.subscriptionKey = data.jobs?.subscription_key;
+
+    // Mark Hyper3D pill green on successful job submission
+    const hPill = document.getElementById('pill-hyper3d');
+    if (hPill) {
+      const d = hPill.querySelector('.pill-dot');
+      if (d) { d.style.background = 'var(--green)'; d.style.boxShadow = '0 0 5px var(--green)'; }
+    }
+
+    setProgress(15, 'Job submitted. Polling for status...', 1);
+    await pollStatus();
+
+  } catch (err) {
+    showError(err.message || String(err));
+  }
+}
+
+async function pollStatus() {
+  return new Promise((resolve, reject) => {
+    state.pollInterval = setInterval(async () => {
+      state.pollCount++;
+      if (state.pollCount > 120) {
+        clearInterval(state.pollInterval);
+        reject(new Error('Generation timed out after 10 minutes.'));
+        return;
+      }
+      try {
+        let res = await fetch(`${RODIN_BASE}/status/subscriptions/${state.subscriptionKey}`, {
+          headers: { Authorization: `Bearer ${state.keys.hyper3d}` },
+        });
+        if (!res.ok) {
+          res = await fetch(`${RODIN_BASE}/status/${state.taskUuid}`, {
+            headers: { Authorization: `Bearer ${state.keys.hyper3d}` },
+          });
+          if (!res.ok) return;
+        }
+        handleStatusResponse(await res.json(), resolve, reject);
+      } catch (e) {
+        console.warn('Poll error (retrying):', e.message);
+      }
+    }, 5000);
+  });
+}
+
+function handleStatusResponse(data, resolve, reject) {
+  const status = data.status || data.jobs?.[0]?.status || 'Processing';
+  const pctRaw = data.progress || data.jobs?.[0]?.progress || 0;
+  const pct    = Math.min(95, 15 + pctRaw * 0.8);
+
+  if (['Done','Completed','completed','done'].includes(status)) {
+    clearInterval(state.pollInterval);
+    setProgress(95, 'Packaging download...', 4);
+    downloadResult().then(resolve).catch(reject);
+  } else if (['Failed','Error','failed','error'].includes(status)) {
+    clearInterval(state.pollInterval);
+    reject(new Error(data.message || 'Generation failed on Rodin servers.'));
+  } else {
+    // STALL DETECTION: no progress change for 20 polls (~100s)
+    if (pctRaw === state.lastSeenProgress) {
+      state.progressUnchangedCount++;
+      if (state.progressUnchangedCount >= 20) {
+        clearInterval(state.pollInterval);
+        reject(new Error('STALL: No progress for ~100 seconds'));
+        return;
+      }
+    } else {
+      state.progressUnchangedCount = 0;
+      state.lastSeenProgress = pctRaw;
+    }
+    const step = pctRaw < 30 ? 1 : pctRaw < 60 ? 2 : 3;
+    const msgs = [
+      'Job queued in processing cluster...',
+      'Analyzing prompt and generating geometry...',
+      'Building mesh topology...',
+      'Applying textures and materials...',
+      'Finalizing model...',
+    ];
+    setProgress(pct, msgs[step] || 'Processing...', step);
+  }
+}
+
+async function downloadResult() {
+  const res = await fetch(`${RODIN_BASE}/download`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${state.keys.hyper3d}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ task_uuid: state.taskUuid }),
+  });
+  if (!res.ok) throw new Error(`Download failed: HTTP ${res.status}`);
+  const data = await res.json();
+  if (data.error) throw new Error(data.error);
+
+  const files = data.list || data.files || data.results || [];
+  state.downloadUrls = files;
+  setProgress(100, 'Complete!', 4);
+
+  const glb = files.find(f => (f.name || f.filename || '').toLowerCase().endsWith('.glb'));
+  if (glb?.url) {
+    state.glbUrl = glb.url;
+    try {
+      const r = await fetch(glb.url);
+      if (!r.ok) throw new Error();
+      loadGLB(await r.arrayBuffer());
+    } catch { showPlaceholderModel(); }
+  } else {
+    showPlaceholderModel();
+  }
+  showSuccess(files);
+}
+
+function showSuccess(files) {
+  document.getElementById('progressOverlay').classList.add('hidden');
+  document.getElementById('successBar').style.display = 'flex';
+  document.getElementById('downloadAllBtn').disabled = false;
+  document.getElementById('downloadList').innerHTML = files.slice(0, 8).map(f => {
+    const name = f.name || f.filename || 'file';
+    return `<a class="dl-btn" href="${f.url}" download="${name}" target="_blank">↓ ${name.split('.').pop().toUpperCase()}</a>`;
+  }).join('');
+  setViewerStatus('done', `3D Asset Ready — ${files.length} file(s) available`);
+  document.getElementById('generateBtn').disabled = false;
+  state.generating = false;
+  showToast('✓ 3D asset generated successfully!', 'success');
+  // Trigger vision analysis (async, non-blocking)
+  const p = state.lastFailedPrompt; // still holds the original prompt
+  setTimeout(() => analyzeGeneratedModel(p), 2000);
+}
+
+function downloadAll() {
+  state.downloadUrls.forEach(f => {
+    const a = Object.assign(document.createElement('a'), {
+      href: f.url, download: f.name || f.filename || 'flashfusion_model', target: '_blank',
+    });
+    a.click();
+  });
+}
+
+function showError(msg) {
+  clearInterval(state.pollInterval);
+  document.getElementById('progressOverlay').classList.add('hidden');
+  document.getElementById('errorOverlay').style.display = 'flex';
+  const isStall = msg.startsWith('STALL:');
+  const displayMsg = isStall ? 'Generation stalled — no progress for ~100 seconds.' : msg;
+  document.getElementById('errorMsg').textContent = displayMsg;
+  document.getElementById('generateBtn').disabled = false;
+  state.generating = false;
+  setViewerStatus('error', isStall ? 'Generation stalled' : 'Generation failed');
+  showToast(`⚠️ ${displayMsg.substring(0, 80)}`, 'error');
+  // Offer rescue if we have an LLM provider and a prompt
+  const hasProvider = getAvailableProvider() !== null;
+  const hasPrompt = state.lastFailedPrompt?.length > 5 && state.mode === 'text';
+  if (hasProvider && hasPrompt) {
+    document.getElementById('rescueSection').style.display = 'flex';
+  }
+}
+
+
+/* ============================================================
+   PRIORITY 1 — PROVIDER ROUTER + FAILOVER
+============================================================ */
+const LLM_PRIORITY_ORDER = ['anthropic', 'openai', 'google'];
+
+function getAvailableProvider() {
+  return LLM_PRIORITY_ORDER.find(p => (state.keys[p] ?? '').trim().length > 10) || null;
+}
+
+async function callLLMWithFailover(userPrompt, systemOverride = null) {
+  const preferred = state.aiProvider;
+  // Build chain: preferred provider first, then others with keys set
+  const chain = [preferred, ...LLM_PRIORITY_ORDER.filter(p => p !== preferred)]
+    .filter(p => (state.keys[p] ?? '').trim().length > 10);
+
+  if (chain.length === 0) {
+    throw new Error('No AI provider configured. Open API Keys and add at least one LLM key.');
+  }
+
+  let lastErr;
+  for (const provider of chain) {
+    try {
+      let result;
+      switch (provider) {
+        case 'openai':    result = await callOpenAI(userPrompt, systemOverride);    break;
+        case 'anthropic': result = await callAnthropic(userPrompt, systemOverride); break;
+        case 'google':    result = await callGoogle(userPrompt, systemOverride);    break;
+        default: throw new Error('Unknown provider: ' + provider);
+      }
+      // Successful — if we failed over, surface it
+      if (provider !== preferred) {
+        showLLMLogBadge(provider, preferred);
+      }
+      state.llmLog.push({ provider, ts: Date.now(), status: 'ok' });
+      return result;
+    } catch (e) {
+      state.llmLog.push({ provider, ts: Date.now(), status: 'fail', error: e.message });
+      console.warn(`[LLM Failover] ${provider} failed: ${e.message}`);
+      lastErr = e;
+    }
+  }
+  throw lastErr || new Error('All configured AI providers failed.');
+}
+
+function showLLMLogBadge(usedProvider, failedProvider) {
+  const badge = document.getElementById('llmLogBadge');
+  if (!badge) return;
+  badge.textContent = `↻ ${failedProvider} failed → ${usedProvider}`;
+  badge.classList.remove('hidden');
+  setTimeout(() => badge.classList.add('hidden'), 6000);
+}
+
+/* ============================================================
+   PRIORITY 2 — RETRY WITH EXPONENTIAL BACKOFF
+============================================================ */
+function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+async function withRetry(fn, max = 3, baseMs = 1000) {
+  let lastErr;
+  for (let i = 0; i < max; i++) {
+    try { return await fn(); }
+    catch (e) {
+      lastErr = e;
+      if (i < max - 1) await delay(baseMs * Math.pow(2, i));
+    }
+  }
+  throw lastErr;
+}
+
+/* ============================================================
+   PRIORITY 3 — PROMPT RESCUE
+============================================================ */
+const RESCUE_SYSTEM = `You are a 3D mesh generation expert. The user's prompt FAILED or STALLED during 3D asset generation. Diagnose why and rewrite it to be geometrically concrete.
+
+Rules:
+- Replace vague adjectives with specific physical descriptions
+- Name exact shapes, primitives, and surfaces
+- Specify scale reference (e.g. "fist-sized", "car-length", "2 meters tall")
+- Add PBR material properties: roughness, metalness, subsurface scattering if organic
+- Remove ambiguous emotion words: epic, amazing, cool, nice, good
+- Keep it under 80 words
+Return ONLY the rewritten prompt. No preamble, no explanation, no quotes.`;
+
+async function rescuePrompt() {
+  const failed = state.lastFailedPrompt;
+  if (!failed) { showToast('⚠️ No failed prompt to rescue', 'error'); return; }
+  const btn = document.getElementById('rescueBtn');
+  if (btn) { btn.disabled = true; btn.textContent = '🔄 Rescuing...'; }
+  try {
+    const rescued = await callLLMWithFailover(failed, RESCUE_SYSTEM);
+    const rescuedText = document.getElementById('rescuedText');
+    const panel      = document.getElementById('rescuePanel');
+    if (rescuedText) rescuedText.value = rescued;
+    if (panel)       panel.classList.remove('hidden');
+    state.pendingRescue = true;
+  } catch (e) {
+    showToast('⚠️ Rescue failed: ' + e.message.substring(0, 60), 'error');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '🤖 AI Rescue Prompt'; }
+  }
+}
+
+function applyRescueAndRetry() {
+  const rescuedText = document.getElementById('rescuedText');
+  if (rescuedText?.value) {
+    document.getElementById('promptInput').value = rescuedText.value;
+    updateCharCount();
+    renderCoachBadge(rescuedText.value);
+  }
+  document.getElementById('rescuePanel')?.classList.add('hidden');
+  document.getElementById('rescueSection').style.display = 'none';
+  document.getElementById('errorOverlay').style.display = 'none';
+  state.pendingRescue = false;
+  generate();
+}
+
+/* ============================================================
+   PRIORITY 4 — INLINE PROMPT COACH (local, zero API cost)
+============================================================ */
+const COACH_KWORDS = {
+  style:    ['realistic','stylized','low-poly','pbr','photorealistic','toon','cartoon','sci-fi','fantasy','futuristic','abstract','handpainted','watercolor'],
+  material: ['metal','metallic','wood','wooden','stone','fabric','glass','plastic','ceramic','leather','rubber','gold','silver','rust','concrete','obsidian','crystal','bone'],
+  geometry: ['smooth','sharp','organic','hard-surface','detailed','faceted','angular','rounded','symmetrical','asymmetric'],
+  scale:    ['tiny','small','large','massive','car-sized','human-scale','miniature','life-sized','microscopic'],
+  weak:     ['nice','good','cool','great','awesome','interesting','beautiful','amazing','epic','incredible'],
+};
+
+function coachPrompt(text) {
+  const words = text.toLowerCase().split(/\s+/).filter(Boolean);
+  const wc = words.length;
+  const flags = [];
+  let score = 50;
+
+  if (wc < 5) {
+    score -= 20;
+    flags.push({ type: 'warn', msg: 'Too short — add more detail' });
+  } else if (wc >= 12 && wc <= 70) {
+    score += 15;
+    flags.push({ type: 'ok', msg: 'Good length' });
+  } else if (wc > 80) {
+    flags.push({ type: 'info', msg: 'Consider trimming to ~60 words' });
+  }
+
+  const hasStyle = COACH_KWORDS.style.some(k => text.toLowerCase().includes(k));
+  if (hasStyle) { score += 15; }
+  else { score -= 5; flags.push({ type: 'warn', msg: 'Add style tag (realistic, low-poly…)' }); }
+
+  const hasMat = COACH_KWORDS.material.some(k => text.toLowerCase().includes(k));
+  if (hasMat) { score += 10; }
+  else { flags.push({ type: 'info', msg: 'Specify material (metal, wood, stone…)' }); }
+
+  const weakCount = COACH_KWORDS.weak.filter(k => words.includes(k)).length;
+  if (weakCount > 0) {
+    score -= weakCount * 5;
+    flags.push({ type: 'warn', msg: `${weakCount} vague word${weakCount > 1 ? 's' : ''} — be specific` });
+  }
+
+  if (COACH_KWORDS.geometry.some(k => text.toLowerCase().includes(k))) score += 5;
+  if (COACH_KWORDS.scale.some(k => text.toLowerCase().includes(k))) score += 5;
+
+  return { score: Math.max(0, Math.min(100, score)), flags };
+}
+
+function renderCoachBadge(text) {
+  const badge = document.getElementById('coachBadge');
+  if (!badge) return;
+  if (!text || text.length < 4) { badge.classList.add('hidden'); return; }
+
+  const { score, flags } = coachPrompt(text);
+  const color = score >= 70 ? 'var(--green)' : score >= 45 ? 'var(--amber)' : 'var(--red)';
+  const label = score >= 70 ? 'Strong' : score >= 45 ? 'Decent' : 'Weak';
+  const topFlag = flags.find(f => f.type === 'warn') || flags[0];
+
+  badge.innerHTML =
+    `<span class="coach-score" style="color:${color}">${label} · ${score}</span>` +
+    (topFlag ? `<span class="coach-tip coach-${topFlag.type}">→ ${topFlag.msg}</span>` : '');
+  badge.classList.remove('hidden');
+
+  // Also render advisory chips
+  renderAdvisoryChips(text);
+}
+
+function debouncedCoach(text) {
+  clearTimeout(state.coachTimer);
+  state.coachTimer = setTimeout(() => renderCoachBadge(text), 250);
+}
+
+/* ============================================================
+   PRIORITY 5 — CONTENT CLASSIFIER + PARAMETER PRESETS
+============================================================ */
+const CONTENT_PATTERNS = {
+  character:   ['character','person','human','figure','man','woman','warrior','knight','robot','alien','creature','monster','humanoid','avatar','soldier','hero'],
+  environment: ['environment','landscape','terrain','forest','city','building','room','interior','exterior','scene','dungeon','mountain','cave'],
+  vehicle:     ['car','vehicle','truck','spaceship','spacecraft','ship','boat','aircraft','plane','bike','motorcycle','helicopter','tank','mech','jet'],
+  prop:        ['weapon','sword','shield','gun','tool','item','object','artifact','relic','treasure','chest','bottle','pot','cup','bag','book','potion'],
+  organic:     ['tree','plant','rock','crystal','mushroom','flower','dragon','beast','animal'],
+  mechanical:  ['machine','gear','engine','device','component','part','mechanism','industrial','pipe','valve','piston','cog'],
+};
+
+const CONTENT_PRESETS = {
+  character:   { faces: '50K', material: 'PBR + SSS', texture: '2048', label: 'Character' },
+  environment: { faces: '100K', material: 'PBR terrain', texture: '4096', label: 'Environment' },
+  vehicle:     { faces: '40K', material: 'metallic PBR', texture: '2048', label: 'Vehicle' },
+  prop:        { faces: '20K', material: 'PBR surface', texture: '1024', label: 'Prop' },
+  organic:     { faces: '30K', material: 'PBR + SSS', texture: '2048', label: 'Organic' },
+  mechanical:  { faces: '45K', material: 'metallic PBR', texture: '2048', label: 'Mechanical' },
+  unknown:     { faces: '30K', material: 'PBR', texture: '2048', label: 'General' },
+};
+
+function classifyContent(prompt) {
+  const text = prompt.toLowerCase();
+  for (const [type, kws] of Object.entries(CONTENT_PATTERNS)) {
+    if (kws.some(k => text.includes(k))) return type;
+  }
+  return 'unknown';
+}
+
+function renderAdvisoryChips(prompt) {
+  const wrap = document.getElementById('advisoryChips');
+  if (!wrap || !prompt || prompt.length < 8) { wrap?.classList.add('hidden'); return; }
+  const type   = classifyContent(prompt);
+  state.contentType = type;
+  const preset = CONTENT_PRESETS[type];
+  wrap.innerHTML = `<div class="advisor-row">
+    <span class="advisor-type-chip">${preset.label}</span>
+    <span class="advisor-chip">~${preset.faces} faces</span>
+    <span class="advisor-chip">${preset.material}</span>
+    <span class="advisor-chip">${preset.texture}px tex</span>
+  </div>`;
+  wrap.classList.remove('hidden');
+}
+
+/* ============================================================
+   PRIORITY 6 — POST-GEN VISION ANALYST
+============================================================ */
+const VISION_SYSTEM = `You are a 3D asset quality reviewer. Analyze the rendered screenshot of a generated 3D model vs its original prompt. Respond ONLY with this JSON object, no markdown, no preamble:
+{"accuracy":0-100,"matched":["what was captured well"],"missing":["key details that are absent"],"delta_prompt":"one sentence to add to prompt for next attempt"}`;
+
+async function analyzeGeneratedModel(originalPrompt) {
+  if (state.visionAnalyzed) return;
+  if (!originalPrompt || originalPrompt.length < 5) return;
+
+  // Vision only works via OpenAI (gpt-4o) or Google (gemini) from browser
+  const provider = (['openai','google']).find(p => (state.keys[p] ?? '').trim().length > 10);
+  if (!provider) return;
+
+  try {
+    const canvas = document.getElementById('three-canvas');
+    if (!canvas) return;
+
+    // Downsample to 512x512 to control token cost
+    const off = Object.assign(document.createElement('canvas'), { width: 512, height: 512 });
+    off.getContext('2d').drawImage(canvas, 0, 0, 512, 512);
+    const b64 = off.toDataURL('image/jpeg', 0.8).split(',')[1];
+
+    let parsed;
+    if (provider === 'openai') {
+      const res = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${state.keys.openai}` },
+        body: JSON.stringify({
+          model: 'gpt-4o', max_tokens: 300,
+          messages: [{
+            role: 'user',
+            content: [
+              { type: 'text', text: `Original prompt: "${originalPrompt}"\n\n${VISION_SYSTEM}` },
+              { type: 'image_url', image_url: { url: `data:image/jpeg;base64,${b64}` } }
+            ]
+          }]
+        })
+      });
+      const d = await res.json();
+      parsed = JSON.parse(d.choices?.[0]?.message?.content || '{}');
+    } else if (provider === 'google') {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${state.keys.google}`;
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [
+            { text: `Original prompt: "${originalPrompt}"\n\n${VISION_SYSTEM}` },
+            { inline_data: { mime_type: 'image/jpeg', data: b64 } }
+          ]}]
+        })
+      });
+      const d = await res.json();
+      const raw = d.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
+      parsed = JSON.parse(raw.replace(/```json|```/g, '').trim());
+    }
+
+    if (parsed?.accuracy !== undefined) {
+      state.visionAnalyzed = true;
+      renderAnalysisPanel(parsed);
+    }
+  } catch (e) {
+    console.warn('[Vision Analyst]', e.message);
+  }
+}
+
+function renderAnalysisPanel(result) {
+  const panel = document.getElementById('analysisPanel');
+  if (!panel) return;
+  const { accuracy = 0, matched = [], missing = [], delta_prompt = '' } = result;
+  const color = accuracy >= 75 ? 'var(--green)' : accuracy >= 50 ? 'var(--amber)' : 'var(--red)';
+  const safeD = delta_prompt.replace(/`/g, "'").replace(/"/g, "'");
+  panel.innerHTML = `
+    <div class="analysis-header">
+      <span class="analysis-title">🔍 AI Analysis</span>
+      <span class="analysis-score" style="color:${color}">${accuracy}% match</span>
+    </div>
+    ${matched.length ? `<div class="analysis-row"><span class="analysis-label">✓ Captured</span><span class="analysis-value">${matched.join(', ')}</span></div>` : ''}
+    ${missing.length ? `<div class="analysis-row"><span class="analysis-label">✗ Missing</span><span class="analysis-value">${missing.join(', ')}</span></div>` : ''}
+    ${safeD ? `<div class="analysis-delta"><span class="analysis-label">💡 Next try:</span> ${safeD} <button class="analysis-apply-btn" onclick="applyDeltaPrompt(this.dataset.d)" data-d="${safeD}">Apply</button></div>` : ''}
+  `;
+  panel.style.display = 'block';
+}
+
+function applyDeltaPrompt(delta) {
+  const curr = document.getElementById('promptInput').value.trim();
+  const combined = (curr + (curr ? ' ' : '') + delta).substring(0, 1000);
+  document.getElementById('promptInput').value = combined;
+  updateCharCount();
+  renderCoachBadge(combined);
+  showToast('💡 Delta applied — refine and regenerate', 'success');
+}
+
+/* ============================================================
+   PRIORITY 7 — GPU TIER DETECTION
+============================================================ */
+function detectGpuTier() {
+  if (!renderer) return;
+  const maxTex = renderer.capabilities.maxTextureSize;
+  const tier   = maxTex >= 8192 ? 'high' : maxTex >= 4096 ? 'mid' : 'low';
+  state.gpuTier = tier;
+
+  if (tier === 'low') {
+    renderer.setPixelRatio(1);
+    renderer.shadowMap.enabled = false;
+    console.info('[GPU] Low tier detected — shadows disabled, pixel ratio capped at 1');
+  } else if (tier === 'mid') {
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
+  }
+
+  const badge  = document.getElementById('gpuBadge');
+  if (!badge) return;
+  const labels = { high: '⬡ GPU Hi', mid: '⬡ GPU Mid', low: '⬡ GPU Lo' };
+  const colors = { high: 'var(--green)', mid: 'var(--amber)', low: 'var(--red)' };
+  badge.textContent = labels[tier];
+  badge.style.color  = colors[tier];
+  badge.style.display = 'inline';
+}
+
+/* ============================================================
+   INIT
+============================================================ */
+document.addEventListener('DOMContentLoaded', () => {
+  initThree();
+  updateCostEstimate();
+  document.getElementById('highpackToggle').addEventListener('change', updateCostEstimate);
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && !document.getElementById('apiModal').classList.contains('hidden')) {
+      closeApiModal();
+    }
+  });
+});
+</script>
+
+</body>
+</html>

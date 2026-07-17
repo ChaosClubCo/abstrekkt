@@ -1,0 +1,175 @@
+{
+  "name": "OAI Scheduled Job Executor",
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "nodes": [
+    {
+      "id": "n1-job",
+      "name": "Schedule Every Minute",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        100,
+        300
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 1
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "n2-job",
+      "name": "Get Active Jobs",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        300,
+        300
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "",
+          "name": "Base44 API Key"
+        }
+      },
+      "parameters": {
+        "method": "GET",
+        "url": "https://api.base44.com/apps/694c756124d640756ea9ba23/entities/ScheduledJob",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "is_active",
+              "value": "true"
+            },
+            {
+              "name": "_limit",
+              "value": "200"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "n3-job",
+      "name": "Find Due Jobs",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        500,
+        300
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const jobs=($input.first().json.items||[]);const now=new Date();const due=jobs.filter(j=>!j.auto_disabled_at&&j.next_run_at&&new Date(j.next_run_at)<=now);if(!due.length)return[{json:{skip:true}}];return due.map(j=>({json:{id:j._id||j.id,workflow_id:j.workflow_id,workflow_name:j.workflow_name,workspace_id:j.workspace_id,run_count:(j.run_count||0)+1,next_run_at:new Date(now.getTime()+60000).toISOString()}}));"
+      }
+    },
+    {
+      "id": "n4-job",
+      "name": "Create Workflow Execution",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        700,
+        300
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "",
+          "name": "Base44 API Key"
+        }
+      },
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.base44.com/apps/694c756124d640756ea9ba23/entities/WorkflowExecution",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={\"workspace_id\":\"{{$json.workspace_id}}\",\"workflow_id\":\"{{$json.workflow_id}}\",\"workflow_name\":\"{{$json.workflow_name}}\",\"initiated_by\":\"system\",\"initiated_via\":\"schedule\",\"status\":\"running\"}"
+      }
+    },
+    {
+      "id": "n5-job",
+      "name": "Update Job Record",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        900,
+        300
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "",
+          "name": "Base44 API Key"
+        }
+      },
+      "parameters": {
+        "method": "PUT",
+        "url": "=https://api.base44.com/apps/694c756124d640756ea9ba23/entities/ScheduledJob/{{$json.id}}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={\"last_run_at\":\"{{$now.toISO()}}\",\"last_run_status\":\"success\",\"run_count\":{{$json.run_count}},\"next_run_at\":\"{{$json.next_run_at}}\"}"
+      }
+    }
+  ],
+  "connections": {
+    "Schedule Every Minute": {
+      "main": [
+        [
+          {
+            "node": "Get Active Jobs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Active Jobs": {
+      "main": [
+        [
+          {
+            "node": "Find Due Jobs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find Due Jobs": {
+      "main": [
+        [
+          {
+            "node": "Create Workflow Execution",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Workflow Execution": {
+      "main": [
+        [
+          {
+            "node": "Update Job Record",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

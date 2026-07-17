@@ -1,0 +1,269 @@
+{
+  "name": "The Prompt — Weekly Brief Generator",
+  "nodes": [
+    {
+      "parameters": {},
+      "name": "Generate Brief",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [0, 300]
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "getAll",
+        "databaseId": {
+          "__rl": true,
+          "value": "YOUR_NOTION_RESEARCH_INBOX_ID",
+          "mode": "id"
+        },
+        "returnAll": true,
+        "filterType": "formula",
+        "filters": {
+          "conditions": [
+            {
+              "key": "Status",
+              "condition": "equals",
+              "selectValue": "new"
+            },
+            {
+              "key": "Score",
+              "condition": "greaterThanOrEqual",
+              "numberValue": 7
+            }
+          ]
+        },
+        "options": {
+          "sort": {
+            "sortValues": [
+              {
+                "key": "Score",
+                "direction": "descending"
+              }
+            ]
+          }
+        }
+      },
+      "name": "Fetch Week Items",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Assemble all items into a single context block for Claude\n// Organized by category for better brief structure\n\nconst items = $input.all();\n\nif (items.length === 0) {\n  return [{ json: { _empty: true, message: 'No items found for this week' } }];\n}\n\n// Group by category\nconst grouped = {};\nfor (const item of items) {\n  const cat = item.json.properties?.Category?.select?.name || item.json.ai_category || 'uncategorized';\n  if (!grouped[cat]) grouped[cat] = [];\n  grouped[cat].push({\n    title: item.json.properties?.Name?.title?.[0]?.text?.content || item.json.title || 'Untitled',\n    source: item.json.properties?.Source?.select?.name || item.json.source || 'Unknown',\n    score: item.json.properties?.Score?.number || item.json.relevance_score || 0,\n    angle: item.json.properties?.['Newsletter Angle']?.rich_text?.[0]?.text?.content || item.json.newsletter_angle || '',\n    tier: item.json.properties?.['Newsletter Tier']?.select?.name || item.json.newsletter_tier || 'all',\n    url: item.json.properties?.URL?.url || item.json.url || ''\n  });\n}\n\n// Format for Claude prompt\nlet context = `RESEARCH ITEMS THIS WEEK (${items.length} total):\\n\\n`;\n\nfor (const [category, categoryItems] of Object.entries(grouped)) {\n  context += `## ${category.toUpperCase()} (${categoryItems.length} items)\\n`;\n  for (const item of categoryItems) {\n    context += `- [Score: ${item.score}] ${item.title} (${item.source})\\n`;\n    context += `  Angle: ${item.angle}\\n`;\n    context += `  Tier: ${item.tier}\\n`;\n    context += `  URL: ${item.url}\\n\\n`;\n  }\n}\n\nreturn [{\n  json: {\n    item_count: items.length,\n    categories: Object.keys(grouped),\n    context_block: context,\n    week_of: new Date().toISOString().split('T')[0]\n  }\n}];"
+      },
+      "name": "Assemble Context",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [470, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "has-items",
+              "leftValue": "={{ $json._empty }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "notTrue"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "name": "Has Items?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [690, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"claude-sonnet-4-20250514\",\n  \"max_tokens\": 4000,\n  \"system\": \"You are the editor of 'The Prompt', an AI ecosystem intelligence newsletter. You write with clarity, authority, and zero fluff. Your audience ranges from non-technical executives to AI practitioners.\\n\\nYour job: synthesize this week's research items into a newsletter draft with three tiers:\\n\\nTIER 1 — EXECUTIVE BRIEF (3-4 paragraphs)\\nFor non-technical leaders. Business impact only. No jargon. What happened, why it matters for their business, what to watch.\\n\\nTIER 2 — TECHNICAL STRATEGY (3-5 sections)\\nFor technical department heads. Strategic implications, architecture shifts, vendor moves. Light technical detail.\\n\\nTIER 3 — BUILDER PLAYBOOK (3-5 sections)\\nFor AI practitioners. Actionable implementation details, code patterns, tool recommendations, security considerations.\\n\\nRules:\\n- Lead with the single most important signal of the week\\n- Every section needs a concrete 'so what' — no observation without implication\\n- Include a 'Security & Infrastructure' callout if relevant items exist\\n- End with 'What to Watch Next Week' (2-3 items)\\n- No generic filler. Every sentence earns its place.\\n- Format as clean Markdown\",\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"Here are this week's highest-scoring research items. Synthesize them into the newsletter draft.\\n\\n{{ $json.context_block }}\\n\\nGenerate the full 3-tier newsletter draft in Markdown.\"\n    }\n  ]\n}",
+        "options": {
+          "timeout": 120000
+        }
+      },
+      "name": "Claude Generate Brief",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [910, 200]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse Claude response and extract the newsletter draft\n\nconst response = $input.first().json;\nlet draft = '';\n\ntry {\n  if (response.content && response.content[0] && response.content[0].text) {\n    draft = response.content[0].text;\n  }\n} catch (e) {\n  draft = 'ERROR: Could not parse Claude response. Check execution log.';\n}\n\nconst weekOf = $('Assemble Context').first().json.week_of;\nconst itemCount = $('Assemble Context').first().json.item_count;\n\nreturn [{\n  json: {\n    title: `The Prompt — Week of ${weekOf}`,\n    draft_content: draft,\n    item_count: itemCount,\n    generated_at: new Date().toISOString(),\n    status: 'draft',\n    word_count: draft.split(/\\s+/).length\n  }\n}];"
+      },
+      "name": "Format Draft",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1130, 200]
+    },
+    {
+      "parameters": {
+        "resource": "page",
+        "operation": "create",
+        "parentPageId": {
+          "__rl": true,
+          "value": "YOUR_NOTION_DRAFTS_PAGE_ID",
+          "mode": "id"
+        },
+        "title": "={{ $json.title }}",
+        "content": "={{ $json.draft_content }}",
+        "options": {}
+      },
+      "name": "Save Draft to Notion",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [1350, 200]
+    },
+    {
+      "parameters": {
+        "subject": "=✅ Newsletter Draft Ready: {{ $json.title }}",
+        "message": "=Your weekly brief is ready for review.\n\nItems synthesized: {{ $json.item_count }}\nWord count: {{ $json.word_count }}\n\nReview in Notion and edit before publishing.\n\nGenerated: {{ $json.generated_at }}",
+        "toEmail": "YOUR_EMAIL_HERE"
+      },
+      "name": "Notify Draft Ready",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2,
+      "position": [1570, 200],
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Mark all processed items as 'reviewed' in Notion\n// This prevents them from being included in next week's brief\n\nconst items = $('Fetch Week Items').all();\nconst pageIds = items.map(i => i.json.id).filter(Boolean);\n\nreturn pageIds.map(id => ({ json: { pageId: id, status: 'used' } }));"
+      },
+      "name": "Prepare Status Update",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1570, 400]
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "update",
+        "pageId": "={{ $json.pageId }}",
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Status",
+              "type": "selectType",
+              "selectValue": "={{ $json.status }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Update Item Status",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [1790, 400]
+    },
+    {
+      "parameters": {},
+      "name": "Error Trigger",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [0, 600]
+    },
+    {
+      "parameters": {
+        "subject": "=⚠️ Brief Generator FAILED",
+        "message": "=The weekly brief generator encountered an error.\nCheck the n8n execution log for details.\n\nTime: {{ new Date().toISOString() }}",
+        "toEmail": "YOUR_EMAIL_HERE"
+      },
+      "name": "Error Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2,
+      "position": [250, 600],
+      "disabled": true
+    }
+  ],
+  "connections": {
+    "Generate Brief": {
+      "main": [
+        [{ "node": "Fetch Week Items", "type": "main", "index": 0 }]
+      ]
+    },
+    "Fetch Week Items": {
+      "main": [
+        [{ "node": "Assemble Context", "type": "main", "index": 0 }]
+      ]
+    },
+    "Assemble Context": {
+      "main": [
+        [{ "node": "Has Items?", "type": "main", "index": 0 }]
+      ]
+    },
+    "Has Items?": {
+      "main": [
+        [{ "node": "Claude Generate Brief", "type": "main", "index": 0 }],
+        []
+      ]
+    },
+    "Claude Generate Brief": {
+      "main": [
+        [{ "node": "Format Draft", "type": "main", "index": 0 }]
+      ]
+    },
+    "Format Draft": {
+      "main": [
+        [
+          { "node": "Save Draft to Notion", "type": "main", "index": 0 },
+          { "node": "Prepare Status Update", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Save Draft to Notion": {
+      "main": [
+        [{ "node": "Notify Draft Ready", "type": "main", "index": 0 }]
+      ]
+    },
+    "Prepare Status Update": {
+      "main": [
+        [{ "node": "Update Item Status", "type": "main", "index": 0 }]
+      ]
+    },
+    "Error Trigger": {
+      "main": [
+        [{ "node": "Error Email", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true
+  },
+  "tags": [
+    { "name": "the-prompt" },
+    { "name": "content-engine" },
+    { "name": "weekly" }
+  ]
+}

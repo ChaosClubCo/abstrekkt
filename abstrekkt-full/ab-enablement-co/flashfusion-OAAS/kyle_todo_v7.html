@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kyle — Master To-Do v7</title>
+<link rel="stylesheet" href="https://unpkg.com/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f5f2;color:#1a1a1a;padding:20px;max-width:820px;margin:0 auto}
+h1{font-size:17px;font-weight:500;margin-bottom:4px}
+.subtitle{font-size:12px;color:#888;margin-bottom:18px}
+.section{margin-bottom:14px;border:0.5px solid #e0e0da;border-radius:12px;background:#fff;overflow:hidden}
+.sec-hdr{display:flex;align-items:center;gap:8px;padding:11px 14px;cursor:pointer;background:#f7f7f4;user-select:none}
+.sec-hdr h2{font-size:13px;font-weight:500;flex:1}
+.badge{font-size:10px;padding:2px 7px;border-radius:20px}
+.b-fire{background:#fee2e2;color:#b91c1c}
+.b-rev{background:#dcfce7;color:#15803d}
+.b-day{background:#dbeafe;color:#1d4ed8}
+.b-info{background:#f3e8ff;color:#6b21a8}
+.b-warn{background:#fef9c3;color:#a16207}
+.b-gray{background:#f1f5f9;color:#475569}
+.b-memoir{background:#fce7f3;color:#9d174d}
+.sec-count{font-size:11px;color:#aaa}
+.progress{height:3px;background:#eee}
+.pbar{height:100%;background:#22c55e;transition:width 0.3s}
+.tasks{padding:8px;display:none}
+.tasks.open{display:block}
+.task{border:0.5px solid #ebebea;border-radius:8px;margin-bottom:5px;background:#fff}
+.task-hdr{display:flex;align-items:flex-start;gap:8px;padding:9px 10px;cursor:pointer}
+.chk{width:17px;height:17px;border:1.5px solid #ccc;border-radius:4px;flex-shrink:0;margin-top:1px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all 0.15s}
+.chk.done{background:#dcfce7;border-color:#86efac}
+.chk.done::after{content:"✓";font-size:10px;color:#16a34a}
+.ttl{font-size:13px;font-weight:500;flex:1;line-height:1.4}
+.ttl.done{text-decoration:line-through;color:#bbb}
+.tag{font-size:10px;padding:2px 6px;border-radius:20px;flex-shrink:0;margin-left:4px}
+.t-now{background:#fee2e2;color:#b91c1c}
+.t-soon{background:#fef9c3;color:#a16207}
+.t-later{background:#f1f5f9;color:#64748b}
+.t-blocked{background:#fce7f3;color:#9d174d}
+.t-decide{background:#ede9fe;color:#6d28d9}
+.task-body{padding:0 10px 10px 34px;display:none}
+.task-body.open{display:block}
+.steps{counter-reset:sc;margin-bottom:6px}
+.step{font-size:12px;color:#444;padding:3px 0 3px 16px;position:relative;line-height:1.5;counter-increment:sc}
+.step::before{content:counter(sc);position:absolute;left:0;font-size:10px;color:#bbb;top:4px;min-width:12px}
+.tip{font-size:12px;background:#fffbeb;color:#92400e;border-radius:6px;padding:6px 10px;margin-top:6px;border-left:3px solid #f59e0b}
+.pro{font-size:12px;background:#eff6ff;color:#1e40af;border-radius:6px;padding:6px 10px;margin-top:5px;border-left:3px solid #3b82f6}
+.alert{font-size:12px;background:#fef2f2;color:#991b1b;border-radius:6px;padding:6px 10px;margin-top:5px;border-left:3px solid #ef4444}
+.chevron{font-size:14px;color:#bbb;transition:transform 0.2s;margin-left:4px}
+.chevron.open{transform:rotate(180deg)}
+.filter-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+.fchip{font-size:11px;padding:4px 10px;border-radius:20px;border:0.5px solid #e0e0da;cursor:pointer;background:#fff;color:#555;transition:all 0.15s}
+.fchip.active{background:#1a1a1a;color:#fff;border-color:#1a1a1a}
+.summary{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:16px}
+.stat{background:#fff;border:0.5px solid #e0e0da;border-radius:8px;padding:9px 8px;text-align:center}
+.stat-n{font-size:18px;font-weight:500}
+.stat-l{font-size:10px;color:#888;margin-top:2px}
+.note{font-size:11px;color:#999;background:#fafaf8;border:0.5px solid #ededea;border-radius:8px;padding:8px 12px;margin-bottom:16px;line-height:1.5}
+</style>
+</head>
+<body>
+
+<h1>Kyle Rosebrook — Master To-Do v7</h1>
+<p class="subtitle">Session + project knowledge · May 2026 · <span id="total-done">0</span> of <span id="total-all">0</span> complete</p>
+
+<div class="note">v6 items kept. Removed two completed production fires: ✅ debate.flashfusion.co Cloud Run URL leak fixed, ✅ sites.flashfusion.co rerouting verified. SuperClaude status still requires reconciliation (Oct 2025 docs vs v4.1.9 reality).</div>
+
+<div class="summary">
+  <div class="stat"><div class="stat-n" id="s-now" style="color:#b91c1c">0</div><div class="stat-l">Now</div></div>
+  <div class="stat"><div class="stat-n" id="s-soon" style="color:#a16207">0</div><div class="stat-l">Soon</div></div>
+  <div class="stat"><div class="stat-n" id="s-blocked" style="color:#9d174d">0</div><div class="stat-l">Blocked</div></div>
+  <div class="stat"><div class="stat-n" id="s-decide" style="color:#6d28d9">0</div><div class="stat-l">Decide</div></div>
+  <div class="stat"><div class="stat-n" id="s-done" style="color:#15803d">0</div><div class="stat-l">Done</div></div>
+</div>
+
+<div class="filter-row">
+  <span class="fchip active" onclick="setFilter('all',this)">All</span>
+  <span class="fchip" onclick="setFilter('now',this)">🔴 Now</span>
+  <span class="fchip" onclick="setFilter('soon',this)">🟡 Soon</span>
+  <span class="fchip" onclick="setFilter('blocked',this)">🔒 Blocked</span>
+  <span class="fchip" onclick="setFilter('decide',this)">🟣 Decide</span>
+  <span class="fchip" onclick="setFilter('later',this)">⬜ Later</span>
+</div>
+
+<div id="app"></div>
+
+<script>
+const DATA=[
+  {id:"fire",label:"🚨 Production fires",badge:"b-fire",badgeTxt:"Fix now",tasks:[
+    {id:"subs",title:"Resolve 5 vendors at payment-failure risk",priority:"now",
+     steps:["Flagged: Supabase, Notion, Zapier, Slack, Cloudflare","Priority order: Cloudflare (DNS) → Supabase (data) → Notion → Zapier → Slack","Update payment method or confirm card on file for each","Check Lovable separately — flagged potential chargeback"],
+     alert:"If Cloudflare lapses, all 17 flashfusion.co subdomains go offline. Fix this first.",
+     tip:"Set a monthly recurring reminder to audit payment methods."
+    },
+    {id:"reconnect",title:"Reconnect n8n, Notion, Craft (auth failures)",priority:"now",
+     steps:["These three connectors are failing auth","Reconnect each via its OAuth flow","Verify n8n connection by triggering a test workflow","Verify Notion by reading a known database","Verify Craft by listing documents"],
+     tip:"Daily routines (digest, deploy health check) depend on these. Broken auth = silent routine failures."
+    }
+  ]},
+  {id:"skills",label:"🛠 Skills Library — gates Intinc deploy",badge:"b-day",badgeTxt:"30-day DOD",tasks:[
+    {id:"skills-compliance",title:"Fix 4 compliance gaps (fix-before-expand rule active)",priority:"now",
+     steps:["Gap 1: Add 'Use when...' trigger phrases to ALL description fields (primary discovery mechanism)","Gap 2: Nest version field under metadata in YAML frontmatter","Gap 3: Remove triggers/hooks from claude.ai-targeted skills (causes silent prod failures)","Gap 4: Implement least-privilege allowed-tools on Bash/Write/network skills","Validate: all 50 skills pass compliance check"],
+     tip:"Pipeline scripts already exist at D:\\03_Development\\Skills — skill_validator.py (gate), fix-skills-unified.py (batch remediation), sync-skills.py.",
+     pro:"Run: grep -r '^version:' D:\\03_Development\\Skills to find all version violations, then batch-fix with fix-skills-unified.py. Don't fix by hand across 50 files."
+    },
+    {id:"skills-deploy",title:"Deploy Skills Library to Intinc team",priority:"blocked",
+     steps:["Blocked until all 50 skills pass compliance","Deploy targets: Daniel, Dave, Gwen, Jackie","Pilot with ONE team member first (Daniel)","Define persona-specific packages — Jackie/Gwen likely different personas from Daniel/Dave","Validate activation with each, then send fortnightly update to Jackie"],
+     tip:"This is the 30-day definition of done. Compliance is the only thing standing between you and shipping it."
+    },
+    {id:"skills-bundle",title:"Package first client bundle (Customization Service)",priority:"later",
+     steps:["Second half of the 30-day DOD","Chris Butler 5-skill suite is the proof of concept — refine as template","Define pricing model","Package as Customization Service v1 deliverable","Target: Tech/SaaS companies, $300-500K Y1, 50-80% margins"],
+     tip:"Don't start client conversations until the bundle is packaged, documented, and priced."
+    }
+  ]},
+  {id:"continuum",label:"🔧 Continuum (blocked)",badge:"b-fire",badgeTxt:"Blocked",tasks:[
+    {id:"continuum-supabase",title:"Resolve Continuum Supabase bill (~2 weeks overdue)",priority:"now",
+     steps:["Supabase bill overdue — Continuum is blocked until resolved","Pay or dispute the outstanding balance","Do NOT recommend or build Supabase-dependent features until this clears","Confirm database is still accessible after payment"],
+     alert:"Project-wide rule: no Supabase-dependent features recommended until this bill is resolved.",
+     tip:"This is on the ~$1K available-budget list. Likely the highest-leverage dollar you can spend."
+    },
+    {id:"continuum-vercel",title:"Reconnect Continuum Vercel GitHub App + fix Node version",priority:"now",
+     steps:["Vercel GitHub App connection broken — manual reconnect at vercel.com/flash-fusion/continuum/settings/git","Vercel build failing: project set to Node 24.x, repo .nvmrc=22","Go to Settings → Node.js Version → change to 22.x → Save → Redeploy","Last good prod deploy: dpl_6G5v9RpMSend3Ckh4eZJfCf4ZTL9 (PR #112)","Check PR #115 (privacy docs) once build is green"],
+     tip:"Project ID: prj_suXzxaQd6dxVDeEiR0LgFZOTB6IG · Vercel team: team_hPVeJgH0h1nCrogiaMvD6fxu"
+    }
+  ]},
+  {id:"flashfusion",label:"⚡ FlashFusion infrastructure",badge:"b-info",badgeTxt:"Platform",tasks:[
+    {id:"invoke-launch",title:"Launch Invoke consulting funnel (audit.flashfusion.co)",priority:"now",
+     steps:["App ID: 69c440b10249984f1114bc4b — most monetization-ready (22 entities)","Confirm custom domain audit.flashfusion.co routes correctly","Verify 3-tier funnel: free scorecard → audit → retainer","Define target audience specifically (open gap — B2B SMB is direction, needs detail)","Run one test engagement end-to-end before promoting"],
+     tip:"This is your product. Everything else is infrastructure.",
+     pro:"Your first two free engagements feed directly into this funnel as case studies."
+    },
+    {id:"n8n-wf05",title:"Build n8n WF-05 Morning Briefing (Priority 1)",priority:"now",
+     steps:["Highest-priority unbuilt workflow","Endpoint: https://krosebrook.app.n8n.cloud/webhook/flashfusion-synthesis","Define contents: project status, blocked tasks, calendar, email summary","Build in n8n — no OAuth required for this one","Wire through Orchestrator AI (orchestrator.flashfusion.co, ID 694c75...)"],
+     tip:"WF-05 is unblocked unlike WF-06-09. Ship it independently.",
+     pro:"Orchestrator AI (89 entities) is the operational backbone — n8n WebhookBridge, TokenBudget, ExecutionLayerConfig all live there."
+    },
+    {id:"n8n-oai",title:"Wire 7 n8n OAI workflows — Base44 API auth",priority:"soon",
+     steps:["7 OAI workflows are inert — need Base44 API base URL + auth token","Get Base44 token from 1Password","Add token to HTTP Request nodes as Header Auth","Test each workflow with a single trigger","Also wire Gmail credential for the daily digest workflow"],
+     tip:"Separate from WF-06-09 (those are blocked on multi-OAuth MCP). These just need a token."
+    },
+    {id:"n8n-blocked",title:"Unblock n8n WF-06–09 (multi-OAuth MCP limitation)",priority:"blocked",
+     steps:["Blocked by multi-OAuth MCP limitation","Also: 11 inactive workflows pending Base44 Bearer creds","Research current workarounds for multi-OAuth in n8n MCP nodes","Option A: separate credential sets per workflow","Option B: wait for n8n MCP OAuth update"],
+     tip:"Don't let this block WF-05 or the 7 OAI workflows."
+    },
+    {id:"unmapped-apps",title:"Audit + map 29 unmapped Base44 apps",priority:"soon",
+     steps:["46 total Base44 apps — only 17 wired to flashfusion.co","29 unmapped: Chaos Club, INTeract, INTelligence.ai, Nexus Copilot, TESSA duplicate","Export app list from Base44 account","Decide each: assign subdomain, archive, or deprecate","Consolidate TESSA vs Tessa duplicate"],
+     tip:"Use the flashfusion-app-registry tool (already built) to track these.",
+     pro:"Some of the 29 may be feature-complete and launchable. Audit before assuming work is needed."
+    }
+  ]},
+  {id:"enablement",label:"🎓 AI enablement consulting",badge:"b-rev",badgeTxt:"Revenue",tasks:[
+    {id:"sow",title:"Write statement of work template",priority:"now",
+     steps:["Three tiers: individual coaching, workshop, automation build","For each: included, out of scope, timeline, deliverable","Add paid discovery phase ($99-199) — surfaces unknowns before commit","Scope creep clause: additional work at hourly rate","One page max"],
+     tip:"Do first 2 engagements free but USE the SOW. It teaches you what to ask.",
+     pro:"Sell the discovery session to enterprise as 'AI friction audit' or 'AI readiness assessment.'"
+    },
+    {id:"security-client",title:"Build curriculum for security cert client",priority:"now",
+     steps:["S1: prompting basics, hallucinations, what Claude can/can't do","S2: prompt injection, jailbreaks, red teaming (ties to his cert)","S3: custom instructions setup, first 1-2 Claude projects","S4: Claude web, Claude Code basics, MCP connections","S5: build one automation for his cert study workflow"],
+     tip:"Adversarial framing lands with security folks: how attackers use AI vs how defenders do.",
+     pro:"Document every session as a template. Client 2 pays for what you built free for client 1."
+    },
+    {id:"ryan-audit",title:"Ryan Anderskow — first free audit outreach",priority:"soon",
+     steps:["Confirmed revenue path — first free audit target","He's already using Claude (hardest part done)","Scope: Claude workflow audit + automations + ironhorseseating.com","Outreach draft already exists (text or email)","Push for a 20-min scoping call, no slide deck"],
+     tip:"Outreach timing is an open decision per PROJECT_STATE — but the draft is ready when you are."
+    },
+    {id:"github-org",title:"Set up GitHub org + NotebookLM per-client structure",priority:"soon",
+     steps:["Create GitHub org for the enablement program","One NotebookLM notebook per client (separate from yours)","Template: onboarding docs, prompts, session notes per engagement","Each client brings their own Claude account","Document setup as a repeatable onboarding checklist"],
+     tip:"This is the infrastructure that makes you scalable. Do it before client 3."
+    },
+    {id:"clc",title:"Sign up for CLC — confirm room availability",priority:"now",
+     steps:["Go to CLC website (College of Lake County)","Find available AI/IT courses + seat availability","Register for relevant cert track","Identify institutional champion (math professor contact)","Parallel: CLC partnership + Anthropic community ambassador angle"],
+     tip:"Five minutes at your desk. Do it today."
+    },
+    {id:"union-pitch",title:"Build enterprise pitch: augmentation not replacement",priority:"soon",
+     steps:["Core: AI handles volume, humans handle judgment","Employees become AI managers — oversee/direct agent teams","Research: 25-40% time saved; losers are those who refuse the tools","Concrete: 'Instead of writing 50 reports, your team reviews 50 AI drafts'","ROI: hours saved/week/employee × headcount","Governance section — what Dave and Jackie respond to"],
+     tip:"Lead with augmentation, not efficiency. Union boards need job-preservation language.",
+     pro:"CLC credential + INT proof-of-concept make this 10x more credible. Get CLC first."
+    }
+  ]},
+  {id:"int",label:"🏢 INT Inc Claude engagement",badge:"b-day",badgeTxt:"Day job",tasks:[
+    {id:"claude-int",title:"Build proper Claude engagement for Intinc",priority:"soon",
+     steps:["Draft team custom instructions template (not just 'no em dashes')","AI usage guide: what to use Claude for, what not, what needs review","Team project in Claude with shared context docs","Onboarding doc: first week with Claude for non-technical staff","Propose workshop to Dave Linderman — frame as governance + competitive positioning"],
+     tip:"Jackie's only instruction being 'no em dashes' is your opening. Show what real setup looks like.",
+     pro:"Frame as governance infrastructure for Dave/Jackie — that's the framing they respond to."
+    },
+    {id:"kelan",title:"Kelan co-founder conversation — show full inventory",priority:"soon",
+     steps:["Strong operator: ran all sales/supply/events for Sole Revival solo, no degree","He's aware something's brewing but hasn't seen full scope","Demo Fusion AI (101 entities) + Sole Customizer (7-entity schema)","Show claude-code-plugins-plus (244-plugin catalog)","Show live Sole Revival Base44 app","Define co-founder terms, roles, equity"],
+     tip:"Co-founder bridge artifact already started. This is a formalize-the-conversation task, not a cold pitch.",
+     pro:"He has solemuchbetter.com (Sole Revival variant) — shared context and trust already exist."
+    }
+  ]},
+  {id:"certs",label:"📜 Certifications",badge:"b-info",badgeTxt:"Credibility",tasks:[
+    {id:"claude-cert",title:"Close Claude Certified Architect gaps",priority:"now",
+     steps:["Passing score: 720/1000","Study gaps: Agent SDK hooks, subagent context isolation, tool_choice","Also: CLAUDE.md hierarchy, MCP scoping, Message Batches API","Use NotebookLM with existing cert study notebooks","Practice with ai103-study-tool in project files"],
+     tip:"You built the study tool. Use it.",
+     pro:"NotebookLM audio overview for commute study — that workflow already works for you."
+    },
+    {id:"secai",title:"SecAI+ and CAISP — send reimbursement email to Daniel",priority:"now",
+     steps:["Draft already exists — just send it","Covers SecAI+, CAISP, Google ML Eng (~$1,600 core stack)","Daniel is supportive — formality, not negotiation","CC yourself for the reimbursement paper trail"],
+     tip:"Already drafted. Send it."
+    },
+    {id:"google-ml",title:"Google Professional ML Engineer — 3-6 month ramp",priority:"later",
+     steps:["Real gap: Microsoft-heavy stack, minimal GCP","Start: Google Cloud Skill Boost free tier, ML fundamentals","Focus: Vertex AI, BigQuery ML, TFX pipelines","Build 2 real GCP projects before scheduling exam"],
+     tip:"Don't rush. The knowledge gap is real and the exam reflects it."
+    }
+  ]},
+  {id:"memoir",label:"📖 Memoir — Construction Not Recovery",badge:"b-memoir",badgeTxt:"Active",tasks:[
+    {id:"session3",title:"Memoir Session 3: Tool Archaeology — schedule + run",priority:"now",
+     steps:["Highest-leverage next memoir action — unblocks the construction-phase chapters","Excavate the card table / screenshot method origin","Specifics first: what were you building, when, what did the table look like","What you DON'T remember is material — capture the gaps","Surface contradictions, don't resolve them (Amen eval date conflict is intentional)"],
+     tip:"Excavation before drafting. Sensory detail before theme. This is the locked session protocol.",
+     pro:"Tuesday/Wednesday 9pm is your primed memoir window per the routine system. Use momentum, not importance, to pick the thread."
+    },
+    {id:"kortex",title:"Install Kortex Chrome extension for notebook merging",priority:"now",
+     steps:["Chrome Web Store → 'Kortex NotebookLM' (4.6 stars)","Also check 'NotebookLM Tools' (4.3) — bulk import, tags, JSON/ZIP export","Test merge on 2-3 small notebooks first","Back up critical notebooks as JSON before merging"],
+     tip:"Kortex advertises notebook-level merging. NotebookLM has no native merge."
+    },
+    {id:"memoir-spine",title:"Use locked spine to query notebooks strategically",priority:"now",
+     steps:["Spine is LOCKED: diagnostic instinct (reading rooms → processes → systems)","Thesis LOCKED: construction not recovery","Reader LOCKED: Kinsley — the memoir is a letter to her","Write 3-5 query prompts from the 5 narrative threads","Query example: 'What evidence shows the gap between diagnosis and what I can actually do?'"],
+     tip:"The spine is the filter. Without it, querying hundreds of sources returns noise.",
+     pro:"These story beats become your memoir pitch when you approach agents."
+    },
+    {id:"memoir-chapter",title:"Decide: which chapter gets written first",priority:"decide",
+     steps:["Open decision: 'Before the Break' vs 'The Rupture'","Multiple sessions of excavation done — no full chapters drafted yet","Pick the one with the most excavated raw material ready","Draft in passes: skeleton → flesh → polish","Write in Kyle's voice, not literary-memoir voice"],
+     tip:"If a chapter ends with a realization, the voice has been lost. No epiphanies."
+    }
+  ]},
+  {id:"brand",label:"🌐 Personal brand + sites",badge:"b-gray",badgeTxt:"Brand",tasks:[
+    {id:"robots",title:"Fix robots.txt blocking Google indexing (both sites)",priority:"now",
+     steps:["kylerosebrook.com: WP Admin → Settings → Reading → uncheck 'Discourage search engines' → Save","flashfusion.co: Wix Dashboard → Settings → SEO → Robots.txt Editor → remove 'Disallow: /'","Submit both to Google Search Console","Verify indexing status after 48h"],
+     tip:"~10 min total. Both sites are currently invisible to Google."
+    },
+    {id:"woo",title:"Verify WooCommerce ghost cart status",priority:"now",
+     steps:["PROJECT_STATE.md lists this as an open blocker on kylerosebrook.com homepage","Other notes suggest it may already be resolved (WooCommerce deactivated, 5 plugins deleted)","Check WP Admin → Plugins — is WooCommerce active?","If still active: deactivate it","If already resolved: mark this done and update PROJECT_STATE.md"],
+     tip:"Contradictory state in your records. Verify before acting — don't re-do resolved work."
+    },
+    {id:"brand-name",title:"Decide on brand name — off your personal name",priority:"decide",
+     steps:["Decision made: don't use your personal name (wrong-audience noise)","Brainstorm 5-10 options: AI enablement + memoir + consulting","Check domain availability for top 3","Check handles: LinkedIn, X, Threads","Pick one and commit — don't over-optimize"],
+     tip:"Consistency matters more than the name. Pick something you won't hate in 3 years.",
+     pro:"Building toward YC eventually? Pick a name that scales beyond solo consulting — platform not person."
+    },
+    {id:"kyr-content",title:"kylerosebrook.com — content calendar + SEO baseline",priority:"later",
+     steps:["Site live (WordPress.com, Blog ID 253504189, Assembler theme)","A11y audit complete (6 fixes done)","Missing: content calendar, SEO strategy","Pick 3 pillar topics: memoir + AI enablement + brain injury angle","Cadence you can maintain (1x/month beats 0)"],
+     tip:"Strict lane separation: personal brand only. No FlashFusion cross-promotion here."
+    }
+  ]},
+  {id:"drive",label:"💾 D drive cleanup",badge:"b-warn",badgeTxt:"Tech debt",tasks:[
+    {id:"tree",title:"Run tree command — get the full picture first",priority:"now",
+     steps:["Open PowerShell","Run: cd D:","Run: tree /F > structure.txt","Open structure.txt in VS Code","Mark where organization degrades","Paste sections into Claude: 'What folder taxonomy would you suggest?'"],
+     tip:"Audit before build. Don't touch anything until you see the whole map."
+    },
+    {id:"batch-clean",title:"Organize in small themed batches via CoWork",priority:"soon",
+     steps:["One project category at a time (Intinc, FlashFusion, Memoir)","Zip that folder only — not the whole drive","Upload to CoWork session","Claude reorganizes inside CoWork (safe — nothing touches real drive)","Download clean version, manually replace","Repeat"],
+     tip:"Whole-drive uploads always hit memory limits. Small batches only.",
+     pro:"Start with FlashFusion — most active, highest ROI for organizing first."
+    }
+  ]},
+  {id:"superclaude",label:"⚙️ SuperClaude Framework",badge:"b-day",badgeTxt:"OSS framework",tasks:[
+    {id:"sc-verify",title:"Re-verify project status — docs are stale (Oct 2025 / v4.1.5)",priority:"now",
+     steps:["PROJECT_STATUS.md, ROADMAP.md, TASKS.md all dated 2025-10-14, version 4.1.5","README references v4.1.9 with 30 commands — newer than the status docs","Run: git log --oneline -20 and check actual current version","Reconcile: what's actually been shipped since Oct 2025 vs what the dashboard claims","Update PROJECT_STATUS.md to current reality before planning further work"],
+     alert:"Every progress number in this section (35% complete, Phase 2 at 30%, etc.) is from October 2025. Treat as unverified until you reconcile against the repo.",
+     tip:"This is the same stale-state problem as PROJECT_STATE.md and the InVelo dates. The pattern: your tracking docs lag your actual work."
+    },
+    {id:"sc-phase1",title:"Close out Phase 1 — finish pm-agent-integration.md + commit",priority:"now",
+     steps:["Phase 1 (Documentation Structure) was 66% per last status","Remaining: write pm-agent-integration.md (the final Phase 1 doc)","Commit Phase 1 documentation as a foundation checkpoint","Commit the PM Agent Mode design improvements (Commands/pm.md, Agents/pm-agent.md)","Mark Phase 1 success criteria complete"],
+     tip:"Phase 1 is documentation only — closeable in one focused session. Get the foundation committed so Phase 2 has a clean base.",
+     pro:"If git log shows Phase 1 already committed, this whole task collapses to 'update the dashboard' — check first."
+    },
+    {id:"sc-phase2",title:"Phase 2: implement PM Agent core (3 modules + tests)",priority:"soon",
+     steps:["Build superclaude/Core/session_lifecycle.py","Build superclaude/Core/pdca_engine.py","Build superclaude/Core/memory_ops.py","Write unit tests for each (test coverage currently 0%)","Integration test the full PM Agent flow","Update User-Guide docs"],
+     tip:"Phase 2 was the in-progress phase. Design is done; this is pure implementation. No-placeholder rule applies — full builds only.",
+     pro:"ReflexionMemory (the error-learning system) already works with no setup. Wire memory_ops.py to use it rather than reinventing persistence."
+    },
+    {id:"sc-serena",title:"Phase 3: configure Serena MCP (critical blocker)",priority:"blocked",
+     steps:["Serena MCP is NOT configured — this is the named critical blocker for Phase 3","Phase 3 (memory operations, cross-session persistence) cannot start until it's connected","Configure the Serena MCP server","Build superclaude/Core/serena_client.py wrapper","Build superclaude/Core/think_operations.py (the 3 think hooks)","Test cross-session persistence + multi-project memory isolation"],
+     tip:"Serena is the single blocker gating an entire phase. Connecting it is higher leverage than any Phase 3 sub-task.",
+     pro:"7/8 MCP servers already functional — only Serena pending. This is one connection away from unblocking Phase 3 entirely."
+    },
+    {id:"sc-phase5",title:"Phase 5: research Claude Code auto-activation hooks",priority:"decide",
+     steps:["Phase 5 (auto-activation) is research-status — the mechanism is unknown","Goal: PM Agent activates automatically at every Claude Code session start","Open question: do Claude Code init hooks support this? Research needed","This is a feasibility unknown, not a build task — decide if it's achievable before scoping","If hooks don't support it, the always-active vision needs a different mechanism"],
+     tip:"Don't roadmap Phase 5 implementation until the hook research resolves. It may not be technically possible as designed."
+    }
+  ]},
+  {id:"agents",label:"🤖 Claude Agents Console — deploy library",badge:"b-info",badgeTxt:"Platform",tasks:[
+    {id:"agents-ready",title:"Deploy the ~30 immediately-deployable agents",priority:"now",
+     steps:["40 total agent templates analyzed against connected MCPs","~30 are deployable now — their MCPs are all connected","Priority order by leverage: Weekly Status Report Builder, Deal Stall Detector, Code Review Automator, Deployment Monitor","Deploy each via platform.claude.com (YAML schema managed-agents-2026-04-01)","Validate one end-to-end before batch-deploying the rest"],
+     tip:"agent_toolset_20260401 must always be first in the tools array. mcp_servers name must exactly match the mcp_toolset reference or binding silently breaks.",
+     pro:"Read-only ops → always_allow. Write/move/delete → always_ask. Set this per toolset, don't leave defaults."
+    },
+    {id:"agents-blocked",title:"Unblock 6 agents — GitLab / Datadog / Mailchimp connections",priority:"blocked",
+     steps:["~6 agents blocked: depend on GitLab, Datadog, or Mailchimp MCPs not yet connected","Affected agents include: Dependency Vulnerability Auditor, Deployment Monitor (Datadog leg), API Documentation Builder","Connect GitLab MCP (https://gitlab.com/api/v4/mcp)","Connect Datadog MCP (https://mcp.datadoghq.com/api/unstable/mcp-server/mcp)","Connect Mailchimp MCP (https://ai-inc.mailchimp.com/claude/mcp/v2)","Re-run deployability check after each connection"],
+     tip:"You don't use Monday.com, Similarweb, Close, or Tropic — skip any agents that depend solely on those, don't try to connect them."
+    },
+    {id:"agents-callable",title:"Request callable_agents research preview access",priority:"soon",
+     steps:["Multi-agent orchestration (callable_agents) is in research preview","Requires a separate access request — it's not on by default","Submit the access request via the platform","Identify which agents would chain (e.g. Lead Enrichment → Deal Stall Detector → Weekly Status)","Hold orchestration design until access is granted"],
+     tip:"This unlocks agent-to-agent handoffs. Until then, agents run independently — still useful, just not chained."
+    },
+    {id:"agents-skills-map",title:"Resolve Skills API ↔ Cowork SKILL.md mapping",priority:"soon",
+     steps:["Open gap: mapping between Cowork SKILL.md files and the platform's skills: field is unresolved","Determine how a SKILL.md maps into an agent's skills array","Test with one known-good skill from the library","Document the mapping so the 50 production skills can attach to agents","This connects your skills library work to the agents console — they're meant to interlock"],
+     tip:"This is the bridge between two of your biggest assets. Once mapped, every skill becomes an agent capability."
+    },
+    {id:"agents-builder",title:"Ship the Agent Builder as a productized tool",priority:"later",
+     steps:["claude_agent_builder.html already works — AI-generates full agent configs from a description","It has: seed templates, system-prompt improver, MCP suggester, JSON export","This is sellable: 'describe an automation, get a deployable Claude agent config'","Decide distribution: enablement client deliverable, FlashFusion product, or standalone","Pairs naturally with the Invoke funnel and InVelo"],
+     tip:"Another built asset waiting on go-to-market. Same pattern as EPB and the plugins catalog.",
+     pro:"The builder + the 40-template library + the skills mapping is a complete 'agent factory' offering. That's a stronger pitch than any single piece."
+    }
+  ]},
+  {id:"invelo",label:"🚀 InVelo / AIaaS leadership track",badge:"b-rev",badgeTxt:"Strategy",tasks:[
+    {id:"invelo-pitch-outcome",title:"Confirm InVelo leadership pitch outcome (Dave/Jackie/Gwen)",priority:"decide",
+     steps:["Planning docs target a Wednesday pitch of InVelo + AIaaS strategy to Dave, Jackie, Gwen","That pitch date has passed (docs reference February timing)","Reconstruct: did the pitch happen? What was approved?","If approved: what's the committed scope and budget?","Update PROJECT_STATE with the real outcome before planning the next phase"],
+     tip:"This is a backward-looking gap. The whole InVelo roadmap branches off this answer — resolve it first.",
+     pro:"The Daniel ask had 3 parts: approval to present, HumanX budget, authority to build the governance framework. Confirm which of the three actually landed."
+    },
+    {id:"humanx-debrief",title:"HumanX debrief — produce the 3 promised deliverables",priority:"now",
+     steps:["HumanX was April 7-9 (Kyle + Dave) — it has happened","Promised return deliverables: Market Positioning Report, Upgrade Path Blueprint, Strategy Validation","Write each of the three from what you and Dave gathered","These justify the $10-12K spend retroactively — leadership will expect them","File them where Daniel/Dave can review"],
+     alert:"$10-12K was spent on HumanX. The three deliverables are what justify it. Don't let this slip — it affects future budget asks.",
+     tip:"Use the C-Suite deck generator metaprompt (CSUITE_DECK_GENERATOR_METAPROMPT.md in this project) to produce the Market Positioning Report fast."
+    },
+    {id:"invelo-governance",title:"Build the InVelo governance framework (Strict Mode + Exit Code 2)",priority:"soon",
+     steps:["Define Strict Mode protocol: strict typing/null checks enforced on agent-produced code","Define Exit Code 2 as a blocking error so agents can't fake test passes or edit test scripts","Document the safe-deployment boundary for autonomous agents","This was part 3 of the Daniel ask — 'authority to develop a Governance Framework'","Package as a reusable governance doc for InVelo client engagements"],
+     tip:"This is also the governance layer your enablement consulting clients need. Build once, reuse across both.",
+     pro:"Strict Mode + Exit Code 2 is your differentiator vs generic 'browser use' competitors. It's a sellable moat, not just internal hygiene."
+    },
+    {id:"invelo-beta",title:"InVelo beta launch — Tier-1 enterprise clients",priority:"later",
+     steps:["Roadmap target: InVelo beta to Tier-1 enterprise clients (planning docs said May)","Prereqs: 500+ Skills via MCP CLI integrated, governance framework done, HumanX validation in hand","Productize: time-boxed discrete projects (days-to-weeks, not retainers)","Standardize delivery docs: PRD + architecture.md + feature.json per engagement","First beta client: pick from existing enablement pipeline (Ryan or a warm INT-adjacent lead)"],
+     tip:"InVelo's whole pitch is low-risk time-boxed wins before clients commit to retainers. Keep scope discrete.",
+     pro:"This is the same machinery as your enablement consulting — InVelo is the enterprise-branded version of what you're already doing solo."
+    }
+  ]},
+  {id:"training",label:"🎓 Anthropic certification curriculum",badge:"b-info",badgeTxt:"Learning",tasks:[
+    {id:"cert-path",title:"Follow the structured cert path in order (don't skip ahead)",priority:"soon",
+     steps:["Course 1: Claude API Fundamentals — programmatic AI, beyond prompting","Course 2: Intro to Model Context Protocol — custom server tools","Course 3: Advanced MCP Topics — enterprise security, session mgmt, firewall config","Course 4: Claude Code in Action — terminal agentic, codebase-wide tasks","Quick-start rule: API mastery is the non-negotiable prerequisite — don't jump to Claude Code first"],
+     tip:"You'll be tempted to skip straight to Claude Code in Action. The curriculum data says foundational API mastery is what lets you troubleshoot Claude Code's agentic behavior. Do them in order.",
+     pro:"This path doubles as your enablement curriculum spine — the security-cert client and INT team can follow the same four-course progression you do."
+    },
+    {id:"epb-tool",title:"Operationalize the EPB Use Case Discovery tool",priority:"soon",
+     steps:["EPB Use Case Discovery v3 (merged) already exists as a working tool in this project","It generates tailored Anthropic use cases by role/industry/maturity + a Shadow AI risk score","Wire it into the enablement funnel as the free scorecard tier (ties to Invoke launch)","The Shadow AI score >= 50 already links to 'InVelo SafeStart' — that's your upsell path","Test it end-to-end with one real prospect profile"],
+     tip:"This is a built asset doing nothing. It's the natural top-of-funnel for both Invoke and InVelo. Connect them.",
+     pro:"Shadow AI risk score is a brilliant wedge — it quantifies a fear the buyer already has, then routes to your SafeStart offer."
+    }
+  ]},
+  {id:"decisions",label:"🟣 Open decisions (resolve to unblock)",badge:"b-info",badgeTxt:"Decide",tasks:[
+    {id:"d-lee",title:"Lee Chong Ming pitch — killed vs still drafting?",priority:"decide",
+     steps:["Status genuinely unclear in records — clarify before ANY action","Prerequisite if alive: kylerosebrook.com live + playbook URL published","He is HE/HIM (corrected — was wrong in prior sessions)","Decide: kill it, or set the prerequisites and revive"],
+     tip:"Don't act on this until the status is clarified. Acting on an ambiguous pitch is worse than not acting."
+    },
+    {id:"d-demo",title:"Confirm FlashFusion Demo Day (Apr 18) outcome",priority:"decide",
+     steps:["Demo Day was April 18, 2026 — outcome recorded as unknown","Sprint v1.9.9 closed Apr 13","Reconstruct: did the demo env get tested? Discovery calls booked?","Update PROJECT_STATE.md with the actual outcome","Decide next step based on what actually happened"],
+     tip:"This is a backward-looking gap. Resolve it so forward planning isn't built on a question mark."
+    },
+    {id:"d-chaos",title:"Chaos Club App — PWA micro-app vs B2B/EAP direction",priority:"decide",
+     steps:["Two divergent product directions on the table","PWA micro-app = consumer, fast, low revenue","B2B/EAP = enterprise mental health benefit, slower, higher revenue","Lane is locked: mental health/peer support only (not lyrics/audio/music)","Pick one direction before building further"],
+     tip:"Don't build both. The lane is clear; the business model isn't."
+    },
+    {id:"d-plugins",title:"claude-code-plugins-plus — distribution strategy",priority:"decide",
+     steps:["244-plugin Claude Code marketplace catalog — already built","Effectively the skills library product","Options: skills.sh marketplace, /plugin install distribution, bundle into consulting","Decide the distribution path","This is a built asset waiting on a go-to-market decision, not more building"],
+     tip:"You already built it. The only thing missing is deciding how it reaches people."
+    },
+    {id:"d-songs",title:"8 completed songs — distribution path",priority:"decide",
+     steps:["8 tracks completed","Decide: distribute, shelve, or fold into Chaos Club creative layer","Note: Chaos Club lane is mental health, NOT music — keep separation","If distributing, pick a path (DistroKid, etc.) outside the Chaos Club brand"],
+     tip:"Lane discipline: songs are not a Chaos Club product. Decide their home separately."
+    },
+    {id:"d-kinsley",title:"Kinsley app — when does full spec happen?",priority:"decide",
+     steps:["Personal lane — separate from FlashFusion and Intinc","No full spec exists yet","Decide a realistic window given full-time work + Friday custody","Even a one-page spec is better than none"],
+     tip:"This one is for you and her. Protect it from the business lanes' urgency."
+    }
+  ]}
+];
+
+let checks={},openS={},openT={},filterP='all';
+DATA.forEach(s=>openS[s.id]=true);
+
+function setFilter(f,el){
+  filterP=f;
+  document.querySelectorAll('.fchip').forEach(c=>c.classList.remove('active'));
+  el.classList.add('active');
+  render();
+}
+
+function taskVisible(task){
+  if(filterP==='all')return true;
+  return task.priority===filterP;
+}
+
+function render(){
+  const app=document.getElementById('app');
+  let html='';
+  let totalAll=0,totalDone=0,cNow=0,cSoon=0,cBlocked=0,cDecide=0,cDone=0;
+
+  DATA.forEach(sec=>{
+    const visible=sec.tasks.filter(t=>taskVisible(t));
+    sec.tasks.forEach(t=>{
+      if(t.priority==='now')cNow++;
+      if(t.priority==='soon')cSoon++;
+      if(t.priority==='blocked')cBlocked++;
+      if(t.priority==='decide')cDecide++;
+      if(checks[t.id])cDone++;
+    });
+    totalAll+=sec.tasks.length;
+    totalDone+=sec.tasks.filter(t=>checks[t.id]).length;
+    if(visible.length===0)return;
+    const done=sec.tasks.filter(t=>checks[t.id]).length;
+    const pct=sec.tasks.length?Math.round(done/sec.tasks.length*100):0;
+    const isOpen=openS[sec.id];
+    html+=`<div class="section">
+      <div class="sec-hdr" onclick="toggleS('${sec.id}')">
+        <h2>${sec.label}</h2>
+        <span class="badge ${sec.badge}">${sec.badgeTxt}</span>
+        <span class="sec-count">${done}/${sec.tasks.length}</span>
+        <i class="ti ti-chevron-down chevron${isOpen?' open':''}" aria-hidden="true"></i>
+      </div>
+      <div class="progress"><div class="pbar" style="width:${pct}%"></div></div>
+      <div class="tasks${isOpen?' open':''}">`;
+    visible.forEach(task=>{
+      const isDone=!!checks[task.id];
+      const isTaskOpen=!!openT[task.id];
+      const m={now:['t-now','Now'],soon:['t-soon','Soon'],blocked:['t-blocked','Blocked'],decide:['t-decide','Decide'],later:['t-later','Later']};
+      const [tagCls,tagLbl]=m[task.priority]||['t-later','Later'];
+      html+=`<div class="task">
+        <div class="task-hdr" onclick="toggleT('${task.id}')">
+          <div class="chk${isDone?' done':''}" onclick="event.stopPropagation();toggleDone('${task.id}')"></div>
+          <span class="ttl${isDone?' done':''}">${task.title}</span>
+          <span class="tag ${tagCls}">${tagLbl}</span>
+          <i class="ti ti-chevron-down chevron${isTaskOpen?' open':''}" style="margin-left:6px" aria-hidden="true"></i>
+        </div>
+        <div class="task-body${isTaskOpen?' open':''}">
+          <div class="steps">`;
+      task.steps.forEach(s=>html+=`<div class="step">${s}</div>`);
+      html+=`</div>`;
+      if(task.alert)html+=`<div class="alert"><strong>⚠ Alert:</strong> ${task.alert}</div>`;
+      if(task.tip)html+=`<div class="tip"><strong>Tip:</strong> ${task.tip}</div>`;
+      if(task.pro)html+=`<div class="pro"><strong>Pro move:</strong> ${task.pro}</div>`;
+      html+=`</div></div>`;
+    });
+    html+=`</div></div>`;
+  });
+
+  app.innerHTML=html;
+  document.getElementById('total-done').textContent=totalDone;
+  document.getElementById('total-all').textContent=totalAll;
+  document.getElementById('s-now').textContent=cNow;
+  document.getElementById('s-soon').textContent=cSoon;
+  document.getElementById('s-blocked').textContent=cBlocked;
+  document.getElementById('s-decide').textContent=cDecide;
+  document.getElementById('s-done').textContent=cDone;
+}
+
+function toggleS(id){openS[id]=!openS[id];render()}
+function toggleT(id){openT[id]=!openT[id];render()}
+function toggleDone(id){checks[id]=!checks[id];render()}
+render();
+</script>
+</body>
+</html>

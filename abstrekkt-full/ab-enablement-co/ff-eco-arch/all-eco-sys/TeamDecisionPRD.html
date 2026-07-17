@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Team Decision Simulation - PRD & Architecture</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#f0f7ff',
+                            100: '#e0effe',
+                            200: '#bae0fd',
+                            500: '#007BFF',
+                            600: '#0062cc',
+                            700: '#0056B3',
+                            900: '#1e3a8a',
+                        },
+                        neutral: {
+                            50: '#F8F9FA',
+                            100: '#F1F3F5',
+                            200: '#E9ECEF',
+                            300: '#DEE2E6',
+                            700: '#495057',
+                            800: '#343A40',
+                            900: '#212529',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #FFFFFF;
+            color: #343A40;
+            line-height: 1.7;
+        }
+        .prose h2 {
+            scroll-margin-top: 100px;
+            border-bottom: 2px solid #E9ECEF;
+            padding-bottom: 0.5rem;
+            margin-top: 3rem;
+            margin-bottom: 1.5rem;
+            font-weight: 800;
+            color: #212529;
+            letter-spacing: -0.025em;
+        }
+        .prose h3 {
+            scroll-margin-top: 100px;
+            margin-top: 2rem;
+            margin-bottom: 1rem;
+            font-weight: 700;
+            color: #0056B3;
+        }
+        .prose p {
+            margin-bottom: 1.25rem;
+        }
+        .sidebar-link {
+            transition: all 0.2s ease;
+        }
+        .sidebar-link.active {
+            color: #007BFF;
+            background-color: #f0f7ff;
+            border-right: 3px solid #007BFF;
+        }
+        code {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9em;
+            background: #F8F9FA;
+            padding: 0.2rem 0.4rem;
+            border-radius: 4px;
+            color: #d63384;
+        }
+        pre {
+            background: #F8F9FA;
+            padding: 1.5rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            border: 1px solid #E9ECEF;
+            margin-bottom: 1.5rem;
+        }
+        pre code {
+            color: #343A40;
+            background: transparent;
+            padding: 0;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 2rem 0;
+            font-size: 0.95rem;
+        }
+        th {
+            background: #F8F9FA;
+            text-align: left;
+            padding: 12px;
+            border-bottom: 2px solid #DEE2E6;
+            font-weight: 600;
+        }
+        td {
+            padding: 12px;
+            border-bottom: 1px solid #E9ECEF;
+        }
+        tr:nth-child(even) {
+            background-color: #fafafa;
+        }
+        .mermaid-diagram {
+            background: white;
+            border: 1px solid #E9ECEF;
+            border-radius: 12px;
+            padding: 2rem;
+            margin: 2rem 0;
+            display: flex;
+            justify-content: center;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        }
+        @media (max-width: 1024px) {
+            .toc-sidebar {
+                display: none;
+            }
+            .toc-mobile {
+                display: block;
+            }
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <!-- Header -->
+    <header class="sticky top-0 z-50 w-full bg-white/80 backdrop-blur-md border-b border-neutral-200">
+        <div class="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
+            <h1 class="text-xl font-extrabold text-neutral-900 tracking-tight">
+                Product Requirements & <span class="text-brand-500">Architecture</span>
+            </h1>
+            <div class="hidden md:flex space-x-4">
+                <span class="px-3 py-1 bg-brand-50 text-brand-700 text-xs font-bold rounded-full border border-brand-100 uppercase tracking-widest">v1.0.0 Stable</span>
+            </div>
+            <!-- Mobile Menu Toggle -->
+            <button onclick="toggleMobileMenu()" class="lg:hidden p-2 text-neutral-700">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7" />
+                </svg>
+            </button>
+        </div>
+    </header>
+
+    <!-- Mobile Navigation Overlay -->
+    <div id="mobile-menu" class="fixed inset-0 z-40 bg-white hidden lg:hidden overflow-y-auto">
+        <div class="p-6">
+            <div class="flex justify-between items-center mb-8">
+                <h2 class="text-xl font-bold">Contents</h2>
+                <button onclick="toggleMobileMenu()" class="text-neutral-500">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            <nav id="mobile-toc-links" class="space-y-4"></nav>
+        </div>
+    </div>
+
+    <main class="max-w-7xl mx-auto px-4 py-12 flex flex-col lg:flex-row gap-12">
+        
+        <!-- Sidebar Navigation -->
+        <aside class="toc-sidebar w-72 flex-shrink-0 sticky top-28 self-start max-h-[calc(100vh-120px)] overflow-y-auto pr-4 border-r border-neutral-100">
+            <p class="text-xs font-bold text-neutral-400 uppercase tracking-widest mb-4">On this page</p>
+            <nav id="desktop-toc" class="flex flex-col space-y-1">
+                <!-- Links injected by JS -->
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <article class="prose prose-neutral max-w-none flex-1 lg:max-w-[800px] mx-auto lg:mx-0">
+            
+            <!-- PRD Section -->
+            <section id="prd">
+                <h2 id="product-requirements-document">Product Requirements Document (PRD)</h2>
+                <p class="text-lg text-neutral-700 font-medium">This document outlines the product requirements for the initial launch (v1.0.0) of the <strong>Team Decision Simulation SaaS</strong> application.</p>
+                
+                <div class="bg-brand-50 border-l-4 border-brand-500 p-6 my-8 rounded-r-lg">
+                    <h4 class="text-brand-900 font-bold mb-2">Executive Summary</h4>
+                    <p class="text-brand-800 text-sm m-0">Designed as a professional-grade decision-making tool for founders, engineering managers, and executives, utilizing a structured, simulation-based approach to evaluate strategic decisions by modeling stakeholder influence, risk factors, and potential outcomes.</p>
+                </div>
+
+                <h3 id="problem-statement">Problem Statement & User Impact</h3>
+                <p>In complex organizations, critical decisions often suffer from bias, insufficient data, and lack of consensus, leading to suboptimal outcomes and misalignment. Founders, managers, and executives lack a consistent, data-driven mechanism to simulate decision impacts, understand stakeholder perspectives, and foresee risks.</p>
+                <p>The Team Decision Simulation addresses this by providing a neutral, analytical platform that reduces bias, enhances clarity, improves consensus through visualization, and mitigates risk with scoring and recommendations.</p>
+
+                <h3 id="goals-and-success-metrics">Goals & Success Metrics (OKRs)</h3>
+                
+                <h4 id="objective-1">Objective 1: Highly usable, performant UI</h4>
+                <ul class="list-disc pl-5 space-y-2">
+                    <li><strong>KR 1.1:</strong> WCAG 2.1 AA compliance (Lighthouse Accessibility >= 95).</li>
+                    <li><strong>KR 1.2:</strong> Optimal performance (FCP < 1.5s, LCP < 2.5s).</li>
+                    <li><strong>KR 1.3:</strong> Responsive design across desktop, tablet, and mobile.</li>
+                </ul>
+
+                <h4 id="objective-2">Objective 2: Robust Component Library</h4>
+                <ul class="list-disc pl-5 space-y-2">
+                    <li><strong>KR 2.1:</strong> 25+ production-ready React components with TypeScript.</li>
+                    <li><strong>KR 2.2:</strong> 100+ design tokens integrated via Tailwind CSS.</li>
+                </ul>
+
+                <h3 id="user-stories">User Stories & Acceptance Criteria</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 my-6">
+                    <div class="p-5 border border-neutral-200 rounded-xl hover:border-brand-200 transition-colors">
+                        <span class="text-xs font-bold text-brand-500 uppercase">Executive</span>
+                        <p class="mt-2 text-sm font-semibold">Create new decision simulations (select types, define scope, review risk factors).</p>
+                    </div>
+                    <div class="p-5 border border-neutral-200 rounded-xl hover:border-brand-200 transition-colors">
+                        <span class="text-xs font-bold text-brand-500 uppercase">Manager</span>
+                        <p class="mt-2 text-sm font-semibold">Define stakeholders and influence (add/remove roles, adjust weights).</p>
+                    </div>
+                    <div class="p-5 border border-neutral-200 rounded-xl hover:border-brand-200 transition-colors">
+                        <span class="text-xs font-bold text-brand-500 uppercase">User</span>
+                        <p class="mt-2 text-sm font-semibold">Run simulations, view breakdown tables, and export results (JSON/CSV).</p>
+                    </div>
+                    <div class="p-5 border border-neutral-200 rounded-xl hover:border-brand-200 transition-colors">
+                        <span class="text-xs font-bold text-brand-500 uppercase">Developer</span>
+                        <p class="mt-2 text-sm font-semibold">Clear APIs (tRPC), TypeScript interfaces, and modular component extension.</p>
+                    </div>
+                </div>
+
+                <h3 id="technical-requirements">Technical Requirements</h3>
+                <div class="overflow-x-auto">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Category</th>
+                                <th>Technology</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Frontend</td>
+                                <td>Next.js 15, React 18+, TypeScript, Tailwind CSS</td>
+                            </tr>
+                            <tr>
+                                <td>Backend</td>
+                                <td>Supabase (PostgreSQL, Auth, Edge Functions)</td>
+                            </tr>
+                            <tr>
+                                <td>Testing</td>
+                                <td>Jest, React Testing Library, Cypress/Playwright</td>
+                            </tr>
+                            <tr>
+                                <td>Monitoring</td>
+                                <td>Sentry, PostHog, Vercel Analytics</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h3 id="data-models">Proposed Data Models</h3>
+                <pre><code>// User Simulation Schema
+Table simulations {
+  id uuid [pk]
+  user_id uuid [ref: > users.id]
+  decision_type_id uuid [ref: > decision_types.id]
+  selected_roles jsonb
+  scenario_parameters jsonb
+  consensus_level float
+  risk_score float
+  recommendations jsonb
+}</code></pre>
+
+                <h3 id="milestones">Timeline & Milestones</h3>
+                <div class="space-y-4 my-6">
+                    <div class="flex gap-4">
+                        <div class="flex flex-col items-center">
+                            <div class="w-8 h-8 rounded-full bg-brand-500 text-white flex items-center justify-center text-xs font-bold">1</div>
+                            <div class="w-0.5 h-full bg-neutral-200"></div>
+                        </div>
+                        <div class="pb-6">
+                            <h5 class="font-bold">Phase 1: Foundation (Week 1)</h5>
+                            <p class="text-sm text-neutral-600">Project setup, core components, testing framework, Supabase init.</p>
+                        </div>
+                    </div>
+                    <div class="flex gap-4">
+                        <div class="flex flex-col items-center">
+                            <div class="w-8 h-8 rounded-full bg-brand-500 text-white flex items-center justify-center text-xs font-bold">2</div>
+                            <div class="w-0.5 h-full bg-neutral-200"></div>
+                        </div>
+                        <div class="pb-6">
+                            <h5 class="font-bold">Phase 2: Core Feature Integration (Week 2)</h5>
+                            <p class="text-sm text-neutral-600">API integration, Auth, Simulation engine logic, Persistence.</p>
+                        </div>
+                    </div>
+                    <div class="flex gap-4">
+                        <div class="flex flex-col items-center">
+                            <div class="w-8 h-8 rounded-full bg-brand-500 text-white flex items-center justify-center text-xs font-bold">3</div>
+                            <div class="w-0.5 h-full bg-neutral-200"></div>
+                        </div>
+                        <div class="pb-6">
+                            <h5 class="font-bold">Phase 3: Polish & Testing (Week 3)</h5>
+                            <p class="text-sm text-neutral-600">Accessibility audit, mobile testing, performance optimization.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Architecture Section -->
+            <section id="architecture">
+                <h2 id="product-architecture-document">Product Architecture Document</h2>
+                
+                <h3 id="system-overview">System Overview</h3>
+                <p>The system architecture for the Team Decision Simulation application is a serverless-first, full-stack approach leveraging Next.js 15 (App Router), tRPC, and Supabase.</p>
+
+                <div class="mermaid-diagram" id="arch-mermaid">
+                    <!-- Placeholder for Mermaid rendering logic if allowed or just CSS visualization -->
+                    <div class="text-center">
+                        <div class="text-brand-600 font-bold mb-4 uppercase tracking-tighter text-sm">Architecture Flow</div>
+                        <div class="flex flex-col items-center gap-2">
+                            <div class="px-6 py-2 border-2 border-brand-500 rounded bg-white font-mono text-xs">Vercel (Next.js 15 App Router)</div>
+                            <div class="w-px h-6 bg-brand-200"></div>
+                            <div class="px-6 py-2 border-2 border-neutral-800 rounded bg-neutral-900 text-white font-mono text-xs">tRPC API Layer</div>
+                            <div class="w-px h-6 bg-brand-200"></div>
+                            <div class="grid grid-cols-3 gap-2">
+                                <div class="px-3 py-2 border border-neutral-300 rounded text-[10px] text-center">Supabase Auth</div>
+                                <div class="px-3 py-2 border border-neutral-300 rounded text-[10px] text-center bg-brand-50">PostgreSQL (RLS)</div>
+                                <div class="px-3 py-2 border border-neutral-300 rounded text-[10px] text-center">Edge Functions</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <h3 id="security-architecture">Security Architecture</h3>
+                <p>Comprehensive mitigation strategies for OWASP Top 10:</p>
+                <ul class="list-none p-0 grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <li class="bg-neutral-50 p-4 rounded-lg border border-neutral-200">
+                        <strong class="block text-brand-600 mb-1">Broken Access Control</strong>
+                        <span class="text-sm">Supabase RLS, Next.js Middleware, and protected tRPC procedures.</span>
+                    </li>
+                    <li class="bg-neutral-50 p-4 rounded-lg border border-neutral-200">
+                        <strong class="block text-brand-600 mb-1">Cryptographic Failures</strong>
+                        <span class="text-sm">TLS/HTTPS everywhere, Supabase at-rest encryption for sensitive data.</span>
+                    </li>
+                    <li class="bg-neutral-50 p-4 rounded-lg border border-neutral-200">
+                        <strong class="block text-brand-600 mb-1">Software Integrity</strong>
+                        <span class="text-sm">Automated CI/CD checks, immutable deployments on Vercel.</span>
+                    </li>
+                    <li class="bg-neutral-50 p-4 rounded-lg border border-neutral-200">
+                        <strong class="block text-brand-600 mb-1">Injection</strong>
+                        <span class="text-sm">Parameterized queries via Supabase client and Zod input validation.</span>
+                    </li>
+                </ul>
+
+                <h3 id="deployment-pipeline">Deployment Pipeline</h3>
+                <p>Automated CI/CD with Vercel and GitHub Actions handles:</p>
+                <ol class="list-decimal pl-5 space-y-2">
+                    <li>Linting and Type Checking</li>
+                    <li>Unit and Integration Tests (Jest)</li>
+                    <li>End-to-End Testing (Playwright)</li>
+                    <li>Accessibility Checks (Lighthouse)</li>
+                    <li>Preview Deployments for PR review</li>
+                </ol>
+
+                <h3 id="adr">Architecture Decision Records (ADRs)</h3>
+                <div class="space-y-4">
+                    <div class="p-6 bg-white border border-neutral-200 rounded-xl shadow-sm">
+                        <h5 class="text-brand-700 font-bold mb-2">ADR 001: Next.js 15 App Router</h5>
+                        <p class="text-sm text-neutral-600">Chosen over client-side SPAs for performance, DX, SEO, and full-stack capabilities within a single codebase.</p>
+                    </div>
+                    <div class="p-6 bg-white border border-neutral-200 rounded-xl shadow-sm">
+                        <h5 class="text-brand-700 font-bold mb-2">ADR 002: tRPC</h5>
+                        <p class="text-sm text-neutral-600">Selected for API communication to ensure end-to-end type safety between client and server without manual schema generation.</p>
+                    </div>
+                    <div class="p-6 bg-white border border-neutral-200 rounded-xl shadow-sm">
+                        <h5 class="text-brand-700 font-bold mb-2">ADR 003: Supabase</h5>
+                        <p class="text-sm text-neutral-600">Chosen for rapid speed-to-market, providing managed Auth, Database, and RLS out of the box.</p>
+                    </div>
+                </div>
+
+                <h3 id="trade-offs">Trade-offs</h3>
+                <p>The architecture prioritizes <strong>rapid development</strong> and <strong>developer experience</strong>. We accept:</p>
+                <ul class="list-disc pl-5">
+                    <li>Vendor lock-in (Vercel, Supabase).</li>
+                    <li>Potential costs at extreme scale.</li>
+                    <li>Learning curve for App Router paradigms.</li>
+                </ul>
+            </section>
+        </article>
+    </main>
+
+    <script>
+        // Generate Table of Contents
+        document.addEventListener('DOMContentLoaded', () => {
+            const article = document.querySelector('article');
+            const headings = article.querySelectorAll('h2, h3');
+            const desktopToc = document.getElementById('desktop-toc');
+            const mobileToc = document.getElementById('mobile-toc-links');
+
+            headings.forEach((heading, index) => {
+                const id = heading.id || `heading-${index}`;
+                heading.id = id;
+
+                const link = document.createElement('a');
+                link.href = `#${id}`;
+                link.textContent = heading.textContent;
+                link.className = `sidebar-link block py-2 px-3 text-sm rounded-lg hover:text-brand-500 hover:bg-neutral-50 transition-all ${
+                    heading.tagName === 'H2' ? 'font-bold text-neutral-900 mt-2' : 'pl-6 text-neutral-500 font-medium'
+                }`;
+
+                // Intersection Observer for active state
+                const observer = new IntersectionObserver((entries) => {
+                    entries.forEach(entry => {
+                        if (entry.isIntersecting) {
+                            document.querySelectorAll('.sidebar-link').forEach(l => l.classList.remove('active'));
+                            link.classList.add('active');
+                        }
+                    });
+                }, { threshold: 1, rootMargin: '0px 0px -80% 0px' });
+
+                observer.observe(heading);
+
+                desktopToc.appendChild(link);
+                
+                // For mobile
+                const mobileLink = link.cloneNode(true);
+                mobileLink.onclick = toggleMobileMenu;
+                mobileToc.appendChild(mobileLink);
+            });
+        });
+
+        function toggleMobileMenu() {
+            const menu = document.getElementById('mobile-menu');
+            menu.classList.toggle('hidden');
+            if (!menu.classList.contains('hidden')) {
+                document.body.style.overflow = 'hidden';
+            } else {
+                document.body.style.overflow = 'auto';
+            }
+        }
+
+        // Smooth Scroll handling
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    window.scrollTo({
+                        top: target.offsetTop - 100,
+                        behavior: 'smooth'
+                    });
+                }
+            });
+        });
+    </script>
+</body>
+</html>

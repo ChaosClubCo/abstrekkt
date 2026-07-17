@@ -1,0 +1,1054 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>INTeract Companion</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500&family=IBM+Plex+Mono&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0a0a0f;--raised:#111118;--overlay:#18181f;
+  --b1:#2a2a38;--b2:#1e1e28;
+  --ac:hsl(262,83%,68%);--acd:hsl(262,60%,45%);--acg:hsla(262,83%,68%,.15);
+  --t1:#f0f0f5;--t2:#9898a8;--t3:#52525e;
+  --fh:'Space Grotesk',sans-serif;--fb:'Inter',system-ui,sans-serif;--fm:'IBM Plex Mono',monospace;
+  --xs:11px;--sm:13px;--base:14px;--md:16px;--lg:20px;--xl:24px;
+  --s1:4px;--s2:8px;--s3:12px;--s4:16px;--s5:20px;--s6:24px;--s8:32px;
+  --r1:4px;--r2:6px;--r3:8px;--rp:999px;
+  --ok:#22c55e;--ok-bg:rgba(34,197,94,.1);
+  --warn:#f59e0b;--warn-bg:rgba(245,158,11,.1);
+  --err:#ef4444;--err-bg:rgba(239,68,68,.1);
+  --info:#38bdf8;--info-bg:rgba(56,189,248,.1);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;font-size:14px}
+body{font-family:var(--fb);background:var(--bg);color:var(--t1);line-height:1.5;display:flex;flex-direction:column;max-width:480px;margin:0 auto}
+
+/* HEADER */
+.hdr{display:flex;align-items:center;justify-content:space-between;padding:0 var(--s4);height:48px;border-bottom:1px solid var(--b2);flex-shrink:0;gap:var(--s3)}
+.logo{display:flex;align-items:center;gap:var(--s2)}
+.logobug{width:24px;height:24px;background:var(--acd);border-radius:var(--r1);display:flex;align-items:center;justify-content:center;font-family:var(--fh);font-weight:700;font-size:9px;color:var(--ac)}
+.logotext{font-family:var(--fh);font-weight:700;font-size:var(--md);letter-spacing:-.02em}
+.logotext em{color:var(--ac);font-style:normal}
+.hdr-meta{display:flex;align-items:center;gap:var(--s3)}
+.hdr-stat{font-size:var(--xs);color:var(--t3);white-space:nowrap}
+.hdr-stat strong{color:var(--t2);font-weight:500}
+.sync-btn{width:26px;height:26px;display:flex;align-items:center;justify-content:center;background:transparent;border:1px solid var(--b1);border-radius:var(--r1);color:var(--t3);cursor:pointer;font-size:12px;transition:color 100ms,border-color 100ms;flex-shrink:0}
+.sync-btn:hover{color:var(--t1);border-color:var(--b1)}
+.sync-btn:disabled{opacity:.4;cursor:not-allowed}
+.spin-sm{animation:sp 600ms linear infinite;display:inline-block}
+@keyframes sp{to{transform:rotate(360deg)}}
+
+/* TABS */
+.tabnav{display:flex;padding:0 var(--s3);border-bottom:1px solid var(--b2);overflow-x:auto;scrollbar-width:none;flex-shrink:0}
+.tabnav::-webkit-scrollbar{display:none}
+.tabbtn{padding:var(--s2) var(--s3);background:transparent;border:none;border-bottom:2px solid transparent;color:var(--t2);font-family:var(--fb);font-size:var(--sm);font-weight:500;cursor:pointer;white-space:nowrap;margin-bottom:-1px;transition:color 120ms,border-color 120ms;display:flex;align-items:center;gap:var(--s2)}
+.tabbtn:hover{color:var(--t1)}
+.tabbtn.on{color:var(--ac);border-bottom-color:var(--ac)}
+.tabbtn:focus-visible{outline:2px solid var(--ac);outline-offset:2px;border-radius:var(--r1)}
+.tc{display:inline-flex;align-items:center;justify-content:center;min-width:16px;height:16px;padding:0 3px;background:var(--acd);color:var(--ac);border-radius:var(--rp);font-size:9px;font-weight:700}
+
+/* PANELS */
+.panel{display:none;flex-direction:column;flex:1;overflow-y:auto;min-height:0}
+.panel.on{display:flex}
+
+/* ── FILTER CHIPS ── */
+.filter-bar{padding:var(--s3) var(--s4);display:flex;flex-direction:column;gap:var(--s2);flex-shrink:0;border-bottom:1px solid var(--b2)}
+.srch{width:100%;background:var(--overlay);border:1px solid var(--b1);border-radius:var(--r1);padding:7px var(--s3);font-family:var(--fb);font-size:var(--sm);color:var(--t1);transition:border-color 120ms,box-shadow 120ms}
+.srch::placeholder{color:var(--t3)}
+.srch:focus{outline:none;border-color:var(--ac);box-shadow:0 0 0 3px var(--acg)}
+.chips{display:flex;gap:var(--s2);flex-wrap:wrap}
+.chip{padding:3px 10px;background:transparent;border:1px solid var(--b1);border-radius:var(--rp);font-family:var(--fb);font-size:var(--xs);color:var(--t2);cursor:pointer;transition:background 80ms,color 80ms,border-color 80ms;white-space:nowrap}
+.chip:hover{background:var(--raised);color:var(--t1)}
+.chip.on{background:var(--acd);color:var(--ac);border-color:transparent}
+.chip:focus-visible{outline:2px solid var(--ac);outline-offset:1px}
+
+/* ── TOOLBAR ── */
+.toolbar{display:flex;align-items:center;justify-content:space-between;padding:var(--s2) var(--s4);flex-shrink:0}
+.rcount{font-size:var(--xs);color:var(--t3)}
+.rcount strong{color:var(--t2)}
+
+/* ── ACTIVITY ROW ── */
+.alist{flex:1;overflow-y:auto}
+.arow{border-bottom:1px solid var(--b2)}
+.arh{display:flex;align-items:center;gap:var(--s3);padding:10px var(--s4);cursor:pointer;transition:background 80ms}
+.arh:hover{background:var(--raised)}
+.arh:focus-visible{outline:2px solid var(--ac);outline-offset:-2px}
+.atype-icon{font-size:16px;width:24px;text-align:center;flex-shrink:0}
+.armain{flex:1;min-width:0}
+.artitle{font-size:var(--base);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.armeta{display:flex;align-items:center;gap:var(--s2);margin-top:2px;flex-wrap:wrap}
+.badge{display:inline-flex;align-items:center;padding:2px 6px;border-radius:var(--rp);font-size:10px;font-weight:500}
+.bt{background:var(--overlay);color:var(--t2)}
+.bq{background:var(--ok-bg);color:var(--ok)}
+.bm{background:var(--warn-bg);color:var(--warn)}
+.bl{background:var(--info-bg);color:var(--info)}
+.bai{background:var(--acg);color:var(--ac);border:1px solid rgba(167,139,250,.3)}
+.aract{display:flex;align-items:center;gap:2px;flex-shrink:0}
+.ibtn{width:26px;height:26px;display:flex;align-items:center;justify-content:center;background:transparent;border:none;border-radius:var(--r1);color:var(--t3);cursor:pointer;font-size:13px;transition:color 80ms,background 80ms}
+.ibtn:hover{background:var(--overlay);color:var(--t1)}
+.ibtn.fav{color:var(--warn)}
+.ibtn:focus-visible{outline:2px solid var(--ac);outline-offset:1px}
+.chev{font-size:11px;color:var(--t3);transition:transform 160ms;flex-shrink:0}
+.arow.exp .chev{transform:rotate(180deg)}
+
+/* ── EXPANDED ── */
+.adet{display:none;padding:var(--s3) var(--s4) var(--s4);border-top:1px solid var(--b2);background:var(--raised);animation:sd 140ms ease}
+@keyframes sd{from{opacity:0;transform:translateY(-3px)}to{opacity:1;transform:translateY(0)}}
+.arow.exp .adet{display:block}
+.adesc{font-size:var(--sm);color:var(--t2);line-height:1.65;margin-bottom:var(--s3);max-width:100%}
+.adinst{font-size:var(--sm);color:var(--t3);line-height:1.6;margin-bottom:var(--s3);white-space:pre-line}
+.adact{display:flex;gap:var(--s2);flex-wrap:wrap;margin-top:var(--s3)}
+.admeta{display:flex;gap:var(--s4);font-size:var(--xs);color:var(--t3);margin-bottom:var(--s3)}
+
+/* ── BUTTONS ── */
+.btn{display:inline-flex;align-items:center;gap:var(--s2);padding:6px var(--s3);border-radius:var(--r1);font-family:var(--fb);font-size:var(--sm);font-weight:500;cursor:pointer;transition:background 120ms,opacity 120ms;border:1px solid transparent}
+.btnp{background:var(--ac);color:#fff;border-color:var(--ac)}
+.btnp:hover{opacity:.88}
+.btns{background:transparent;color:var(--t2);border-color:var(--b1)}
+.btns:hover{background:var(--overlay);color:var(--t1)}
+.btnd{background:transparent;color:var(--err);border-color:var(--err-bg)}
+.btnd:hover{background:var(--err-bg)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn:focus-visible{outline:2px solid var(--ac);outline-offset:2px}
+.btnadd{display:flex;align-items:center;gap:var(--s2);padding:6px var(--s3);background:var(--ac);color:#fff;border:none;border-radius:var(--r1);font-family:var(--fb);font-size:var(--sm);font-weight:500;cursor:pointer;transition:opacity 120ms}
+.btnadd:hover{opacity:.88}
+.btnadd:focus-visible{outline:2px solid var(--ac);outline-offset:2px}
+
+/* ── GAP BAR ── */
+.gap-bar{display:flex;align-items:center;justify-content:space-between;padding:var(--s2) var(--s4);background:var(--raised);border-bottom:1px solid var(--b2);flex-shrink:0;gap:var(--s3)}
+.gap-bar span{font-size:var(--xs);color:var(--t3)}
+.gap-result{padding:var(--s3) var(--s4);border-left:2px solid var(--ac);background:var(--raised);margin:var(--s2) var(--s4);border-radius:0 var(--r2) var(--r2) 0;display:none}
+.gap-result.vis{display:block}
+.gap-hl{font-size:var(--xs);font-weight:500;color:var(--ac);text-transform:uppercase;letter-spacing:.06em;margin-bottom:var(--s2)}
+
+/* ── EMPTY / LOADING / ERROR ── */
+.center-state{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:var(--s8);gap:var(--s4);text-align:center}
+.center-icon{font-size:28px;opacity:.25}
+.center-title{font-size:var(--md);color:var(--t2)}
+.center-sub{font-size:var(--sm);color:var(--t3);max-width:260px;line-height:1.6}
+.spin-lg{width:28px;height:28px;border:2px solid var(--b1);border-top-color:var(--ac);border-radius:50%;animation:sp 500ms linear infinite}
+
+/* ── AI PANEL ── */
+.ai-panel{flex:1;overflow-y:auto;padding:var(--s4);display:flex;flex-direction:column;gap:var(--s4)}
+.fgrp{display:flex;flex-direction:column;gap:var(--s2)}
+.flabel{font-size:var(--sm);font-weight:500;color:var(--t2)}
+.fsel,.finp,.ftxt{background:var(--overlay);border:1px solid var(--b1);border-radius:var(--r1);padding:7px var(--s3);font-family:var(--fb);font-size:var(--sm);color:var(--t1);width:100%;transition:border-color 120ms,box-shadow 120ms}
+.fsel option{background:var(--overlay)}
+.ftxt{resize:vertical;min-height:68px;line-height:1.5}
+.fsel:focus,.finp:focus,.ftxt:focus{outline:none;border-color:var(--ac);box-shadow:0 0 0 3px var(--acg)}
+.genbtn{display:flex;align-items:center;justify-content:center;gap:var(--s2);padding:var(--s3) var(--s4);background:var(--ac);color:#fff;border:none;border-radius:var(--r1);font-family:var(--fb);font-size:var(--sm);font-weight:500;cursor:pointer;transition:opacity 120ms;width:100%}
+.genbtn:hover{opacity:.88}
+.genbtn:disabled{opacity:.4;cursor:not-allowed}
+.genbtn:focus-visible{outline:2px solid var(--ac);outline-offset:2px}
+.ai-result{background:var(--raised);border:1px solid var(--b1);border-radius:var(--r2);padding:var(--s4)}
+.ai-rtitle{font-family:var(--fh);font-size:var(--lg);font-weight:700;margin-bottom:var(--s3);display:flex;align-items:center;gap:var(--s2)}
+.ai-rmeta{display:flex;gap:var(--s2);flex-wrap:wrap;margin-bottom:var(--s4)}
+.ai-sec{margin-bottom:var(--s4)}
+.ai-sec-l{font-size:var(--xs);font-weight:500;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:var(--s2)}
+.ai-sec p,.ai-sec pre{font-size:var(--sm);color:var(--t2);line-height:1.65}
+.ai-foot{display:flex;gap:var(--s2);flex-wrap:wrap;padding-top:var(--s3);border-top:1px solid var(--b2)}
+
+/* ── EVENTS PANEL ── */
+.events-panel{flex:1;overflow-y:auto;padding:var(--s4);display:flex;flex-direction:column;gap:var(--s3)}
+.event-card{background:var(--raised);border:1px solid var(--b1);border-radius:var(--r2);padding:var(--s4)}
+.event-title{font-family:var(--fh);font-weight:700;font-size:var(--base);margin-bottom:var(--s2)}
+.event-meta{display:flex;flex-wrap:wrap;gap:var(--s2);margin-bottom:var(--s3)}
+.event-status-scheduled{background:var(--ok-bg);color:var(--ok)}
+.event-status-in_progress{background:var(--acg);color:var(--ac)}
+.event-status-draft{background:var(--overlay);color:var(--t2)}
+.event-link{display:flex;align-items:center;gap:var(--s2);padding:6px var(--s3);background:transparent;border:1px solid var(--b1);border-radius:var(--r1);font-family:var(--fb);font-size:var(--sm);color:var(--t2);cursor:pointer;text-decoration:none;transition:background 80ms,color 80ms;width:fit-content}
+.event-link:hover{background:var(--overlay);color:var(--t1)}
+.event-facilitator{font-size:var(--xs);color:var(--t3)}
+
+/* ── GUIDE PANEL ── */
+.guide-panel{flex:1;overflow-y:auto}
+.guide-inner{padding:var(--s5) var(--s4)}
+.guide-inner h2{font-family:var(--fh);font-size:var(--lg);font-weight:700;margin-bottom:var(--s2)}
+.guide-inner h3{font-family:var(--fh);font-size:var(--base);font-weight:700;color:var(--t1);margin:var(--s5) 0 var(--s3)}
+.guide-inner p{font-size:var(--sm);color:var(--t2);line-height:1.7;margin-bottom:var(--s3)}
+.guide-inner ul,.guide-inner ol{padding-left:var(--s4);margin-bottom:var(--s4)}
+.guide-inner li{font-size:var(--sm);color:var(--t2);line-height:1.7;margin-bottom:5px}
+.guide-inner li strong,.guide-inner p strong{color:var(--t1);font-weight:500}
+.pblock{background:var(--raised);border:1px solid var(--b1);border-left:2px solid var(--ac);border-radius:var(--r2);padding:var(--s4);margin:var(--s3) 0}
+.pblock-l{font-size:var(--xs);font-weight:500;color:var(--ac);text-transform:uppercase;letter-spacing:.06em;margin-bottom:var(--s3)}
+.pblock p,.pblock li{font-size:var(--xs);color:var(--t2);line-height:1.7}
+.codeblk{background:var(--overlay);border:1px solid var(--b1);border-radius:var(--r2);padding:var(--s3);margin:var(--s2) 0;overflow-x:auto}
+.codeblk pre{font-family:var(--fm);font-size:var(--xs);color:var(--t2);line-height:1.6;white-space:pre-wrap}
+.codeblk pre strong{color:var(--ac)}
+.steps{list-style:none;padding:0;counter-reset:st}
+.steps li{counter-increment:st;display:flex;gap:var(--s2);padding:var(--s2) 0;border-bottom:1px solid var(--b2)}
+.steps li:last-child{border-bottom:none}
+.steps li::before{content:counter(st);display:flex;align-items:center;justify-content:center;min-width:20px;height:20px;background:var(--acd);color:var(--ac);border-radius:var(--rp);font-size:10px;font-weight:700;margin-top:1px}
+code{font-family:var(--fm);font-size:var(--xs);color:var(--ac);background:var(--overlay);padding:1px 5px;border-radius:3px}
+
+/* Guide sub-tabs */
+.guide-nav{display:flex;gap:0;border-bottom:1px solid var(--b2);overflow-x:auto;scrollbar-width:none;flex-shrink:0}
+.guide-nav::-webkit-scrollbar{display:none}
+.gnav-btn{padding:var(--s2) var(--s3);background:transparent;border:none;border-bottom:2px solid transparent;color:var(--t3);font-family:var(--fb);font-size:var(--xs);font-weight:500;cursor:pointer;white-space:nowrap;margin-bottom:-1px;transition:color 120ms,border-color 120ms}
+.gnav-btn:hover{color:var(--t2)}
+.gnav-btn.on{color:var(--ac);border-bottom-color:var(--ac)}
+.g-section{display:none}.g-section.on{display:block}
+
+/* ── MODAL ── */
+.moverlay{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:200;display:none;align-items:center;justify-content:center;padding:var(--s4)}
+.moverlay.on{display:flex}
+.modal{background:var(--overlay);border:1px solid var(--b1);border-radius:var(--r3);padding:var(--s5);width:100%;max-width:440px;max-height:90vh;overflow-y:auto}
+.mhdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--s4)}
+.mtitle{font-family:var(--fh);font-size:var(--md);font-weight:700}
+.mform{display:flex;flex-direction:column;gap:var(--s3)}
+.mrow{display:flex;gap:var(--s3)}
+.mrow .fgrp{flex:1}
+.mfoot{display:flex;justify-content:flex-end;gap:var(--s2);margin-top:var(--s4);padding-top:var(--s4);border-top:1px solid var(--b2)}
+
+/* ── TOAST ── */
+.toasts{position:fixed;bottom:var(--s4);right:var(--s4);z-index:300;display:flex;flex-direction:column;gap:var(--s2)}
+.toast{background:var(--overlay);border:1px solid var(--b1);border-radius:var(--r2);padding:var(--s2) var(--s3);font-size:var(--sm);color:var(--t1);animation:tin 180ms ease;max-width:260px}
+.toast-ok{border-left:2px solid var(--ok)}
+.toast-err{border-left:2px solid var(--err)}
+@keyframes tin{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="hdr">
+  <div class="logo">
+    <div class="logobug" aria-hidden="true">IN</div>
+    <div class="logotext">IN<em>T</em>eract</div>
+  </div>
+  <div class="hdr-meta">
+    <span class="hdr-stat" id="hdrStat">—</span>
+    <button class="sync-btn" id="syncBtn" onclick="loadAll()" title="Sync from B44" aria-label="Sync from Base44">↻</button>
+  </div>
+</header>
+
+<!-- TAB NAV -->
+<nav class="tabnav" role="tablist" aria-label="Navigation">
+  <button class="tabbtn on" role="tab" aria-selected="true" aria-controls="p-lib" id="t-lib" onclick="tab('lib')">Library <span class="tc" id="libct" aria-hidden="true"></span></button>
+  <button class="tabbtn" role="tab" aria-selected="false" aria-controls="p-ai" id="t-ai" onclick="tab('ai')">AI Generator</button>
+  <button class="tabbtn" role="tab" aria-selected="false" aria-controls="p-ev" id="t-ev" onclick="tab('ev')">Events <span class="tc" id="evct" aria-hidden="true"></span></button>
+  <button class="tabbtn" role="tab" aria-selected="false" aria-controls="p-guide" id="t-guide" onclick="tab('guide')">Guides</button>
+</nav>
+
+<!-- ══ LIBRARY ══ -->
+<div class="panel on" id="p-lib" role="tabpanel" aria-labelledby="t-lib">
+
+  <div class="filter-bar">
+    <input type="search" class="srch" id="srch" placeholder="Search activities…" aria-label="Search" oninput="render()">
+    <div class="chips" id="durChips" role="group" aria-label="Duration">
+      <button class="chip on" data-dur="all" onclick="setDur('all',this)" aria-pressed="true">All</button>
+      <button class="chip" data-dur="5-15min" onclick="setDur('5-15min',this)" aria-pressed="false">5–15 min</button>
+      <button class="chip" data-dur="15-30min" onclick="setDur('15-30min',this)" aria-pressed="false">15–30 min</button>
+      <button class="chip" data-dur="30+min" onclick="setDur('30+min',this)" aria-pressed="false">30+ min</button>
+    </div>
+    <div class="chips" id="typChips" role="group" aria-label="Type">
+      <button class="chip on" data-typ="all" onclick="setTyp('all',this)" aria-pressed="true">All</button>
+      <button class="chip" data-typ="icebreaker" onclick="setTyp('icebreaker',this)" aria-pressed="false">Icebreaker</button>
+      <button class="chip" data-typ="creative" onclick="setTyp('creative',this)" aria-pressed="false">Creative</button>
+      <button class="chip" data-typ="competitive" onclick="setTyp('competitive',this)" aria-pressed="false">Competitive</button>
+      <button class="chip" data-typ="wellness" onclick="setTyp('wellness',this)" aria-pressed="false">Wellness</button>
+      <button class="chip" data-typ="learning" onclick="setTyp('learning',this)" aria-pressed="false">Learning</button>
+      <button class="chip" data-typ="social" onclick="setTyp('social',this)" aria-pressed="false">Social</button>
+    </div>
+  </div>
+
+  <div class="gap-bar">
+    <span>Find gaps in this library</span>
+    <button class="btn btns" id="gapBtn" onclick="runGap()" style="padding:4px 10px;font-size:var(--xs)">✦ AI Gap Analysis</button>
+  </div>
+  <div class="gap-result" id="gapResult" aria-live="polite">
+    <div class="gap-hl">Gaps found</div>
+    <div id="gapText"></div>
+  </div>
+
+  <div class="toolbar">
+    <p class="rcount" id="rcount" aria-live="polite"></p>
+    <button class="btnadd" onclick="openAdd()" aria-label="Add activity">+ Add</button>
+  </div>
+
+  <div class="alist" id="alist" role="list" aria-label="Activities"></div>
+
+  <div class="center-state" id="libLoading" style="display:none">
+    <div class="spin-lg" role="status" aria-label="Loading"></div>
+    <p style="font-size:var(--sm);color:var(--t3)">Loading from B44…</p>
+  </div>
+  <div class="center-state" id="libEmpty" style="display:none">
+    <div class="center-icon" aria-hidden="true">📋</div>
+    <p class="center-title">No activities yet</p>
+    <p class="center-sub">Add your first activity or generate one with AI.</p>
+    <button class="btn btnp" onclick="openAdd()">+ Add Activity</button>
+  </div>
+  <div class="center-state" id="libError" style="display:none">
+    <div class="center-icon" aria-hidden="true">⚠</div>
+    <p class="center-title">Failed to load</p>
+    <p class="center-sub" id="libErrorMsg">Could not reach B44.</p>
+    <button class="btn btns" onclick="loadActivities()">Retry</button>
+  </div>
+</div>
+
+<!-- ══ AI GENERATOR ══ -->
+<div class="panel" id="p-ai" role="tabpanel" aria-labelledby="t-ai">
+  <div class="ai-panel">
+    <div>
+      <h2 style="font-family:var(--fh);font-size:var(--lg);font-weight:700;margin-bottom:4px">Activity Generator</h2>
+      <p style="font-size:var(--sm);color:var(--t2);line-height:1.5">Generate a custom activity and save it directly to B44.</p>
+    </div>
+    <div class="fgrp">
+      <label class="flabel" for="ai-sz">Team size</label>
+      <select class="fsel" id="ai-sz">
+        <option value="5–15">5–15 people</option>
+        <option value="15–30" selected>15–30 people</option>
+        <option value="30–50">30–50 people</option>
+        <option value="50+">50+ people</option>
+      </select>
+    </div>
+    <div class="fgrp">
+      <label class="flabel" for="ai-dur">Available time</label>
+      <select class="fsel" id="ai-dur">
+        <option value="5-15min">Quick — 5–15 min</option>
+        <option value="15-30min" selected>Medium — 15–30 min</option>
+        <option value="30+min">Long — 30+ min</option>
+      </select>
+    </div>
+    <div class="fgrp">
+      <label class="flabel" for="ai-mood">Team mood</label>
+      <select class="fsel" id="ai-mood">
+        <option value="energetic">Energetic</option>
+        <option value="chill">Chill</option>
+        <option value="mixed">Mixed</option>
+        <option value="stressed">Stressed — needs a win</option>
+      </select>
+    </div>
+    <div class="fgrp">
+      <label class="flabel" for="ai-goal">Primary goal</label>
+      <select class="fsel" id="ai-goal">
+        <option value="bonding">Bonding / Connection</option>
+        <option value="fun">Fun / Laughs</option>
+        <option value="learning">Learning / Skills</option>
+        <option value="wellness">Wellness / Recharge</option>
+        <option value="recognition">Recognition / Celebration</option>
+      </select>
+    </div>
+    <div class="fgrp">
+      <label class="flabel" for="ai-con">Constraints <span style="color:var(--t3)">(optional)</span></label>
+      <textarea class="ftxt" id="ai-con" placeholder="e.g. no audio required, mobile-friendly, remote-first…"></textarea>
+    </div>
+    <button class="genbtn" id="genBtn" onclick="generate()">✦ Generate + Save to B44</button>
+    <div id="aiArea"></div>
+  </div>
+</div>
+
+<!-- ══ EVENTS ══ -->
+<div class="panel" id="p-ev" role="tabpanel" aria-labelledby="t-ev">
+  <div class="events-panel" id="eventsPanel">
+    <div class="center-state" id="evLoading">
+      <div class="spin-lg" role="status" aria-label="Loading events"></div>
+      <p style="font-size:var(--sm);color:var(--t3)">Loading events…</p>
+    </div>
+  </div>
+</div>
+
+<!-- ══ GUIDES ══ -->
+<div class="panel" id="p-guide" role="tabpanel" aria-labelledby="t-guide">
+  <div class="guide-nav" role="tablist" aria-label="Guide sections">
+    <button class="gnav-btn on" onclick="gNav('build',this)">Build</button>
+    <button class="gnav-btn" onclick="gNav('prompts',this)">Prompting</button>
+    <button class="gnav-btn" onclick="gNav('teams',this)">Teams</button>
+    <button class="gnav-btn" onclick="gNav('features',this)">Features</button>
+  </div>
+  <div class="guide-panel">
+
+    <div class="g-section on" id="g-build">
+      <div class="guide-inner">
+        <h2>Build Guide</h2>
+        <p>Prompt templates for extending the B44 INTeract platform across three build phases.</p>
+        <h3>Phase 1 — MVP</h3>
+        <div class="pblock"><div class="pblock-l">Creation prompt</div>
+          <p><strong>Role:</strong> Expert full-stack developer.</p>
+          <ul style="margin-top:var(--s2)">
+            <li>Admin dashboard: protected login, activity library, event scheduler, participation tracking</li>
+            <li>Activity library: CRUD (title, description, duration, type, instructions)</li>
+            <li>Event scheduler: calendar, timezone picker, magic link generation</li>
+            <li>Participant portal: magic-link access, photo upload, polls, text submissions</li>
+            <li>Analytics: participation rates, ratings, attendance trends</li>
+          </ul>
+          <p style="margin-top:var(--s2)"><strong>Data models:</strong> Users · Activities · Events · Participation · Feedback · Assets</p>
+        </div>
+        <h3>Phase 2 — AI</h3>
+        <div class="pblock"><div class="pblock-l">AI features prompt</div>
+          <ul>
+            <li>Rule-based: holiday triggers, variety balancing, engagement gap alerts</li>
+            <li>LLM-powered: feedback sentiment, custom activity generator, scheduling patterns</li>
+            <li>UI: Suggestions widget (3–5 items with reasoning)</li>
+            <li>Persist accept/reject for preference learning</li>
+          </ul>
+        </div>
+        <h3>Phase 3 — Notifications</h3>
+        <div class="pblock"><div class="pblock-l">Webhook prompt</div>
+          <ul>
+            <li>Outbound POST on: scheduled, 24h reminder, post-event recap</li>
+            <li>Teams Adaptive Cards with RSVP button</li>
+            <li>Settings: webhook URL + notification toggles + template editor</li>
+            <li><code>.ics</code> generation for Outlook sync</li>
+          </ul>
+        </div>
+        <h3>Best practices</h3>
+        <ul>
+          <li><strong>First prompt: comprehensive</strong> — include all models, roles, workflows</li>
+          <li><strong>One feature per follow-up</strong> to prevent regressions</li>
+          <li><strong>Define state machines:</strong> Draft → Scheduled → Active → Completed</li>
+          <li><strong>Request mobile explicitly</strong> — not assumed</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="g-section" id="g-prompts">
+      <div class="guide-inner">
+        <h2>Prompting Guide</h2>
+        <p>Frameworks for getting quality outputs when building or extending this platform.</p>
+        <h3>RACE — Feature requests</h3>
+        <p><strong>Role → Action → Context → Expectations</strong></p>
+        <div class="pblock"><div class="pblock-l">Example — photo gallery</div>
+          <div class="codeblk"><pre><strong>Role:</strong> Full-stack developer on engagement platform.
+<strong>Action:</strong> Add photo gallery to post-event recap.
+<strong>Context:</strong> Recap shows stats + text only. Activities generate lots of photos.
+<strong>Expectations:</strong> Drag-drop upload, thumbnail grid, lightbox, admin moderation, mobile camera access.</pre></div>
+        </div>
+        <h3>APE — Problem solving</h3>
+        <div class="pblock"><div class="pblock-l">Example — participation rates</div>
+          <div class="codeblk"><pre><strong>Ask:</strong> How do we increase RSVP-to-attendance conversion?
+<strong>Plan:</strong> Identify friction → add social proof → better reminders → gamify consistency
+<strong>Execute:</strong> One-click RSVP in Teams message, "14 teammates joined", 1h reminder, streak tracking.</pre></div>
+        </div>
+        <h3>Tips</h3>
+        <ul>
+          <li><strong>Explicit data:</strong> "RSVPs as many-to-many between Users and Events"</li>
+          <li><strong>Specify roles:</strong> "Admin: full CRUD. Participants: read-only except submissions."</li>
+          <li><strong>Validation rules:</strong> "Event date must be future. Duration 5–120 min."</li>
+          <li><strong>Error states:</strong> "If magic link expired, show message + upcoming events link."</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="g-section" id="g-teams">
+      <div class="guide-inner">
+        <h2>Teams Integration</h2>
+        <p>Connect B44 to Microsoft Teams using Incoming Webhooks.</p>
+        <h3>Setup</h3>
+        <ol class="steps">
+          <li>Open Teams channel → More options → Connectors → Incoming Webhook.</li>
+          <li>Configure → name it → Create → copy URL.</li>
+          <li>Paste URL into B44 Settings → Integrations → Teams Webhook.</li>
+        </ol>
+        <h3>Announcement card</h3>
+        <div class="codeblk"><pre>{ "type": "message", "attachments": [{
+  "contentType": "application/vnd.microsoft.card.adaptive",
+  "content": { "type": "AdaptiveCard", "version": "1.4",
+    "body": [
+      { "type": "TextBlock", "text": "🎮 {{activity_name}}", "size": "large", "weight": "bolder" },
+      { "type": "TextBlock", "text": "📅 {{event_datetime}} · ⏱ {{duration}}" },
+      { "type": "TextBlock", "text": "{{description}}", "wrap": true }
+    ],
+    "actions": [{ "type": "Action.OpenUrl", "title": "RSVP", "url": "{{magic_link}}" }]
+  }
+}]}</pre></div>
+        <h3>Notes</h3>
+        <ul>
+          <li>HTTP POST with <code>Content-Type: application/json</code></li>
+          <li>Webhook URL in env vars — never in source code</li>
+          <li>Exponential backoff on retries — Teams rate-limits ~4 req/s</li>
+          <li>Generate <code>.ics</code> per event; embed magic link in description</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="g-section" id="g-features">
+      <div class="guide-inner">
+        <h2>Platform Features</h2>
+        <p>Reference for the full B44 INTeract feature set.</p>
+        <h3>Core</h3>
+        <ul><li>Activity library with CRUD, types, duration, interaction modes</li><li>Event scheduler: Draft→Scheduled→Active→Completed, magic links, recurring series</li><li>Participant portal: no-login magic link access, polls, photo uploads, quizzes</li><li>Teams/Slack webhooks with Adaptive Cards and Block Kit</li></ul>
+        <h3>Gamification</h3>
+        <ul><li>Points, tiers (Bronze→Platinum), badges with rarity levels</li><li>Configurable rules engine with cooldowns and monthly caps</li><li>Leaderboards (global, team, skill, challenge)</li><li>Reward store with approval workflows, charitable donations, virtual items</li></ul>
+        <h3>AI features</h3>
+        <ul><li>Activity recommendations (rule-based + LLM)</li><li>Feedback sentiment analysis</li><li>Burnout risk detection and coaching insights</li><li>Predictive engagement analytics</li><li>Gamification A/B testing</li></ul>
+        <h3>Social + recognition</h3>
+        <ul><li>Peer recognition with categories, moderation, AI-flagging</li><li>Channels + direct messages</li><li>Mentorship matching, buddy system</li><li>Milestone celebrations (birthdays, anniversaries)</li></ul>
+        <h3>Analytics</h3>
+        <ul><li>Team analytics, cohort analysis, AnalyticsSnapshots</li><li>Lifecycle state tracking (New→Activated→Engaged→Power User→At Risk→Dormant)</li><li>A/B test framework with statistical significance tracking</li></ul>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- MODAL -->
+<div class="moverlay" id="modal" role="dialog" aria-modal="true" aria-labelledby="mtitle">
+  <div class="modal">
+    <div class="mhdr">
+      <h2 class="mtitle" id="mtitle">Add Activity</h2>
+      <button class="ibtn" onclick="closeModal()" aria-label="Close" style="font-size:18px;width:28px;height:28px;color:var(--t2)">×</button>
+    </div>
+    <form class="mform" id="mform" onsubmit="saveAct(event)">
+      <div class="fgrp">
+        <label class="flabel" for="m-ti">Title</label>
+        <input type="text" class="finp" id="m-ti" placeholder="Activity name" maxlength="80" required>
+      </div>
+      <div class="fgrp">
+        <label class="flabel" for="m-de">Description</label>
+        <textarea class="ftxt" id="m-de" rows="3" placeholder="Brief description…" required></textarea>
+      </div>
+      <div class="fgrp">
+        <label class="flabel" for="m-inst">Instructions <span style="color:var(--t3)">(optional)</span></label>
+        <textarea class="ftxt" id="m-inst" rows="3" placeholder="Step-by-step instructions…"></textarea>
+      </div>
+      <div class="mrow">
+        <div class="fgrp">
+          <label class="flabel" for="m-ty">Type</label>
+          <select class="fsel" id="m-ty" required>
+            <option value="icebreaker">Icebreaker</option>
+            <option value="creative">Creative</option>
+            <option value="competitive">Competitive</option>
+            <option value="wellness">Wellness</option>
+            <option value="learning">Learning</option>
+            <option value="social">Social</option>
+          </select>
+        </div>
+        <div class="fgrp">
+          <label class="flabel" for="m-du">Duration</label>
+          <select class="fsel" id="m-du" required>
+            <option value="5-15min">5–15 min</option>
+            <option value="15-30min">15–30 min</option>
+            <option value="30+min">30+ min</option>
+          </select>
+        </div>
+      </div>
+      <div class="mrow">
+        <div class="fgrp">
+          <label class="flabel" for="m-cap">Capacity <span style="color:var(--t3)">(optional)</span></label>
+          <input type="number" class="finp" id="m-cap" placeholder="Max participants" min="2" max="500">
+        </div>
+        <div class="fgrp">
+          <label class="flabel" for="m-int">Interaction</label>
+          <select class="fsel" id="m-int">
+            <option value="">— select —</option>
+            <option value="discussion">Discussion</option>
+            <option value="poll">Poll</option>
+            <option value="photo_upload">Photo upload</option>
+            <option value="text_submission">Text submission</option>
+            <option value="quiz">Quiz</option>
+            <option value="breakout_rooms">Breakout rooms</option>
+            <option value="multiplayer_game">Multiplayer game</option>
+            <option value="whiteboard">Whiteboard</option>
+          </select>
+        </div>
+      </div>
+      <div class="fgrp">
+        <label class="flabel" for="m-mat">Materials needed <span style="color:var(--t3)">(optional)</span></label>
+        <input type="text" class="finp" id="m-mat" placeholder="e.g. camera, quiet space, pen and paper">
+      </div>
+      <div class="mfoot">
+        <button type="button" class="btn btns" onclick="closeModal()">Cancel</button>
+        <button type="submit" class="btn btnp" id="msave">Save to B44</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="toasts" id="toasts" aria-live="polite" aria-atomic="true"></div>
+
+<script>
+// ── CONFIG ────────────────────────────────────────────────────────
+const APP_ID = '691e3ae3bd4916f2e05ae35e';
+const B44_MCP = 'https://app.base44.com/mcp';
+const MODEL = 'claude-sonnet-4-20250514';
+
+// ── STATE ─────────────────────────────────────────────────────────
+let activities = [];
+let events = [];
+let favs = new Set();
+let durFilter = 'all';
+let typFilter = 'all';
+let editingId = null;
+
+// ── B44 MCP CALLER ────────────────────────────────────────────────
+async function b44(systemPrompt, userPrompt) {
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: MODEL,
+      max_tokens: 4000,
+      mcp_servers: [{ type: 'url', url: B44_MCP, name: 'base44' }],
+      system: systemPrompt,
+      messages: [{ role: 'user', content: userPrompt }]
+    })
+  });
+  if (!res.ok) {
+    const err = await res.text().catch(() => res.status);
+    throw new Error(`API ${res.status}: ${err}`);
+  }
+  const data = await res.json();
+  const text = data.content
+    .filter(b => b.type === 'text')
+    .map(b => b.text)
+    .join('');
+  return text.replace(/```json\n?|```\n?/g, '').trim();
+}
+
+// ── LOAD ──────────────────────────────────────────────────────────
+async function loadActivities() {
+  show('libLoading');
+  hide('libEmpty');
+  hide('libError');
+  document.getElementById('alist').innerHTML = '';
+  try {
+    const raw = await b44(
+      `You have Base44 MCP access. App ID: ${APP_ID}. 
+Query ALL records from the Activity entity. 
+Return ONLY a JSON array with these fields per item: id, title, description, instructions, type, duration, capacity, materials_needed, interaction_type, skills_developed, is_template, created_by, popularity_score.
+Return empty array [] if no records found. No explanation, no markdown.`,
+      'Load all activities.'
+    );
+    activities = JSON.parse(raw);
+    hide('libLoading');
+    render();
+    updateHdr();
+  } catch (e) {
+    hide('libLoading');
+    document.getElementById('libErrorMsg').textContent = e.message;
+    show('libError');
+  }
+}
+
+async function loadEvents() {
+  const panel = document.getElementById('eventsPanel');
+  panel.innerHTML = '<div class="center-state" id="evLoading"><div class="spin-lg" role="status"></div><p style="font-size:var(--sm);color:var(--t3)">Loading events…</p></div>';
+  try {
+    const raw = await b44(
+      `You have Base44 MCP access. App ID: ${APP_ID}.
+Query the Event entity filtered by status in [scheduled, in_progress, draft], sorted by scheduled_date ascending, limit 10.
+Return ONLY a JSON array with: id, title, scheduled_date, duration_minutes, status, magic_link, event_format, facilitator_name, max_participants, activity_id.
+Return [] if no events. No explanation.`,
+      'Load upcoming events.'
+    );
+    events = JSON.parse(raw);
+    renderEvents();
+  } catch (e) {
+    panel.innerHTML = `<div class="center-state"><div class="center-icon">⚠</div><p class="center-title">Failed to load events</p><p class="center-sub">${esc(e.message)}</p><button class="btn btns" onclick="loadEvents()">Retry</button></div>`;
+  }
+}
+
+async function loadAll() {
+  const btn = document.getElementById('syncBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spin-sm">↻</span>';
+  try {
+    await Promise.all([loadActivities(), loadEvents()]);
+    toast('Synced from B44', 'ok');
+  } catch(e) {
+    toast('Sync failed', 'err');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '↻';
+  }
+}
+
+// ── STORAGE ───────────────────────────────────────────────────────
+async function loadFavs() {
+  try {
+    const r = await window.storage.get('interact_favs');
+    if (r) favs = new Set(JSON.parse(r.value));
+  } catch(e) {}
+}
+async function saveFavs() {
+  try { await window.storage.set('interact_favs', JSON.stringify([...favs])); } catch(e) {}
+}
+
+// ── TABS ──────────────────────────────────────────────────────────
+function tab(name) {
+  document.querySelectorAll('.tabbtn').forEach(b => {
+    const on = b.id === 't-' + name;
+    b.classList.toggle('on', on);
+    b.setAttribute('aria-selected', String(on));
+  });
+  document.querySelectorAll('.panel').forEach(p => {
+    p.classList.toggle('on', p.id === 'p-' + name);
+  });
+  if (name === 'ev' && events.length === 0) loadEvents();
+}
+
+// ── FILTERS ───────────────────────────────────────────────────────
+function setDur(v, btn) {
+  document.querySelectorAll('[data-dur]').forEach(b => { b.classList.remove('on'); b.setAttribute('aria-pressed','false'); });
+  btn.classList.add('on'); btn.setAttribute('aria-pressed','true');
+  durFilter = v; render();
+}
+function setTyp(v, btn) {
+  document.querySelectorAll('[data-typ]').forEach(b => { b.classList.remove('on'); b.setAttribute('aria-pressed','false'); });
+  btn.classList.add('on'); btn.setAttribute('aria-pressed','true');
+  typFilter = v; render();
+}
+
+function filtered() {
+  const q = (document.getElementById('srch')?.value || '').toLowerCase();
+  return activities.filter(a => {
+    if (durFilter !== 'all' && a.duration !== durFilter) return false;
+    if (typFilter !== 'all' && a.type !== typFilter) return false;
+    if (q) {
+      const h = `${a.title} ${a.description} ${a.materials_needed || ''}`.toLowerCase();
+      if (!h.includes(q)) return false;
+    }
+    return true;
+  });
+}
+
+// ── TYPE ICONS ────────────────────────────────────────────────────
+const TYPE_ICON = { icebreaker:'🎭', creative:'🎨', competitive:'🏆', wellness:'🌿', learning:'📚', social:'🎉' };
+const DUR_CLASS = { '5-15min':'bq', '15-30min':'bm', '30+min':'bl' };
+const DUR_LABEL = { '5-15min':'5–15 min', '15-30min':'15–30 min', '30+min':'30+ min' };
+
+// ── RENDER ────────────────────────────────────────────────────────
+function render() {
+  const list = document.getElementById('alist');
+  const rows = filtered();
+
+  document.getElementById('rcount').innerHTML =
+    rows.length < activities.length
+      ? `Showing <strong>${rows.length}</strong> of ${activities.length}`
+      : `<strong>${activities.length}</strong> activities`;
+
+  if (!activities.length) { show('libEmpty'); list.innerHTML = ''; return; }
+  hide('libEmpty');
+
+  list.innerHTML = rows.map(a => {
+    const isFav = favs.has(a.id);
+    const dc = DUR_CLASS[a.duration] || 'bt';
+    const dl = DUR_LABEL[a.duration] || a.duration;
+    const icon = TYPE_ICON[a.type] || '●';
+    const isCustom = a.is_template === false;
+    return `<div class="arow" id="r-${a.id}" role="listitem">
+  <div class="arh" role="button" tabindex="0" aria-expanded="false" aria-controls="d-${a.id}"
+    onclick="togRow('${a.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();togRow('${a.id}')}">
+    <span class="atype-icon" aria-hidden="true">${icon}</span>
+    <div class="armain">
+      <div class="artitle">${esc(a.title)}</div>
+      <div class="armeta">
+        <span class="badge bt">${a.type}</span>
+        <span class="badge ${dc}">${dl}</span>
+        ${isCustom ? '<span class="badge bai">Custom</span>' : ''}
+        ${a.interaction_type ? `<span class="badge bt">${a.interaction_type.replace(/_/g,' ')}</span>` : ''}
+      </div>
+    </div>
+    <div class="aract">
+      <button class="ibtn${isFav?' fav':''}" onclick="event.stopPropagation();togFav('${a.id}')"
+        aria-label="${isFav?'Remove from saved':'Save'}" aria-pressed="${isFav}">★</button>
+      <button class="ibtn" onclick="event.stopPropagation();openEdit('${a.id}')" aria-label="Edit" title="Edit">✎</button>
+    </div>
+    <span class="chev" aria-hidden="true">▾</span>
+  </div>
+  <div class="adet" id="d-${a.id}" role="region" aria-label="${esc(a.title)} details">
+    <p class="adesc">${esc(a.description)}</p>
+    ${a.instructions ? `<div class="ai-sec-l" style="font-size:var(--xs);color:var(--t3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:var(--s2)">Instructions</div><pre class="adinst">${esc(a.instructions)}</pre>` : ''}
+    <div class="admeta">
+      ${a.capacity ? `<span>👥 Max ${a.capacity}</span>` : ''}
+      ${a.materials_needed ? `<span>📦 ${esc(a.materials_needed)}</span>` : ''}
+      ${a.popularity_score ? `<span>⭐ ${a.popularity_score} popularity</span>` : ''}
+    </div>
+    <div class="adact">
+      <button class="btn btns" onclick="openEdit('${a.id}')">✎ Edit</button>
+      <button class="btn btns" onclick="togFav('${a.id}')">${favs.has(a.id)?'★ Saved':'☆ Save'}</button>
+    </div>
+  </div>
+</div>`;
+  }).join('') || `<div class="center-state"><div class="center-icon" aria-hidden="true">🔍</div><p class="center-title">No matches</p><p style="font-size:var(--sm);color:var(--t3)">Adjust filters or search.</p></div>`;
+
+  updateHdr();
+}
+
+function togRow(id) {
+  const row = document.getElementById('r-' + id);
+  const btn = row?.querySelector('[role="button"]');
+  const exp = row?.classList.toggle('exp');
+  if (btn) btn.setAttribute('aria-expanded', String(exp));
+}
+
+function togFav(id) {
+  if (favs.has(id)) { favs.delete(id); toast('Removed from saved','ok'); }
+  else { favs.add(id); toast('Saved ★','ok'); }
+  saveFavs(); render();
+}
+
+function updateHdr() {
+  const ct = document.getElementById('libct');
+  if (ct) ct.textContent = activities.length;
+  const stat = document.getElementById('hdrStat');
+  if (stat) stat.innerHTML = `<strong>${activities.length}</strong> activities · <strong>${favs.size}</strong> saved`;
+}
+
+// ── RENDER EVENTS ─────────────────────────────────────────────────
+function renderEvents() {
+  const panel = document.getElementById('eventsPanel');
+  const ct = document.getElementById('evct');
+  if (ct) ct.textContent = events.length;
+
+  if (!events.length) {
+    panel.innerHTML = '<div class="center-state"><div class="center-icon">📅</div><p class="center-title">No upcoming events</p><p class="center-sub">Schedule an event in B44 to see it here.</p></div>';
+    return;
+  }
+
+  panel.innerHTML = events.map(e => {
+    const dt = e.scheduled_date ? new Date(e.scheduled_date) : null;
+    const dateStr = dt ? dt.toLocaleDateString(undefined, { weekday:'short', month:'short', day:'numeric' }) : '—';
+    const timeStr = dt ? dt.toLocaleTimeString(undefined, { hour:'2-digit', minute:'2-digit' }) : '';
+    const statusCls = `event-status-${e.status || 'draft'}`;
+    return `<div class="event-card">
+  <div class="event-title">${esc(e.title)}</div>
+  <div class="event-meta">
+    <span class="badge ${statusCls}">${(e.status||'draft').replace('_',' ')}</span>
+    ${e.event_format ? `<span class="badge bt">${e.event_format}</span>` : ''}
+    ${e.duration_minutes ? `<span class="badge bt">${e.duration_minutes} min</span>` : ''}
+  </div>
+  <p style="font-size:var(--sm);color:var(--t2);margin-bottom:var(--s3)">
+    📅 ${esc(dateStr)}${timeStr ? ' · ' + esc(timeStr) : ''}
+    ${e.facilitator_name ? `<br><span class="event-facilitator">Facilitator: ${esc(e.facilitator_name)}</span>` : ''}
+    ${e.max_participants ? `<br><span class="event-facilitator">Capacity: ${e.max_participants}</span>` : ''}
+  </p>
+  ${e.magic_link ? `<a class="event-link" href="${esc(e.magic_link)}" target="_blank" rel="noopener">Join ↗</a>` : ''}
+</div>`;
+  }).join('');
+}
+
+// ── CRUD ──────────────────────────────────────────────────────────
+function openAdd() {
+  editingId = null;
+  document.getElementById('mtitle').textContent = 'Add Activity';
+  document.getElementById('msave').textContent = 'Save to B44';
+  document.getElementById('mform').reset();
+  document.getElementById('modal').classList.add('on');
+  document.getElementById('m-ti').focus();
+}
+
+function openEdit(id) {
+  const a = activities.find(x => x.id === id);
+  if (!a) return;
+  editingId = id;
+  document.getElementById('mtitle').textContent = 'Edit Activity';
+  document.getElementById('msave').textContent = 'Update in B44';
+  document.getElementById('m-ti').value = a.title || '';
+  document.getElementById('m-de').value = a.description || '';
+  document.getElementById('m-inst').value = a.instructions || '';
+  document.getElementById('m-ty').value = a.type || 'social';
+  document.getElementById('m-du').value = a.duration || '15-30min';
+  document.getElementById('m-cap').value = a.capacity || '';
+  document.getElementById('m-int').value = a.interaction_type || '';
+  document.getElementById('m-mat').value = a.materials_needed || '';
+  document.getElementById('modal').classList.add('on');
+  document.getElementById('m-ti').focus();
+}
+
+function closeModal() {
+  document.getElementById('modal').classList.remove('on');
+  editingId = null;
+}
+
+async function saveAct(e) {
+  e.preventDefault();
+  const saveBtn = document.getElementById('msave');
+  saveBtn.disabled = true;
+  saveBtn.textContent = editingId ? 'Updating…' : 'Saving…';
+
+  const record = {
+    title: document.getElementById('m-ti').value.trim(),
+    description: document.getElementById('m-de').value.trim(),
+    instructions: document.getElementById('m-inst').value.trim() || undefined,
+    type: document.getElementById('m-ty').value,
+    duration: document.getElementById('m-du').value,
+    capacity: parseInt(document.getElementById('m-cap').value) || undefined,
+    interaction_type: document.getElementById('m-int').value || undefined,
+    materials_needed: document.getElementById('m-mat').value.trim() || undefined,
+    is_template: false
+  };
+  // Remove undefined keys
+  Object.keys(record).forEach(k => record[k] === undefined && delete record[k]);
+
+  try {
+    if (editingId) {
+      await b44(
+        `You have Base44 MCP access. App ID: ${APP_ID}.
+Update the Activity entity record with id "${editingId}" using the provided data.
+Return ONLY: {"success": true}. No explanation.`,
+        JSON.stringify(record)
+      );
+      const idx = activities.findIndex(x => x.id === editingId);
+      if (idx !== -1) activities[idx] = { ...activities[idx], ...record };
+      toast('Activity updated in B44', 'ok');
+    } else {
+      const raw = await b44(
+        `You have Base44 MCP access. App ID: ${APP_ID}.
+Create a new record in the Activity entity with the provided data.
+Return ONLY: {"success": true, "id": "<new_record_id>"}. No explanation.`,
+        JSON.stringify(record)
+      );
+      const result = JSON.parse(raw);
+      activities.push({ ...record, id: result.id || 'new-' + Date.now() });
+      toast('Activity saved to B44', 'ok');
+    }
+    closeModal();
+    render();
+  } catch (err) {
+    toast('Save failed: ' + err.message, 'err');
+  } finally {
+    saveBtn.disabled = false;
+    saveBtn.textContent = editingId ? 'Update in B44' : 'Save to B44';
+  }
+}
+
+// ── AI GENERATOR ──────────────────────────────────────────────────
+async function generate() {
+  const btn = document.getElementById('genBtn');
+  const area = document.getElementById('aiArea');
+  btn.disabled = true;
+  btn.textContent = '✦ Generating…';
+  area.innerHTML = '<div class="center-state"><div class="spin-lg"></div><p style="font-size:var(--sm);color:var(--t3)">Generating + saving to B44…</p></div>';
+
+  const ctx = {
+    team_size: document.getElementById('ai-sz').value,
+    duration: document.getElementById('ai-dur').value,
+    mood: document.getElementById('ai-mood').value,
+    goal: document.getElementById('ai-goal').value,
+    constraints: document.getElementById('ai-con').value.trim()
+  };
+
+  try {
+    const raw = await b44(
+      `You are an expert team engagement facilitator AND a Base44 data assistant. App ID: ${APP_ID}.
+
+Generate a creative, specific, practical virtual team activity based on the context provided.
+Then save it to the Base44 Activity entity.
+
+Return ONLY this JSON after saving (no markdown, no explanation):
+{
+  "title": "<2-5 word title>",
+  "type": "<icebreaker|creative|competitive|wellness|learning|social>",
+  "duration": "<5-15min|15-30min|30+min>",
+  "description": "<2-3 sentences>",
+  "instructions": "<numbered steps as a string>",
+  "materials_needed": "<comma-separated or null>",
+  "interaction_type": "<discussion|poll|photo_upload|text_submission|quiz|breakout_rooms|multiplayer_game|whiteboard>",
+  "why_it_works": "<1-2 sentences>",
+  "saved_id": "<b44_record_id>"
+}`,
+      `Team context: ${JSON.stringify(ctx)}\nSave to Activity entity with is_template=false and created_by="ai-generated".`
+    );
+
+    const a = JSON.parse(raw);
+    window._lastAi = a;
+
+    // Add to local state
+    activities.push({
+      id: a.saved_id || 'ai-' + Date.now(),
+      title: a.title, description: a.description,
+      instructions: a.instructions, type: a.type,
+      duration: a.duration, materials_needed: a.materials_needed,
+      interaction_type: a.interaction_type, is_template: false,
+      created_by: 'ai-generated'
+    });
+    render();
+
+    area.innerHTML = `<div class="ai-result">
+  <div class="ai-rtitle"><span aria-hidden="true">${TYPE_ICON[a.type]||'✦'}</span>${esc(a.title)}</div>
+  <div class="ai-rmeta">
+    <span class="badge bt">${esc(a.type)}</span>
+    <span class="badge ${DUR_CLASS[a.duration]||'bt'}">${DUR_LABEL[a.duration]||a.duration}</span>
+    <span class="badge bai">✦ AI · Saved to B44</span>
+  </div>
+  <div class="ai-sec"><div class="ai-sec-l">Description</div><p>${esc(a.description)}</p></div>
+  <div class="ai-sec"><div class="ai-sec-l">Instructions</div><pre style="font-size:var(--sm);color:var(--t2);line-height:1.65;white-space:pre-line;font-family:var(--fb)">${esc(a.instructions)}</pre></div>
+  ${a.materials_needed ? `<div class="ai-sec"><div class="ai-sec-l">Materials</div><p>${esc(a.materials_needed)}</p></div>` : ''}
+  <div class="ai-sec"><div class="ai-sec-l">Why it works</div><p>${esc(a.why_it_works)}</p></div>
+  <div class="ai-foot">
+    <button class="btn btns" onclick="generate()">↺ Regenerate</button>
+    <button class="btn btns" onclick="tab('lib')">→ View in Library</button>
+  </div>
+</div>`;
+
+    toast(`"${a.title}" saved to B44`, 'ok');
+  } catch (err) {
+    area.innerHTML = `<div style="background:var(--err-bg);border:1px solid var(--err);border-radius:var(--r2);padding:var(--s4)"><p style="color:var(--err);font-weight:500;margin-bottom:var(--s2)">Generation failed</p><p style="font-size:var(--sm);color:var(--t2)">${esc(err.message)}</p></div>`;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '✦ Generate + Save to B44';
+  }
+}
+
+// ── GAP ANALYSIS ──────────────────────────────────────────────────
+async function runGap() {
+  const btn = document.getElementById('gapBtn');
+  const res = document.getElementById('gapResult');
+  const txt = document.getElementById('gapText');
+  btn.disabled = true; btn.textContent = '✦ Analyzing…'; res.classList.remove('vis');
+
+  try {
+    const raw = await b44(
+      `You have Base44 MCP access. App ID: ${APP_ID}.
+Query ALL Activity records. Analyze for gaps in the library.
+Return ONLY: {"gaps": ["bullet 1", "bullet 2", "bullet 3", "bullet 4", "bullet 5"]}
+5 specific, actionable bullets identifying missing activity types, formats, or goals.
+No markdown, no explanation.`,
+      'Analyze the activity library for gaps.'
+    );
+    const d = JSON.parse(raw);
+    txt.innerHTML = (d.gaps || []).map(g =>
+      `<p style="font-size:var(--sm);color:var(--t2);line-height:1.65;margin-bottom:var(--s2)">${esc(g)}</p>`
+    ).join('');
+    res.classList.add('vis');
+  } catch (err) {
+    txt.innerHTML = `<p style="color:var(--err);font-size:var(--sm)">${esc(err.message)}</p>`;
+    res.classList.add('vis');
+  } finally {
+    btn.disabled = false; btn.textContent = '✦ AI Gap Analysis';
+  }
+}
+
+// ── GUIDE NAV ─────────────────────────────────────────────────────
+function gNav(name, btn) {
+  document.querySelectorAll('.gnav-btn').forEach(b => b.classList.remove('on'));
+  document.querySelectorAll('.g-section').forEach(s => s.classList.remove('on'));
+  btn.classList.add('on');
+  document.getElementById('g-' + name)?.classList.add('on');
+}
+
+// ── HELPERS ───────────────────────────────────────────────────────
+function show(id) { const e = document.getElementById(id); if (e) e.style.display = 'flex'; }
+function hide(id) { const e = document.getElementById(id); if (e) e.style.display = 'none'; }
+
+function esc(s) {
+  if (!s) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');
+}
+
+function toast(msg, type='ok') {
+  const c = document.getElementById('toasts');
+  const el = document.createElement('div');
+  el.className = `toast toast-${type}`;
+  el.textContent = msg;
+  c.appendChild(el);
+  setTimeout(() => el.remove(), 3500);
+}
+
+// ── MODAL KEYBOARD ────────────────────────────────────────────────
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+document.getElementById('modal').addEventListener('click', e => { if (e.target === e.currentTarget) closeModal(); });
+
+// ── INIT ──────────────────────────────────────────────────────────
+(async () => {
+  await loadFavs();
+  await loadActivities();
+})();
+</script>
+</body>
+</html>

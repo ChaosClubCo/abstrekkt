@@ -1,0 +1,126 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://outcome-aware-mcp.dev/schemas/eval-result.v0.1.schema.json",
+  "title": "Eval Result",
+  "description": "Output of an Eval-as-MCP adversarial pass on a conversation context. Implements the CLAIMS / COUNTEREXAMPLE / CONTRADICTIONS / GAPS pattern as a structured return value.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "eval_id",
+    "conversation_id",
+    "triggered_at_turn",
+    "verdict",
+    "produced_at"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "0.1"
+    },
+    "eval_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "conversation_id": {
+      "type": "string",
+      "description": "Identifier for the conversation being evaluated"
+    },
+    "triggered_at_turn": {
+      "type": "string",
+      "description": "Turn identifier where the eval fired"
+    },
+    "scope_mode_used": {
+      "type": "string",
+      "enum": ["LITE", "STANDARD", "FULL"],
+      "description": "Eval depth level invoked"
+    },
+    "streak_meta": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "streak_score": {
+          "type": "number",
+          "minimum": 0
+        },
+        "streak_turns": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "Turn IDs that incremented the streak"
+        },
+        "consequence_classes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["identity", "risk", "decision", "strategy", "quality", "info", "casual"]
+          }
+        }
+      }
+    },
+    "claims": {
+      "type": "array",
+      "description": "Assertions made by the agent that the eval is testing",
+      "items": {
+        "type": "object",
+        "required": ["text"],
+        "additionalProperties": false,
+        "properties": {
+          "text": {"type": "string"},
+          "label": {
+            "type": "string",
+            "enum": ["SOURCED", "GENERATED", "ASSUMED", "SHALLOW", "UNVERIFIED"]
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          }
+        }
+      }
+    },
+    "counterexample": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "Cases or facts that contradict or challenge the agent's claims"
+    },
+    "contradictions": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "Internal contradictions within the conversation (e.g., agent's earlier turn vs. current turn)"
+    },
+    "gaps": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "Information or questions the agent has not addressed"
+    },
+    "recommended_challenges": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "Questions the agent should ask back to break the agreement streak constructively"
+    },
+    "verdict": {
+      "type": "string",
+      "enum": [
+        "agreement_streak_justified",
+        "agreement_streak_unjustified",
+        "needs_review"
+      ],
+      "description": "Overall judgment on whether the streak that triggered this eval was substantively warranted"
+    },
+    "cost_usd": {
+      "type": "number",
+      "minimum": 0
+    },
+    "latency_ms": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "produced_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "signature": {
+      "type": "string",
+      "description": "Optional HMAC signature for eval injection defense (Threat T02-3)"
+    }
+  }
+}

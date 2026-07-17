@@ -1,0 +1,1737 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Training Curriculum | INT Inc.</title>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --int-navy: #0A1628;
+            --int-blue: #1E4D8C;
+            --int-accent: #FF6B35;
+            --green: #10B981;
+            --yellow: #F59E0B;
+            --red: #EF4444;
+            --purple: #8B5CF6;
+            --cyan: #06B6D4;
+            --gray-50: #F8FAFC;
+            --gray-100: #F1F5F9;
+            --gray-200: #E2E8F0;
+            --gray-300: #CBD5E1;
+            --gray-400: #94A3B8;
+            --gray-500: #64748B;
+            --gray-600: #475569;
+            --gray-700: #334155;
+            --gray-800: #1E293B;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Space Grotesk', sans-serif;
+            background: var(--gray-100);
+            color: var(--gray-800);
+            line-height: 1.6;
+        }
+
+        .header {
+            background: linear-gradient(135deg, var(--int-navy), var(--int-blue));
+            color: white;
+            padding: 3rem 2rem;
+        }
+
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .header-sub {
+            color: var(--gray-300);
+            font-size: 1.1rem;
+        }
+
+        .header-stats {
+            display: flex;
+            gap: 3rem;
+            margin-top: 2rem;
+        }
+
+        .header-stat {
+            text-align: center;
+        }
+
+        .header-stat-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--int-accent);
+        }
+
+        .header-stat-label {
+            font-size: 0.85rem;
+            color: var(--gray-300);
+        }
+
+        .main {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        /* Track Selection */
+        .track-selector {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .track-card {
+            background: white;
+            border-radius: 16px;
+            padding: 2rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 3px solid transparent;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        }
+
+        .track-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+        }
+
+        .track-card.active {
+            border-color: var(--int-accent);
+        }
+
+        .track-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.75rem;
+            margin-bottom: 1rem;
+        }
+
+        .track-card.executive .track-icon { background: linear-gradient(135deg, #8B5CF6, #A78BFA); }
+        .track-card.technical .track-icon { background: linear-gradient(135deg, #06B6D4, #22D3EE); }
+        .track-card.business .track-icon { background: linear-gradient(135deg, #10B981, #34D399); }
+        .track-card.security .track-icon { background: linear-gradient(135deg, #EF4444, #F87171); }
+
+        .track-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--int-navy);
+            margin-bottom: 0.5rem;
+        }
+
+        .track-audience {
+            font-size: 0.85rem;
+            color: var(--gray-500);
+            margin-bottom: 1rem;
+        }
+
+        .track-meta {
+            display: flex;
+            gap: 1rem;
+            font-size: 0.8rem;
+            color: var(--gray-600);
+        }
+
+        .track-meta span {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        /* Course Content */
+        .course-container {
+            display: none;
+        }
+
+        .course-container.active {
+            display: block;
+        }
+
+        .section {
+            background: white;
+            border-radius: 16px;
+            margin-bottom: 1.5rem;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        }
+
+        .section-header {
+            padding: 1.5rem 2rem;
+            background: var(--gray-50);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .section-header:hover {
+            background: var(--gray-100);
+        }
+
+        .section-title {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .section-number {
+            width: 36px;
+            height: 36px;
+            background: var(--int-accent);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.9rem;
+        }
+
+        .section-name {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--int-navy);
+        }
+
+        .section-duration {
+            font-size: 0.85rem;
+            color: var(--gray-500);
+        }
+
+        .section-progress {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .progress-bar {
+            width: 120px;
+            height: 8px;
+            background: var(--gray-200);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--green), var(--cyan));
+            border-radius: 4px;
+            transition: width 0.5s ease;
+        }
+
+        .progress-text {
+            font-size: 0.8rem;
+            color: var(--gray-500);
+            min-width: 40px;
+        }
+
+        .section-toggle {
+            font-size: 1.25rem;
+            color: var(--gray-400);
+            transition: transform 0.3s;
+        }
+
+        .section.open .section-toggle {
+            transform: rotate(180deg);
+        }
+
+        .section-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.4s ease;
+        }
+
+        .section.open .section-content {
+            max-height: 2000px;
+        }
+
+        .section-inner {
+            padding: 1.5rem 2rem;
+        }
+
+        /* Lessons */
+        .lesson {
+            display: flex;
+            align-items: flex-start;
+            gap: 1rem;
+            padding: 1rem;
+            border-radius: 10px;
+            margin-bottom: 0.75rem;
+            background: var(--gray-50);
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+
+        .lesson:hover {
+            background: var(--gray-100);
+        }
+
+        .lesson.completed {
+            background: rgba(16, 185, 129, 0.1);
+        }
+
+        .lesson-check {
+            width: 24px;
+            height: 24px;
+            border: 2px solid var(--gray-300);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            transition: all 0.2s;
+            font-size: 0.75rem;
+        }
+
+        .lesson.completed .lesson-check {
+            background: var(--green);
+            border-color: var(--green);
+            color: white;
+        }
+
+        .lesson-content {
+            flex: 1;
+        }
+
+        .lesson-title {
+            font-weight: 600;
+            color: var(--gray-800);
+            margin-bottom: 0.25rem;
+        }
+
+        .lesson-meta {
+            display: flex;
+            gap: 1rem;
+            font-size: 0.8rem;
+            color: var(--gray-500);
+        }
+
+        .lesson-type {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            padding: 0.15rem 0.5rem;
+            background: var(--gray-200);
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: 600;
+        }
+
+        .lesson-type.video { background: #DBEAFE; color: #1E40AF; }
+        .lesson-type.reading { background: #FEF3C7; color: #92400E; }
+        .lesson-type.exercise { background: #D1FAE5; color: #065F46; }
+        .lesson-type.quiz { background: #EDE9FE; color: #5B21B6; }
+        .lesson-type.lab { background: #FEE2E2; color: #991B1B; }
+
+        /* Quiz Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.6);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 2rem;
+        }
+
+        .modal-overlay.visible {
+            display: flex;
+        }
+
+        .modal {
+            background: white;
+            border-radius: 16px;
+            max-width: 600px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            padding: 1.5rem 2rem;
+            border-bottom: 1px solid var(--gray-200);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h2 {
+            font-size: 1.25rem;
+            color: var(--int-navy);
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--gray-400);
+        }
+
+        .modal-body {
+            padding: 2rem;
+        }
+
+        .quiz-question {
+            margin-bottom: 2rem;
+        }
+
+        .quiz-question h4 {
+            font-size: 1rem;
+            color: var(--gray-800);
+            margin-bottom: 1rem;
+        }
+
+        .quiz-options {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .quiz-option {
+            padding: 1rem;
+            border: 2px solid var(--gray-200);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .quiz-option:hover {
+            border-color: var(--int-blue);
+            background: var(--gray-50);
+        }
+
+        .quiz-option.selected {
+            border-color: var(--int-accent);
+            background: rgba(255, 107, 53, 0.1);
+        }
+
+        .quiz-option.correct {
+            border-color: var(--green);
+            background: rgba(16, 185, 129, 0.1);
+        }
+
+        .quiz-option.incorrect {
+            border-color: var(--red);
+            background: rgba(239, 68, 68, 0.1);
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: var(--int-accent);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #E85A2A;
+        }
+
+        /* Certificate */
+        .certificate-preview {
+            background: linear-gradient(135deg, var(--int-navy), var(--int-blue));
+            color: white;
+            padding: 3rem;
+            border-radius: 16px;
+            text-align: center;
+            margin-top: 2rem;
+        }
+
+        .certificate-badge {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+        }
+
+        .certificate-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .certificate-subtitle {
+            color: var(--gray-300);
+            margin-bottom: 1.5rem;
+        }
+
+        /* Learning Path Overview */
+        .path-overview {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .path-stat {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            text-align: center;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+        }
+
+        .path-stat-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--int-accent);
+        }
+
+        .path-stat-label {
+            font-size: 0.85rem;
+            color: var(--gray-500);
+        }
+
+        /* Resources */
+        .resource-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+        }
+
+        .resource-card {
+            background: var(--gray-50);
+            border-radius: 10px;
+            padding: 1.25rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+
+        .resource-card:hover {
+            background: var(--gray-100);
+            transform: translateX(4px);
+        }
+
+        .resource-icon {
+            width: 48px;
+            height: 48px;
+            background: white;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        .resource-info h4 {
+            font-size: 0.95rem;
+            color: var(--int-navy);
+            margin-bottom: 0.25rem;
+        }
+
+        .resource-info p {
+            font-size: 0.8rem;
+            color: var(--gray-500);
+        }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            padding: 2rem;
+            color: var(--gray-500);
+            font-size: 0.85rem;
+        }
+
+        @media (max-width: 768px) {
+            .header-stats {
+                flex-wrap: wrap;
+                gap: 1.5rem;
+            }
+            
+            .track-selector {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="header-content">
+            <h1>🎓 AI Training Curriculum</h1>
+            <p class="header-sub">Role-based learning paths for enterprise AI adoption</p>
+            <div class="header-stats">
+                <div class="header-stat">
+                    <div class="header-stat-value">4</div>
+                    <div class="header-stat-label">Learning Tracks</div>
+                </div>
+                <div class="header-stat">
+                    <div class="header-stat-value">24</div>
+                    <div class="header-stat-label">Modules</div>
+                </div>
+                <div class="header-stat">
+                    <div class="header-stat-value">48</div>
+                    <div class="header-stat-label">Lessons</div>
+                </div>
+                <div class="header-stat">
+                    <div class="header-stat-value">12h</div>
+                    <div class="header-stat-label">Total Content</div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="main">
+        <!-- Track Selection -->
+        <div class="track-selector">
+            <div class="track-card executive active" onclick="selectTrack('executive')">
+                <div class="track-icon">👔</div>
+                <div class="track-title">Executive Track</div>
+                <div class="track-audience">For: C-Suite, VPs, Directors</div>
+                <div class="track-meta">
+                    <span>📚 6 modules</span>
+                    <span>⏱️ 3 hours</span>
+                    <span>🏆 Certificate</span>
+                </div>
+            </div>
+            
+            <div class="track-card technical" onclick="selectTrack('technical')">
+                <div class="track-icon">💻</div>
+                <div class="track-title">Technical Track</div>
+                <div class="track-audience">For: Engineers, Developers, IT</div>
+                <div class="track-meta">
+                    <span>📚 8 modules</span>
+                    <span>⏱️ 5 hours</span>
+                    <span>🏆 Certificate</span>
+                </div>
+            </div>
+            
+            <div class="track-card business" onclick="selectTrack('business')">
+                <div class="track-icon">📊</div>
+                <div class="track-title">Business Track</div>
+                <div class="track-audience">For: Managers, Analysts, Operations</div>
+                <div class="track-meta">
+                    <span>📚 6 modules</span>
+                    <span>⏱️ 2.5 hours</span>
+                    <span>🏆 Certificate</span>
+                </div>
+            </div>
+            
+            <div class="track-card security" onclick="selectTrack('security')">
+                <div class="track-icon">🔒</div>
+                <div class="track-title">Security Track</div>
+                <div class="track-audience">For: Security, Compliance, Risk</div>
+                <div class="track-meta">
+                    <span>📚 4 modules</span>
+                    <span>⏱️ 1.5 hours</span>
+                    <span>🏆 Certificate</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Executive Track -->
+        <div class="course-container active" id="executive-track">
+            <div class="path-overview">
+                <div class="path-stat">
+                    <div class="path-stat-value" id="exec-progress">0%</div>
+                    <div class="path-stat-label">Complete</div>
+                </div>
+                <div class="path-stat">
+                    <div class="path-stat-value">6</div>
+                    <div class="path-stat-label">Modules</div>
+                </div>
+                <div class="path-stat">
+                    <div class="path-stat-value">3h</div>
+                    <div class="path-stat-label">Duration</div>
+                </div>
+                <div class="path-stat">
+                    <div class="path-stat-value">12</div>
+                    <div class="path-stat-label">Lessons</div>
+                </div>
+            </div>
+
+            <!-- Module 1 -->
+            <div class="section open" data-track="executive" data-module="1">
+                <div class="section-header" onclick="toggleSection(this)">
+                    <div class="section-title">
+                        <div class="section-number">1</div>
+                        <div>
+                            <div class="section-name">AI Strategy Fundamentals</div>
+                            <div class="section-duration">30 min • 3 lessons</div>
+                        </div>
+                    </div>
+                    <div class="section-progress">
+                        <div class="progress-bar"><div class="progress-fill" style="width: 0%"></div></div>
+                        <div class="progress-text">0/3</div>
+                        <span class="section-toggle">▼</span>
+                    </div>
+                </div>
+                <div class="section-content">
+                    <div class="section-inner">
+                        <div class="lesson" onclick="toggleLesson(this)">
+                            <div class="lesson-check">✓</div>
+                            <div class="lesson-content">
+                                <div class="lesson-title">The AI Landscape in 2024</div>
+                                <div class="lesson-meta">
+                                    <span class="lesson-type video">📹 Video</span>
+                                    <span>12 min</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="lesson" onclick="toggleLesson(this)">
+                            <div class="lesson-check">✓</div>
+                            <div class="lesson-content">
+                                <div class="lesson-title">Why 95% of AI Projects Fail</div>
+                                <div class="lesson-meta">
+                                    <span class="lesson-type reading">📖 Reading</span>
+                                    <span>8 min</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="lesson" onclick="toggleLesson(this)">
+                            <div class="lesson-check">✓</div>
+                            <div class="lesson-content">
+                                <div class="lesson-title">The Hybrid Intelligence Approach</div>
+                                <div class="lesson-meta">
+                                    <span class="lesson-type video">📹 Video</span>
+                                    <span>10 min</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Module 2 -->
+            <div class="section" data-track="executive" data-module="2">
+                <div class="section-header" onclick="toggleSection(this)">
+                    <div class="section-title">
+                        <div class="section-number">2</div>
+                        <div>
+                            <div class="section-name">Building the Business Case</div>
+                            <div class="section-duration">35 min • 3 lessons</div>
+                        </div>
+                    </div>
+                    <div class="section-progress">
+                        <div class="progress-bar"><div class="progress-fill" style="width: 0%"></div></div>
+                        <div class="progress-text">0/3</div>
+                        <span class="section-toggle">▼</span>
+                    </div>
+                </div>
+                <div class="section-content">
+                    <div class="section-inner">
+                        <div class="lesson" onclick="toggleLesson(this)">
+                            <div class="lesson-check">✓</div>
+                            <div class="lesson-content">
+                                <div class="lesson-title">ROI Frameworks for AI Investment</div>
+                                <div class="lesson-meta">
+                                    <span class="lesson-type video">📹 Video</span>
+                                    <span>15 min</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="lesson" onclick="toggleLesson(this)">
+                            <div class="lesson-check">✓</div>
+                            <div class="lesson-content">
+                                <div class="lesson-title">Use Case Prioritization Workshop</div>
+                                <div class="lesson-meta">
+                                    <span class="lesson-type exercise">✏️ Exercise</span>
+                                    <span>15 min</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="lesson" onclick="toggleLesson(this)">
+                            <div class="lesson-check">✓</div>
+                            <div class="lesson-content">
+                                <div class="lesson-title">Knowledge Check</div>
+                                <div class="lesson-meta">
+                                    <span class="lesson-type quiz">❓ Quiz</span>
+                                    <span>5 min</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Module 3 -->
+            <div class="section" data-track="executive" data-module="3">
+                <div class="section-header" onclick="toggleSection(this)">
+                    <div class="section-title">
+                        <div class="section-number">3</div>
+                        <div>
+                            <div class="section-name">Governance & Risk Management</div>
+                            <div class="section-duration">30 min • 2 lessons</div>
+                        </div>
+                    </div>
+                    <div class="section-progress">
+                        <div class="progress-bar"><div class="progress-fill" style="width: 0%"></div></div>
+                        <div class="progress-text">0/2</div>
+                        <span class="section-toggle">▼</span>
+                    </div>
+                </div>
+                <div class="section-content">
+                    <div class="section-inner">
+                        <div class="lesson" onclick="toggleLesson(this)">
+                            <div class="lesson-check">✓</div>
+                            <div class="lesson-content">
+                                <div class="lesson-title">AI Governance Frameworks</div>
+                                <div class="lesson-meta">
+                                    <span class="lesson-type video">📹 Video</span>
+                                    <span>20 min</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="lesson" onclick="toggleLesson(this)">
+                            <div class="lesson-check">✓</div>
+                            <div class="lesson-content">
+                                <div class="lesson-title">Risk Assessment for Executives</div>
+                                <div class="lesson-meta">
+                                    <span class="lesson-type reading">📖 Reading</span>
+                                    <span>10 min</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Module 4 -->
+            <div class="section" data-track="executive" data-module="4">
+                <div class="section-header" onclick="toggleSection(this)">
+                    <div class="section-title">
+                        <div class="section-number">4</div>
+                        <div>
+                            <div class="section-name">Leading AI Transformation</div>
+                            <div class="section-duration">25 min • 2 lessons</div>
+                        </div>
+                    </div>
+                    <div class="section-progress">
+                        <div class="progress-bar"><div class="progress-fill" style="width: 0%"></div></div>
+                        <div class="progress-text">0/2</div>
+                        <span class="section-toggle">▼</span>
+                    </div>
+                </div>
+                <div class="section-content">
+                    <div class="section-inner">
+                        <div class="lesson" onclick="toggleLesson(this)">
+                            <div class="lesson-check">✓</div>
+                            <div class="lesson-content">
+                                <div class="lesson-title">Change Management for AI</div>
+                                <div class="lesson-meta">
+                                    <span class="lesson-type video">📹 Video</span>
+                                    <span>15 min</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="lesson" onclick="toggleLesson(this)">
+                            <div class="lesson-check">✓</div>
+                            <div class="lesson-content">
+                                <div class="lesson-title">Building Your AI Team</div>
+                                <div class="lesson-meta">
+                                    <span class="lesson-type reading">📖 Reading</span>
+                                    <span>10 min</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Module 5 -->
+            <div class="section" data-track="executive" data-module="5">
+                <div class="section-header" onclick="toggleSection(this)">
+                    <div class="section-title">
+                        <div class="section-number">5</div>
+                        <div>
+                            <div class="section-name">Vendor Selection & Partnerships</div>
+                            <div class="section-duration">20 min • 2 lessons</div>
+                        </div>
+                    </div>
+                    <div class="section-progress">
+                        <div class="progress-bar"><div class="progress-fill" style="width: 0%"></div></div>
+                        <div class="progress-text">0/2</div>
+                        <span class="section-toggle">▼</span>
+                    </div>
+                </div>
+                <div class="section-content">
+                    <div class="section-inner">
+                        <div class="lesson" onclick="toggleLesson(this)">
+                            <div class="lesson-check">✓</div>
+                            <div class="lesson-content">
+                                <div class="lesson-title">AI Platform Evaluation</div>
+                                <div class="lesson-meta">
+                                    <span class="lesson-type video">📹 Video</span>
+                                    <span>12 min</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="lesson" onclick="toggleLesson(this)">
+                            <div class="lesson-check">✓</div>
+                            <div class="lesson-content">
+                                <div class="lesson-title">Contract Considerations</div>
+                                <div class="lesson-meta">
+                                    <span class="lesson-type reading">📖 Reading</span>
+                                    <span>8 min</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Module 6: Final -->
+            <div class="section" data-track="executive" data-module="6">
+                <div class="section-header" onclick="toggleSection(this)">
+                    <div class="section-title">
+                        <div class="section-number">6</div>
+                        <div>
+                            <div class="section-name">Certification Assessment</div>
+                            <div class="section-duration">20 min • Final Exam</div>
+                        </div>
+                    </div>
+                    <div class="section-progress">
+                        <div class="progress-bar"><div class="progress-fill" style="width: 0%"></div></div>
+                        <div class="progress-text">0/1</div>
+                        <span class="section-toggle">▼</span>
+                    </div>
+                </div>
+                <div class="section-content">
+                    <div class="section-inner">
+                        <div class="lesson" onclick="openQuiz('executive')">
+                            <div class="lesson-check">✓</div>
+                            <div class="lesson-content">
+                                <div class="lesson-title">Executive AI Leadership Certification Exam</div>
+                                <div class="lesson-meta">
+                                    <span class="lesson-type quiz">🏆 Certification</span>
+                                    <span>20 min • 15 questions • 80% to pass</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="certificate-preview">
+                <div class="certificate-badge">🏆</div>
+                <div class="certificate-title">AI Leadership Certification</div>
+                <div class="certificate-subtitle">Complete all modules and pass the final exam to earn your certificate</div>
+                <button class="btn btn-primary" style="margin-top: 1rem;" disabled>Certificate Locked (0% Complete)</button>
+            </div>
+
+            <!-- Resources -->
+            <div class="section" style="margin-top: 2rem;">
+                <div class="section-header" onclick="toggleSection(this)">
+                    <div class="section-title">
+                        <div class="section-number">📚</div>
+                        <div>
+                            <div class="section-name">Additional Resources</div>
+                            <div class="section-duration">Templates, guides, and tools</div>
+                        </div>
+                    </div>
+                    <span class="section-toggle">▼</span>
+                </div>
+                <div class="section-content">
+                    <div class="section-inner">
+                        <div class="resource-grid">
+                            <div class="resource-card">
+                                <div class="resource-icon">📋</div>
+                                <div class="resource-info">
+                                    <h4>AI Strategy Template</h4>
+                                    <p>Executive presentation deck</p>
+                                </div>
+                            </div>
+                            <div class="resource-card">
+                                <div class="resource-icon">📊</div>
+                                <div class="resource-info">
+                                    <h4>ROI Calculator</h4>
+                                    <p>Interactive spreadsheet</p>
+                                </div>
+                            </div>
+                            <div class="resource-card">
+                                <div class="resource-icon">✅</div>
+                                <div class="resource-info">
+                                    <h4>Governance Checklist</h4>
+                                    <p>Policy framework template</p>
+                                </div>
+                            </div>
+                            <div class="resource-card">
+                                <div class="resource-icon">🎯</div>
+                                <div class="resource-info">
+                                    <h4>Use Case Library</h4>
+                                    <p>50+ prioritized use cases</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Technical Track -->
+        <div class="course-container" id="technical-track">
+            <div class="path-overview">
+                <div class="path-stat">
+                    <div class="path-stat-value">0%</div>
+                    <div class="path-stat-label">Complete</div>
+                </div>
+                <div class="path-stat">
+                    <div class="path-stat-value">8</div>
+                    <div class="path-stat-label">Modules</div>
+                </div>
+                <div class="path-stat">
+                    <div class="path-stat-value">5h</div>
+                    <div class="path-stat-label">Duration</div>
+                </div>
+                <div class="path-stat">
+                    <div class="path-stat-value">24</div>
+                    <div class="path-stat-label">Lessons</div>
+                </div>
+            </div>
+
+            <div class="section open">
+                <div class="section-header" onclick="toggleSection(this)">
+                    <div class="section-title">
+                        <div class="section-number">1</div>
+                        <div>
+                            <div class="section-name">AI/ML Fundamentals</div>
+                            <div class="section-duration">45 min • 4 lessons</div>
+                        </div>
+                    </div>
+                    <div class="section-progress">
+                        <span class="section-toggle">▼</span>
+                    </div>
+                </div>
+                <div class="section-content">
+                    <div class="section-inner">
+                        <div class="lesson" onclick="toggleLesson(this)">
+                            <div class="lesson-check">✓</div>
+                            <div class="lesson-content">
+                                <div class="lesson-title">LLM Architecture Overview</div>
+                                <div class="lesson-meta">
+                                    <span class="lesson-type video">📹 Video</span>
+                                    <span>15 min</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="lesson" onclick="toggleLesson(this)">
+                            <div class="lesson-check">✓</div>
+                            <div class="lesson-content">
+                                <div class="lesson-title">Tokenization & Context Windows</div>
+                                <div class="lesson-meta">
+                                    <span class="lesson-type reading">📖 Reading</span>
+                                    <span>10 min</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="lesson" onclick="toggleLesson(this)">
+                            <div class="lesson-check">✓</div>
+                            <div class="lesson-content">
+                                <div class="lesson-title">API Integration Basics</div>
+                                <div class="lesson-meta">
+                                    <span class="lesson-type lab">🔬 Lab</span>
+                                    <span>15 min</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="lesson" onclick="toggleLesson(this)">
+                            <div class="lesson-check">✓</div>
+                            <div class="lesson-content">
+                                <div class="lesson-title">Knowledge Check</div>
+                                <div class="lesson-meta">
+                                    <span class="lesson-type quiz">❓ Quiz</span>
+                                    <span>5 min</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-header" onclick="toggleSection(this)">
+                    <div class="section-title">
+                        <div class="section-number">2</div>
+                        <div>
+                            <div class="section-name">Prompt Engineering</div>
+                            <div class="section-duration">40 min • 3 lessons</div>
+                        </div>
+                    </div>
+                    <div class="section-progress">
+                        <span class="section-toggle">▼</span>
+                    </div>
+                </div>
+                <div class="section-content">
+                    <div class="section-inner">
+                        <div class="lesson" onclick="toggleLesson(this)">
+                            <div class="lesson-check">✓</div>
+                            <div class="lesson-content">
+                                <div class="lesson-title">Prompt Design Patterns</div>
+                                <div class="lesson-meta">
+                                    <span class="lesson-type video">📹 Video</span>
+                                    <span>20 min</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="lesson" onclick="toggleLesson(this)">
+                            <div class="lesson-check">✓</div>
+                            <div class="lesson-content">
+                                <div class="lesson-title">Chain-of-Thought & Few-Shot</div>
+                                <div class="lesson-meta">
+                                    <span class="lesson-type lab">🔬 Lab</span>
+                                    <span>15 min</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="lesson" onclick="toggleLesson(this)">
+                            <div class="lesson-check">✓</div>
+                            <div class="lesson-content">
+                                <div class="lesson-title">Prompt Injection Prevention</div>
+                                <div class="lesson-meta">
+                                    <span class="lesson-type reading">📖 Reading</span>
+                                    <span>5 min</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-header" onclick="toggleSection(this)">
+                    <div class="section-title">
+                        <div class="section-number">3</div>
+                        <div>
+                            <div class="section-name">RAG & Vector Databases</div>
+                            <div class="section-duration">50 min • 3 lessons</div>
+                        </div>
+                    </div>
+                    <div class="section-progress">
+                        <span class="section-toggle">▼</span>
+                    </div>
+                </div>
+                <div class="section-content">
+                    <div class="section-inner">
+                        <div class="lesson" onclick="toggleLesson(this)">
+                            <div class="lesson-check">✓</div>
+                            <div class="lesson-content">
+                                <div class="lesson-title">RAG Architecture Deep Dive</div>
+                                <div class="lesson-meta">
+                                    <span class="lesson-type video">📹 Video</span>
+                                    <span>20 min</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="lesson" onclick="toggleLesson(this)">
+                            <div class="lesson-check">✓</div>
+                            <div class="lesson-content">
+                                <div class="lesson-title">Embeddings & Vector Search</div>
+                                <div class="lesson-meta">
+                                    <span class="lesson-type lab">🔬 Lab</span>
+                                    <span>20 min</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="lesson" onclick="toggleLesson(this)">
+                            <div class="lesson-check">✓</div>
+                            <div class="lesson-content">
+                                <div class="lesson-title">Building a RAG Pipeline</div>
+                                <div class="lesson-meta">
+                                    <span class="lesson-type lab">🔬 Lab</span>
+                                    <span>10 min</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-header" onclick="toggleSection(this)">
+                    <div class="section-title">
+                        <div class="section-number">4</div>
+                        <div>
+                            <div class="section-name">AI Agents & MCP</div>
+                            <div class="section-duration">45 min • 3 lessons</div>
+                        </div>
+                    </div>
+                    <div class="section-progress">
+                        <span class="section-toggle">▼</span>
+                    </div>
+                </div>
+                <div class="section-content">
+                    <div class="section-inner">
+                        <div class="lesson" onclick="toggleLesson(this)">
+                            <div class="lesson-check">✓</div>
+                            <div class="lesson-content">
+                                <div class="lesson-title">Agentic AI Patterns</div>
+                                <div class="lesson-meta">
+                                    <span class="lesson-type video">📹 Video</span>
+                                    <span>15 min</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="lesson" onclick="toggleLesson(this)">
+                            <div class="lesson-check">✓</div>
+                            <div class="lesson-content">
+                                <div class="lesson-title">Model Context Protocol (MCP)</div>
+                                <div class="lesson-meta">
+                                    <span class="lesson-type reading">📖 Reading</span>
+                                    <span>10 min</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="lesson" onclick="toggleLesson(this)">
+                            <div class="lesson-check">✓</div>
+                            <div class="lesson-content">
+                                <div class="lesson-title">Building an MCP Server</div>
+                                <div class="lesson-meta">
+                                    <span class="lesson-type lab">🔬 Lab</span>
+                                    <span>20 min</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-header" onclick="toggleSection(this)">
+                    <div class="section-title">
+                        <div class="section-number">5</div>
+                        <div>
+                            <div class="section-name">AI Security & Safety</div>
+                            <div class="section-duration">35 min • 3 lessons</div>
+                        </div>
+                    </div>
+                    <div class="section-progress">
+                        <span class="section-toggle">▼</span>
+                    </div>
+                </div>
+                <div class="section-content">
+                    <div class="section-inner">
+                        <div class="lesson" onclick="toggleLesson(this)">
+                            <div class="lesson-check">✓</div>
+                            <div class="lesson-content">
+                                <div class="lesson-title">OWASP Top 10 for LLMs</div>
+                                <div class="lesson-meta">
+                                    <span class="lesson-type video">📹 Video</span>
+                                    <span>15 min</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="lesson" onclick="toggleLesson(this)">
+                            <div class="lesson-check">✓</div>
+                            <div class="lesson-content">
+                                <div class="lesson-title">Input/Output Validation</div>
+                                <div class="lesson-meta">
+                                    <span class="lesson-type lab">🔬 Lab</span>
+                                    <span>15 min</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="lesson" onclick="toggleLesson(this)">
+                            <div class="lesson-check">✓</div>
+                            <div class="lesson-content">
+                                <div class="lesson-title">Rate Limiting & Monitoring</div>
+                                <div class="lesson-meta">
+                                    <span class="lesson-type reading">📖 Reading</span>
+                                    <span>5 min</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="certificate-preview">
+                <div class="certificate-badge">🏆</div>
+                <div class="certificate-title">AI Engineering Certification</div>
+                <div class="certificate-subtitle">Complete all modules and pass the final exam to earn your certificate</div>
+                <button class="btn btn-primary" style="margin-top: 1rem;" disabled>Certificate Locked (0% Complete)</button>
+            </div>
+        </div>
+
+        <!-- Business Track -->
+        <div class="course-container" id="business-track">
+            <div class="path-overview">
+                <div class="path-stat">
+                    <div class="path-stat-value">0%</div>
+                    <div class="path-stat-label">Complete</div>
+                </div>
+                <div class="path-stat">
+                    <div class="path-stat-value">6</div>
+                    <div class="path-stat-label">Modules</div>
+                </div>
+                <div class="path-stat">
+                    <div class="path-stat-value">2.5h</div>
+                    <div class="path-stat-label">Duration</div>
+                </div>
+                <div class="path-stat">
+                    <div class="path-stat-value">12</div>
+                    <div class="path-stat-label">Lessons</div>
+                </div>
+            </div>
+
+            <div class="section open">
+                <div class="section-header" onclick="toggleSection(this)">
+                    <div class="section-title">
+                        <div class="section-number">1</div>
+                        <div>
+                            <div class="section-name">AI for Business Users</div>
+                            <div class="section-duration">25 min • 2 lessons</div>
+                        </div>
+                    </div>
+                    <div class="section-progress">
+                        <span class="section-toggle">▼</span>
+                    </div>
+                </div>
+                <div class="section-content">
+                    <div class="section-inner">
+                        <div class="lesson" onclick="toggleLesson(this)">
+                            <div class="lesson-check">✓</div>
+                            <div class="lesson-content">
+                                <div class="lesson-title">What AI Can (and Can't) Do</div>
+                                <div class="lesson-meta">
+                                    <span class="lesson-type video">📹 Video</span>
+                                    <span>15 min</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="lesson" onclick="toggleLesson(this)">
+                            <div class="lesson-check">✓</div>
+                            <div class="lesson-content">
+                                <div class="lesson-title">Approved Tools Overview</div>
+                                <div class="lesson-meta">
+                                    <span class="lesson-type reading">📖 Reading</span>
+                                    <span>10 min</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-header" onclick="toggleSection(this)">
+                    <div class="section-title">
+                        <div class="section-number">2</div>
+                        <div>
+                            <div class="section-name">Effective Prompting</div>
+                            <div class="section-duration">30 min • 2 lessons</div>
+                        </div>
+                    </div>
+                    <div class="section-progress">
+                        <span class="section-toggle">▼</span>
+                    </div>
+                </div>
+                <div class="section-content">
+                    <div class="section-inner">
+                        <div class="lesson" onclick="toggleLesson(this)">
+                            <div class="lesson-check">✓</div>
+                            <div class="lesson-content">
+                                <div class="lesson-title">Writing Great Prompts</div>
+                                <div class="lesson-meta">
+                                    <span class="lesson-type video">📹 Video</span>
+                                    <span>15 min</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="lesson" onclick="toggleLesson(this)">
+                            <div class="lesson-check">✓</div>
+                            <div class="lesson-content">
+                                <div class="lesson-title">Prompt Practice Lab</div>
+                                <div class="lesson-meta">
+                                    <span class="lesson-type exercise">✏️ Exercise</span>
+                                    <span>15 min</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-header" onclick="toggleSection(this)">
+                    <div class="section-title">
+                        <div class="section-number">3</div>
+                        <div>
+                            <div class="section-name">Department Use Cases</div>
+                            <div class="section-duration">35 min • 3 lessons</div>
+                        </div>
+                    </div>
+                    <div class="section-progress">
+                        <span class="section-toggle">▼</span>
+                    </div>
+                </div>
+                <div class="section-content">
+                    <div class="section-inner">
+                        <div class="lesson" onclick="toggleLesson(this)">
+                            <div class="lesson-check">✓</div>
+                            <div class="lesson-content">
+                                <div class="lesson-title">Marketing & Sales Use Cases</div>
+                                <div class="lesson-meta">
+                                    <span class="lesson-type video">📹 Video</span>
+                                    <span>12 min</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="lesson" onclick="toggleLesson(this)">
+                            <div class="lesson-check">✓</div>
+                            <div class="lesson-content">
+                                <div class="lesson-title">Operations & HR Use Cases</div>
+                                <div class="lesson-meta">
+                                    <span class="lesson-type video">📹 Video</span>
+                                    <span>12 min</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="lesson" onclick="toggleLesson(this)">
+                            <div class="lesson-check">✓</div>
+                            <div class="lesson-content">
+                                <div class="lesson-title">Finance & Compliance Use Cases</div>
+                                <div class="lesson-meta">
+                                    <span class="lesson-type video">📹 Video</span>
+                                    <span>11 min</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="certificate-preview">
+                <div class="certificate-badge">🏆</div>
+                <div class="certificate-title">AI Business User Certification</div>
+                <div class="certificate-subtitle">Complete all modules and pass the final exam to earn your certificate</div>
+                <button class="btn btn-primary" style="margin-top: 1rem;" disabled>Certificate Locked (0% Complete)</button>
+            </div>
+        </div>
+
+        <!-- Security Track -->
+        <div class="course-container" id="security-track">
+            <div class="path-overview">
+                <div class="path-stat">
+                    <div class="path-stat-value">0%</div>
+                    <div class="path-stat-label">Complete</div>
+                </div>
+                <div class="path-stat">
+                    <div class="path-stat-value">4</div>
+                    <div class="path-stat-label">Modules</div>
+                </div>
+                <div class="path-stat">
+                    <div class="path-stat-value">1.5h</div>
+                    <div class="path-stat-label">Duration</div>
+                </div>
+                <div class="path-stat">
+                    <div class="path-stat-value">8</div>
+                    <div class="path-stat-label">Lessons</div>
+                </div>
+            </div>
+
+            <div class="section open">
+                <div class="section-header" onclick="toggleSection(this)">
+                    <div class="section-title">
+                        <div class="section-number">1</div>
+                        <div>
+                            <div class="section-name">AI Threat Landscape</div>
+                            <div class="section-duration">25 min • 2 lessons</div>
+                        </div>
+                    </div>
+                    <div class="section-progress">
+                        <span class="section-toggle">▼</span>
+                    </div>
+                </div>
+                <div class="section-content">
+                    <div class="section-inner">
+                        <div class="lesson" onclick="toggleLesson(this)">
+                            <div class="lesson-check">✓</div>
+                            <div class="lesson-content">
+                                <div class="lesson-title">OWASP LLM Top 10</div>
+                                <div class="lesson-meta">
+                                    <span class="lesson-type video">📹 Video</span>
+                                    <span>15 min</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="lesson" onclick="toggleLesson(this)">
+                            <div class="lesson-check">✓</div>
+                            <div class="lesson-content">
+                                <div class="lesson-title">Attack Vectors & Case Studies</div>
+                                <div class="lesson-meta">
+                                    <span class="lesson-type reading">📖 Reading</span>
+                                    <span>10 min</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-header" onclick="toggleSection(this)">
+                    <div class="section-title">
+                        <div class="section-number">2</div>
+                        <div>
+                            <div class="section-name">Data Protection</div>
+                            <div class="section-duration">20 min • 2 lessons</div>
+                        </div>
+                    </div>
+                    <div class="section-progress">
+                        <span class="section-toggle">▼</span>
+                    </div>
+                </div>
+                <div class="section-content">
+                    <div class="section-inner">
+                        <div class="lesson" onclick="toggleLesson(this)">
+                            <div class="lesson-check">✓</div>
+                            <div class="lesson-content">
+                                <div class="lesson-title">Data Classification for AI</div>
+                                <div class="lesson-meta">
+                                    <span class="lesson-type video">📹 Video</span>
+                                    <span>12 min</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="lesson" onclick="toggleLesson(this)">
+                            <div class="lesson-check">✓</div>
+                            <div class="lesson-content">
+                                <div class="lesson-title">PII Handling Best Practices</div>
+                                <div class="lesson-meta">
+                                    <span class="lesson-type reading">📖 Reading</span>
+                                    <span>8 min</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-header" onclick="toggleSection(this)">
+                    <div class="section-title">
+                        <div class="section-number">3</div>
+                        <div>
+                            <div class="section-name">Compliance & Governance</div>
+                            <div class="section-duration">25 min • 2 lessons</div>
+                        </div>
+                    </div>
+                    <div class="section-progress">
+                        <span class="section-toggle">▼</span>
+                    </div>
+                </div>
+                <div class="section-content">
+                    <div class="section-inner">
+                        <div class="lesson" onclick="toggleLesson(this)">
+                            <div class="lesson-check">✓</div>
+                            <div class="lesson-content">
+                                <div class="lesson-title">Regulatory Requirements (GDPR, HIPAA)</div>
+                                <div class="lesson-meta">
+                                    <span class="lesson-type video">📹 Video</span>
+                                    <span>15 min</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="lesson" onclick="toggleLesson(this)">
+                            <div class="lesson-check">✓</div>
+                            <div class="lesson-content">
+                                <div class="lesson-title">Vendor Risk Assessment</div>
+                                <div class="lesson-meta">
+                                    <span class="lesson-type exercise">✏️ Exercise</span>
+                                    <span>10 min</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-header" onclick="toggleSection(this)">
+                    <div class="section-title">
+                        <div class="section-number">4</div>
+                        <div>
+                            <div class="section-name">Incident Response</div>
+                            <div class="section-duration">20 min • 2 lessons</div>
+                        </div>
+                    </div>
+                    <div class="section-progress">
+                        <span class="section-toggle">▼</span>
+                    </div>
+                </div>
+                <div class="section-content">
+                    <div class="section-inner">
+                        <div class="lesson" onclick="toggleLesson(this)">
+                            <div class="lesson-check">✓</div>
+                            <div class="lesson-content">
+                                <div class="lesson-title">AI Incident Response Playbook</div>
+                                <div class="lesson-meta">
+                                    <span class="lesson-type video">📹 Video</span>
+                                    <span>12 min</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="lesson" onclick="toggleLesson(this)">
+                            <div class="lesson-check">✓</div>
+                            <div class="lesson-content">
+                                <div class="lesson-title">Tabletop Exercise</div>
+                                <div class="lesson-meta">
+                                    <span class="lesson-type exercise">✏️ Exercise</span>
+                                    <span>8 min</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="certificate-preview">
+                <div class="certificate-badge">🏆</div>
+                <div class="certificate-title">AI Security Specialist Certification</div>
+                <div class="certificate-subtitle">Complete all modules and pass the final exam to earn your certificate</div>
+                <button class="btn btn-primary" style="margin-top: 1rem;" disabled>Certificate Locked (0% Complete)</button>
+            </div>
+        </div>
+    </main>
+
+    <!-- Quiz Modal -->
+    <div class="modal-overlay" id="quizModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2>Knowledge Check</h2>
+                <button class="modal-close" onclick="closeQuiz()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="quiz-question">
+                    <h4>1. What percentage of AI projects fail to move beyond pilot phase?</h4>
+                    <div class="quiz-options">
+                        <div class="quiz-option" onclick="selectOption(this)">A) 50%</div>
+                        <div class="quiz-option" onclick="selectOption(this)">B) 75%</div>
+                        <div class="quiz-option" onclick="selectOption(this)" data-correct="true">C) 95%</div>
+                        <div class="quiz-option" onclick="selectOption(this)">D) 30%</div>
+                    </div>
+                </div>
+                <button class="btn btn-primary" onclick="submitQuiz()" style="width: 100%; margin-top: 1rem;">Submit Answer</button>
+            </div>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <p>© 2024 INT Inc. | AI Training Curriculum v2.0 | Progress saved locally</p>
+    </footer>
+
+    <script>
+        // Track Selection
+        function selectTrack(track) {
+            document.querySelectorAll('.track-card').forEach(card => card.classList.remove('active'));
+            document.querySelectorAll('.course-container').forEach(container => container.classList.remove('active'));
+            
+            document.querySelector(`.track-card.${track}`).classList.add('active');
+            document.getElementById(`${track}-track`).classList.add('active');
+        }
+
+        // Section Toggle
+        function toggleSection(header) {
+            header.closest('.section').classList.toggle('open');
+        }
+
+        // Lesson Completion
+        function toggleLesson(lesson) {
+            lesson.classList.toggle('completed');
+            updateProgress();
+            saveProgress();
+        }
+
+        // Progress Update
+        function updateProgress() {
+            document.querySelectorAll('.course-container').forEach(container => {
+                const total = container.querySelectorAll('.lesson').length;
+                const completed = container.querySelectorAll('.lesson.completed').length;
+                const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
+                
+                const progressStat = container.querySelector('.path-stat-value');
+                if (progressStat) {
+                    progressStat.textContent = percent + '%';
+                }
+            });
+        }
+
+        // Quiz
+        function openQuiz(track) {
+            document.getElementById('quizModal').classList.add('visible');
+        }
+
+        function closeQuiz() {
+            document.getElementById('quizModal').classList.remove('visible');
+        }
+
+        function selectOption(option) {
+            option.closest('.quiz-options').querySelectorAll('.quiz-option').forEach(opt => {
+                opt.classList.remove('selected');
+            });
+            option.classList.add('selected');
+        }
+
+        function submitQuiz() {
+            const selected = document.querySelector('.quiz-option.selected');
+            if (!selected) return;
+            
+            document.querySelectorAll('.quiz-option').forEach(opt => {
+                if (opt.dataset.correct === 'true') {
+                    opt.classList.add('correct');
+                } else if (opt.classList.contains('selected')) {
+                    opt.classList.add('incorrect');
+                }
+            });
+        }
+
+        // Local Storage
+        function saveProgress() {
+            const progress = {};
+            document.querySelectorAll('.lesson').forEach((lesson, index) => {
+                progress[index] = lesson.classList.contains('completed');
+            });
+            localStorage.setItem('ai-training-progress', JSON.stringify(progress));
+        }
+
+        function loadProgress() {
+            const saved = localStorage.getItem('ai-training-progress');
+            if (saved) {
+                const progress = JSON.parse(saved);
+                document.querySelectorAll('.lesson').forEach((lesson, index) => {
+                    if (progress[index]) {
+                        lesson.classList.add('completed');
+                    }
+                });
+                updateProgress();
+            }
+        }
+
+        // Initialize
+        loadProgress();
+    </script>
+</body>
+</html>

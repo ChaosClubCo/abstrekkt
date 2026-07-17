@@ -1,0 +1,252 @@
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;overflow:hidden;clip:rect(0,0,0,0);border:0}
+.tab-bar{display:flex;gap:2px;border-bottom:0.5px solid var(--color-border-tertiary);margin-bottom:20px}
+.tab-btn{background:none;border:none;border-bottom:2px solid transparent;padding:10px 16px;font-size:13px;color:var(--color-text-secondary);cursor:pointer;margin-bottom:-1.5px;font-family:var(--font-sans);transition:color .15s}
+.tab-btn:hover{color:var(--color-text-primary)}
+.tab-btn.active{color:var(--color-text-primary);border-bottom-color:var(--color-text-primary);font-weight:500}
+.phase-intro{font-size:13px;color:var(--color-text-secondary);margin-bottom:16px;line-height:1.6}
+.step-list{display:flex;flex-direction:column;gap:3px}
+.step-item{border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);overflow:hidden;cursor:pointer;transition:border-color .15s}
+.step-item:hover{border-color:var(--color-border-secondary)}
+.step-item.open{border-color:var(--color-border-info)}
+.step-hdr{display:flex;align-items:center;gap:10px;padding:11px 14px;background:var(--color-background-primary)}
+.step-num{width:26px;height:26px;border-radius:50%;background:var(--color-background-secondary);border:0.5px solid var(--color-border-tertiary);display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--color-text-secondary);flex-shrink:0;font-weight:500;transition:all .15s}
+.step-item.open .step-num{background:var(--color-background-info);border-color:var(--color-border-info);color:var(--color-text-info)}
+.step-meta{flex:1;min-width:0}
+.step-name{font-size:14px;font-weight:500;color:var(--color-text-primary);margin-bottom:2px}
+.step-summary{font-size:12px;color:var(--color-text-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.step-tags{display:flex;gap:5px;flex-shrink:0}
+.stag{font-size:11px;padding:2px 8px;border-radius:100px;border:0.5px solid;white-space:nowrap}
+.stag.core{border-color:var(--color-border-info);color:var(--color-text-info)}
+.stag.pro{border-color:var(--color-border-success);color:var(--color-text-success)}
+.stag.warn{border-color:var(--color-border-warning);color:var(--color-text-warning)}
+.chev{width:15px;height:15px;color:var(--color-text-secondary);flex-shrink:0;transition:transform .2s}
+.step-item.open .chev{transform:rotate(180deg)}
+.step-detail{display:none;border-top:0.5px solid var(--color-border-tertiary);padding:12px;background:var(--color-background-secondary)}
+.step-item.open .step-detail{display:block}
+.ann{padding:9px 11px;border-radius:var(--border-radius-md);border-left:2px solid var(--color-border-tertiary);margin-bottom:8px;font-size:13px;line-height:1.6;color:var(--color-text-secondary)}
+.ann:last-child{margin-bottom:0}
+.ann.tip{border-left-color:var(--color-border-info);background:var(--color-background-info);color:var(--color-text-primary)}
+.ann.warn{border-left-color:var(--color-border-warning);background:var(--color-background-warning)}
+.ann.pro{border-left-color:var(--color-border-success);background:var(--color-background-success)}
+.ann-lbl{font-size:11px;font-weight:500;margin-bottom:3px}
+.ann.tip .ann-lbl{color:var(--color-text-info)}
+.ann.warn .ann-lbl{color:var(--color-text-warning)}
+.ann.pro .ann-lbl{color:var(--color-text-success)}
+.ann .ann-lbl{color:var(--color-text-secondary)}
+code{font-family:var(--font-mono);font-size:12px;background:var(--color-background-primary);padding:1px 5px;border-radius:4px;border:0.5px solid var(--color-border-tertiary)}
+.swimlane{display:flex;flex-direction:column;gap:14px}
+.lane{border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);overflow:hidden}
+.lane-lbl{padding:8px 14px;background:var(--color-background-secondary);border-bottom:0.5px solid var(--color-border-tertiary);font-size:12px;font-weight:500;color:var(--color-text-secondary);display:flex;align-items:center;gap:8px}
+.lane-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.lane-flow{display:flex;align-items:center;padding:12px 16px;overflow-x:auto;background:var(--color-background-primary);gap:0}
+.lnode{flex-shrink:0;background:var(--color-background-secondary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);padding:9px 12px;min-width:116px;cursor:pointer;transition:border-color .15s,background .15s}
+.lnode:hover{border-color:var(--color-border-secondary)}
+.lnode.open{border-color:var(--color-border-info);background:var(--color-background-info)}
+.lnode-num{font-size:11px;color:var(--color-text-tertiary);margin-bottom:3px}
+.lnode-name{font-size:12px;font-weight:500;color:var(--color-text-primary);line-height:1.3}
+.larr{width:24px;flex-shrink:0;height:0;border-top:0.5px solid var(--color-border-secondary);position:relative;margin:0 2px}
+.larr::after{content:'';position:absolute;right:-1px;top:-4px;border:4px solid transparent;border-left:5px solid var(--color-border-secondary)}
+.swim-conn{text-align:center;font-size:12px;color:var(--color-text-tertiary);padding:2px 0}
+.swim-detail{display:none;border:0.5px solid var(--color-border-info);border-radius:var(--border-radius-lg);padding:12px;background:var(--color-background-secondary);margin-top:6px}
+.swim-dtl-title{font-size:14px;font-weight:500;color:var(--color-text-primary);margin-bottom:10px}
+.uu-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px}
+.uu-card{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:12px 14px;border-left:2px solid var(--color-border-warning)}
+.uu-concept{font-size:14px;font-weight:500;color:var(--color-text-warning);margin-bottom:5px}
+.uu-body{font-size:13px;color:var(--color-text-secondary);line-height:1.6}
+</style>
+
+<h2 class="sr-only">Remote end-user portal — cert-based Microsoft auth, SharePoint single access point, GitHub backend for non-tech non-AI users</h2>
+
+<div style="padding:0 0 24px">
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="showPhase(0)">Phase 1 — Admin setup</button>
+    <button class="tab-btn" onclick="showPhase(1)">Phase 2 — User portal flow</button>
+    <button class="tab-btn" onclick="showPhase(2)">Phase 3 — Unknown unknowns</button>
+  </div>
+  <div id="p1">
+    <p class="phase-intro">One-time admin work. Everything here is invisible to end users after it's done. Each step is a hard dependency for the next — build in order.</p>
+    <div class="step-list" id="sl1"></div>
+  </div>
+  <div id="p2" style="display:none">
+    <p class="phase-intro">What the user experiences on every access. The GitHub layer is completely invisible — they see SharePoint and nothing else. Click any node to expand details.</p>
+    <div class="swimlane" id="sw"></div>
+    <div id="swdet" class="swim-detail"></div>
+  </div>
+  <div id="p3" style="display:none">
+    <p class="phase-intro">Concepts that will bite you if nobody thinks about them now. Most of these surface 60–90 days after go-live when the first cert expires or the first audit happens.</p>
+    <div class="uu-grid" id="ug"></div>
+  </div>
+</div>
+
+<script>
+const s1=[
+  {n:1,name:"Register app in Microsoft Entra ID",sum:"The portal's identity with Microsoft — required for all auth flows",
+   tip:"This is the front door for the entire system. An App Registration in Entra ID (formerly Azure AD) gives the portal an identity Microsoft can verify. Users authenticate to this app, not directly to SharePoint or GitHub. One registration, one set of redirect URIs, one place to revoke access for the entire system.",
+   aug:"Do not reuse an existing app registration from another system. Create a new one scoped only to this portal. Shared registrations mix permission scopes and make revocation messy — if you need to kill access to this portal, you want to disable one app, not untangle shared config.",
+   pro:"<code>az ad app create --display-name 'EndUserPortal' --sign-in-audience AzureADMyOrg</code> — CLI gives you the App ID and tenant ID immediately. Follow with <code>az ad app credential reset --id &lt;appId&gt; --cert</code> to generate a cert credential instead of a client secret for the app itself.",
+   warn:"Set sign-in audience to <code>AzureADMyOrg</code> (single tenant, your org only). Multi-tenant opens auth to any Microsoft account in existence. For a remote-user portal with certificate auth, there is no valid reason to use multi-tenant.",
+   tags:[{l:"Admin",t:"core"}]},
+
+  {n:2,name:"Configure certificate-based authentication (CBA)",sum:"Device cert replaces password — user clicks once, no credential prompt ever",
+   tip:"CBA means the user's device presents a client certificate during the TLS handshake. Entra ID validates the cert against your trusted CA. If valid, the session token is issued. The user never types a password — not because the step is skipped, but because the certificate IS the credential. This only works if certs are pushed to managed devices via Intune MDM or Group Policy before users try to log in.",
+   aug:"CBA requires Entra ID Premium P1 or P2 licensing — verify this before committing to the approach. If P1 isn't in budget, FIDO2 security keys (physical, passwordless) are an alternative but require physical key distribution to every remote user, which may be operationally worse.",
+   pro:"In Entra admin center: Security → Authentication Methods → Certificate-based Authentication. Enable it, upload your CA certificate, set the binding to match <code>userPrincipalName</code> in the certificate SAN field. Test the full flow with a single pilot user — do not enable broadly until a real end-to-end test passes.",
+   warn:"CBA requires managed devices. If any remote user is on a personal or unmanaged machine, they cannot receive a pushed cert and this approach silently fails for them. Audit your device management coverage before this becomes your auth strategy.",
+   tags:[{l:"Security",t:"core"}]},
+
+  {n:3,name:"Create the SharePoint portal site",sum:"Single URL, single front door — the only thing end users ever bookmark",
+   tip:"Create a Communication Site (not a Team Site) in SharePoint Online. Communication sites are built for broadcasting content to many readers — clean landing page, document libraries, no Teams-style sidebar clutter. Keep the URL simple: <code>https://yourorg.sharepoint.com/sites/portal</code>. This URL is the only thing in the user handbook.",
+   aug:"Immediately after creation, set external sharing to 'Only people in your organization.' Default SharePoint settings in some tenants allow external sharing by default — check this before you add a single file. Set it before content exists, not after.",
+   pro:"Use PnP PowerShell templates (<code>Apply-PnPProvisioningTemplate</code>) to pre-configure document libraries, permission groups, and page layouts in one shot. Doing this via the web UI for every setting across multiple tenant environments is error-prone and slow.",
+   warn:"Do not use the default SharePoint home site as your portal. Create a dedicated site collection. A standalone site is far easier to decommission, migrate, or audit than modifications to the tenant root — and you will eventually need to change something.",
+   tags:[{l:"Portal",t:"core"}]},
+
+  {n:4,name:"Connect SharePoint to GitHub",sum:"Service account syncs docs to Git — users never touch GitHub directly",
+   tip:"Use a dedicated GitHub machine user (service account) with repo-scoped write access to only the target repository. Power Automate (if your org licenses it) is the simplest connector: a flow triggered on SharePoint document library events reads the file and commits it to GitHub via the GitHub connector. The service account's PAT is stored in Power Automate's connection manager — not in the flow definition, not in a SharePoint list.",
+   aug:"Power Automate is simple but asynchronous. If the flow fails (API down, PAT expired, rate limit), the SharePoint upload succeeds but the GitHub commit does not. Build a monitor on flow failure run history and a documented re-sync procedure before users hit this the first time.",
+   pro:"Name the service account descriptively: <code>gh-sp-sync@yourorg.com</code>. Set the PAT expiry to 90 days and calendar a rotation reminder 14 days before expiry. Silent PAT expiry causing sync to break silently is the #1 operational failure mode for this pattern.",
+   warn:"Never store the service account PAT in a SharePoint list, Power Automate environment variable visible to non-admins, or any location a regular user can read. Connection credentials only. If it leaks, anyone with GitHub repo access can commit arbitrary content as your service account.",
+   tags:[{l:"Integration",t:"pro"}]},
+
+  {n:5,name:"Enroll users and verify end-to-end",sum:"Push certs, assign permissions, run a full access test before any announcement",
+   tip:"Enrollment is where 'we configured it' becomes 'it works for real users.' Push device certs via Intune MDM policy or GPO. Add users to the SharePoint site's Contribute permission on the document library (not site Owners, not site Members). Test the complete flow: fresh browser session, no cached credentials, open the portal URL, confirm cert auth fires silently, confirm the document library loads, confirm upload and download both complete successfully.",
+   aug:"Test with at least three representative users — different devices, different network paths — before any announcement. Failure modes at this stage: cert not yet propagated to device, user not in the correct Entra security group, SharePoint permissions assigned to wrong group scope, or Firefox (which requires manual cert store configuration, unlike Edge and Chrome on Windows).",
+   pro:"Create a named Entra ID security group: <code>SG-Portal-EndUsers</code>. Add users to this group, then assign the group to both the app registration's user assignment list AND the SharePoint library permissions. One group to manage instead of two separate lists that drift apart over time.",
+   warn:"Do not announce the portal until step 5 passes for real users on real devices. A broken first experience for a non-technical audience creates lasting distrust that is disproportionately hard to undo. The first impression is the support burden you'll carry for months.",
+   tags:[{l:"Onboarding",t:"core"}]}
+];
+
+const sg={
+  user:[
+    {k:"u1",n:1,name:"Open portal URL",
+     tip:"The user opens a bookmark or clicks a link. They navigate to a single URL — they have no idea what runs behind it. Edge and Chrome on Windows automatically present the device certificate when the portal requests it. No dialog, no prompt, no password field appears. From the user's perspective, the page simply loads.",
+     aug:"If the user sees a certificate selection dialog listing multiple certs, the device has more than one matching cert installed. Resolve by scoping the Entra CBA binding policy to a specific cert attribute (custom OID or issuer CN) so only the correct cert is ever offered.",
+     pro:"For completely silent login on domain-joined machines, configure Microsoft Seamless SSO alongside CBA. Users authenticate via Kerberos token during the domain login — they may never see any authentication step at all when accessing the portal.",
+     warn:"Safari on macOS and iOS requires additional configuration for client certificate support. Test both platforms before enrolling any Mac or iOS users — do not assume it behaves like Chrome on Windows."},
+    {k:"u2",n:2,name:"Certificate auto-presents",
+     tip:"The browser and server perform a mutual TLS handshake. The device cert is offered, Entra ID validates it against the CBA policy (CA trust, UPN binding, revocation status), and a session token is issued. Elapsed visible time for the user: zero seconds. There is no 'logging in' animation, no spinner, no confirmation screen.",
+     aug:"If a user is on a device without the certificate — personal laptop, loaner machine, freshly imaged device — they receive an auth failure, not a password prompt. This is intentional but confusing. Have a documented exception path before launch: how does a user get temporary access when their cert isn't available?",
+     pro:"Entra ID Sign-In logs capture every auth event with cert serial number, device info, and IP. Ship these logs to a Log Analytics workspace via Diagnostic Settings for long-term retention and alert rules (e.g., alert on unusual IP, unusual device, failed cert presentations).",
+     warn:"Cert expiry is invisible to the user until it breaks. When the device cert expires, the user receives an auth error with no explanation. The fix is cert renewal — not a password reset. Make sure helpdesk knows this distinction before launch or they will send users on a password reset loop that goes nowhere."},
+    {k:"u3",n:3,name:"SharePoint portal loads",
+     tip:"After auth, the user lands on the SharePoint Communication Site. This should look like a file cabinet, not a developer tool. One document library. One Upload button. One path to download. No GitHub branding, no code references, no technical context anywhere on the page. The design goal is that a user who has never touched software beyond email feels at home.",
+     aug:"SharePoint's default navigation includes links to unrelated features — news, events, Viva connections. Disable or hide everything that isn't the document library. Non-tech users interpret every visible link as something they might accidentally break — reduce visible surface area intentionally.",
+     pro:"Use SharePoint's page customization or a lightweight SPFx web part to build a single-purpose landing page: a welcome message, the document library, and a 'How to upload' link. The goal is that a user can accomplish their task in under 30 seconds with zero training.",
+     warn:"Assign users Contribute access to the document library specifically — not Owner or Member at the site level. Site Owners can delete the site. Broad site Members can delete each other's files. Minimum permission scope at the library, not the site."},
+    {k:"u4",n:4,name:"Upload or download document",
+     tip:"The user drags a file to the library or clicks Upload. To download, they click the filename. That is the entire UX. SharePoint handles versioning automatically — every upload creates a new version, not an overwrite. The user does not need to know this, but it means nothing is permanently lost until an admin empties the recycle bin.",
+     aug:"Browser uploads time out above ~250MB by default. If users routinely work with large files, document the SharePoint desktop sync client as the alternative for oversized uploads — and test it end-to-end on a remote user's connection before they need it.",
+     pro:"Enable document library change alerts: users can subscribe to 'notify me when a file I uploaded is modified.' For non-tech users who just want to know when their document was processed or changed, this is far simpler than building a separate notification pipeline.",
+     warn:"SharePoint does not silently overwrite on duplicate filenames — it creates a new version. This is correct behavior, but users who expect a file manager to overwrite will be confused when they see two versions. Add one sentence to the user handbook: 'Re-uploading the same filename adds a new version — you can always see your history.'"}
+  ],
+  backend:[
+    {k:"b1",n:1,name:"Entra ID validates cert",
+     tip:"When the portal receives the browser's client cert, it forwards validation to Entra ID. Three checks run: Is the cert signed by a trusted CA in our Entra CBA config? Does the cert's SAN field match a valid user UPN in the directory? Is the cert present on the CRL (Certificate Revocation List)? All three must pass. If any fails, access is denied — no fallback, no password prompt, no secondary method unless Conditional Access explicitly allows it.",
+     aug:"The CRL check is the most operationally fragile dependency. Entra validates the CRL URL embedded in the cert — if that URL is unreachable (CDN issue, internal CA offline), cert validation fails for all users even if the cert itself is valid. Know where your CA's CRL is published and include it in your uptime monitoring.",
+     pro:"Layer Entra ID Conditional Access on top of CBA: device compliance (Intune compliant), IP range allowlist, time-of-day restrictions. These checks run after cert validation with zero UX impact. Conditional Access is how you close the 'managed device required' gap for edge cases.",
+     warn:"Enabling CBA in Entra does not automatically disable password auth for the same users on the same app. If you want cert-only access, you must also create a Conditional Access policy that blocks password authentication specifically for this app registration. Without this, a determined user could still authenticate with a password."},
+    {k:"b2",n:2,name:"SharePoint processes upload",
+     tip:"SharePoint receives the file, writes it to the document library, creates a version entry, records timestamp and uploader identity, and logs the event to the SharePoint Unified Audit Log. The file is stored in Microsoft's encrypted storage — AES-256 at rest, TLS 1.2+ in transit. Retention and DLP policies apply if configured at the tenant or site level.",
+     aug:"SharePoint's default versioning keeps up to 500 versions per file. For a document portal, this is almost always excessive and will accumulate storage costs. Set a major version limit (10–25) at the library level before users start uploading. Set it before content exists — changing it afterward does not retroactively purge old versions.",
+     pro:"Configure Required Columns on the document library if you need structured metadata at upload time (e.g., document category, project ID). Users are prompted to fill these before the upload completes — structured intake without building a separate form. The metadata also becomes available as filters in the library view.",
+     warn:"SharePoint versioning is not a backup. If a user deletes a file and the recycle bin is emptied (stage 1 recycle bin: 93-day default; stage 2: until quota hit), the file is gone. If document permanence is a hard requirement, configure a retention policy or add a secondary export to Azure Blob Storage."},
+    {k:"b3",n:3,name:"Sync triggers to GitHub",
+     tip:"A Power Automate flow listens for SharePoint library events. On file creation or modification, the flow reads the file content and commits it to the target GitHub repository using the service account PAT via the GitHub REST API. The commit message is auto-generated — filename, uploader display name, timestamp. GitHub is the system of record; SharePoint is the human-facing front end.",
+     aug:"Sync is asynchronous. If the flow fails — PAT expired, GitHub API timeout, Power Automate throttle — the SharePoint upload succeeds but the GitHub commit does not. The two systems silently diverge. Build a Power Automate flow run monitor and alert on failed runs. Have a documented re-sync procedure before this happens for the first time.",
+     pro:"If you want downstream automation triggered by new documents (CI checks, webhook notifications, archival workflows), add a GitHub Actions workflow triggered on push to the docs branch. The sync commit from Power Automate fires the push event — no additional configuration on the SharePoint side.",
+     warn:"Duplicate filename uploads create two SharePoint versions. Your sync flow must decide: commit both (two GitHub commits), or commit only the latest (check version number, commit if newer). Committing only the latest is simpler. Committing both preserves the full history in Git — pick one policy and stick to it."},
+    {k:"b4",n:4,name:"GitHub stores and versions",
+     tip:"The committed file now has a permanent place in Git history: a commit hash, an author (service account), a timestamp, a parent commit pointer, and the file content. Every previous version of every document is retrievable by hash. The commit message body contains the real uploader's identity from SharePoint. This is the immutable audit trail.",
+     aug:"Since the service account is the committer, GitHub's activity log shows the service account for every commit. The real uploader identity lives in the commit message body and in the SharePoint audit log. A complete audit ('who uploaded this file on Tuesday') requires both logs — document this in your incident runbook before the first audit request.",
+     pro:"Enable branch protection on the docs branch: no direct push (the Power Automate sync uses the API — this protects against manual pushes that could conflict with automated commits), require status checks if you add CI. Add a CODEOWNERS file assigning the docs branch to an admin group so any direct-push attempts generate a notification.",
+     warn:"GitHub REST API rate limit: 5,000 requests per hour per authenticated user (PAT). A burst of simultaneous uploads can hit this ceiling. The Power Automate flow should handle HTTP 429 responses explicitly with exponential backoff — not silent failure, not immediate retry. Hitting the rate limit silently and dropping commits is a data integrity problem."}
+  ]
+};
+
+const uu=[
+  {c:"CBA vs. passwordless vs. MFA",b:"These are not the same thing and helpdesk will conflate them. MFA adds a second factor on top of a password. Passwordless eliminates the password entirely — the cert or hardware key IS the credential. CBA is one form of passwordless. Make sure helpdesk knows which type you're running so they don't send users on a 'reset your password' loop when cert auth breaks."},
+  {c:"What users will call 'the system'",b:"Non-technical users call everything 'the system.' When something breaks, they will not know if it's SharePoint, the browser, the certificate, or GitHub. Design your support intake as a yes/no question tree: Can you open the URL? Does the page load? Does the Upload button appear? Can you click Upload? This routes to the right fix without requiring users to diagnose anything."},
+  {c:"Cert expiry is the new forgot-password",b:"Password resets are a known, well-drilled operation. Certificate expiry is not — most helpdesks have never handled it at scale. Before launch, document the exact resolution steps for: cert expired on a managed device, cert expired on an unmanaged device, device reimaged and cert gone, and user moved to a new device. These will all happen in the first 90 days."},
+  {c:"SharePoint ≠ GitHub — two stores, one source of truth",b:"SharePoint and GitHub hold separate copies. The sync flow reconciles them, but only after it runs. Between upload and sync completion, they disagree. If asked 'which one is correct,' the answer is GitHub — it is the system of record. SharePoint is the view layer. Build this assumption into documentation and support runbooks before someone uses SharePoint version history as the authoritative source in an audit."},
+  {c:"The invisible GitHub user",b:"End users never log into GitHub. The service account acts on their behalf. GitHub's activity log shows the service account for every commit — not the individual. If an audit requests 'who uploaded this document on Tuesday at 2pm,' the answer comes from the SharePoint Unified Audit Log and the Power Automate run history, not GitHub. Both logs are required. Neither alone is sufficient."},
+  {c:"Conditional Access scope",b:"Entra ID Conditional Access policies are easy to create and easy to accidentally over-scope. A CA policy targeting 'All cloud apps' instead of the specific app registration ID will silently apply to Exchange, Teams, SharePoint, and every other M365 service — locking users out of email when cert auth fails. Always scope CA policies to the specific App Registration ID. Test in report-only mode before enabling."}
+];
+
+function ann(type,label,body){return body?`<div class="ann ${type}"><div class="ann-lbl">${label}</div>${body}</div>`:''}
+
+function renderP1(){
+  document.getElementById('sl1').innerHTML=s1.map((s,i)=>`
+    <div class="step-item" onclick="tog(this,${i})">
+      <div class="step-hdr">
+        <div class="step-num">${s.n}</div>
+        <div class="step-meta">
+          <div class="step-name">${s.name}</div>
+          <div class="step-summary">${s.sum}</div>
+        </div>
+        <div class="step-tags">${s.tags.map(t=>`<span class="stag ${t.t}">${t.l}</span>`).join('')}</div>
+        <svg class="chev" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 6l4 4 4-4"/></svg>
+      </div>
+      <div class="step-detail">
+        ${ann('tip','Why this matters',s.tip)}
+        ${ann('','When it goes sideways',s.aug)}
+        ${ann('pro','Pro move',s.pro)}
+        ${ann('warn','Common mistake',s.warn)}
+      </div>
+    </div>`).join('');
+}
+
+function tog(el){
+  const was=el.classList.contains('open');
+  document.querySelectorAll('.step-item').forEach(x=>x.classList.remove('open'));
+  if(!was)el.classList.add('open');
+}
+
+function renderP2(){
+  function nodes(steps){return steps.map((s,i)=>`
+    <div class="lnode" data-k="${s.k}" onclick="showSD('${s.k}')">
+      <div class="lnode-num">Step ${s.n}</div>
+      <div class="lnode-name">${s.name}</div>
+    </div>${i<steps.length-1?'<div class="larr"></div>':''}`).join('');}
+  document.getElementById('sw').innerHTML=`
+    <div class="lane">
+      <div class="lane-lbl"><div class="lane-dot" style="background:var(--color-text-info)"></div>End User — remote, non-technical, no GitHub access or awareness</div>
+      <div class="lane-flow">${nodes(sg.user)}</div>
+    </div>
+    <div class="swim-conn">Cert auth is silent &nbsp;·&nbsp; SharePoint is the only visible UI &nbsp;·&nbsp; GitHub is never seen</div>
+    <div class="lane">
+      <div class="lane-lbl"><div class="lane-dot" style="background:var(--color-text-success)"></div>Backend — Entra ID validates → SharePoint stores → service account syncs → GitHub records</div>
+      <div class="lane-flow">${nodes(sg.backend)}</div>
+    </div>`;
+}
+
+function showSD(k){
+  const all=[...sg.user,...sg.backend];
+  document.querySelectorAll('.lnode').forEach(n=>n.classList.toggle('open',n.dataset.k===k));
+  const s=all.find(x=>x.k===k);if(!s)return;
+  const d=document.getElementById('swdet');
+  d.style.display='block';
+  d.innerHTML=`<div class="swim-dtl-title">Step ${s.n} — ${s.name}</div>
+    ${ann('tip','How it works',s.tip)}
+    ${ann('','When it breaks',s.aug)}
+    ${ann('pro','Pro move',s.pro)}
+    ${ann('warn','Watch out',s.warn)}`;
+}
+
+function renderUU(){
+  document.getElementById('ug').innerHTML=uu.map(u=>`
+    <div class="uu-card">
+      <div class="uu-concept">${u.c}</div>
+      <div class="uu-body">${u.b}</div>
+    </div>`).join('');
+}
+
+function showPhase(idx){
+  ['p1','p2','p3'].forEach((id,i)=>document.getElementById(id).style.display=i===idx?'block':'none');
+  document.querySelectorAll('.tab-btn').forEach((b,i)=>b.classList.toggle('active',i===idx));
+}
+
+renderP1();renderP2();renderUU();
+</script>

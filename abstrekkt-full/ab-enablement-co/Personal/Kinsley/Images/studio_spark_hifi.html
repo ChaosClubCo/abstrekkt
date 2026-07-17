@@ -1,0 +1,739 @@
+<style>
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}
+@keyframes dW{0%{opacity:.5}20%{opacity:.9}50%{opacity:.2}80%{opacity:.75}100%{opacity:.5}}
+@keyframes pP{0%,100%{transform:scale(1)}30%{transform:scale(.93)}65%{transform:scale(1.05)}}
+@keyframes wP{0%,100%{transform:scale(1)}40%{transform:scale(1.1)}}
+@keyframes rD{0%{transform:scale(.5) translateY(-30px);opacity:0}65%{transform:scale(1.06)}100%{transform:scale(1);opacity:1}}
+@keyframes sUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+@keyframes doorOpen{0%{transform:scaleX(1)}100%{transform:scaleX(0)}}
+@keyframes studioIn{0%{opacity:0;transform:scale(.94)}100%{opacity:1;transform:scale(1)}}
+@keyframes lvlPop{0%{transform:scale(1)}40%{transform:scale(1.32)}70%{transform:scale(.92)}100%{transform:scale(1)}}
+@keyframes xpFill{from{width:var(--xp-from)}to{width:var(--xp-to)}}
+@keyframes noteFloat{0%{opacity:1;transform:translateY(0) scale(1)}100%{opacity:0;transform:translateY(-38px) scale(1.3)}}
+@keyframes stampIn{0%{opacity:0;transform:rotate(-20deg) scale(1.6)}70%{transform:rotate(-6deg) scale(.95)}100%{opacity:1;transform:rotate(-6deg) scale(1)}}
+@keyframes squadBob{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+@keyframes blink2{0%,90%,100%{opacity:1}92%,98%{opacity:0}}
+</style>
+
+<div style="display:flex;flex-direction:column;align-items:center;padding:.5rem 0 .3rem;gap:5px;">
+<p style="font-size:11px;color:var(--color-text-secondary);font-family:var(--font-sans);margin:0;text-align:center;">Tap the door to enter · earn XP on every action · live squad room · sound chips · backstory</p>
+
+<div style="width:375px;border-radius:50px;border:10px solid #140B03;background:#140B03;">
+<div style="height:720px;background:#FBF5EA;border-radius:40px;overflow:hidden;display:flex;flex-direction:column;">
+
+<div style="height:46px;background:#FBF5EA;display:flex;align-items:center;justify-content:space-between;padding:0 26px;flex-shrink:0;">
+  <span id="clock-time" style="font-size:12px;font-weight:500;color:#3A2820;font-family:var(--font-sans);">9:41</span>
+  <div style="width:90px;height:22px;background:#140B03;border-radius:11px;"></div>
+  <div style="display:flex;align-items:center;gap:5px;">
+    <svg width="15" height="11" viewBox="0 0 15 11" fill="#3A2820"><rect x="0" y="5" width="2.5" height="6" rx="1"/><rect x="4" y="3" width="2.5" height="8" rx="1"/><rect x="8" y="1" width="2.5" height="10" rx="1"/></svg>
+    <svg width="20" height="11" viewBox="0 0 20 11"><rect x="0" y=".75" width="16" height="9.5" rx="2" fill="none" stroke="#3A2820" stroke-width="1.5"/><rect x="16" y="3" width="2.5" height="5" rx="1" fill="#3A2820"/><rect x="1.5" y="2.25" width="10" height="7" rx="1" fill="#8BAE78"/></svg>
+  </div>
+</div>
+
+<div id="screen-area" style="flex:1;position:relative;overflow:hidden;">
+  <canvas id="pcanvas" style="position:absolute;inset:0;pointer-events:none;z-index:9;"></canvas>
+  <div id="flash" style="position:absolute;inset:0;background:white;opacity:0;pointer-events:none;z-index:8;transition:opacity .35s;"></div>
+  <div id="toast" style="position:absolute;top:12px;left:16px;right:16px;background:#3A2820;color:white;border-radius:12px;padding:8px 14px;font-size:11px;font-family:var(--font-sans);font-weight:500;z-index:20;transform:translateY(-60px);opacity:0;text-align:center;pointer-events:none;"></div>
+  <div id="xp-toast" style="position:absolute;top:52px;right:16px;background:#E8C050;color:#3A2820;border-radius:10px;padding:4px 10px;font-size:10px;font-weight:500;font-family:var(--font-sans);z-index:20;opacity:0;pointer-events:none;transition:opacity .3s;"></div>
+
+  <!-- ONBOARDING -->
+  <div id="s-onboard" style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(160deg,#3A2820,#5A3830);z-index:10;">
+    <div style="position:absolute;inset:0;opacity:.06;background-image:radial-gradient(circle,#E07A98 1px,transparent 1px);background-size:24px 24px;pointer-events:none;"></div>
+    <!-- Studio door -->
+    <div style="position:relative;width:220px;margin-bottom:18px;" onclick="enterStudio()">
+      <!-- wall -->
+      <div style="height:280px;background:linear-gradient(180deg,#EDE1D3,#D4C0A8);border-radius:14px;border:4px solid #C4A090;position:relative;overflow:hidden;cursor:pointer;">
+        <!-- Door frame -->
+        <div style="position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:90px;height:175px;background:linear-gradient(180deg,#7A5040,#5A3828);border-radius:8px 8px 0 0;border:3px solid #4A2818;">
+          <!-- Door panels -->
+          <div style="position:absolute;top:8px;left:6px;right:6px;height:72px;background:rgba(255,255,255,.07);border-radius:5px;border:1.5px solid rgba(255,255,255,.12);"></div>
+          <div style="position:absolute;bottom:16px;left:6px;right:6px;height:60px;background:rgba(255,255,255,.07);border-radius:5px;border:1.5px solid rgba(255,255,255,.12);"></div>
+          <!-- Doorknob -->
+          <div style="position:absolute;top:50%;right:9px;transform:translateY(-50%);width:9px;height:9px;border-radius:50%;background:#E8C050;box-shadow:0 0 6px #E8C05080;"></div>
+          <!-- Door shine (left half) -->
+          <div id="door-left" style="position:absolute;inset:0;background:linear-gradient(180deg,#8A6050,#6A4030);border-radius:5px 5px 0 0;transform-origin:left center;"></div>
+        </div>
+        <!-- Sign -->
+        <div style="position:absolute;top:28px;left:0;right:0;text-align:center;">
+          <div style="display:inline-block;background:#3A2820;border-radius:8px;padding:6px 14px;border:2px solid #E8C050;">
+            <div style="font-size:8px;letter-spacing:2px;color:#E8C050;font-family:var(--font-sans);font-weight:500;">YOUR STUDIO</div>
+          </div>
+        </div>
+        <!-- Potted plant left -->
+        <div style="position:absolute;bottom:0;left:10px;font-size:26px;">🌿</div>
+        <!-- Lamp right -->
+        <div style="position:absolute;top:48px;right:12px;font-size:20px;">💡</div>
+        <!-- Star sparkles -->
+        <div id="door-sparks" style="position:absolute;top:0;left:0;right:0;bottom:0;pointer-events:none;"></div>
+      </div>
+    </div>
+    <div style="font-size:28px;font-weight:500;color:#FBF5EA;font-family:var(--font-sans);letter-spacing:-.5px;margin-bottom:6px;">Studio Spark</div>
+    <div id="door-hint" style="font-size:13px;color:rgba(251,245,234,.6);font-family:var(--font-sans);margin-bottom:24px;">Your studio is ready ✦</div>
+    <div onclick="enterStudio()" style="background:#E07A98;color:white;border-radius:16px;padding:13px 40px;font-size:15px;font-weight:500;cursor:pointer;font-family:var(--font-sans);box-shadow:0 6px 24px rgba(224,122,152,.5);">Open Studio ✦</div>
+    <div style="position:absolute;bottom:18px;font-size:11px;color:rgba(251,245,234,.3);font-family:var(--font-sans);">Studio Spark · v1.0</div>
+  </div>
+
+  <!-- REVEAL -->
+  <div id="reveal-ov" style="position:absolute;inset:0;background:rgba(20,10,5,.9);z-index:11;display:none;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:24px;">
+    <div id="rev-glow" style="position:absolute;width:260px;height:260px;border-radius:50%;opacity:.35;pointer-events:none;"></div>
+    <div id="rev-rarity" style="font-size:9px;letter-spacing:3px;font-weight:500;font-family:var(--font-sans);position:relative;"></div>
+    <div id="rev-icon" style="width:96px;height:96px;border-radius:26px;display:flex;align-items:center;justify-content:center;animation:rD .55s cubic-bezier(.34,1.56,.64,1);position:relative;"><span id="rev-emoji" style="font-size:40px;"></span></div>
+    <div id="rev-name" style="font-size:26px;font-weight:500;color:white;font-family:var(--font-sans);text-align:center;position:relative;line-height:1.2;"></div>
+    <div style="font-size:12px;color:rgba(255,255,255,.5);font-family:var(--font-sans);position:relative;">Added to your wardrobe ✦</div>
+    <div onclick="closeReveal()" style="margin-top:8px;background:#E07A98;color:white;border-radius:14px;padding:11px 32px;cursor:pointer;font-weight:500;font-family:var(--font-sans);font-size:14px;position:relative;">Collect it! ✦</div>
+  </div>
+
+  <!-- GAME MODAL -->
+  <div id="gm" style="position:absolute;inset:0;z-index:15;display:none;flex-direction:column;background:#FBF5EA;">
+    <div style="background:#EDE1D3;padding:12px 16px;display:flex;align-items:center;gap:10px;flex-shrink:0;border-bottom:1px solid #E0D0C0;">
+      <div onclick="closeGame()" style="width:34px;height:34px;border-radius:50%;background:white;border:1.5px solid #EDD8C6;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:18px;flex-shrink:0;">←</div>
+      <div><div id="gm-loc" style="font-size:8px;letter-spacing:1.5px;color:#C4A090;font-family:var(--font-sans);">LOCATION</div><div id="gm-ttl" style="font-size:18px;font-weight:500;color:#3A2820;font-family:var(--font-sans);line-height:1.1;">Game</div></div>
+      <div id="gm-badge" style="margin-left:auto;font-size:11px;font-weight:500;font-family:var(--font-sans);background:#FDF0C0;border:1px solid #E8C050;border-radius:8px;padding:4px 9px;color:#9A6A00;"></div>
+    </div>
+    <div id="gm-content" style="flex:1;overflow-y:auto;padding:14px 14px 20px;"></div>
+  </div>
+
+  <!-- NAME MODAL -->
+  <div id="nm" style="position:absolute;inset:0;z-index:13;background:rgba(20,10,5,.88);display:none;align-items:center;justify-content:center;padding:20px;">
+    <div style="background:white;border-radius:22px;padding:20px;width:100%;animation:sUp .35s cubic-bezier(.34,1.56,.64,1);max-height:94%;overflow-y:auto;">
+      <div style="font-size:18px;font-weight:500;color:#3A2820;font-family:var(--font-sans);text-align:center;margin-bottom:14px;">Name your character ✦</div>
+      <input id="nm-inp" type="text" placeholder="Enter a name..." maxlength="20" style="width:100%;box-sizing:border-box;border:2px solid #EDD8C6;border-radius:12px;padding:10px 14px;font-size:14px;font-family:var(--font-sans);color:#3A2820;background:#FBF5EA;outline:none;margin-bottom:10px;">
+      <div style="font-size:8px;letter-spacing:1.5px;color:#C4A090;font-family:var(--font-sans);margin-bottom:6px;">PERSONALITY</div>
+      <div id="pers-row" style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px;">
+        <div onclick="setPers(this,'adventurer')" class="pb" style="background:#E07A98;color:white;border-radius:8px;padding:4px 9px;font-size:9px;cursor:pointer;font-family:var(--font-sans);font-weight:500;">adventurer</div>
+        <div onclick="setPers(this,'inventor')" class="pb" style="background:#F5EAE0;color:#9A7060;border-radius:8px;padding:4px 9px;font-size:9px;cursor:pointer;font-family:var(--font-sans);font-weight:500;">inventor</div>
+        <div onclick="setPers(this,'dreamer')" class="pb" style="background:#F5EAE0;color:#9A7060;border-radius:8px;padding:4px 9px;font-size:9px;cursor:pointer;font-family:var(--font-sans);font-weight:500;">dreamer</div>
+        <div onclick="setPers(this,'artist')" class="pb" style="background:#F5EAE0;color:#9A7060;border-radius:8px;padding:4px 9px;font-size:9px;cursor:pointer;font-family:var(--font-sans);font-weight:500;">artist</div>
+        <div onclick="setPers(this,'builder')" class="pb" style="background:#F5EAE0;color:#9A7060;border-radius:8px;padding:4px 9px;font-size:9px;cursor:pointer;font-family:var(--font-sans);font-weight:500;">builder</div>
+      </div>
+      <div style="font-size:8px;letter-spacing:1.5px;color:#C4A090;font-family:var(--font-sans);margin-bottom:6px;">BACKSTORY (optional)</div>
+      <textarea id="nm-story" maxlength="120" placeholder="A brave explorer who loves stargazing and inventing..." style="width:100%;box-sizing:border-box;border:2px solid #EDD8C6;border-radius:12px;padding:9px 12px;font-size:11px;font-family:var(--font-sans);color:#3A2820;background:#FBF5EA;outline:none;resize:none;height:56px;margin-bottom:14px;line-height:1.5;"></textarea>
+      <div style="display:flex;gap:8px;">
+        <div onclick="closeNM()" style="flex:1;border:2px solid #EDD8C6;border-radius:12px;padding:11px;text-align:center;cursor:pointer;font-size:12px;color:#9A7060;font-family:var(--font-sans);">Cancel</div>
+        <div onclick="confirmSave()" style="flex:2;background:#E07A98;border-radius:12px;padding:11px;text-align:center;cursor:pointer;font-size:13px;font-weight:500;color:white;font-family:var(--font-sans);">Add to Squad ✦</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CHAR CARD MODAL -->
+  <div id="ccard" style="position:absolute;inset:0;z-index:14;background:rgba(20,10,5,.88);display:none;align-items:center;justify-content:center;padding:24px;">
+    <div style="background:white;border-radius:22px;padding:22px;width:100%;animation:sUp .35s cubic-bezier(.34,1.56,.64,1);">
+      <div id="ccard-header" style="height:64px;border-radius:12px;margin-bottom:-28px;"></div>
+      <div style="display:flex;justify-content:center;margin-bottom:6px;">
+        <div id="ccard-avatar" style="width:56px;height:56px;border-radius:50%;border:3px solid white;display:flex;align-items:center;justify-content:center;"><span id="ccard-letter" style="font-size:24px;font-weight:500;color:white;font-family:var(--font-sans);"></span></div>
+      </div>
+      <div id="ccard-name" style="font-size:20px;font-weight:500;color:#3A2820;font-family:var(--font-sans);text-align:center;"></div>
+      <div id="ccard-pers" style="font-size:11px;color:#9A7060;font-family:var(--font-sans);text-align:center;margin-top:3px;margin-bottom:10px;"></div>
+      <div id="ccard-story" style="font-size:12px;color:#9A7060;font-family:var(--font-sans);line-height:1.6;text-align:center;font-style:italic;margin-bottom:14px;padding:0 4px;min-height:22px;"></div>
+      <div style="display:flex;gap:8px;margin-bottom:4px;">
+        <div style="flex:1;background:#FAE8EE;border-radius:10px;padding:8px;text-align:center;"><div id="ccard-lv" style="font-size:18px;font-weight:500;color:#E07A98;font-family:var(--font-sans);">1</div><div style="font-size:8px;color:#C4A090;font-family:var(--font-sans);">LEVEL</div></div>
+        <div style="flex:1;background:#E4F0DA;border-radius:10px;padding:8px;text-align:center;"><div id="ccard-items" style="font-size:18px;font-weight:500;color:#8BAE78;font-family:var(--font-sans);">0</div><div style="font-size:8px;color:#C4A090;font-family:var(--font-sans);">ITEMS</div></div>
+        <div style="flex:1;background:#EDE8F8;border-radius:10px;padding:8px;text-align:center;"><div id="ccard-xp" style="font-size:18px;font-weight:500;color:#B4A5D4;font-family:var(--font-sans);">0</div><div style="font-size:8px;color:#C4A090;font-family:var(--font-sans);">XP</div></div>
+      </div>
+      <div onclick="closeCCard()" style="margin-top:12px;background:#E07A98;border-radius:12px;padding:11px;text-align:center;cursor:pointer;font-size:13px;font-weight:500;color:white;font-family:var(--font-sans);">Close ✦</div>
+    </div>
+  </div>
+
+  <!-- HOME -->
+  <div id="s-home" style="position:absolute;inset:0;overflow-y:auto;display:none;">
+    <div id="home-header" style="background:#EDE1D3;padding:14px 20px 14px;">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:8px;">
+        <div>
+          <div style="font-size:9px;letter-spacing:2px;font-weight:500;color:#C4A090;font-family:var(--font-sans);">STUDIO</div>
+          <div style="font-size:27px;font-weight:500;color:#3A2820;font-family:var(--font-sans);line-height:1;">Spark ✦</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;margin-top:4px;">
+          <div style="background:#FDF0C0;border-radius:20px;padding:5px 10px;border:1px solid #E8C050;"><span style="font-size:10px;font-weight:500;color:#9A6A00;font-family:var(--font-sans);">🔥 7 streak</span></div>
+          <div onclick="showProfile()" style="width:32px;height:32px;border-radius:50%;background:#EDE8F8;border:2px solid #B4A5D4;display:flex;align-items:center;justify-content:center;cursor:pointer;"><span style="font-size:14px;font-weight:500;color:#7060A0;font-family:var(--font-sans);">K</span></div>
+        </div>
+      </div>
+      <div id="greeting" style="font-size:15px;font-weight:500;color:#3A2820;font-family:var(--font-sans);"></div>
+      <!-- XP BAR -->
+      <div style="margin-top:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px;">
+          <span id="lv-label" style="font-size:9px;letter-spacing:1px;font-weight:500;color:#C4A090;font-family:var(--font-sans);">CREATOR LEVEL 1</span>
+          <span id="xp-label" style="font-size:9px;color:#C4A090;font-family:var(--font-sans);"></span>
+        </div>
+        <div style="height:6px;background:#D4C8B8;border-radius:3px;overflow:hidden;position:relative;">
+          <div id="xp-bar" style="height:100%;background:linear-gradient(90deg,#E07A98,#B4A5D4);border-radius:3px;transition:width .6s cubic-bezier(.34,1.56,.64,1);width:0%;"></div>
+        </div>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;padding:10px 16px 0;">
+      <div style="flex:1;background:white;border-radius:14px;border:1px solid #EDD8C6;padding:9px 6px;text-align:center;"><div id="squad-count" style="font-size:18px;font-weight:500;color:#E07A98;font-family:var(--font-sans);">3</div><div style="font-size:8px;letter-spacing:.5px;color:#C4A090;font-family:var(--font-sans);">CHARS</div></div>
+      <div style="flex:1;background:white;border-radius:14px;border:1px solid #EDD8C6;padding:9px 6px;text-align:center;"><div id="badge-count" style="font-size:18px;font-weight:500;color:#8BAE78;font-family:var(--font-sans);">12</div><div style="font-size:8px;letter-spacing:.5px;color:#C4A090;font-family:var(--font-sans);">BADGES</div></div>
+      <div style="flex:1;background:white;border-radius:14px;border:1px solid #EDD8C6;padding:9px 6px;text-align:center;"><div id="spark-count" style="font-size:18px;font-weight:500;color:#E8C050;font-family:var(--font-sans);">5</div><div style="font-size:8px;letter-spacing:.5px;color:#C4A090;font-family:var(--font-sans);">SPARKS</div></div>
+      <div style="flex:1;background:white;border-radius:14px;border:1px solid #EDD8C6;padding:9px 6px;text-align:center;"><div id="city-count" style="font-size:18px;font-weight:500;color:#4BBFAC;font-family:var(--font-sans);">0</div><div style="font-size:8px;letter-spacing:.5px;color:#C4A090;font-family:var(--font-sans);">PLACES</div></div>
+    </div>
+    <div style="margin:10px 16px 0;background:white;border-radius:18px;border:1px solid #EDD8C6;overflow:hidden;">
+      <div style="background:#F5E8DC;padding:7px 14px;display:flex;align-items:center;gap:6px;"><span style="font-size:9px;letter-spacing:1.5px;font-weight:500;color:#B8700A;font-family:var(--font-sans);">⭐ TODAY'S CHALLENGE</span><span id="chal-timer" style="margin-left:auto;font-size:10px;color:#C4A090;font-family:var(--font-sans);">23h left</span></div>
+      <div style="padding:10px 14px;"><div style="font-size:13px;font-weight:500;color:#3A2820;font-family:var(--font-sans);line-height:1.35;margin-bottom:4px;">Design an outfit for a winter mountain explorer</div><div style="display:flex;align-items:center;gap:6px;"><div style="background:#FAE8EE;border-radius:8px;padding:3px 8px;border:1px solid #F0C0D0;"><span style="font-size:9px;font-weight:500;color:#E07A98;font-family:var(--font-sans);">+Explorer cape</span></div><div onclick="goTo('atelier')" style="margin-left:auto;background:#E07A98;color:white;border-radius:10px;padding:6px 14px;font-size:11px;font-weight:500;cursor:pointer;font-family:var(--font-sans);">Accept ✦</div></div></div>
+    </div>
+    <div style="padding:10px 16px 0;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;"><span style="font-size:13px;font-weight:500;color:#3A2820;font-family:var(--font-sans);">My squad</span><span onclick="goTo('atelier')" style="font-size:11px;color:#E07A98;cursor:pointer;font-family:var(--font-sans);">+ New →</span></div>
+      <div id="squad-row" style="display:flex;gap:10px;overflow-x:auto;padding-bottom:6px;"></div>
+    </div>
+    <div style="margin:10px 16px 14px;display:flex;gap:10px;">
+      <div onclick="goTo('wheel')" style="flex:1;background:#FAE8EE;border-radius:14px;border:1px solid #F0C0D0;padding:11px;text-align:center;cursor:pointer;"><div style="font-size:20px;margin-bottom:3px;">🎰</div><div style="font-size:10px;font-weight:500;color:#E07A98;font-family:var(--font-sans);">Spin Wheel</div></div>
+      <div onclick="goTo('art')" style="flex:1;background:#E4F0DA;border-radius:14px;border:1px solid #B8D8A0;padding:11px;text-align:center;cursor:pointer;"><div style="font-size:20px;margin-bottom:3px;">🎨</div><div style="font-size:10px;font-weight:500;color:#4A8A32;font-family:var(--font-sans);">Art Corner</div></div>
+      <div onclick="goTo('wheel')" style="flex:1;background:#C8EDE8;border-radius:14px;border:1px solid #7ACCC0;padding:11px;text-align:center;cursor:pointer;"><div style="font-size:20px;margin-bottom:3px;">🗺️</div><div style="font-size:10px;font-weight:500;color:#0A4A40;font-family:var(--font-sans);">Spark City</div></div>
+    </div>
+  </div>
+
+  <!-- ATELIER -->
+  <div id="s-atelier" style="position:absolute;inset:0;overflow-y:auto;display:none;">
+    <div style="background:#EDE1D3;padding:14px 20px 12px;display:flex;align-items:flex-start;justify-content:space-between;">
+      <div><div style="font-size:9px;letter-spacing:2px;color:#C4A090;font-family:var(--font-sans);">DESIGN STUDIO</div><div style="font-size:22px;font-weight:500;color:#3A2820;font-family:var(--font-sans);">Character atelier</div></div>
+      <div id="save-btn" onclick="saveChar()" style="background:#E07A98;color:white;border-radius:12px;padding:8px 14px;font-size:11px;font-weight:500;cursor:pointer;font-family:var(--font-sans);margin-top:4px;">Save ✦</div>
+    </div>
+    <div style="display:flex;padding:12px 14px 0;gap:6px;">
+      <div style="width:148px;flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:4px;">
+        <div id="char-wrap" style="will-change:transform;cursor:pointer;" onclick="charTap()">
+          <svg id="char-svg" width="130" height="208" viewBox="0 0 130 208" style="transform-origin:50% 82%;display:block;">
+            <ellipse cx="65" cy="46" rx="36" ry="40" id="hair-back" fill="#6B3A2A"/>
+            <path d="M31 56 Q18 108 22 152" stroke="#6B3A2A" stroke-width="16" stroke-linecap="round" fill="none" id="hair-left"/>
+            <path d="M99 56 Q112 108 108 152" stroke="#6B3A2A" stroke-width="16" stroke-linecap="round" fill="none" id="hair-right"/>
+            <ellipse cx="65" cy="54" rx="28" ry="32" fill="#FDBCB4"/>
+            <path d="M39 44 Q47 22 65 20 Q83 22 91 44" id="hair-bangs" fill="#6B3A2A"/>
+            <ellipse id="eye-left" cx="54" cy="54" rx="5" ry="6.5" fill="#3A2820"/>
+            <circle id="eye-left-shine" cx="56" cy="51" r="2" fill="white"/>
+            <ellipse id="eye-right" cx="76" cy="54" rx="5" ry="6.5" fill="#3A2820"/>
+            <circle id="eye-right-shine" cx="78" cy="51" r="2" fill="white"/>
+            <line x1="49" y1="47" x2="47" y2="44" stroke="#3A2820" stroke-width="1.5" stroke-linecap="round"/>
+            <line x1="54" y1="46" x2="54" y2="43" stroke="#3A2820" stroke-width="1.5" stroke-linecap="round"/>
+            <line x1="71" y1="47" x2="69" y2="44" stroke="#3A2820" stroke-width="1.5" stroke-linecap="round"/>
+            <line x1="76" y1="46" x2="76" y2="43" stroke="#3A2820" stroke-width="1.5" stroke-linecap="round"/>
+            <ellipse cx="44" cy="65" rx="9" ry="5.5" fill="#F5A0A0" opacity="0.35"/>
+            <ellipse cx="86" cy="65" rx="9" ry="5.5" fill="#F5A0A0" opacity="0.35"/>
+            <path d="M55 72 Q65 81 75 72" fill="none" stroke="#D4706A" stroke-width="2" stroke-linecap="round"/>
+            <path d="M55 72 Q60 68 65 71 Q70 68 75 72" fill="#E07A98" opacity="0.8"/>
+            <rect x="57" y="84" width="16" height="13" rx="6" fill="#FDBCB4"/>
+            <path d="M35 98 Q49 88 57 88 Q65 96 73 88 Q81 88 95 98" id="dress-top" fill="#E07A98"/>
+            <path d="M28 106 L102 106 Q104 165 65 175 Q26 165 28 106 Z" id="dress-body" fill="#E07A98"/>
+            <path d="M30 136 Q65 153 100 136 Q100 169 65 175 Q30 169 30 136 Z" id="dress-overlay" fill="#F5B8CC" opacity="0.5"/>
+            <path d="M30 108 Q16 126 18 151" stroke="#FDBCB4" stroke-width="13" stroke-linecap="round" fill="none"/>
+            <path d="M100 108 Q114 126 112 151" stroke="#FDBCB4" stroke-width="13" stroke-linecap="round" fill="none"/>
+            <circle cx="18" cy="152" r="7" fill="#FDBCB4"/><circle cx="112" cy="152" r="7" fill="#FDBCB4"/>
+            <rect x="43" y="173" width="19" height="42" rx="9.5" fill="#E8D5C4"/>
+            <rect x="67" y="173" width="19" height="42" rx="9.5" fill="#E8D5C4"/>
+            <ellipse cx="52.5" cy="215" rx="14" ry="6.5" id="shoe-left" fill="#4BBFAC"/>
+            <ellipse cx="76.5" cy="215" rx="14" ry="6.5" id="shoe-right" fill="#4BBFAC"/>
+          </svg>
+        </div>
+        <div id="char-name-display" style="font-size:12px;font-weight:500;color:#3A2820;font-family:var(--font-sans);">Nova</div>
+        <div id="char-pers-display" style="font-size:9px;color:#C4A090;font-family:var(--font-sans);">tap me! ✦</div>
+      </div>
+      <div style="flex:1;display:flex;flex-direction:column;gap:5px;padding-top:2px;">
+        <div style="font-size:8px;letter-spacing:1px;color:#C4A090;font-family:var(--font-sans);margin-bottom:2px;">STYLE</div>
+        <div onclick="selectStyle('everyday')" id="pill-everyday" style="padding:7px 11px;border-radius:10px;background:#E07A98;cursor:pointer;display:flex;align-items:center;justify-content:space-between;"><span style="font-size:12px;font-weight:500;color:white;font-family:var(--font-sans);">Everyday</span><div class="adot" style="width:5px;height:5px;border-radius:50%;background:white;opacity:.8;flex-shrink:0;"></div></div>
+        <div onclick="selectStyle('magical')" id="pill-magical" style="padding:7px 11px;border-radius:10px;background:#F5EAE0;cursor:pointer;"><span style="font-size:12px;font-weight:500;color:#9A7060;font-family:var(--font-sans);">Magical</span></div>
+        <div onclick="selectStyle('streetwear')" id="pill-streetwear" style="padding:7px 11px;border-radius:10px;background:#F5EAE0;cursor:pointer;"><span style="font-size:12px;font-weight:500;color:#9A7060;font-family:var(--font-sans);">Streetwear</span></div>
+        <div onclick="selectStyle('builder')" id="pill-builder" style="padding:7px 11px;border-radius:10px;background:#F5EAE0;cursor:pointer;"><span style="font-size:12px;font-weight:500;color:#9A7060;font-family:var(--font-sans);">Builder</span></div>
+        <div onclick="selectStyle('cozy')" id="pill-cozy" style="padding:7px 11px;border-radius:10px;background:#F5EAE0;cursor:pointer;"><span style="font-size:12px;font-weight:500;color:#9A7060;font-family:var(--font-sans);">Cozy</span></div>
+        <div onclick="selectStyle('explorer')" id="pill-explorer" style="padding:7px 11px;border-radius:10px;background:#F5EAE0;cursor:pointer;"><span style="font-size:12px;font-weight:500;color:#9A7060;font-family:var(--font-sans);">Explorer</span></div>
+      </div>
+    </div>
+    <div style="height:1px;background:#EDD8C6;margin:10px 16px 8px;"></div>
+    <div style="padding:0 16px 8px;"><div style="font-size:8px;letter-spacing:1px;color:#C4A090;font-family:var(--font-sans);margin-bottom:6px;">HAIR</div>
+      <div style="display:flex;gap:9px;">
+        <div onclick="setHair('#6B3A2A')" data-hc="#6B3A2A" style="width:26px;height:26px;border-radius:50%;background:#6B3A2A;cursor:pointer;border:2.5px solid #3A2820;transition:transform .15s;"></div>
+        <div onclick="setHair('#1A1010')" data-hc="#1A1010" style="width:26px;height:26px;border-radius:50%;background:#1A1010;cursor:pointer;border:2.5px solid transparent;transition:transform .15s;"></div>
+        <div onclick="setHair('#D4A840')" data-hc="#D4A840" style="width:26px;height:26px;border-radius:50%;background:#D4A840;cursor:pointer;border:2.5px solid transparent;transition:transform .15s;"></div>
+        <div onclick="setHair('#C85020')" data-hc="#C85020" style="width:26px;height:26px;border-radius:50%;background:#C85020;cursor:pointer;border:2.5px solid transparent;transition:transform .15s;"></div>
+        <div onclick="setHair('#E878B0')" data-hc="#E878B0" style="width:26px;height:26px;border-radius:50%;background:#E878B0;cursor:pointer;border:2.5px solid transparent;transition:transform .15s;"></div>
+        <div onclick="setHair('#B0B0C0')" data-hc="#B0B0C0" style="width:26px;height:26px;border-radius:50%;background:#B0B0C0;cursor:pointer;border:2.5px solid transparent;transition:transform .15s;"></div>
+      </div>
+    </div>
+    <div style="padding:0 16px 8px;"><div style="font-size:8px;letter-spacing:1px;color:#C4A090;font-family:var(--font-sans);margin-bottom:6px;">OUTFIT</div>
+      <div style="display:flex;gap:9px;flex-wrap:wrap;">
+        <div onclick="setOutfit('#E07A98')" data-oc="#E07A98" style="width:26px;height:26px;border-radius:50%;background:#E07A98;cursor:pointer;border:2.5px solid #3A2820;transition:transform .15s;"></div>
+        <div onclick="setOutfit('#B4A5D4')" data-oc="#B4A5D4" style="width:26px;height:26px;border-radius:50%;background:#B4A5D4;cursor:pointer;border:2.5px solid transparent;transition:transform .15s;"></div>
+        <div onclick="setOutfit('#8BAE78')" data-oc="#8BAE78" style="width:26px;height:26px;border-radius:50%;background:#8BAE78;cursor:pointer;border:2.5px solid transparent;transition:transform .15s;"></div>
+        <div onclick="setOutfit('#4BBFAC')" data-oc="#4BBFAC" style="width:26px;height:26px;border-radius:50%;background:#4BBFAC;cursor:pointer;border:2.5px solid transparent;transition:transform .15s;"></div>
+        <div onclick="setOutfit('#E8C050')" data-oc="#E8C050" style="width:26px;height:26px;border-radius:50%;background:#E8C050;cursor:pointer;border:2.5px solid transparent;transition:transform .15s;"></div>
+        <div onclick="setOutfit('#E87850')" data-oc="#E87850" style="width:26px;height:26px;border-radius:50%;background:#E87850;cursor:pointer;border:2.5px solid transparent;transition:transform .15s;"></div>
+      </div>
+    </div>
+    <div style="padding:0 16px 14px;"><div style="font-size:8px;letter-spacing:1px;color:#C4A090;font-family:var(--font-sans);margin-bottom:6px;">WARDROBE</div><div id="wardrobe-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;"></div></div>
+  </div>
+
+  <!-- SQUAD SCREEN -->
+  <div id="s-squad" style="position:absolute;inset:0;overflow-y:auto;display:none;">
+    <div style="background:#EDE1D3;padding:14px 20px 14px;display:flex;align-items:baseline;justify-content:space-between;">
+      <div><div style="font-size:9px;letter-spacing:2px;color:#C4A090;font-family:var(--font-sans);">COLLECTION</div><div style="font-size:22px;font-weight:500;color:#3A2820;font-family:var(--font-sans);">My squad</div></div>
+      <div id="squad-count-label" style="font-size:12px;color:#9A7060;font-family:var(--font-sans);">3 of 24</div>
+    </div>
+    <!-- Live Room Diorama -->
+    <div style="margin:12px 16px 0;position:relative;height:150px;background:linear-gradient(160deg,#EDE1D3,#DDD0C0);border-radius:16px;overflow:hidden;border:1.5px solid #EDD8C6;">
+      <div style="position:absolute;bottom:0;left:0;right:0;height:42px;background:linear-gradient(180deg,#C4A888,#B49070);"></div>
+      <div style="position:absolute;bottom:42px;left:0;right:0;height:3px;background:#A88060;"></div>
+      <div style="position:absolute;top:12px;right:14px;width:52px;height:58px;background:linear-gradient(180deg,#A8D8F0,#D8EEF8);border:3px solid #D4C0A0;border-radius:3px;">
+        <div style="position:absolute;top:0;bottom:0;left:50%;width:1.5px;background:#D4C0A0;"></div>
+        <div style="position:absolute;left:0;right:0;top:50%;height:1.5px;background:#D4C0A0;"></div>
+      </div>
+      <div style="position:absolute;bottom:46px;left:8px;font-size:24px;">🛋️</div>
+      <div style="position:absolute;bottom:46px;left:56px;font-size:18px;">🌿</div>
+      <div id="room-chars" style="position:absolute;bottom:38px;right:80px;display:flex;gap:6px;"></div>
+      <div style="position:absolute;bottom:6px;right:10px;font-size:8px;color:#A08060;font-family:var(--font-sans);font-weight:500;letter-spacing:.5px;opacity:.7;">MY STUDIO</div>
+    </div>
+    <div id="squad-grid" style="padding:10px 16px 16px;display:grid;grid-template-columns:1fr 1fr;gap:10px;"></div>
+  </div>
+
+  <!-- WHEEL + CITY -->
+  <div id="s-wheel" style="position:absolute;inset:0;overflow-y:auto;display:none;">
+    <div style="background:#EDE1D3;padding:14px 20px 12px;"><div style="font-size:9px;letter-spacing:2px;color:#C4A090;font-family:var(--font-sans);">DAILY REWARD</div><div style="font-size:22px;font-weight:500;color:#3A2820;font-family:var(--font-sans);">Spark wheel</div></div>
+    <div style="display:flex;flex-direction:column;align-items:center;padding:10px 0 4px;">
+      <canvas id="wcanvas" width="310" height="290" style="display:block;"></canvas>
+      <div id="spin-btn" onclick="startSpin()" style="margin-top:8px;background:#E07A98;color:white;border-radius:16px;padding:11px 36px;font-size:14px;font-weight:500;cursor:pointer;font-family:var(--font-sans);box-shadow:0 4px 16px rgba(224,122,152,.4);">SPIN ✦</div>
+      <div style="display:flex;gap:10px;margin-top:8px;">
+        <div style="display:flex;align-items:center;gap:3px;"><div style="width:7px;height:7px;border-radius:2px;background:#C4A090;"></div><span style="font-size:8px;color:#C4A090;font-family:var(--font-sans);">COMMON</span></div>
+        <div style="display:flex;align-items:center;gap:3px;"><div style="width:7px;height:7px;border-radius:2px;background:#4BBFAC;"></div><span style="font-size:8px;color:#4BBFAC;font-family:var(--font-sans);">RARE</span></div>
+        <div style="display:flex;align-items:center;gap:3px;"><div style="width:7px;height:7px;border-radius:2px;background:#B4A5D4;"></div><span style="font-size:8px;color:#B4A5D4;font-family:var(--font-sans);">ULTRA</span></div>
+        <div style="display:flex;align-items:center;gap:3px;"><div style="width:7px;height:7px;border-radius:2px;background:#E8C050;"></div><span style="font-size:8px;color:#E8A000;font-family:var(--font-sans);">LEGEND</span></div>
+      </div>
+    </div>
+    <div style="height:1px;background:#EDD8C6;margin:8px 16px;"></div>
+    <div style="padding:0 16px 6px;"><div style="font-size:9px;letter-spacing:2px;color:#C4A090;font-family:var(--font-sans);margin-bottom:8px;">SPARK CITY — TAP TO PLAY</div>
+      <svg id="city-map" viewBox="0 0 310 190" style="width:100%;border-radius:14px;border:1px solid #EDD8C6;">
+        <rect width="310" height="190" rx="10" fill="#C8E8B0"/>
+        <rect x="115" y="0" width="80" height="190" fill="#EAE4D8"/>
+        <rect x="0" y="77" width="310" height="36" fill="#EAE4D8"/>
+        <rect x="8" y="8" width="102" height="64" rx="9" fill="#FAE8EE" stroke="#E07A98" stroke-width="2" id="city-0" onclick="cityTap(0)" style="cursor:pointer;"/>
+        <text x="59" y="36" text-anchor="middle" fill="#D4607E" font-size="9" font-weight="bold" font-family="sans-serif">🧵 Fabric</text>
+        <text x="59" y="50" text-anchor="middle" fill="#D4607E" font-size="9" font-weight="bold" font-family="sans-serif">Market</text>
+        <rect x="200" y="8" width="102" height="64" rx="9" fill="#E4F0DA" stroke="#8BAE78" stroke-width="2" id="city-1" onclick="cityTap(1)" style="cursor:pointer;"/>
+        <text x="251" y="36" text-anchor="middle" fill="#3A7A28" font-size="9" font-weight="bold" font-family="sans-serif">🌿 Rooftop</text>
+        <text x="251" y="50" text-anchor="middle" fill="#3A7A28" font-size="9" font-weight="bold" font-family="sans-serif">Garden</text>
+        <rect x="8" y="118" width="102" height="64" rx="9" fill="#EDE8F8" stroke="#B4A5D4" stroke-width="2" id="city-2" onclick="cityTap(2)" style="cursor:pointer;"/>
+        <text x="59" y="147" text-anchor="middle" fill="#6050A0" font-size="9" font-weight="bold" font-family="sans-serif">⚙️ Maker's</text>
+        <text x="59" y="161" text-anchor="middle" fill="#6050A0" font-size="9" font-weight="bold" font-family="sans-serif">Workshop</text>
+        <rect x="200" y="118" width="102" height="64" rx="9" fill="#C8EDE8" stroke="#4BBFAC" stroke-width="2" id="city-3" onclick="cityTap(3)" style="cursor:pointer;"/>
+        <text x="251" y="147" text-anchor="middle" fill="#0A6050" font-size="9" font-weight="bold" font-family="sans-serif">🖼️ Art</text>
+        <text x="251" y="161" text-anchor="middle" fill="#0A6050" font-size="9" font-weight="bold" font-family="sans-serif">Museum</text>
+        <rect x="8" y="77" width="102" height="36" rx="7" fill="#FDF0C0" stroke="#E8C050" stroke-width="2" id="city-4" onclick="cityTap(4)" style="cursor:pointer;"/>
+        <text x="59" y="99" text-anchor="middle" fill="#8A6000" font-size="9" font-weight="bold" font-family="sans-serif">👗 Vintage Boutique</text>
+        <rect x="128" y="68" width="54" height="54" rx="9" fill="#FAE0D0" stroke="#E87850" stroke-width="2.5" id="city-5" onclick="cityTap(5)" style="cursor:pointer;"/>
+        <text x="155" y="91" text-anchor="middle" fill="#A84020" font-size="8" font-weight="bold" font-family="sans-serif">✦ Design</text>
+        <text x="155" y="103" text-anchor="middle" fill="#A84020" font-size="8" font-weight="bold" font-family="sans-serif">Academy</text>
+        <text id="cs-0" x="96" y="24" font-size="13" opacity="0" style="transition:opacity .4s;">⭐</text>
+        <text id="cs-1" x="288" y="24" font-size="13" opacity="0" style="transition:opacity .4s;">⭐</text>
+        <text id="cs-2" x="96" y="178" font-size="13" opacity="0" style="transition:opacity .4s;">⭐</text>
+        <text id="cs-3" x="288" y="178" font-size="13" opacity="0" style="transition:opacity .4s;">⭐</text>
+        <text id="cs-4" x="96" y="93" font-size="13" opacity="0" style="transition:opacity .4s;">⭐</text>
+        <text id="cs-5" x="168" y="74" font-size="13" opacity="0" style="transition:opacity .4s;">⭐</text>
+      </svg>
+      <div style="margin-top:6px;height:5px;background:#EDD8C6;border-radius:3px;overflow:hidden;"><div id="city-prog" style="height:100%;background:#4BBFAC;border-radius:3px;width:0%;transition:width .5s cubic-bezier(.34,1.56,.64,1);"></div></div>
+      <div id="city-lbl" style="font-size:10px;color:#9A7060;font-family:var(--font-sans);margin-top:4px;margin-bottom:16px;">0 of 6 locations explored</div>
+    </div>
+  </div>
+
+  <!-- ART -->
+  <div id="s-art" style="position:absolute;inset:0;display:none;flex-direction:column;">
+    <div style="background:#EDE1D3;padding:10px 20px 0;flex-shrink:0;">
+      <div style="font-size:9px;letter-spacing:2px;color:#C4A090;font-family:var(--font-sans);">CREATIVE SPACE</div>
+      <div style="display:flex;gap:0;margin-top:6px;">
+        <div id="art-tab-draw" onclick="artTab('draw')" style="flex:1;padding:7px;text-align:center;font-size:11px;font-weight:500;font-family:var(--font-sans);cursor:pointer;color:#E07A98;border-bottom:2.5px solid #E07A98;">✏️ Draw</div>
+        <div id="art-tab-room" onclick="artTab('room')" style="flex:1;padding:7px;text-align:center;font-size:11px;font-weight:500;font-family:var(--font-sans);cursor:pointer;color:#C4A090;border-bottom:2.5px solid transparent;">🛋️ My Room</div>
+      </div>
+    </div>
+    <div id="art-draw" style="flex:1;display:flex;flex-direction:column;min-height:0;">
+      <div style="flex:1;position:relative;overflow:hidden;background:#FDF8F0;"><canvas id="art-canvas" style="position:absolute;inset:0;touch-action:none;"></canvas></div>
+      <div style="background:white;border-top:1px solid #EDD8C6;padding:8px 14px 10px;flex-shrink:0;">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:7px;">
+          <div id="t-pencil" onclick="setTool('pencil')" style="width:34px;height:34px;border-radius:10px;background:#E07A98;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:15px;">✏️</div>
+          <div id="t-marker" onclick="setTool('marker')" style="width:34px;height:34px;border-radius:10px;background:#F5EAE0;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:15px;">🖌️</div>
+          <div id="t-glitter" onclick="setTool('glitter')" style="width:34px;height:34px;border-radius:10px;background:#F5EAE0;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:15px;">✨</div>
+          <div id="t-eraser" onclick="setTool('eraser')" style="width:34px;height:34px;border-radius:10px;background:#F5EAE0;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:15px;">🧹</div>
+          <div style="flex:1;"></div>
+          <div onclick="undoArt()" style="width:34px;height:34px;border-radius:10px;background:#F5EAE0;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;">↩</div>
+          <div onclick="clearArt()" style="width:34px;height:34px;border-radius:10px;background:#F5EAE0;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;">🗑️</div>
+        </div>
+        <div style="display:flex;gap:7px;">
+          <div onclick="setArtColor('#E07A98')" data-ac="#E07A98" style="width:27px;height:27px;border-radius:50%;background:#E07A98;cursor:pointer;border:2.5px solid #3A2820;transition:transform .12s;"></div>
+          <div onclick="setArtColor('#B4A5D4')" data-ac="#B4A5D4" style="width:27px;height:27px;border-radius:50%;background:#B4A5D4;cursor:pointer;border:2.5px solid transparent;transition:transform .12s;"></div>
+          <div onclick="setArtColor('#8BAE78')" data-ac="#8BAE78" style="width:27px;height:27px;border-radius:50%;background:#8BAE78;cursor:pointer;border:2.5px solid transparent;transition:transform .12s;"></div>
+          <div onclick="setArtColor('#4BBFAC')" data-ac="#4BBFAC" style="width:27px;height:27px;border-radius:50%;background:#4BBFAC;cursor:pointer;border:2.5px solid transparent;transition:transform .12s;"></div>
+          <div onclick="setArtColor('#E8C050')" data-ac="#E8C050" style="width:27px;height:27px;border-radius:50%;background:#E8C050;cursor:pointer;border:2.5px solid transparent;transition:transform .12s;"></div>
+          <div onclick="setArtColor('#E87850')" data-ac="#E87850" style="width:27px;height:27px;border-radius:50%;background:#E87850;cursor:pointer;border:2.5px solid transparent;transition:transform .12s;"></div>
+          <div onclick="setArtColor('#3A2820')" data-ac="#3A2820" style="width:27px;height:27px;border-radius:50%;background:#3A2820;cursor:pointer;border:2.5px solid transparent;transition:transform .12s;"></div>
+          <div onclick="setArtColor('#FBF5EA')" data-ac="#FBF5EA" style="width:27px;height:27px;border-radius:50%;background:#FBF5EA;cursor:pointer;border:2.5px solid #EDD8C6;transition:transform .12s;"></div>
+        </div>
+      </div>
+    </div>
+    <div id="art-room" style="flex:1;display:none;flex-direction:column;overflow-y:auto;padding:10px 14px 14px;">
+      <div id="room-bg" onclick="roomTap(event)" style="position:relative;height:220px;border-radius:16px;overflow:hidden;cursor:crosshair;border:2px solid #EDD8C6;flex-shrink:0;user-select:none;">
+        <div style="position:absolute;inset:0 0 58px 0;background:linear-gradient(160deg,#EDE1D3,#E4D4C0);"></div>
+        <div style="position:absolute;bottom:0;left:0;right:0;height:58px;background:linear-gradient(180deg,#C8A888,#B49070);"></div>
+        <div style="position:absolute;bottom:58px;left:0;right:0;height:5px;background:#A88060;"></div>
+        <div style="position:absolute;top:16px;right:14px;width:62px;height:70px;background:linear-gradient(180deg,#A8D8F0,#D8EEF8);border:4px solid #D4C0A0;border-radius:3px;">
+          <div style="position:absolute;top:0;bottom:0;left:50%;width:2px;background:#D4C0A0;"></div>
+          <div style="position:absolute;left:0;right:0;top:50%;height:2px;background:#D4C0A0;"></div>
+        </div>
+        <div style="position:absolute;bottom:62px;left:8px;font-size:9px;color:#A08060;font-family:var(--font-sans);font-weight:500;opacity:.6;">Select furniture below · tap to place · double-tap to remove</div>
+        <div id="room-items"></div>
+      </div>
+      <div style="font-size:8px;letter-spacing:1.5px;color:#C4A090;font-family:var(--font-sans);margin:10px 0 6px;">FURNITURE TRAY</div>
+      <div id="room-tray" style="display:flex;gap:7px;flex-wrap:wrap;"></div>
+    </div>
+  </div>
+
+  <!-- JOURNAL -->
+  <div id="s-journal" style="position:absolute;inset:0;overflow-y:auto;display:none;">
+    <div style="background:#3A2820;padding:18px 20px 16px;">
+      <div style="font-size:9px;letter-spacing:2px;color:#7A5C50;font-family:var(--font-sans);margin-bottom:4px;">CRAFT</div>
+      <div style="font-size:24px;font-weight:500;color:#FBF5EA;font-family:var(--font-sans);">My journal</div>
+      <div style="font-size:11px;color:#9A7060;font-family:var(--font-sans);margin-top:4px;" id="journal-stats">12 badges · 7 day streak · Creator Lv 1</div>
+      <div style="margin-top:10px;height:4px;background:#5A3828;border-radius:2px;overflow:hidden;"><div id="xp-bar-j" style="height:100%;background:#E8C050;border-radius:2px;width:0%;transition:width .6s;"></div></div>
+    </div>
+    <div style="padding:12px 16px 0;"><div style="font-size:8px;letter-spacing:1px;color:#C4A090;font-family:var(--font-sans);margin-bottom:10px;">BADGES EARNED</div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;">
+        <div style="text-align:center;"><div style="width:52px;height:52px;border-radius:14px;background:#4BBFAC;display:flex;align-items:center;justify-content:center;margin:0 auto 4px;font-size:22px;">⭐</div><div style="font-size:9px;font-weight:500;color:#3A2820;font-family:var(--font-sans);">Maker</div></div>
+        <div style="text-align:center;"><div style="width:52px;height:52px;border-radius:14px;background:#E07A98;display:flex;align-items:center;justify-content:center;margin:0 auto 4px;font-size:22px;">🌸</div><div style="font-size:9px;font-weight:500;color:#3A2820;font-family:var(--font-sans);">Stylist</div></div>
+        <div style="text-align:center;"><div style="width:52px;height:52px;border-radius:14px;background:#B4A5D4;display:flex;align-items:center;justify-content:center;margin:0 auto 4px;font-size:22px;">💫</div><div style="font-size:9px;font-weight:500;color:#3A2820;font-family:var(--font-sans);">Dreamer</div></div>
+        <div style="text-align:center;"><div style="width:52px;height:52px;border-radius:14px;background:#8BAE78;display:flex;align-items:center;justify-content:center;margin:0 auto 4px;font-size:22px;">🗺️</div><div style="font-size:9px;font-weight:500;color:#3A2820;font-family:var(--font-sans);">Explorer</div></div>
+        <div style="text-align:center;" onclick="goTo('wheel')"><div style="width:52px;height:52px;border-radius:14px;background:#E8C050;display:flex;align-items:center;justify-content:center;margin:0 auto 4px;font-size:22px;cursor:pointer;">💡</div><div style="font-size:9px;font-weight:500;color:#3A2820;font-family:var(--font-sans);">Inventor</div></div>
+        <div onclick="goTo('wheel')" style="text-align:center;cursor:pointer;"><div style="width:52px;height:52px;border-radius:14px;background:#F0E8E0;border:1.5px dashed #EDD8C6;display:flex;align-items:center;justify-content:center;margin:0 auto 4px;font-size:22px;">🔒</div><div style="font-size:9px;color:#C4A090;font-family:var(--font-sans);">Artist</div></div>
+        <div onclick="goTo('wheel')" style="text-align:center;cursor:pointer;"><div style="width:52px;height:52px;border-radius:14px;background:#F0E8E0;border:1.5px dashed #EDD8C6;display:flex;align-items:center;justify-content:center;margin:0 auto 4px;font-size:22px;">🔒</div><div style="font-size:9px;color:#C4A090;font-family:var(--font-sans);">Legend</div></div>
+        <div onclick="goTo('wheel')" style="text-align:center;cursor:pointer;"><div style="width:52px;height:52px;border-radius:14px;background:#F0E8E0;border:1.5px dashed #EDD8C6;display:flex;align-items:center;justify-content:center;margin:0 auto 4px;font-size:22px;">🔒</div><div style="font-size:9px;color:#C4A090;font-family:var(--font-sans);">Master</div></div>
+      </div>
+    </div>
+    <div style="padding:12px 16px 0;">
+      <div style="font-size:8px;letter-spacing:1px;color:#C4A090;font-family:var(--font-sans);margin-bottom:8px;">COMPLETED CHALLENGES</div>
+      <div id="challenge-list" style="display:flex;flex-direction:column;gap:8px;"></div>
+      <div onclick="addChallenge()" style="margin-top:8px;border:1.5px dashed #EDD8C6;border-radius:12px;padding:10px;text-align:center;cursor:pointer;font-size:11px;color:#C4A090;font-family:var(--font-sans);">+ Log today's challenge</div>
+    </div>
+    <div style="padding:12px 16px 20px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;"><div style="font-size:8px;letter-spacing:1px;color:#C4A090;font-family:var(--font-sans);">MY CREATIVE NOTES</div><div style="font-size:9px;color:#C4A090;font-family:var(--font-sans);">tap to edit ✦</div></div>
+      <div id="journal-note" contenteditable="true" spellcheck="false" style="background:#FDF8F0;border-radius:14px;border:1px solid #EDD8C6;padding:14px;min-height:84px;font-size:12px;color:#3A2820;font-family:var(--font-sans);line-height:20px;outline:none;background-image:repeating-linear-gradient(transparent,transparent 19px,#EDD8C6 19px,#EDD8C6 20px);background-size:100% 20px;background-position:0 14px;" oninput="giveXP(5,'✏️ Note saved')">I want to make a character who builds robots and loves space travel... ✨</div>
+    </div>
+  </div>
+</div>
+
+<!-- NAV -->
+<div id="bnav" style="height:72px;background:white;border-top:1px solid #EDD8C6;display:flex;align-items:center;justify-content:space-around;padding:0 4px 6px;flex-shrink:0;position:relative;">
+  <div id="nav-ind" style="position:absolute;top:7px;height:3px;background:#E07A98;border-radius:2px;width:32px;pointer-events:none;transition:left .28s cubic-bezier(.34,1.56,.64,1);"></div>
+  <div onclick="goTo('home')" id="n-home" class="nt" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;padding:4px;border-radius:10px;">
+    <svg width="18" height="18" viewBox="0 0 24 24"><path d="M3 11L12 3L21 11V21H16V16H8V21H3V11Z" fill="#C4A090"/></svg>
+    <span style="font-size:8px;font-weight:500;color:#C4A090;font-family:var(--font-sans);">Home</span>
+  </div>
+  <div onclick="goTo('atelier')" id="n-atelier" class="nt" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;padding:4px;border-radius:10px;">
+    <svg width="18" height="18" viewBox="0 0 24 24"><path d="M12 2C8 2 5 5 5 9C5 13 7.5 15.6 11 16.4V20H13V16.4C16.5 15.6 19 13 19 9C19 5 16 2 12 2Z" fill="#C4A090"/><rect x="9.5" y="20" width="5" height="2.5" rx="1.25" fill="#C4A090"/></svg>
+    <span style="font-size:8px;font-weight:500;color:#C4A090;font-family:var(--font-sans);">Atelier</span>
+  </div>
+  <div onclick="goTo('squad')" id="n-squad" class="nt" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;padding:4px;border-radius:10px;">
+    <svg width="18" height="18" viewBox="0 0 24 24"><circle cx="9" cy="9" r="4" fill="#C4A090"/><circle cx="17" cy="8" r="3" fill="#C4A090"/><path d="M2 20C2 16.7 5.1 14 9 14S16 16.7 16 20" fill="#C4A090"/><path d="M17 14C19.5 14 22 16 22 19" stroke="#C4A090" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg>
+    <span style="font-size:8px;font-weight:500;color:#C4A090;font-family:var(--font-sans);">Squad</span>
+  </div>
+  <div onclick="goTo('wheel')" id="n-wheel" class="nt" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;padding:4px;border-radius:10px;">
+    <svg width="18" height="18" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="none" stroke="#C4A090" stroke-width="2"/><line x1="12" y1="2" x2="12" y2="22" stroke="#C4A090" stroke-width="1.5"/><line x1="2" y1="12" x2="22" y2="12" stroke="#C4A090" stroke-width="1.5"/><circle cx="12" cy="12" r="3" fill="#C4A090"/></svg>
+    <span style="font-size:8px;font-weight:500;color:#C4A090;font-family:var(--font-sans);">Play</span>
+  </div>
+  <div onclick="goTo('art')" id="n-art" class="nt" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;padding:4px;border-radius:10px;">
+    <svg width="18" height="18" viewBox="0 0 24 24"><path d="M12 2C6.5 2 2 6.5 2 12C2 17.5 6.5 22 12 22C13.1 22 14 21.1 14 20C14 19 13.5 18.5 13.5 17.5C13.5 16.4 14.4 15.5 15.5 15.5H17C19.8 15.5 22 13.3 22 10.5C22 5.8 17.5 2 12 2Z" fill="none" stroke="#C4A090" stroke-width="2"/><circle cx="6.5" cy="11.5" r="1.5" fill="#C4A090"/><circle cx="10" cy="7.5" r="1.5" fill="#C4A090"/><circle cx="14" cy="7.5" r="1.5" fill="#C4A090"/></svg>
+    <span style="font-size:8px;font-weight:500;color:#C4A090;font-family:var(--font-sans);">Create</span>
+  </div>
+  <div onclick="goTo('journal')" id="n-journal" class="nt" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;padding:4px;border-radius:10px;">
+    <svg width="18" height="18" viewBox="0 0 24 24"><rect x="4" y="2" width="16" height="20" rx="3" fill="none" stroke="#C4A090" stroke-width="2"/><line x1="8" y1="8" x2="16" y2="8" stroke="#C4A090" stroke-width="1.5" stroke-linecap="round"/><line x1="8" y1="12" x2="16" y2="12" stroke="#C4A090" stroke-width="1.5" stroke-linecap="round"/><line x1="8" y1="16" x2="13" y2="16" stroke="#C4A090" stroke-width="1.5" stroke-linecap="round"/></svg>
+    <span style="font-size:8px;font-weight:500;color:#C4A090;font-family:var(--font-sans);">Journal</span>
+  </div>
+</div>
+
+</div></div>
+<div style="font-size:10px;color:var(--color-text-tertiary);font-family:var(--font-sans);padding-top:5px;text-align:center;">
+  Tap door to enter → earn XP on every tap → level up · Squad tab → tap cards
+</div>
+</div>
+
+<script>
+// ─── DATA ───────────────────────────────────────────────────────────
+const SD={everyday:{d:'#E07A98',o:'#F5B8CC',s:'#4BBFAC',cols:['#E07A98','#F5B8CC','#FAD0DC','#E8C050','#FFF'],w:[{n:'Floral top',c:'#FAD0DC'},{n:'Denim skirt',c:'#B0C8E8'},{n:'Sneakers',c:'#F4F4F4'},{n:'Tote bag',c:'#E8D0A0'},{n:'Hair bow',c:'#E07A98'},{n:'Sunglasses',c:'#4A3020'}]},magical:{d:'#B4A5D4',o:'#D0C8EC',s:'#E07A98',cols:['#B4A5D4','#D0C8EC','#E8C050','#FFF','#F0D0FF'],w:[{n:'Star cape',c:'#C8B0E8'},{n:'Moon wand',c:'#E8D060'},{n:'Crown',c:'#E8C050'},{n:'Spell boots',c:'#9070D0'},{n:'Crystal bag',c:'#8060A0'},{n:'Star clips',c:'#F0D0A0'}]},streetwear:{d:'#8BAE78',o:'#B0D090',s:'#2A1A10',cols:['#8BAE78','#B0D090','#4BBFAC','#E4F0DA','#DDD'],w:[{n:'Oversized tee',c:'#E4F0DA'},{n:'Cargo pants',c:'#8BAE78'},{n:'Hi-tops',c:'#EBEBEB'},{n:'Bucket hat',c:'#C4A090'},{n:'Chain bag',c:'#D0D0D0'},{n:'Track jacket',c:'#4BBFAC'}]},builder:{d:'#4BBFAC',o:'#80D8C8',s:'#2A1A10',cols:['#4BBFAC','#80D8C8','#E8C050','#A0D0E8','#FFF'],w:[{n:'Overalls',c:'#4BBFAC'},{n:'Tool belt',c:'#C4A090'},{n:'Safety vest',c:'#E8C050'},{n:'Work boots',c:'#5A3820'},{n:'Goggles',c:'#A0D0E8'},{n:'Wrench',c:'#C0C0C0'}]},cozy:{d:'#E8C050',o:'#F0D080',s:'#B84A2A',cols:['#E8C050','#F0D080','#E08070','#F8EAE0','#FFF'],w:[{n:'Chunky knit',c:'#F0D080'},{n:'Plaid skirt',c:'#E08070'},{n:'Fuzzy socks',c:'#F8EAE0'},{n:'Warm boots',c:'#B84A2A'},{n:'Warm mug',c:'#C8E8D8'},{n:'Beanie',c:'#E8C050'}]},explorer:{d:'#6A5040',o:'#9A7060',s:'#4BBFAC',cols:['#6A5040','#9A7860','#E8C050','#4BBFAC','#DDD'],w:[{n:'Field jacket',c:'#6A5040'},{n:'Cargo shorts',c:'#9A7860'},{n:'Trail boots',c:'#5A3820'},{n:'Compass',c:'#E8C050'},{n:'Backpack',c:'#8A6050'},{n:'Binoculars',c:'#C4A090'}]}};
+const WI=[{n:'Floral Cape',r:0,c:'#F5B8CC',e:'🌸'},{n:'Moon Wand',r:2,c:'#B4A5D4',e:'🌙'},{n:'Star Clips',r:1,c:'#E8D070',e:'⭐'},{n:'Dragon Pin',r:2,c:'#E87850',e:'🔥'},{n:'Cloud Bag',r:0,c:'#C4D8F0',e:'☁️'},{n:'Crystal Crown',r:3,c:'#FFD060',e:'👑'},{n:'Neon Jacket',r:1,c:'#8BAE78',e:'✨'},{n:'Galaxy Boot',r:0,c:'#9080C0',e:'🌌'}];
+const RL=['COMMON','RARE','ULTRA RARE','✦ LEGENDARY'];const RC=['#C4A090','#4BBFAC','#B4A5D4','#E8A000'];
+const cityE=['🧵','🌿','⚙️','🖼️','👗','🎓'];
+const cityRew=['Meadow Dress','Sky Cape','Gear Goggles','Paint Set','Gold Brooch','Diploma Badge'];
+const cityCols=[['#E07A98','#FAE8EE','#FFF'],['#8BAE78','#E4F0DA','#FFF'],['#B4A5D4','#EDE8F8','#FFF'],['#4BBFAC','#C8EDE8','#FFF'],['#E8C050','#FDF0C0','#FFF'],['#E87850','#FAE0D0','#FFF']];
+const GNAME=['Shade Match','Bloom Order','Gear Logic','Color Mix','Style Sort','Complete the Look'];
+
+// ─── XP SYSTEM ─────────────────────────────────────────────────────
+let xp=0,xpLevel=1;const xpPerLevel=[0,100,250,450,700,1000];
+function giveXP(amt,label){
+  xp+=amt;
+  const xt=document.getElementById('xp-toast');
+  if(xt){xt.textContent=`+${amt} XP ${label||''}`;xt.style.opacity='1';clearTimeout(xt._t);xt._t=setTimeout(()=>xt.style.opacity='0',1600);}
+  // Sound chip float
+  spawnNote(label);
+  // Check level up
+  while(xpLevel<xpPerLevel.length-1&&xp>=xpPerLevel[xpLevel]){
+    xpLevel++;levelUp();
+  }
+  updateXPBar();
+}
+function updateXPBar(){
+  const lo=xpPerLevel[xpLevel-1]||0,hi=xpPerLevel[xpLevel]||xpPerLevel[xpPerLevel.length-1];
+  const pct=Math.min(100,((xp-lo)/(hi-lo))*100)||0;
+  const bar=document.getElementById('xp-bar');const barJ=document.getElementById('xp-bar-j');
+  if(bar)bar.style.width=pct+'%';if(barJ)barJ.style.width=pct+'%';
+  const lbl=document.getElementById('lv-label');if(lbl)lbl.textContent=`CREATOR LEVEL ${xpLevel}`;
+  const xlbl=document.getElementById('xp-label');if(xlbl)xlbl.textContent=`${xp-lo}/${hi-lo} XP`;
+  const jlbl=document.getElementById('journal-stats');if(jlbl)jlbl.textContent=`12 badges · 7 day streak · Creator Lv ${xpLevel}`;
+}
+function levelUp(){
+  doFlash();
+  const lbl=document.getElementById('lv-label');
+  if(lbl){lbl.style.animation='none';requestAnimationFrame(()=>{lbl.style.animation='lvlPop .5s cubic-bezier(.34,1.56,.64,1)';});}
+  showToast(`✦ LEVEL UP! Creator Level ${xpLevel}!`,true);
+  if(canvas){burst(canvas.width/2,canvas.height/2,['#E8C050','#FFF','#E07A98','#B4A5D4','#4BBFAC'],60,{spd:7,spr:5,up:5,r1:3,r2:8});rain(['#E8C050','#FFF','#E07A98'],40);}
+}
+
+// ─── SOUND CHIPS ───────────────────────────────────────────────────
+const NOTES=['♪','♫','✦','★','✨'];
+function spawnNote(label){
+  const sa=document.getElementById('screen-area');if(!sa)return;
+  const el=document.createElement('div');
+  el.style.cssText=`position:absolute;right:${14+Math.random()*30}px;top:${80+Math.random()*120}px;font-size:13px;font-weight:500;color:#E8C050;font-family:var(--font-sans);pointer-events:none;z-index:7;animation:noteFloat .9s ease-out forwards;`;
+  el.textContent=NOTES[Math.floor(Math.random()*NOTES.length)];
+  sa.appendChild(el);setTimeout(()=>el.remove(),900);
+}
+
+// ─── PARTICLES ─────────────────────────────────────────────────────
+let pts=[],canvas,ctx;
+function burst(x,y,cols,n,o){o=o||{};for(let i=0;i<n;i++){const a=(Math.PI*2/n)*i+(Math.random()-.5)*.9,sp=(o.spd||4)+Math.random()*(o.spr||3);pts.push({x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp-(o.up||2.5),r:(o.r1||2)+Math.random()*(o.r2||4),c:cols[Math.floor(Math.random()*cols.length)],life:1,d:.017+Math.random()*.013,g:o.g||.13,sh:Math.random()>.5?'c':'r',a:Math.random()*Math.PI*2,sp:(Math.random()-.5)*.15});}}
+function rain(cols,n){if(!canvas)return;for(let i=0;i<n;i++)pts.push({x:Math.random()*canvas.width,y:-16-Math.random()*60,vx:(Math.random()-.5)*1.8,vy:1.8+Math.random()*2.8,r:4+Math.random()*4,c:cols[Math.floor(Math.random()*cols.length)],life:1,d:.007+Math.random()*.007,g:.04,sh:Math.random()>.5?'c':'r',a:Math.random()*Math.PI*2,sp:(Math.random()-.5)*.1});}
+function getCharXY(){const svg=document.getElementById('char-svg');if(!svg||!canvas)return{x:74,y:145};const sr=svg.getBoundingClientRect(),cr=canvas.getBoundingClientRect();return{x:sr.left-cr.left+sr.width/2,y:sr.top-cr.top+sr.height*.55};}
+
+// ─── SPRING / FLASH / BLINK ────────────────────────────────────────
+const spr={x:1,y:1,vx:0,vy:0,on:false};
+function springFire(sx,sy){spr.x=sx;spr.y=sy;spr.vx=0;spr.vy=0;spr.on=true;}
+function doFlash(){const f=document.getElementById('flash');if(!f)return;f.style.transition='opacity .05s';f.style.opacity='.7';setTimeout(()=>{f.style.transition='opacity .4s';f.style.opacity='0';},70);}
+function flutter(){const ov=document.getElementById('dress-overlay');if(!ov)return;ov.style.animation='none';requestAnimationFrame(()=>ov.style.animation='dW .5s ease-out');}
+const BRY=[6.5,2,0,0,2,6.5];
+function doBlink(){BRY.forEach((ry,i)=>{setTimeout(()=>{const el=document.getElementById('eye-left'),er=document.getElementById('eye-right'),sl=document.getElementById('eye-left-shine'),sr=document.getElementById('eye-right-shine');if(el)el.setAttribute('ry',ry);if(er)er.setAttribute('ry',ry);const o=ry<1?'0':ry<3?'4':'1';if(sl)sl.style.opacity=o;if(sr)sr.style.opacity=o;},i*40);});setTimeout(doBlink,3000+Math.random()*2500);}
+function showToast(msg,big=false){const t=document.getElementById('toast');if(!t)return;t.textContent=msg;t.style.fontSize=big?'12px':'11px';t.style.background=big?'#E8C050':'#3A2820';t.style.color=big?'#3A2820':'white';t.style.transition='none';t.style.transform='translateY(-60px)';t.style.opacity='0';requestAnimationFrame(()=>requestAnimationFrame(()=>{t.style.transition='transform .35s cubic-bezier(.34,1.56,.64,1),opacity .25s';t.style.transform='translateY(0)';t.style.opacity='1';}));if(t._tm)clearTimeout(t._tm);t._tm=setTimeout(()=>{t.style.transition='transform .3s,opacity .3s';t.style.transform='translateY(-60px)';t.style.opacity='0';},big?4000:2800);}
+
+// ─── ONBOARDING ────────────────────────────────────────────────────
+function enterStudio(){
+  const ob=document.getElementById('s-onboard');const dl=document.getElementById('door-left');
+  if(dl){dl.style.transition='transform .5s cubic-bezier(.4,0,.2,1)';dl.style.transform='scaleX(0)';}
+  if(canvas){burst(canvas.width/2,canvas.height/2,['#E07A98','#E8C050','#B4A5D4','#4BBFAC','#FFF'],40,{spd:5,spr:4,up:4,r1:3,r2:7});}
+  setTimeout(()=>{
+    if(ob){ob.style.transition='opacity .5s';ob.style.opacity='0';ob.style.pointerEvents='none';}
+    setTimeout(()=>{if(ob)ob.style.display='none';goTo('home');updateGreeting();updateXPBar();}, 500);
+  },600);
+}
+
+// ─── GREETING + CLOCK ──────────────────────────────────────────────
+function updateGreeting(){
+  const h=new Date().getHours();const ct=document.getElementById('clock-time');
+  const now=new Date();if(ct)ct.textContent=now.getHours().toString().padStart(2,'0')+':'+now.getMinutes().toString().padStart(2,'0');
+  const g=document.getElementById('greeting');if(!g)return;
+  const msgs={morning:'Good morning, Creator! ☀️',afternoon:'Good afternoon, Creator! 🎨',evening:'Good evening, Creator! 🌙',night:'Working late, Creator? ✨'};
+  g.textContent=h<12?msgs.morning:h<17?msgs.afternoon:h<21?msgs.evening:msgs.night;
+}
+
+// ─── CHALLENGE TIMER ───────────────────────────────────────────────
+let chalHours=23;
+function tickChallenge(){const t=document.getElementById('chal-timer');if(!t)return;t.textContent=`${chalHours}h left`;chalHours=Math.max(0,chalHours-1);}
+
+// ─── SQUAD + ROOM ──────────────────────────────────────────────────
+const squad=[{name:'Nova',pers:'adventurer',col:'#E07A98',story:'A fearless explorer who never backs down from an adventure.',items:12,xp:350},{name:'Stella',pers:'inventor',col:'#8BAE78',story:'She builds the most incredible gadgets from simple materials.',items:7,xp:180},{name:'Zara',pers:'dreamer',col:'#B4A5D4',story:'Always staring at the stars, dreaming of impossible things.',items:4,xp:90}];
+let currentPers='adventurer',selectedCharStory='';
+
+function renderSquad(){
+  const row=document.getElementById('squad-row');if(row){
+    row.innerHTML=squad.map(c=>`<div style="min-width:78px;background:${c.col}18;border-radius:14px;padding:10px 8px;text-align:center;border:1px solid ${c.col}60;flex-shrink:0;"><div style="width:32px;height:32px;border-radius:50%;background:${c.col};margin:0 auto 5px;display:flex;align-items:center;justify-content:center;"><span style="font-size:15px;font-weight:500;color:white;font-family:var(--font-sans);">${c.name[0]}</span></div><div style="font-size:11px;font-weight:500;color:#3A2820;font-family:var(--font-sans);">${c.name}</div><div style="font-size:8px;color:#9A7060;font-family:var(--font-sans);">${c.pers}</div></div>`).join('')+`<div onclick="goTo('atelier')" style="min-width:78px;background:white;border-radius:14px;padding:10px 8px;text-align:center;border:1.5px dashed #EDD8C6;flex-shrink:0;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;"><div style="width:32px;height:32px;border-radius:50%;background:#F5EAE0;display:flex;align-items:center;justify-content:center;"><span style="font-size:20px;color:#C4A090;font-weight:300;line-height:1;">+</span></div><span style="font-size:9px;color:#C4A090;font-family:var(--font-sans);">New</span></div>`;
+    const sc=document.getElementById('squad-count');if(sc)sc.textContent=squad.length;
+  }
+  // Full squad grid
+  const grid=document.getElementById('squad-grid');if(grid){
+    grid.innerHTML=squad.map((c,i)=>`<div onclick="openCCard(${i})" style="background:white;border-radius:16px;border:1px solid #EDD8C6;overflow:hidden;cursor:pointer;">
+      <div style="height:50px;background:${c.col}30;position:relative;">
+        <div style="position:absolute;top:8px;left:10px;font-size:10px;color:${c.col};font-family:var(--font-sans);font-weight:500;opacity:.7;">Lv ${Math.max(1,Math.floor(c.xp/100)+1)}</div>
+      </div>
+      <div style="display:flex;justify-content:center;margin-top:-22px;">
+        <div style="width:44px;height:44px;border-radius:50%;background:${c.col};border:3px solid white;display:flex;align-items:center;justify-content:center;animation:squadBob ${2.5+i*.4}s ease-in-out infinite;">
+          <span style="font-size:20px;font-weight:500;color:white;font-family:var(--font-sans);">${c.name[0]}</span>
+        </div>
+      </div>
+      <div style="padding:6px 12px 12px;text-align:center;">
+        <div style="font-size:14px;font-weight:500;color:#3A2820;font-family:var(--font-sans);">${c.name}</div>
+        <div style="font-size:10px;color:#9A7060;font-family:var(--font-sans);margin-bottom:6px;">${c.pers}</div>
+        <div style="font-size:10px;color:#9A7060;font-family:var(--font-sans);font-style:italic;line-height:1.4;margin-bottom:6px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;">${c.story||'No story yet...'}</div>
+        <div style="height:3px;background:#EDD8C6;border-radius:2px;overflow:hidden;"><div style="width:${Math.min(100,(c.xp%100))}%;height:100%;background:${c.col};border-radius:2px;transition:width .5s;"></div></div>
+      </div>
+    </div>`).join('')+`<div onclick="goTo('atelier')" style="background:white;border-radius:16px;border:1.5px dashed #EDD8C6;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;min-height:158px;"><div style="font-size:32px;">✦</div><span style="font-size:12px;color:#C4A090;font-family:var(--font-sans);">New character</span></div>`;
+    const scl=document.getElementById('squad-count-label');if(scl)scl.textContent=`${squad.length} of 24`;
+  }
+  // Room chars
+  const rc=document.getElementById('room-chars');if(rc){
+    rc.innerHTML=squad.slice(0,3).map((c,i)=>`<div style="display:flex;flex-direction:column;align-items:center;gap:2px;animation:squadBob ${1.8+i*.5}s ease-in-out infinite;animation-delay:${i*.2}s;">
+      <div style="width:28px;height:28px;border-radius:50%;background:${c.col};border:2px solid white;display:flex;align-items:center;justify-content:center;"><span style="font-size:12px;font-weight:500;color:white;font-family:var(--font-sans);">${c.name[0]}</span></div>
+      <span style="font-size:7px;color:#8A6848;font-family:var(--font-sans);">${c.name}</span>
+    </div>`).join('');
+  }
+}
+
+function openCCard(i){
+  const c=squad[i];const ov=document.getElementById('ccard');if(!ov)return;
+  document.getElementById('ccard-header').style.background=`linear-gradient(135deg,${c.col}60,${c.col}20)`;
+  document.getElementById('ccard-avatar').style.background=c.col;
+  document.getElementById('ccard-letter').textContent=c.name[0];
+  document.getElementById('ccard-name').textContent=c.name;
+  document.getElementById('ccard-pers').textContent=c.pers+' ✦';
+  document.getElementById('ccard-story').textContent=c.story||'No backstory yet — add one in the Atelier!';
+  document.getElementById('ccard-lv').textContent=Math.max(1,Math.floor(c.xp/100)+1);
+  document.getElementById('ccard-items').textContent=c.items;
+  document.getElementById('ccard-xp').textContent=c.xp;
+  ov.style.display='flex';
+  if(canvas)burst(canvas.width/2,canvas.height*.4,[c.col,'#FFF','#E8C050'],20,{spd:4,spr:3,up:3.5});
+}
+function closeCCard(){document.getElementById('ccard').style.display='none';}
+function showProfile(){openCCard(0);}
+
+// ─── NAME MODAL ────────────────────────────────────────────────────
+function setPers(el,p){currentPers=p;document.querySelectorAll('.pb').forEach(e=>{e.style.background=e===el?'#E07A98':'#F5EAE0';e.style.color=e===el?'white':'#9A7060';});}
+function closeNM(){document.getElementById('nm').style.display='none';}
+function confirmSave(){
+  const inp=document.getElementById('nm-inp');const story=document.getElementById('nm-story');
+  const name=(inp?.value||'').trim()||'Character';const storyVal=(story?.value||'').trim();
+  const col=document.getElementById('dress-body')?.getAttribute('fill')||'#E07A98';
+  squad.push({name,pers:currentPers,col,story:storyVal,items:0,xp:0});
+  renderSquad();closeNM();doFlash();springFire(1.18,.78);
+  const pos=getCharXY();burst(pos.x,pos.y,[col,'#FFF','#E8C050','#B4A5D4'],48,{spd:5.5,spr:4.5,up:3.5,r1:3,r2:7});
+  rain([col,'#FFF','#E8C050'],42);
+  showToast(`${name} added to your Squad! ✦`,true);
+  giveXP(50,'👤 New character');
+  const nd=document.getElementById('char-name-display'),pd=document.getElementById('char-pers-display');
+  if(nd)nd.textContent=name;if(pd)pd.textContent=currentPers;
+  if(inp)inp.value='';if(story)story.value='';
+}
+function saveChar(){
+  const nm=document.getElementById('nm');const inp=document.getElementById('nm-inp');const st=document.getElementById('nm-story');
+  if(inp)inp.value='';if(st)st.value='';
+  document.querySelectorAll('.pb').forEach((e,i)=>{e.style.background=i===0?'#E07A98':'#F5EAE0';e.style.color=i===0?'white':'#9A7060';});
+  currentPers='adventurer';if(nm)nm.style.display='flex';
+}
+
+// ─── JOURNAL ───────────────────────────────────────────────────────
+const challenges=[{t:'Summer festival outfit',d:'Apr 29',col:'#E07A98',stamped:true},{t:'Underwater explorer',d:'Apr 28',col:'#4BBFAC',stamped:true}];
+function renderChallenges(){
+  const list=document.getElementById('challenge-list');if(!list)return;
+  list.innerHTML=challenges.map((c,i)=>`<div style="background:white;border-radius:14px;border:1px solid #EDD8C6;padding:10px 12px;display:flex;align-items:center;gap:10px;position:relative;overflow:hidden;">
+    <div style="width:32px;height:32px;border-radius:50%;background:${c.col}20;border:2px solid ${c.col};flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:12px;">✓</div>
+    <div style="flex:1;"><div style="font-size:12px;font-weight:500;color:#3A2820;font-family:var(--font-sans);">${c.t}</div><div style="font-size:10px;color:#C4A090;font-family:var(--font-sans);">${c.d}</div></div>
+    <div style="border:2px solid ${c.col};border-radius:5px;padding:2px 6px;transform:rotate(-6deg);${c.stamped?'animation:stampIn 0s ease-out forwards;':'opacity:0;'}flex-shrink:0;">
+      <span style="font-size:8px;font-weight:500;color:${c.col};font-family:var(--font-sans);">DONE</span>
+    </div>
+  </div>`).join('');
+}
+const prompts=['Design a character who explores moonlit forests','Create the perfect outfit for a robot inventor','Style a character who loves baking and stargazing','Design gear for an underwater adventurer'];
+function addChallenge(){
+  const p=prompts[Math.floor(Math.random()*prompts.length)];
+  const today=new Date();const d=`${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][today.getMonth()]} ${today.getDate()}`;
+  challenges.unshift({t:p,d:`Challenge — ${d}`,col:'#B4A5D4',stamped:false});
+  renderChallenges();showToast('New challenge logged! ✦');
+  giveXP(30,'📝 Challenge logged');
+  // Stamp after short delay
+  setTimeout(()=>{challenges[0].stamped=true;renderChallenges();if(canvas)burst(canvas.width/2,canvas.height*.55,['#B4A5D4','#E8C050','#FFF'],18,{spd:3.5,spr:2.5,up:3});},600);
+}
+
+// ─── MINI GAMES ─────────────────────────────────────────────────────
+let GS={idx:-1,round:0};let curGame=-1;const cityVisited=new Set();
+const SHADE=[{t:'#E07A98',os:['#D06888','#E07A98','#F090A8','#C06070','#E888A8'],c:1},{t:'#4BBFAC',os:['#3AAF9C','#5BCFBC','#4BBFAC','#2A9F8C','#6BDFCC'],c:2},{t:'#8BAE78',os:['#7A9E68','#9BBE88','#8BAE78','#6A9E58','#ABCE98'],c:2}];
+const GEAR=[{q:'Gear A turns ↻. Gear B touching it turns...',os:['↻ Same direction','↺ Opposite direction','⏹ Both stop'],c:1},{q:'3 gears in a row A→B→C. A goes left ↺, C goes...',os:['↻ Right','↺ Left','⏹ Stops'],c:1},{q:'A small gear next to a big gear spins...',os:['Slower','Same speed','Faster ⚡'],c:2}];
+const CMIX=[{q:'🔴 Red + 🔵 Blue =',os:['🟡 Yellow','🟣 Purple','🟢 Green'],c:1},{q:'🔴 Red + 🟡 Yellow =',os:['🟠 Orange','🟢 Green','🟣 Purple'],c:0},{q:'🔵 Blue + 🟡 Yellow =',os:['🟣 Purple','🩷 Pink','🟢 Green'],c:2}];
+const STYLE=[{q:'COZY RAINY DAY ☔ outfit:',os:['Knit sweater + fuzzy socks','Sequin gown + stilettos','Swimsuit + floaties'],c:0,cols:['#F0D080','#E8C050','#E07A98','#FF80A0','#C0E8F8','#40A0FF']},{q:'OUTDOOR ADVENTURE 🏔️ fit:',os:['Field jacket + trail boots','Ballet slippers + tutu','Formal suit + briefcase'],c:0,cols:['#6A5040','#9A7860','#F5B8CC','#E07A98','#2A2A70','#4040C0']},{q:'ART STUDIO day 🎨:',os:['Paint smock + beret','Tuxedo + bow tie','Diving suit + tank'],c:0,cols:['#B4A5D4','#8BAE78','#2A2A50','#3A3A70','#C0E8F8','#4080FF']}];
+const LOOK=[{q:'Going to the BEACH 🏖️ — what finishes the look?',os:['Sunglasses 🕶️','Heavy winter coat 🧥','Ski boots 🎿'],c:0},{q:'RAINY DAY explorer needs one more thing:',os:['Tiny tiara 👑','Rain boots + umbrella ☂️','Roller skates 🛼'],c:1},{q:'SCIENCE FAIR presenter needs:',os:['Safety goggles 🥽','Ballgown 👗','Cowboy hat 🤠'],c:0}];
+
+function cityTap(idx){if(cityVisited.has(idx)){showToast('Already explored! Come back tomorrow 🌙');return;}openGame(idx);}
+function openGame(idx){curGame=idx;GS={idx,round:0};const gm=document.getElementById('gm');document.getElementById('gm-loc').textContent=cityE[idx]+' '+GNAME[idx].toUpperCase();document.getElementById('gm-ttl').textContent=GNAME[idx];document.getElementById('gm-badge').textContent='Round 1 of 3';gm.style.display='flex';renderGame();}
+function renderGame(){document.getElementById('gm-badge').textContent=`Round ${GS.round+1} of 3`;if(curGame===0)renderShade();else if(curGame===1)renderFlower();else if(curGame===4)renderStyle();else renderMCQ();}
+function renderShade(){const r=SHADE[GS.round];document.getElementById('gm-content').innerHTML=`<div style="text-align:center;padding:4px 0 12px;"><div style="font-size:9px;letter-spacing:1.5px;color:#E07A98;font-family:var(--font-sans);">FIND THE EXACT SHADE</div><div style="margin:12px auto;width:80px;height:80px;border-radius:50%;background:${r.t};border:5px solid white;box-shadow:0 4px 24px ${r.t}80;"></div><div style="font-size:13px;font-weight:500;color:#3A2820;font-family:var(--font-sans);margin-bottom:14px;">Which swatch matches?</div><div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;padding:0 4px;">${r.os.map((c,i)=>`<div id="sh-${i}" onclick="shadeTap(${i})" style="height:56px;border-radius:12px;background:${c};cursor:pointer;border:3px solid transparent;transition:all .15s;"></div>`).join('')}</div></div>`;}
+function shadeTap(i){const r=SHADE[GS.round];const el=document.getElementById('sh-'+i);if(!el||el.dataset.d)return;SHADE[GS.round].os.forEach((_,j)=>{const e=document.getElementById('sh-'+j);if(e)e.dataset.d='1';});if(i===r.c){el.style.border='3px solid #3A2820';el.style.transform='scale(1.12)';if(canvas)burst(canvas.width/2,canvas.height*.44,[r.t,'#FFF','#E8C050'],20,{spd:4,spr:3,up:3});giveXP(20,'🎨 Shade matched');GS.round++;if(GS.round>=3)setTimeout(gameWin,500);else setTimeout(renderGame,500);}else{el.style.border='3px solid #E87050';let t=0;const iv=setInterval(()=>{el.style.transform=`translateX(${Math.sin(t)*5}px)`;t+=.8;if(t>7){clearInterval(iv);el.style.transform='';el.style.border='3px solid transparent';SHADE[GS.round].os.forEach((_,j)=>{const e=document.getElementById('sh-'+j);if(e)delete e.dataset.d;});}},20);showToast('Not quite! Try again 👁️');}}
+function renderFlower(){const pos=[{x:44,y:68},{x:152,y:38},{x:242,y:68},{x:104,y:138},{x:198,y:142}];const ord=[0,1,2,3,4].sort(()=>Math.random()-.5);GS.flOrd=ord;GS.flNext=0;document.getElementById('gm-content').innerHTML=`<div style="text-align:center;margin-bottom:8px;"><div style="font-size:9px;letter-spacing:1.5px;color:#8BAE78;font-family:var(--font-sans);">TAP FLOWERS IN ORDER 1→5</div><div style="font-size:11px;color:#9A7060;font-family:var(--font-sans);margin-top:2px;">Tap flower <span id="fl-nxt" style="color:#E07A98;font-weight:bold;">1</span> next!</div></div><div style="position:relative;height:210px;background:linear-gradient(180deg,#E4F0DA 70%,#C8E0B0 100%);border-radius:16px;border:2px solid #B8D8A0;">${pos.map((p,i)=>`<div id="fl-${i}" onclick="flTap(${i})" style="position:absolute;left:${p.x-26}px;top:${p.y-26}px;width:52px;height:52px;border-radius:50%;background:#C8E8B0;border:3px solid #8BAE78;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:1px;transition:all .2s;user-select:none;"><span style="font-size:11px;font-weight:bold;color:#2A6A20;font-family:sans-serif;">${ord.indexOf(i)+1}</span><span style="font-size:16px;line-height:1;">🌸</span></div>`).join('')}</div>`;}
+function flTap(i){const exp=GS.flOrd[GS.flNext];const el=document.getElementById('fl-'+i);if(!el||el.dataset.d)return;if(i===exp){el.style.background='#E07A98';el.style.borderColor='#C05070';el.style.cursor='default';el.dataset.d='1';if(canvas)burst(canvas.width*.45,canvas.height*.45,['#8BAE78','#E4F0DA','#E8C050','#FFF'],10,{spd:3,spr:2,up:2.5});giveXP(15,'🌸 Bloom found');GS.flNext++;const ne=document.getElementById('fl-nxt');if(ne)ne.textContent=GS.flNext+1;if(GS.flNext>=5)setTimeout(gameWin,400);}else{el.style.background='#E87050';setTimeout(()=>{if(el&&!el.dataset.d)el.style.background='#C8E8B0';},400);showToast('Find flower '+(GS.flNext+1)+' first! 🌸');}}
+function renderMCQ(){const data={2:{qs:GEAR,ac:'#B4A5D4',bg:'#EDE8F8'},3:{qs:CMIX,ac:'#4BBFAC',bg:'#C8EDE8'},5:{qs:LOOK,ac:'#E87850',bg:'#FAE0D0'}}[curGame];const r=data.qs[GS.round];document.getElementById('gm-content').innerHTML=`<div style="text-align:center;margin-bottom:12px;"><div style="font-size:9px;letter-spacing:1.5px;color:${data.ac};font-family:var(--font-sans);">${GNAME[curGame].toUpperCase()}</div><div style="margin:10px 0;background:${data.bg};border:2px solid ${data.ac};border-radius:14px;padding:12px 14px;font-size:14px;font-weight:500;color:#3A2820;font-family:var(--font-sans);line-height:1.4;">${r.q}</div></div><div style="display:flex;flex-direction:column;gap:8px;">${r.os.map((o,i)=>`<div id="mcq-${i}" onclick="mcqTap(${i})" style="background:white;border:2.5px solid #EDD8C6;border-radius:12px;padding:13px 16px;cursor:pointer;font-size:13px;font-weight:500;color:#3A2820;font-family:var(--font-sans);transition:all .15s;">${o}</div>`).join('')}</div><div style="margin-top:12px;height:4px;background:#EDD8C6;border-radius:2px;overflow:hidden;"><div style="width:${GS.round/3*100}%;height:100%;background:${data.ac};border-radius:2px;transition:width .4s;"></div></div>`;}
+function mcqTap(i){const data={2:{qs:GEAR,ac:'#B4A5D4',bg:'#EDE8F8'},3:{qs:CMIX,ac:'#4BBFAC',bg:'#C8EDE8'},5:{qs:LOOK,ac:'#E87850',bg:'#FAE0D0'}}[curGame];const r=data.qs[GS.round];const el=document.getElementById('mcq-'+i);if(!el||el.dataset.d)return;[0,1,2].forEach(j=>{const e=document.getElementById('mcq-'+j);if(e)e.dataset.d='1';});if(i===r.c){el.style.background=data.bg;el.style.borderColor=data.ac;el.innerHTML+=' ✓';if(canvas)burst(canvas.width/2,canvas.height*.44,['#FFF',data.ac,'#E8C050'],20,{spd:4,spr:3,up:3.5});giveXP(25,'✅ Correct');GS.round++;if(GS.round>=3)setTimeout(gameWin,600);else setTimeout(renderGame,700);}else{el.style.background='#FAE8EE';el.style.borderColor='#E07A98';el.innerHTML+=' ✗';const ce=document.getElementById('mcq-'+r.c);if(ce){ce.style.background=data.bg;ce.style.borderColor=data.ac;ce.innerHTML+=' ✓';}GS.round++;if(GS.round>=3)setTimeout(gameWin,1200);else setTimeout(renderGame,1200);}}
+function renderStyle(){const r=STYLE[GS.round];document.getElementById('gm-content').innerHTML=`<div style="text-align:center;margin-bottom:12px;"><div style="font-size:9px;letter-spacing:1.5px;color:#E8A000;font-family:var(--font-sans);">STYLE SORT</div><div style="margin:8px auto;background:#FDF0C0;border:2px solid #E8C050;border-radius:12px;padding:8px 14px;font-size:13px;font-weight:500;color:#3A2820;font-family:var(--font-sans);">${r.q}</div></div><div style="display:flex;flex-direction:column;gap:8px;">${r.os.map((o,i)=>`<div id="sm-${i}" onclick="smTap(${i})" style="background:white;border:2.5px solid #EDD8C6;border-radius:12px;padding:10px 12px;cursor:pointer;display:flex;align-items:center;gap:10px;transition:all .15s;"><div style="display:flex;gap:2px;flex-shrink:0;"><div style="width:13px;height:42px;border-radius:4px;background:${r.cols[i*2]};"></div><div style="width:13px;height:42px;border-radius:4px;background:${r.cols[i*2+1]};"></div></div><div style="font-size:12px;font-weight:500;color:#3A2820;font-family:var(--font-sans);">${o}</div></div>`).join('')}</div>`;}
+function smTap(i){const r=STYLE[GS.round];const el=document.getElementById('sm-'+i);if(!el||el.dataset.d)return;[0,1,2].forEach(j=>{const e=document.getElementById('sm-'+j);if(e)e.dataset.d='1';});if(i===r.c){el.style.background='#FDF0C0';el.style.borderColor='#E8C050';if(canvas)burst(canvas.width/2,canvas.height*.44,['#E8C050','#FFF','#E07A98'],22,{spd:4,spr:3,up:3});giveXP(20,'👗 Great style');GS.round++;if(GS.round>=3)setTimeout(gameWin,600);else setTimeout(renderGame,700);}else{el.style.background='#FAE8EE';el.style.borderColor='#E07A98';const ce=document.getElementById('sm-'+r.c);if(ce){ce.style.background='#FDF0C0';ce.style.borderColor='#E8C050';}GS.round++;if(GS.round>=3)setTimeout(gameWin,1200);else setTimeout(renderGame,1200);}}
+function gameWin(){const idx=curGame;closeGame();cityVisited.add(idx);const star=document.getElementById('cs-'+idx);if(star)star.style.opacity='1';const n=cityVisited.size;const pb=document.getElementById('city-prog'),pl=document.getElementById('city-lbl');if(pb)pb.style.width=(n/6*100)+'%';if(pl)pl.textContent=n+' of 6 locations explored';const cc=document.getElementById('city-count');if(cc)cc.textContent=n;giveXP(75,'🗺️ Location complete');if(canvas){const cols=cityCols[idx];burst(canvas.width/2,canvas.height/2,cols,40,{spd:6,spr:4,up:4.5,r1:3,r2:8});rain(cols,30);doFlash();}showToast(`${cityE[idx]} ${cityRew[idx]} unlocked! ✦`,true);if(n===6)setTimeout(()=>{showToast('All 6 explored! LEGENDARY Crown unlocked! 👑',true);if(canvas){burst(canvas.width/2,canvas.height/2,['#E8C050','#FFF','#E07A98','#B4A5D4'],65,{spd:8,spr:5,up:5,r1:3,r2:9});rain(['#E8C050','#FFF'],50);}},1800);}
+function closeGame(){const gm=document.getElementById('gm');if(gm)gm.style.display='none';curGame=-1;}
+
+// ─── WHEEL ──────────────────────────────────────────────────────────
+let wCanvas,wCtx,wAngle=0,wVel=0,wSpin=false,wUsed=false;
+function drawWheel(){if(!wCtx)return;const W=wCanvas.width,cx=W/2,cy=150,R=118,n=WI.length,seg=Math.PI*2/n;wCtx.clearRect(0,0,W,wCanvas.height);wCtx.save();wCtx.shadowColor='rgba(0,0,0,.15)';wCtx.shadowBlur=18;wCtx.beginPath();wCtx.arc(cx,cy,R+2,0,Math.PI*2);wCtx.fillStyle='white';wCtx.fill();wCtx.restore();WI.forEach((item,i)=>{const s=wAngle+seg*i-Math.PI/2,e=s+seg;wCtx.beginPath();wCtx.moveTo(cx,cy);wCtx.arc(cx,cy,R,s,e);const g2=wCtx.createLinearGradient(cx+Math.cos((s+e)/2)*R*.3,cy+Math.sin((s+e)/2)*R*.3,cx+Math.cos((s+e)/2)*R,cy+Math.sin((s+e)/2)*R);g2.addColorStop(0,item.c+'CC');g2.addColorStop(1,item.c);wCtx.fillStyle=g2;wCtx.fill();wCtx.strokeStyle='rgba(255,255,255,.85)';wCtx.lineWidth=2.5;wCtx.stroke();const ma=(s+e)/2,tx=cx+Math.cos(ma)*R*.66,ty=cy+Math.sin(ma)*R*.66;wCtx.save();wCtx.translate(tx,ty);wCtx.rotate(ma+Math.PI/2);wCtx.fillStyle='rgba(40,20,10,.85)';wCtx.font='bold 8px sans-serif';wCtx.textAlign='center';item.n.split(' ').forEach((w,wi,a)=>wCtx.fillText(w,0,(wi-a.length/2+.5)*11));wCtx.restore();});const hg=wCtx.createRadialGradient(cx,cy-4,2,cx,cy,20);hg.addColorStop(0,'#FAF2E8');hg.addColorStop(1,'#EDD8C6');wCtx.beginPath();wCtx.arc(cx,cy,20,0,Math.PI*2);wCtx.fillStyle=hg;wCtx.fill();wCtx.strokeStyle='#E07A98';wCtx.lineWidth=2;wCtx.stroke();wCtx.fillStyle='#E07A98';wCtx.font='bold 15px sans-serif';wCtx.textAlign='center';wCtx.textBaseline='middle';wCtx.fillText('✦',cx,cy);wCtx.textBaseline='alphabetic';wCtx.save();wCtx.shadowColor='rgba(0,0,0,.25)';wCtx.shadowBlur=6;wCtx.beginPath();wCtx.moveTo(cx-11,cy-R-11);wCtx.lineTo(cx+11,cy-R-11);wCtx.lineTo(cx,cy-R+17);wCtx.fillStyle='#3A2820';wCtx.fill();wCtx.restore();}
+function getWinner(){const n=WI.length,seg=Math.PI*2/n,a=(((-wAngle%(Math.PI*2))+(Math.PI*2))%(Math.PI*2));return Math.floor(a/seg)%n;}
+function startSpin(){if(wSpin)return;const btn=document.getElementById('spin-btn');if(btn){btn.style.transform='scale(.9)';setTimeout(()=>btn.style.transform='',140);}if(wUsed){showToast('Come back tomorrow for your next spin! 🌙');return;}wSpin=true;wVel=14+Math.random()*9;}
+function updateWheel(){if(!wSpin)return;wAngle+=wVel/60;const fr=wVel>6?.988:wVel>2?.975:wVel>.4?.962:.945;wVel*=fr;if(wVel<.055){wSpin=false;wVel=0;wUsed=true;const idx=getWinner();const n2=WI.length,seg=Math.PI*2/n2,tgt=-((idx*seg+seg/2)%(Math.PI*2)),diff=tgt-wAngle,norm=((diff%(Math.PI*2))+(Math.PI*2))%(Math.PI*2),snap=norm<Math.PI?norm:norm-Math.PI*2;wAngle+=snap*.2;setTimeout(()=>showReveal(getWinner()),700);}}
+function showReveal(idx){const item=WI[idx],ov=document.getElementById('reveal-ov');if(!ov)return;ov.querySelector('#rev-name').textContent=item.n;ov.querySelector('#rev-emoji').textContent=item.e;ov.querySelector('#rev-rarity').textContent=RL[item.r];ov.querySelector('#rev-rarity').style.color=RC[item.r];ov.querySelector('#rev-icon').style.background=item.c;ov.querySelector('#rev-icon').style.boxShadow=`0 0 40px ${item.c}`;ov.querySelector('#rev-glow').style.background=`radial-gradient(circle,${item.c}80 0%,transparent 70%)`;ov.style.display='flex';if(canvas){const cols=[item.c,'#FFF','#E8C050','#E07A98','#B4A5D4'],n=item.r===3?65:item.r===2?48:item.r===1?32:22;burst(canvas.width/2,canvas.height/2,cols,n,{spd:item.r===3?8:6,spr:4.5,up:4.5,r1:3,r2:8+item.r*2});if(item.r>=1)rain(cols,item.r===3?65:35);if(item.r>=2)doFlash();}const sc=document.getElementById('spark-count');if(sc)sc.textContent=parseInt(sc.textContent)+1;giveXP(10+item.r*25,'🎰 Wheel reward');}
+function closeReveal(){const ov=document.getElementById('reveal-ov');if(ov)ov.style.display='none';showToast(`${WI[getWinner()].e} ${WI[getWinner()].n} saved to wardrobe!`);}
+
+// ─── ART ────────────────────────────────────────────────────────────
+let artCanvas,artCtx,artDrawing=false,artTool='pencil',artColor='#E07A98',artLastX=0,artLastY=0,artHistory=[];
+function initArt(){artCanvas=document.getElementById('art-canvas');if(!artCanvas)return;const p=artCanvas.parentElement;artCanvas.width=p.offsetWidth||335;artCanvas.height=p.offsetHeight||330;artCtx=artCanvas.getContext('2d');artCtx.fillStyle='#FDF8F0';artCtx.fillRect(0,0,artCanvas.width,artCanvas.height);artCanvas.addEventListener('pointerdown',e=>{e.preventDefault();artDrawing=true;const r=artCanvas.getBoundingClientRect(),sx=artCanvas.width/r.width,sy=artCanvas.height/r.height;artLastX=(e.clientX-r.left)*sx;artLastY=(e.clientY-r.top)*sy;artHistory.push(artCtx.getImageData(0,0,artCanvas.width,artCanvas.height));if(artHistory.length>15)artHistory.shift();doDraw(artLastX,artLastY,true);});artCanvas.addEventListener('pointermove',e=>{if(!artDrawing)return;e.preventDefault();const r=artCanvas.getBoundingClientRect(),sx=artCanvas.width/r.width,sy=artCanvas.height/r.height,x=(e.clientX-r.left)*sx,y=(e.clientY-r.top)*sy;doDraw(x,y,false);artLastX=x;artLastY=y;});['pointerup','pointercancel','pointerleave'].forEach(ev=>artCanvas.addEventListener(ev,()=>{if(artDrawing)giveXP(5,'🎨 Drawing');artDrawing=false;}));}
+function doDraw(x,y,dot){if(!artCtx)return;const c=artCtx;if(artTool==='eraser'){c.globalCompositeOperation='destination-out';c.lineWidth=22;c.lineCap='round';if(dot){c.beginPath();c.arc(x,y,11,0,Math.PI*2);c.fillStyle='rgba(0,0,0,1)';c.fill();}else{c.beginPath();c.moveTo(artLastX,artLastY);c.lineTo(x,y);c.strokeStyle='rgba(0,0,0,1)';c.stroke();}c.globalCompositeOperation='source-over';return;}if(artTool==='pencil'){c.globalCompositeOperation='source-over';c.strokeStyle=artColor;c.lineWidth=2.5;c.lineCap='round';c.lineJoin='round';if(dot){c.beginPath();c.arc(x,y,1.25,0,Math.PI*2);c.fillStyle=artColor;c.fill();}else{c.beginPath();c.moveTo(artLastX,artLastY);c.lineTo(x,y);c.stroke();}return;}if(artTool==='marker'){c.globalCompositeOperation='multiply';c.strokeStyle=artColor+'BB';c.lineWidth=13;c.lineCap='round';c.lineJoin='round';if(dot){c.beginPath();c.arc(x,y,6.5,0,Math.PI*2);c.fillStyle=artColor+'BB';c.fill();}else{c.beginPath();c.moveTo(artLastX,artLastY);c.lineTo(x,y);c.stroke();}c.globalCompositeOperation='source-over';return;}if(artTool==='glitter'){c.globalCompositeOperation='source-over';const dx=x-artLastX,dy=y-artLastY,dist=Math.max(1,Math.sqrt(dx*dx+dy*dy)),n=Math.max(4,Math.floor(dist/4));for(let i=0;i<n;i++){const t=i/n,px=artLastX+dx*t+(Math.random()-.5)*22,py=artLastY+dy*t+(Math.random()-.5)*22;c.globalAlpha=.35+Math.random()*.65;c.fillStyle=artColor;c.beginPath();c.arc(px,py,.8+Math.random()*2.8,0,Math.PI*2);c.fill();}c.globalAlpha=1;return;}}
+function setTool(t){artTool=t;['pencil','marker','glitter','eraser'].forEach(tool=>{const el=document.getElementById('t-'+tool);if(!el)return;el.style.background=tool===t?'#E07A98':'#F5EAE0';el.style.transform=tool===t?'scale(1.08)':'scale(1)';});}
+function setArtColor(c){artColor=c;document.querySelectorAll('[data-ac]').forEach(el=>{el.style.border=el.dataset.ac===c?'2.5px solid #3A2820':el.dataset.ac==='#FBF5EA'?'2.5px solid #EDD8C6':'2.5px solid transparent';el.style.transform=el.dataset.ac===c?'scale(1.18)':'scale(1)';});}
+function undoArt(){if(!artCtx||!artHistory.length)return;artCtx.putImageData(artHistory.pop(),0,0);}
+function clearArt(){if(!artCtx||!artCanvas)return;artHistory.push(artCtx.getImageData(0,0,artCanvas.width,artCanvas.height));artCtx.fillStyle='#FDF8F0';artCtx.fillRect(0,0,artCanvas.width,artCanvas.height);showToast('Canvas cleared');}
+function artTab(tab){document.getElementById('art-draw').style.display=tab==='draw'?'flex':'none';document.getElementById('art-room').style.display=tab==='room'?'flex':'none';document.getElementById('art-tab-draw').style.color=tab==='draw'?'#E07A98':'#C4A090';document.getElementById('art-tab-draw').style.borderBottomColor=tab==='draw'?'#E07A98':'transparent';document.getElementById('art-tab-room').style.color=tab==='room'?'#E07A98':'#C4A090';document.getElementById('art-tab-room').style.borderBottomColor=tab==='room'?'#E07A98':'transparent';if(tab==='room'&&!document.getElementById('room-tray').children.length)buildRoomTray();}
+const FURN=['🛋️','🌿','📚','🪞','🎨','💡','🪑','🎀','✨','🌸'];const FURNN=['Sofa','Plant','Bookshelf','Mirror','Painting','Lamp','Chair','Bow Shelf','Rug','Flowers'];let roomSel=-1,roomItems=[];
+function buildRoomTray(){const t=document.getElementById('room-tray');if(!t)return;t.innerHTML=FURN.map((e,i)=>`<div id="furn-${i}" onclick="furnSel(${i})" style="width:48px;height:48px;border-radius:12px;background:#F5EAE0;border:2px solid #EDD8C6;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:20px;transition:all .15s;flex-direction:column;">${e}<span style="font-size:6px;color:#C4A090;font-family:sans-serif;">${FURNN[i]}</span></div>`).join('');}
+function furnSel(i){roomSel=i;FURN.forEach((_,j)=>{const el=document.getElementById('furn-'+j);if(!el)return;el.style.background=j===i?'#E07A98':'#F5EAE0';el.style.borderColor=j===i?'#C04070':'#EDD8C6';el.style.transform=j===i?'scale(1.1)':'scale(1)';});showToast(`${FURN[i]} selected · tap room to place`);}
+function roomTap(e){if(roomSel<0)return;const bg=document.getElementById('room-bg');if(!bg)return;const r=bg.getBoundingClientRect(),x=e.clientX-r.left,y=e.clientY-r.top;const id=Date.now();roomItems.push({idx:roomSel,x,y,id});renderRoomItems();giveXP(5,'🛋️ Room decorated');if(canvas){const cr=canvas.getBoundingClientRect();burst(r.left-cr.left+x,r.top-cr.top+y,['#E07A98','#E8C050','#FFF'],8,{spd:2,spr:1.5,up:2,r1:2,r2:4});}}
+function renderRoomItems(){const c=document.getElementById('room-items');if(!c)return;c.innerHTML=roomItems.map(p=>`<div ondblclick="removeRI(${p.id})" style="position:absolute;left:${p.x-20}px;top:${p.y-22}px;font-size:28px;cursor:pointer;user-select:none;line-height:1;filter:drop-shadow(0 2px 4px rgba(0,0,0,.2));">${FURN[p.idx]}</div>`).join('');}
+function removeRI(id){roomItems=roomItems.filter(p=>p.id!==id);renderRoomItems();}
+
+// ─── STYLE ──────────────────────────────────────────────────────────
+let idleT=0;
+function selectStyle(id){
+  const d=SD[id];['dress-top','dress-body'].forEach(e=>{const el=document.getElementById(e);if(el)el.setAttribute('fill',d.d);});
+  const ov=document.getElementById('dress-overlay');if(ov)ov.setAttribute('fill',d.o);['shoe-left','shoe-right'].forEach(e=>{const el=document.getElementById(e);if(el)el.setAttribute('fill',d.s);});
+  ['everyday','magical','streetwear','builder','cozy','explorer'].forEach(s=>{const p=document.getElementById('pill-'+s);if(!p)return;p.style.background=s===id?'#E07A98':'#F5EAE0';p.style.animation=s===id?'pP .32s ease-out':'none';p.style.display=s===id?'flex':'block';if(s===id){p.style.alignItems='center';p.style.justifyContent='space-between';}const sp2=p.querySelector('span');if(sp2)sp2.style.color=s===id?'white':'#9A7060';const dot=p.querySelector('.adot');if(dot)dot.remove();if(s===id){const dt=document.createElement('div');dt.className='adot';dt.style.cssText='width:5px;height:5px;border-radius:50%;background:white;opacity:.8;flex-shrink:0;';p.appendChild(dt);}});
+  springFire(1.1,.87);const ov2=document.getElementById('dress-overlay');if(ov2){ov2.style.animation='none';requestAnimationFrame(()=>ov2.style.animation='dW .5s ease-out');}
+  const pos=getCharXY();burst(pos.x,pos.y,d.cols,24,{spd:3.5,spr:3.5,up:2.5,r1:2,r2:5});
+  renderWardrobe(d.w);giveXP(10,'👗 Style changed');
+}
+function setHair(c){['hair-back','hair-bangs'].forEach(id=>{const el=document.getElementById(id);if(el)el.setAttribute('fill',c);});['hair-left','hair-right'].forEach(id=>{const el=document.getElementById(id);if(el)el.setAttribute('stroke',c);});document.querySelectorAll('[data-hc]').forEach(el=>{el.style.border=el.dataset.hc===c?'2.5px solid #3A2820':'2.5px solid transparent';el.style.transform=el.dataset.hc===c?'scale(1.15)':'scale(1)';});springFire(.93,1.08);const pos=getCharXY();burst(pos.x,pos.y-55,['#E8C050','#FFF','#F5D870'],12,{spd:2,spr:2,up:3.5,g:.07,r1:2,r2:3.5});giveXP(5,'💇 Hair changed');}
+function setOutfit(c){['dress-top','dress-body'].forEach(id=>{const e=document.getElementById(id);if(e)e.setAttribute('fill',c);});const r=parseInt(c.slice(1,3),16),g=parseInt(c.slice(3,5),16),b=parseInt(c.slice(5,7),16);const lc='#'+[r,g,b].map(v=>Math.min(255,v+Math.round((255-v)*.5)).toString(16).padStart(2,'0')).join('');const ov=document.getElementById('dress-overlay');if(ov)ov.setAttribute('fill',lc);document.querySelectorAll('[data-oc]').forEach(el=>{el.style.border=el.dataset.oc===c?'2.5px solid #3A2820':'2.5px solid transparent';el.style.transform=el.dataset.oc===c?'scale(1.18)':'scale(1)';});springFire(1.08,.93);const ov2=document.getElementById('dress-overlay');if(ov2){ov2.style.animation='none';requestAnimationFrame(()=>ov2.style.animation='dW .5s ease-out');}const pos=getCharXY();burst(pos.x,pos.y+28,[c,lc,'#FFF'],16,{spd:3,spr:2.5,up:1.2,r1:2,r2:4});giveXP(5,'🎨 Outfit colored');}
+let charWiggling=false;
+function charTap(){if(charWiggling)return;charWiggling=true;springFire(.88,1.2);const pos=getCharXY();burst(pos.x,pos.y-20,['#E07A98','#E8C050','#FFF','#B4A5D4'],16,{spd:2.8,spr:2.2,up:3.8,g:.09,r1:2,r2:4});const svg=document.getElementById('char-svg');if(svg){let t=0;const wf=setInterval(()=>{svg.style.transform=`rotate(${Math.sin(t)*8}deg)`;t+=.5;if(t>Math.PI*1.5){clearInterval(wf);svg.style.transform='';charWiggling=false;}},16);}else charWiggling=false;showToast(['Hi there! 👋','You found me! ✨','Hehe, that tickles! 🤭','Let\'s create together!'][Math.floor(Math.random()*4)]);giveXP(3,'👆 Character tap');}
+
+// ─── WARDROBE ─────────────────────────────────────────────────────
+function wTap(el){el.style.animation='none';requestAnimationFrame(()=>el.style.animation='wP .28s ease-out');setTimeout(()=>el.style.animation='',280);if(canvas){const cr=canvas.getBoundingClientRect(),er=el.getBoundingClientRect();burst(er.left-cr.left+er.width/2,er.top-cr.top+er.height/2,['#E07A98','#E8C050','#B4A5D4','#FFF'],10,{spd:2.5,spr:2,up:2,r1:2,r2:4});}giveXP(3,'👚 Item tried');}
+function renderWardrobe(items){const g=document.getElementById('wardrobe-grid');if(!g)return;g.innerHTML=items.map(item=>'<div onclick="wTap(this)" style="background:white;border-radius:12px;border:1px solid #EDD8C6;overflow:hidden;cursor:pointer;"><div style="height:38px;background:'+item.c+';"></div><div style="padding:4px 6px;text-align:center;"><div style="font-size:9px;font-weight:500;color:#9A7060;font-family:sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+item.n+'</div></div></div>').join('');}
+
+// ─── NAV ──────────────────────────────────────────────────────────
+function goTo(name){
+  const screens={home:'block',atelier:'block',squad:'block',wheel:'block',art:'flex',journal:'block'};
+  ['home','atelier','squad','wheel','art','journal'].forEach(s=>{
+    const sc=document.getElementById('s-'+s),nb=document.getElementById('n-'+s);
+    if(sc)sc.style.display=s===name?(screens[s]||'block'):'none';
+    if(!nb)return;nb.style.background=s===name?'#FAE8EE':'transparent';
+    nb.querySelectorAll('path,circle,rect,line').forEach(el=>{const f=el.getAttribute('fill'),st=el.getAttribute('stroke');if(f&&f!=='none'&&f!=='white')el.setAttribute('fill',s===name?'#E07A98':'#C4A090');if(st&&st!=='none'&&st!=='white')el.setAttribute('stroke',s===name?'#E07A98':'#C4A090');});
+    nb.querySelectorAll('span').forEach(sp=>sp.style.color=s===name?'#E07A98':'#C4A090');
+  });
+  setTimeout(()=>{const nb=document.getElementById('n-'+name),ind=document.getElementById('nav-ind'),bn=document.getElementById('bnav');if(!nb||!ind||!bn)return;const nr=nb.getBoundingClientRect(),br=bn.getBoundingClientRect();ind.style.left=(nr.left-br.left+nr.width/2-16)+'px';},10);
+  if(name==='art'&&!artCtx)setTimeout(initArt,60);
+  if(name==='wheel'&&!wCanvas)setTimeout(()=>{wCanvas=document.getElementById('wcanvas');if(wCanvas){wCtx=wCanvas.getContext('2d');drawWheel();}},60);
+  if(name==='squad')renderSquad();
+}
+
+// ─── MAIN LOOP ─────────────────────────────────────────────────────
+function loop(){
+  idleT+=.013;const w=document.getElementById('char-wrap');if(w&&!spr.on)w.style.transform=`translateY(${Math.sin(idleT)*2.5}px)`;
+  if(spr.on){const k=300,d=24,dt=1/60;spr.vx+=(-k*(spr.x-1)-d*spr.vx)*dt;spr.vy+=(-k*(spr.y-1)-d*spr.vy)*dt;spr.x+=spr.vx*dt;spr.y+=spr.vy*dt;const svg=document.getElementById('char-svg');if(svg)svg.style.transform=`scale(${spr.x},${spr.y})`;if(Math.abs(spr.x-1)<.001&&Math.abs(spr.vx)<.01&&Math.abs(spr.y-1)<.001&&Math.abs(spr.vy)<.01){spr.on=false;if(svg)svg.style.transform='';}}
+  updateWheel();if(wCtx)drawWheel();
+  if(ctx&&canvas){ctx.clearRect(0,0,canvas.width,canvas.height);pts=pts.filter(p=>p.life>0);pts.forEach(p=>{ctx.save();ctx.globalAlpha=Math.max(0,p.life);ctx.fillStyle=p.c;if(p.sh==='c'){ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fill();}else{ctx.translate(p.x,p.y);ctx.rotate(p.a);ctx.fillRect(-p.r,-p.r/2,p.r*2,p.r);}ctx.restore();p.x+=p.vx;p.y+=p.vy;p.vy+=p.g;p.vx*=.985;p.a+=p.sp;p.life-=p.d;});}
+  requestAnimationFrame(loop);
+}
+
+// ─── INIT ─────────────────────────────────────────────────────────
+setTimeout(()=>{
+  canvas=document.getElementById('pcanvas');const sa=document.getElementById('screen-area');
+  if(canvas&&sa){canvas.width=sa.offsetWidth||355;canvas.height=sa.offsetHeight||598;ctx=canvas.getContext('2d');}
+  renderWardrobe(SD.everyday.w);renderSquad();renderChallenges();updateGreeting();
+  loop();setTimeout(doBlink,2000);setInterval(tickChallenge,60000);
+  // Sparkle the door
+  const ds=document.getElementById('door-sparks');if(ds){const sparks=['✦','★','✨','♥'];setInterval(()=>{const sp=document.createElement('div');sp.style.cssText=`position:absolute;left:${Math.random()*100}%;top:${Math.random()*80}%;font-size:${8+Math.random()*10}px;color:#E8C050;pointer-events:none;animation:noteFloat ${.6+Math.random()*.6}s ease-out forwards;`;sp.textContent=sparks[Math.floor(Math.random()*sparks.length)];ds.appendChild(sp);setTimeout(()=>sp.remove(),1200);},700);}
+},80);
+</script>

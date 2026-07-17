@@ -1,0 +1,45 @@
+name: Electron CI
+
+on:
+  push:
+    branches: [main, develop]
+    paths: ["code/electron-react/**", "code/electron-vanilla/**"]
+  pull_request:
+    branches: [main]
+    paths: ["code/electron-react/**", "code/electron-vanilla/**"]
+
+jobs:
+  test:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm, cache-dependency-path: code/electron-react/package-lock.json }
+      - run: cd code/electron-react && npm ci
+      - run: cd code/electron-react && npm run test
+
+  build:
+    needs: test
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            targets: linux
+          - os: windows-latest
+            targets: win
+          - os: macos-latest
+            targets: mac
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm, cache-dependency-path: code/electron-react/package-lock.json }
+      - run: cd code/electron-react && npm ci
+      - run: cd code/electron-react && npm run build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: electron-${{ matrix.targets }}
+          path: code/electron-react/release/
