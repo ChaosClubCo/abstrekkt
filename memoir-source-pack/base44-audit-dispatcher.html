@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Base44 Portfolio Audit</title>
+<style>
+  :root {
+    --bg: #0b0b0f;
+    --panel: #14141a;
+    --panel-hover: #1a1a22;
+    --border: #26262f;
+    --text: #e8e8ec;
+    --text-dim: #8b8b98;
+    --accent: #6ee7b7;
+    --warn: #f5b942;
+    --danger: #f5716c;
+    --mono: 'JetBrains Mono', 'SF Mono', Consolas, monospace;
+    --sans: -apple-system, 'Inter', 'Segoe UI', sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font-family: var(--sans); font-size: 14px; line-height: 1.5;
+    padding: 20px;
+  }
+  .header { margin-bottom: 20px; }
+  .header h1 { font-size: 20px; margin: 0 0 4px; letter-spacing: -0.01em; }
+  .header .sub { color: var(--text-dim); font-size: 13px; }
+  .stats { display: flex; gap: 16px; margin: 14px 0; flex-wrap: wrap; }
+  .stat { background: var(--panel); border: 1px solid var(--border); border-radius: 6px; padding: 8px 14px; }
+  .stat .num { font-size: 18px; font-weight: 600; font-family: var(--mono); }
+  .stat .lbl { font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.04em; }
+  .controls { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; }
+  input[type=text] {
+    background: var(--panel); border: 1px solid var(--border); color: var(--text);
+    padding: 7px 10px; border-radius: 6px; font-size: 13px; width: 220px; font-family: var(--sans);
+  }
+  select {
+    background: var(--panel); border: 1px solid var(--border); color: var(--text);
+    padding: 7px 10px; border-radius: 6px; font-size: 13px; font-family: var(--sans);
+  }
+  .grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 12px;
+  }
+  .card {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 8px;
+    padding: 14px; transition: border-color 0.15s;
+  }
+  .card:hover { border-color: #38383f; }
+  .card.scanned { border-left: 3px solid var(--accent); }
+  .card.unscanned { border-left: 3px solid #3a3a44; }
+  .card-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+  .app-name { font-weight: 600; font-size: 14px; }
+  .app-id { font-family: var(--mono); font-size: 10px; color: var(--text-dim); margin-top: 2px; }
+  .badge {
+    font-size: 10px; padding: 2px 7px; border-radius: 10px; font-family: var(--mono);
+    white-space: nowrap;
+  }
+  .badge.scanned { background: rgba(110,231,183,0.12); color: var(--accent); }
+  .badge.unscanned { background: rgba(139,139,152,0.12); color: var(--text-dim); }
+  .badge.diff { background: rgba(245,185,66,0.15); color: var(--warn); }
+  .metrics { display: flex; gap: 12px; margin: 10px 0; font-family: var(--mono); font-size: 12px; }
+  .metric .n { font-weight: 600; }
+  .metric .l { color: var(--text-dim); font-size: 10px; text-transform: uppercase; }
+  .flags { margin: 8px 0; }
+  .flag {
+    font-size: 11.5px; color: var(--text-dim); padding: 4px 0; border-top: 1px solid var(--border);
+    display: flex; gap: 6px;
+  }
+  .flag:first-child { border-top: none; }
+  .flag .dot { color: var(--warn); flex-shrink: 0; }
+  .actions { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; }
+  button {
+    background: #1e1e26; border: 1px solid var(--border); color: var(--text);
+    padding: 6px 10px; border-radius: 6px; font-size: 11.5px; cursor: pointer;
+    font-family: var(--sans); transition: background 0.15s;
+  }
+  button:hover { background: #26262f; }
+  button.primary { background: rgba(110,231,183,0.1); border-color: rgba(110,231,183,0.3); color: var(--accent); }
+  button.primary:hover { background: rgba(110,231,183,0.18); }
+  button.copied { background: var(--accent); color: #0b0b0f; border-color: var(--accent); }
+  .empty-note { color: var(--text-dim); font-size: 12px; font-style: italic; margin: 8px 0; }
+  .toast {
+    position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+    background: var(--panel); border: 1px solid var(--accent); color: var(--text);
+    padding: 8px 16px; border-radius: 6px; font-size: 12px; opacity: 0; pointer-events: none;
+    transition: opacity 0.2s;
+  }
+  .toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Base44 Portfolio Audit — Live Dispatcher</h1>
+  <div class="sub">44 apps · Pass 1 baseline · click a card action to run/generate — nothing here calls Base44 directly, actions dispatch to chat or copy a prompt</div>
+</div>
+
+<div class="stats" id="stats"></div>
+<div id="storageWarning" style="display:none;background:rgba(245,113,108,0.1);border:1px solid rgba(245,113,108,0.35);color:var(--danger);padding:8px 12px;border-radius:6px;font-size:12px;margin-bottom:12px;"></div>
+
+<div class="controls">
+  <input type="text" id="search" placeholder="Filter by name...">
+  <select id="filterStatus">
+    <option value="all">All apps</option>
+    <option value="scanned">Scanned only</option>
+    <option value="unscanned">Unscanned only</option>
+    <option value="flagged">Has flags</option>
+    <option value="error">Inaccessible only</option>
+  </select>
+  <select id="sortBy">
+    <option value="name">Sort: Name</option>
+    <option value="entities">Sort: Entity count</option>
+    <option value="functions">Sort: Function count</option>
+    <option value="status">Sort: Scanned first</option>
+  </select>
+</div>
+
+<div class="grid" id="grid"></div>
+<div class="toast" id="toast"></div>
+
+<script>
+const APPS = [
+  {id:"6a10df3add3938c2959fb258", name:"SkySync", scanned:true, data:{entities:13, functions:10, agents:2, pages:40, stack:"React18 / Vite6 / Base44 SDK 0.8.36 / Stripe / Three.js / TanStack Query",
+    flags:["PRD.jsx is 59.7KB — almost certainly a dead/oversized page, not real UI","4 parallel mode variants (Pro/Midnight/Festive/Kids) — check for duplicated logic across them"]}},
+  {id:"6a4cbb2f97e8e9f4f749f46d", name:"Migrated from Lovable", scanned:true, data:{entities:2, functions:0, agents:0, pages:5, stack:"React18 / Vite6 / Base44 SDK — small scope",
+    flags:["Already has a docs/CODEBASE_AUDIT.md — read it before re-auditing from scratch","Very small surface (auth flow + GeometryLab) — likely low priority"]}},
+  {id:"69d600b633fe9356fc676f72", name:"AffordableStoreStuff", scanned:true, data:{entities:57, functions:60, agents:4, pages:90, stack:"React18 / Vite6 / Capacitor (mobile build) / Base44 SDK",
+    flags:["Large non-Base44 reference/ dir: 10 marketplace platform adapters (Etsy/Shopify/Printify/TikTok Shop/Gumroad/etc), safeguards pipeline, raw SQL schemas — scope creep beyond a store app","Has src/docs/PRODUCTION_AUDIT_2026_07.md — already audited this month, diff against it first","GitHub Actions CI + Android (Capacitor) build config present","Likely FlashFusion-adjacent infrastructure living inside a store app — verify ownership boundary"]}},
+  {id:"6a20669060783ff9e0ee723e", name:"Mcp hub", scanned:true, data:{entities:1, functions:0, agents:0, pages:null, stack:"React18 / Vite6 / Base44 SDK",
+    flags:["Skeleton: 1 entity (User), zero functions, zero agents — likely abandoned or a placeholder never built out"]}},
+  {id:"69c440b10249984f1114bc4b", name:"audit", scanned:true, data:{entities:27, functions:47, agents:7, pages:null, stack:"React18 / Vite6 / Base44 SDK / Stripe billing / HubSpot / DocuSign",
+    flags:["Full client-engagement platform (bookings, assessments, billing) — not a throwaway, this is a real FlashFusion tool","Has agent-registry.json + CLAUDE.md — already agent-orchestrated with security/pr-review/code-quality sub-agents","Name collision: literally called 'audit' — don't confuse with this audit pass"]}},
+  {id:"69180d077a5cbed7242f90ab", name:"SparkAcademy", scanned:true, partial:true, data:{entities:null, functions:null, agents:null, pages:null, stack:"React18 / Vite6 / Base44 SDK + embedded Cloudflare Worker subproject",
+    flags:["Already has .github/copilot-instructions.md — GitHub Copilot is pre-wired for this repo","Extensive existing audit trail: docs/HIGH_LEVEL_AUDIT.md + docs/LOW_LEVEL_AUDIT.md + ARCHITECTURE_IMPROVEMENT_PLAN.md — diff against these, don't duplicate","Contains ff-claude-proxy/ — a separate Cloudflare Worker subproject living inside this app's repo"]}},
+  {id:"691e3ae3bd4916f2e05ae35e", name:"INTeract", scanned:true, data:{entities:88, functions:210, agents:11, pages:null, stack:"React18 / Vite6 / Base44 SDK — heaviest integration surface in the portfolio",
+    flags:["Largest app by far: 88 entities, 210+ backend functions, 11 agents (incl. security/dependency/pr-review/release sub-agents)","10+ third-party integrations wired directly in functions/: Slack, Teams, HubSpot, Notion, Zapier, Cloudinary, ElevenLabs, Twilio, n8n, Google Calendar/Drive/Maps, OpenAI/Gemini/Perplexity/Claude","Has its own CodeAudit / CodeAuditFinding entities — this app already models audits internally, worth reusing rather than duplicating","Treat as its own multi-pass engagement, not a quick scan"]}},
+  {id:"69d64045d159060e89b95019", name:"Beta Tester Army", scanned:true, data:{entities:84, functions:99, agents:4, pages:null, stack:null,
+    flags:["Autonomous QA/testing platform: E2E orchestration, visual regression, a11y audits, persona simulation, self-healing selectors, RCA pipeline, GitHub PR webhook integration","99 functions excludes 1 shared functions/lib/ utility folder (not itself callable) — lib/'s internal contents weren't expanded","Scale rivals INTeract — treat as its own multi-pass engagement"]}},
+  {id:"68dd8e79ca073475565c8e16", name:"Fusion AI", scanned:true, data:{entities:102, functions:84, agents:17, pages:null, stack:null,
+    flags:["Contains flashfusionAPI, claudeCode, and vibecodeChat functions — this is the actual FlashFusion platform engine, not a demo","Structural anomaly: markdown docs (README.md, CHANGELOG.md, CONTRIBUTING.md, ARCHITECTURE, AB_TESTING_DOCUMENTATION.md) are living inside base44/functions/ as folders, not in a docs/ location","4 agent subfolders (release/, dependency/, security/, performance/) not expanded — agent count is a lower bound","Overlaps in purpose with the separately-named 'FlashFusion' app and the 'audit' app — worth a consolidation review to confirm which is canonical"]}},
+  {id:"6966ea092e97c4d0d7e27a83", name:"Ascend.Ai", scanned:true, data:{entities:80, functions:150, agents:7, pages:null, stack:null,
+    flags:["Highest function count in the entire portfolio: VC/deal-sourcing platform (due diligence, portfolio rebalancing, market data, financial forecasting)","2 agent subfolders (security/, pr-review/) not expanded — agent count is a lower bound"]}},
+  {id:"69f64dfad431e2eda98a57aa", name:"Graph Studio", scanned:true, data:{entities:4, functions:0, agents:0, pages:null, stack:null,
+    flags:["Minimal scope — 4 entities, zero backend functions"]}},
+  {id:"6964ae9bccc476276ac51682", name:"Enterprise AI App Generator", scanned:true, data:{entities:20, functions:14, agents:0, pages:null, stack:null,
+    flags:[]}},
+  {id:"69b6f0ff7b33fdefbbb4148f", name:"Tessa", scanned:false, error:"nonstandard", data:null},
+  {id:"69845451675b814799b78d47", name:"AI Game Day Oracle", scanned:true, data:{entities:0, functions:4, agents:0, pages:null, stack:null,
+    flags:["No custom entities folder found — likely relies on built-in User only"]}},
+  {id:"6905b1b4b24bc70c894362b1", name:"Site", scanned:true, data:{entities:121, functions:88, agents:14, pages:null, stack:null,
+    flags:["Full website builder/SEO/deployment platform: Vercel/Netlify/Wix deploy targets, CDN config, brand kits, LoRA model training, competitor SEO analysis","One of the largest apps in the portfolio by entity count"]}},
+  {id:"69d6866d29e0b32ab7e05bac", name:"aisalesteam", scanned:true, data:{entities:17, functions:32, agents:4, pages:null, stack:null,
+    flags:["Sales outreach automation: Gmail/Outlook webhook handling, sequence engine, lead scoring"]}},
+  {id:"69d4d31db6dc03e671f83084", name:"Conduit", scanned:true, data:{entities:39, functions:22, agents:7, pages:null, stack:null,
+    flags:["YouTube/video content management: highlight detection, repurposing, competitor channel tracking"]}},
+  {id:"6905b170a16696741559c314", name:"Battle Arena Pro", scanned:true, data:{entities:0, functions:0, agents:0, pages:null, stack:null,
+    flags:["Bare skeleton — base44/ contains only config.jsonc, no entities/functions/agents at all"]}},
+  {id:"694c756124d640756ea9ba23", name:"Orchestrator AI", scanned:true, data:{entities:100, functions:17, agents:20, pages:null, stack:null,
+    flags:["Highest agent count in the portfolio (19) — multi-agent orchestration platform with agent-to-agent handoff, collaboration tracking, and skill verification entities"]}},
+  {id:"6975c6683335e8a2a4f036a7", name:"TeamSync", scanned:true, data:{entities:16, functions:18, agents:0, pages:null, stack:null,
+    flags:["Decision-simulation tool with Jira/Linear/Notion/Slack integrations wired directly into functions/"]}},
+  {id:"6a02ac1bad2b4e37732ef382", name:"FlashFusion", scanned:true, data:{entities:18, functions:8, agents:3, pages:null, stack:null,
+    flags:["Client engagement/scorecard tool — smaller and distinct from 'Fusion AI'; same overlap flag applies (see Fusion AI and 'audit')"]}},
+  {id:"69861bd9ee42e63a83ea6c2e", name:"Invelo", scanned:true, data:{entities:3, functions:3, agents:0, pages:null, stack:null,
+    flags:[]}},
+  {id:"6a223709f61c48a90a154a3b", name:"Nexus", scanned:true, data:{entities:11, functions:11, agents:0, pages:null, stack:null,
+    flags:["Personal knowledge/task hub — includes a function literally named selfHeal"]}},
+  {id:"69d51947e1f726c213750550", name:"rifts.to", scanned:true, data:{entities:6, functions:1, agents:0, pages:null, stack:null,
+    flags:["Small live-event Q&A/polling tool"]}},
+  {id:"695358c874c44c15f2191368", name:"Enterprise Hub", scanned:true, data:{entities:43, functions:34, agents:1, pages:null, stack:null,
+    flags:["DevOps/architecture governance platform: compliance frameworks, security scanning, Terraform generation, cost simulation"]}},
+  {id:"6a11151c53f6b52067e38894", name:"tiktokstory", scanned:true, data:{entities:2, functions:0, agents:0, pages:null, stack:null,
+    flags:["Near-empty skeleton — 2 entities, no functions"]}},
+  {id:"6973c63c8956a95a1239ebd6", name:"AI Studio", scanned:true, data:{entities:6, functions:1, agents:0, pages:null, stack:null,
+    flags:[]}},
+  {id:"6993224085066ce50f0a4b00", name:"Proactive Mentor OS", scanned:true, data:{entities:19, functions:15, agents:0, pages:null, stack:null,
+    flags:["Dev-team ops assistant: root cause analysis, refactoring task generation, onboarding chatbot"]}},
+  {id:"69f43f0643bb023bc2f3025d", name:"Inner-Odyssey", scanned:true, data:{entities:27, functions:6, agents:0, pages:null, stack:null,
+    flags:["Family/parenting engagement and learning-gamification platform"]}},
+  {id:"696794d3b250852091312921", name:"AI Ops Concierge", scanned:true, data:{entities:18, functions:13, agents:0, pages:null, stack:null,
+    flags:["Knowledge-ops tool: content gap detection, semantic search, proactive suggestions"]}},
+  {id:"69c44063f697f0f1017ed1c2", name:"Continuum", scanned:true, data:{entities:0, functions:0, agents:0, pages:null, stack:null,
+    flags:["Bare skeleton — base44/ contains only config.jsonc"]}},
+  {id:"6953593fa0363e206cad4944", name:"Nexus Copilot", scanned:true, data:{entities:0, functions:0, agents:0, pages:null, stack:null,
+    flags:["Bare skeleton — base44/ contains only config.jsonc"]}},
+  {id:"695fdfc2bb2f0d4d1c302175", name:"LifeSync", scanned:false, error:true, data:null},
+  {id:"696c01e92b52fbdc507430f1", name:"Card Catalog AI", scanned:true, data:{entities:3, functions:0, agents:0, pages:null, stack:null,
+    flags:["Flagged in a prior audit as your top 'Best Apps of the Week' submission candidate — small, focused scope"]}},
+  {id:"69d896ccb63da457468b275b", name:"Knowledge OS", scanned:false, error:true, data:null},
+  {id:"69f6549bc82b9bbc8cac2f6d", name:"FlowState", scanned:true, data:{entities:4, functions:0, agents:0, pages:null, stack:null,
+    flags:["Small — likely a portfolio/personal site (Certification, Skill, Project entities)"]}},
+  {id:"68b1d9717d45745ba2475eec", name:"Sedona Soul Sessions", scanned:false, error:true, data:null},
+  {id:"68d1c017b920ca5b5d9c7db5", name:"SoleIgnite", scanned:false, error:true, data:null},
+  {id:"68f81edd94b5b21e9c72953d", name:"Champions Hub", scanned:false, error:true, data:null},
+  {id:"68f83f5bde8a37c8491aec1f", name:"TESSA", scanned:true, data:{entities:0, functions:0, agents:0, pages:null, stack:null,
+    flags:["Bare skeleton — only config.jsonc","! Name collision: this is a DIFFERENT app from 'Tessa' (id 69b6f0ff...) below — don't conflate them"]}},
+  {id:"69771560d39c8c6139201b55", name:"ScoutReel", scanned:true, data:{entities:0, functions:2, agents:0, pages:null, stack:null,
+    flags:["Sports footage analysis — no custom entities folder found"]}},
+  {id:"6990d794da1e2f0102c267bd", name:"Sole Customizer", scanned:true, data:{entities:0, functions:5, agents:0, pages:null, stack:null,
+    flags:["Shoe customization/e-commerce — Stripe checkout, order/stock notifications; no custom entities folder found"]}},
+  {id:"69d3f57a73a8e3da2bdcdbcd", name:"CreditReview", scanned:true, data:{entities:9, functions:2, agents:0, pages:null, stack:null,
+    flags:["Continuing-education course review platform for finance/credit professionals, Stripe subscriptions"]}},
+  {id:"68a60dfb8f545166ef4207d1", name:"AuraFlow", scanned:false, error:true, data:null},
+];
+
+let storageOK = true;
+let storageWarning = null;
+
+async function loadDiffs() {
+  for (const app of APPS) {
+    if (!app.scanned) continue;
+    const key = `scan:${app.id}`;
+    let getResult;
+    try {
+      getResult = await window.storage.get(key);
+    } catch (e) {
+      // Key genuinely doesn't exist yet (or transient read failure) — treat as first scan.
+      getResult = null;
+    }
+
+    if (getResult && getResult.value) {
+      let stored;
+      try {
+        stored = JSON.parse(getResult.value);
+      } catch (parseErr) {
+        // Corrupted stored value — do NOT overwrite it silently. Surface and skip.
+        storageOK = false;
+        storageWarning = `Stored scan data for ${app.name} is corrupted and was left untouched — investigate before it's overwritten.`;
+        continue;
+      }
+      const prevData = stored.data || stored; // tolerate old un-timestamped records
+      app.lastScanned = stored.scannedAt || null;
+      app.diff = diffData(prevData, app.data);
+      if (app.diff.changed) app.diffMsg = app.diff.summary;
+    } else {
+      try {
+        await window.storage.set(key, JSON.stringify({ data: app.data, scannedAt: new Date().toISOString() }));
+        app.lastScanned = new Date().toISOString();
+      } catch (setErr) {
+        storageOK = false;
+        storageWarning = `Could not persist scan data for ${app.name} — storage may be unavailable in this context. Results won't survive reload.`;
+      }
+    }
+  }
+}
+
+function diffData(prev, curr) {
+  const deltas = [];
+  ['entities','functions','agents'].forEach(k => {
+    const p = prev[k], c = curr[k];
+    if (p == null && c != null) {
+      deltas.push(`${k} unknown→${c}`);
+    } else if (p != null && c != null && p !== c) {
+      const d = c - p;
+      deltas.push(`${k} ${d > 0 ? '+' : ''}${d}`);
+    }
+  });
+  return { changed: deltas.length > 0, summary: deltas.join(', ') };
+}
+
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+function copyText(text, btn) {
+  navigator.clipboard.writeText(text).then(() => {
+    const orig = btn.textContent;
+    btn.textContent = 'Copied ✓';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = orig; btn.classList.remove('copied'); }, 1500);
+  }).catch(() => toast('Copy failed — select manually'));
+}
+
+function deepScanPrompt(app) {
+  return `Run the calibrated Base44 audit pass for "${app.name}" (appId: ${app.id}). Use list_directory on the app root (max_depth=2, recursive) and on the base44/ subfolder (max_depth=2, recursive) to get entity/function/agent counts and top-level anomalies. Report findings in the same format as the other 7 apps already profiled, then update the artifact's stored scan data for this appId.`;
+}
+
+function securityPrompt(app) {
+  return `Security audit request for Base44 app "${app.name}" (id: ${app.id}).\n\nCheck for: hardcoded secrets or API keys in base44/functions/*/entry.ts, missing auth checks on entity read/write rules, functions that accept unvalidated user input, and any client-side code (src/) that references service_role or admin-level credentials. Report findings as Critical/High/Medium/Low with file paths and one-line fixes.`;
+}
+
+function cleanupPrompt(app) {
+  return `Dead-code and dependency audit for Base44 app "${app.name}" (id: ${app.id}).\n\nList: unused entities (defined in base44/entities/ but never referenced in src/), oversized page files (>15KB) that may be duplicated logic, unused npm dependencies in package.json vs actual imports, and any backend functions with no corresponding UI call site. Output as a prioritized cleanup list.`;
+}
+
+function render() {
+  const search = document.getElementById('search').value.toLowerCase();
+  const statusFilter = document.getElementById('filterStatus').value;
+  const sortBy = document.getElementById('sortBy').value;
+
+  let list = APPS.filter(a => a.name.toLowerCase().includes(search));
+  if (statusFilter === 'scanned') list = list.filter(a => a.scanned);
+  if (statusFilter === 'unscanned') list = list.filter(a => !a.scanned && !a.error);
+  if (statusFilter === 'error') list = list.filter(a => a.error);
+  if (statusFilter === 'flagged') list = list.filter(a => a.data && a.data.flags && a.data.flags.length);
+
+  list = [...list].sort((a, b) => {
+    if (sortBy === 'entities') return (b.data?.entities ?? -1) - (a.data?.entities ?? -1);
+    if (sortBy === 'functions') return (b.data?.functions ?? -1) - (a.data?.functions ?? -1);
+    if (sortBy === 'status') return (b.scanned - a.scanned) || a.name.localeCompare(b.name);
+    return a.name.localeCompare(b.name);
+  });
+
+  const scannedCount = APPS.filter(a => a.scanned).length;
+  const errorCount = APPS.filter(a => a.error).length;
+  const totalEntities = APPS.reduce((s,a) => s + (a.data?.entities || 0), 0);
+  const totalFunctions = APPS.reduce((s,a) => s + (a.data?.functions || 0), 0);
+  const totalFlags = APPS.reduce((s,a) => s + (a.data?.flags?.length || 0), 0);
+
+  document.getElementById('stats').innerHTML = `
+    <div class="stat"><div class="num">${APPS.length}</div><div class="lbl">Total apps</div></div>
+    <div class="stat"><div class="num">${scannedCount}</div><div class="lbl">Scanned</div></div>
+    <div class="stat"><div class="num">${errorCount}</div><div class="lbl">Inaccessible</div></div>
+    <div class="stat"><div class="num">${totalEntities}</div><div class="lbl">Entities (scanned)</div></div>
+    <div class="stat"><div class="num">${totalFunctions}</div><div class="lbl">Functions (scanned)</div></div>
+    <div class="stat"><div class="num">${totalFlags}</div><div class="lbl">Flags raised</div></div>
+  `;
+
+  const warningEl = document.getElementById('storageWarning');
+  if (!storageOK && storageWarning) {
+    warningEl.textContent = '⚠ ' + storageWarning;
+    warningEl.style.display = 'block';
+  } else {
+    warningEl.style.display = 'none';
+  }
+
+  const grid = document.getElementById('grid');
+  if (list.length === 0) {
+    grid.innerHTML = `<div class="empty-note">No apps match the current filter/search — clear one to see results.</div>`;
+    return;
+  }
+  grid.innerHTML = list.map(app => {
+    const idShort = app.id.slice(0,8) + '…';
+    if (app.error) {
+      const reason = app.error === 'nonstandard'
+        ? 'Sandbox-bridge tools unavailable for this app type — not a code-sandbox-backed app; cannot be structurally audited via this MCP connector.'
+        : 'Generic MCP error on both root and base44/ listing — app exists in list_user_apps but its sandbox may be unprovisioned or hibernated.';
+      return `
+      <div class="card unscanned">
+        <div class="card-top">
+          <div><div class="app-name">${escapeHtml(app.name)}</div><div class="app-id">${idShort}</div></div>
+          <span class="badge" style="background:rgba(245,113,108,0.12);color:var(--danger);">inaccessible</span>
+        </div>
+        <div class="empty-note">${escapeHtml(reason)}</div>
+        <div class="actions">
+          <button class="primary" onclick="fireDeepScan('${app.id}')">Retry Scan</button>
+        </div>
+      </div>`;
+    }
+    if (!app.scanned) {
+      return `
+      <div class="card unscanned">
+        <div class="card-top">
+          <div><div class="app-name">${escapeHtml(app.name)}</div><div class="app-id">${idShort}</div></div>
+          <span class="badge unscanned">not scanned</span>
+        </div>
+        <div class="empty-note">No structural data yet — Pass 1 hasn't reached this app.</div>
+        <div class="actions">
+          <button class="primary" onclick="fireDeepScan('${app.id}')">Deep Scan</button>
+        </div>
+      </div>`;
+    }
+    const d = app.data;
+    const diffBadge = app.diffMsg ? `<span class="badge diff">Δ ${escapeHtml(app.diffMsg)}</span>` : '';
+    const statusBadge = app.partial
+      ? `<span class="badge diff">partial scan</span>`
+      : `<span class="badge scanned">scanned</span>`;
+    const lastScanned = app.lastScanned
+      ? `<div class="app-id" style="margin-top:1px;">last scanned ${new Date(app.lastScanned).toLocaleDateString()}</div>` : '';
+    return `
+    <div class="card ${app.partial ? 'unscanned' : 'scanned'}">
+      <div class="card-top">
+        <div><div class="app-name">${escapeHtml(app.name)}</div><div class="app-id">${idShort}</div>${lastScanned}</div>
+        <div style="display:flex;gap:6px;">${diffBadge}${statusBadge}</div>
+      </div>
+      <div class="metrics">
+        ${d.entities != null ? `<div class="metric"><div class="n">${d.entities}</div><div class="l">Entities</div></div>` : ''}
+        ${d.functions != null ? `<div class="metric"><div class="n">${d.functions}</div><div class="l">Functions</div></div>` : ''}
+        ${d.agents != null ? `<div class="metric"><div class="n">${d.agents}</div><div class="l">Agents</div></div>` : ''}
+        ${d.pages != null ? `<div class="metric"><div class="n">${d.pages}</div><div class="l">Pages</div></div>` : ''}
+      </div>
+      <div style="font-size:11px;color:var(--text-dim);margin-bottom:6px;">${escapeHtml(d.stack || '')}</div>
+      <div class="flags">
+        ${(d.flags||[]).map(f => `<div class="flag"><span class="dot">!</span>${escapeHtml(f)}</div>`).join('')}
+      </div>
+      <div class="actions">
+        <button class="primary" onclick="fireDeepScan('${app.id}')">Re-Scan</button>
+        <button onclick="fireSecurity('${app.id}', this)">Security Prompt</button>
+        <button onclick="fireCleanup('${app.id}', this)">Cleanup Prompt</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function escapeHtml(s) {
+  return (s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function findApp(id) { return APPS.find(a => a.id === id); }
+
+function fireDeepScan(id) {
+  const app = findApp(id);
+  if (typeof sendPrompt !== 'function') {
+    toast('sendPrompt unavailable in this context');
+    return;
+  }
+  try {
+    sendPrompt(deepScanPrompt(app));
+    toast(`Dispatched deep scan for ${app.name}`);
+  } catch (e) {
+    toast(`Dispatch failed for ${app.name} — try again`);
+  }
+}
+function fireSecurity(id, btn) {
+  const app = findApp(id);
+  copyText(securityPrompt(app), btn);
+}
+function fireCleanup(id, btn) {
+  const app = findApp(id);
+  copyText(cleanupPrompt(app), btn);
+}
+
+document.getElementById('search').addEventListener('input', render);
+document.getElementById('filterStatus').addEventListener('change', render);
+document.getElementById('sortBy').addEventListener('change', render);
+
+(async () => {
+  await loadDiffs();
+  render();
+})();
+</script>
+</body>
+</html>
