@@ -1,0 +1,948 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LLC Formation Kit v2 — Kyle Rosebrook</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Georgia', serif;
+    background: #0f0f12;
+    color: #e8e6e0;
+    line-height: 1.7;
+    min-height: 100vh;
+  }
+  .header {
+    background: #1a1a22;
+    border-bottom: 1px solid #2a2a38;
+    padding: 28px 40px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .header h1 { font-family: Georgia, serif; font-size: 1.1rem; font-weight: normal; color: #a09890; letter-spacing: 0.08em; text-transform: uppercase; }
+  .header .warning { font-family: monospace; font-size: 0.75rem; color: #e8a94a; background: rgba(232,169,74,0.1); border: 1px solid rgba(232,169,74,0.3); padding: 6px 12px; border-radius: 3px; }
+  .nav { background: #14141c; border-bottom: 1px solid #2a2a38; padding: 0 40px; display: flex; gap: 0; overflow-x: auto; }
+  .nav button { background: none; border: none; color: #6a6880; padding: 16px 20px; font-family: monospace; font-size: 0.8rem; cursor: pointer; border-bottom: 2px solid transparent; white-space: nowrap; transition: all 0.15s; letter-spacing: 0.05em; }
+  .nav button:hover { color: #c8c4be; }
+  .nav button.active { color: #9b8af4; border-bottom-color: #9b8af4; }
+  .content { max-width: 900px; margin: 0 auto; padding: 40px; }
+  .section { display: none; }
+  .section.active { display: block; }
+  h2 { font-family: Georgia, serif; font-size: 1.4rem; color: #e8e6e0; font-weight: normal; margin-bottom: 8px; padding-bottom: 12px; border-bottom: 1px solid #2a2a38; }
+  h3 { font-family: monospace; font-size: 0.85rem; color: #9b8af4; text-transform: uppercase; letter-spacing: 0.1em; margin: 28px 0 10px; }
+  h4 { font-size: 0.9rem; color: #c8c4be; font-weight: bold; margin: 16px 0 6px; }
+  p { margin-bottom: 12px; font-size: 0.92rem; color: #b0ada6; }
+  .card { background: #1a1a22; border: 1px solid #2a2a38; border-radius: 6px; padding: 24px; margin: 16px 0; }
+  .card-header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+  .badge { font-family: monospace; font-size: 0.72rem; padding: 3px 8px; border-radius: 3px; text-transform: uppercase; letter-spacing: 0.06em; }
+  .badge-ff { background: rgba(155,138,244,0.15); color: #9b8af4; border: 1px solid rgba(155,138,244,0.3); }
+  .badge-cc { background: rgba(74,180,176,0.12); color: #4ab4b0; border: 1px solid rgba(74,180,176,0.3); }
+  .badge-both { background: rgba(232,169,74,0.12); color: #e8a94a; border: 1px solid rgba(232,169,74,0.3); }
+  .lawyer-card { background: #1a1a22; border: 1px solid #2a2a38; border-radius: 6px; padding: 24px; margin: 16px 0; border-left: 3px solid #9b8af4; }
+  .doc-block { background: #0a0a10; border: 1px solid #2a2a38; border-radius: 4px; padding: 24px; margin: 16px 0; font-family: monospace; font-size: 0.82rem; line-height: 1.8; white-space: pre-wrap; color: #c8c4be; }
+  .doc-block .placeholder { color: #e8a94a; }
+  .doc-block .label { display: block; font-family: monospace; font-size: 0.7rem; color: #6a6880; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 12px; border-bottom: 1px solid #2a2a38; padding-bottom: 8px; }
+  .checklist { list-style: none; padding: 0; }
+  .checklist li { padding: 8px 0; font-size: 0.88rem; color: #b0ada6; display: flex; align-items: flex-start; gap: 10px; border-bottom: 1px solid #1e1e28; }
+  .checklist li:last-child { border-bottom: none; }
+  .check { color: #4ab4b0; font-size: 0.8rem; margin-top: 2px; flex-shrink: 0; }
+  .check.warn { color: #e8a94a; }
+  .check.danger { color: #dc7070; }
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 16px 0; }
+  @media (max-width: 600px) { .two-col { grid-template-columns: 1fr; } }
+  .meta { font-family: monospace; font-size: 0.75rem; color: #6a6880; margin-bottom: 20px; }
+  .note { background: rgba(232,169,74,0.07); border-left: 3px solid #e8a94a; padding: 12px 16px; margin: 16px 0; font-size: 0.85rem; color: #c8a86a; border-radius: 0 4px 4px 0; }
+  .note.info { background: rgba(155,138,244,0.07); border-left-color: #9b8af4; color: #a09af0; }
+  .note.good { background: rgba(74,180,176,0.07); border-left-color: #4ab4b0; color: #6ac8c4; }
+  table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 0.85rem; }
+  th { font-family: monospace; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: #6a6880; padding: 8px 12px; text-align: left; border-bottom: 1px solid #2a2a38; }
+  td { padding: 10px 12px; color: #b0ada6; border-bottom: 1px solid #1e1e28; vertical-align: top; }
+  tr:last-child td { border-bottom: none; }
+  .footer { margin-top: 40px; padding: 20px; background: #14141c; border: 1px solid #2a2a38; border-radius: 4px; font-family: monospace; font-size: 0.75rem; color: #6a6880; }
+  .footer strong { color: #e8a94a; }
+  .strike { text-decoration: line-through; opacity: 0.4; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>LLC Formation Kit v2 &nbsp;/&nbsp; Kyle Rosebrook</h1>
+  <div class="warning">⚠ TEMPLATES ONLY — ATTORNEY REVIEW REQUIRED</div>
+</div>
+
+<div class="nav">
+  <button class="active" onclick="show('lawyers')">01 — Lawyer</button>
+  <button onclick="show('structure')">02 — Structure</button>
+  <button onclick="show('articles-ff')">03 — Articles (FlashFusion)</button>
+  <button onclick="show('articles-cc')">04 — Articles (Chaos Club)</button>
+  <button onclick="show('oa')">05 — Operating Agreement</button>
+  <button onclick="show('ip')">06 — IP Assignment</button>
+  <button onclick="show('employment')">07 — Employment IP Audit</button>
+  <button onclick="show('cocreator')">08 — Co-Creator Agreement</button>
+  <button onclick="show('clc')">09 — CLC Brief</button>
+  <button onclick="show('content')">10 — Content Licensing</button>
+  <button onclick="show('checklist')">11 — Checklist</button>
+</div>
+
+<!-- ===================== LAWYERS ===================== -->
+<div id="lawyers" class="section active">
+  <div class="content">
+    <h2>One Lawyer. Two Jobs.</h2>
+    <div class="meta">Chaos Club is now an educational platform. Digital health attorney removed. Single startup attorney handles everything.</div>
+
+    <div class="note good">
+      Pivoting Chaos Club to education eliminates the Illinois AI Mental Health Therapy Act exposure, the HIPAA-adjacent data risk, and the $10K/violation penalty structure entirely. One attorney does all of this.
+    </div>
+
+    <div class="lawyer-card">
+      <div class="card-header">
+        <span class="badge badge-both">One Attorney</span>
+        <span class="badge badge-ff">FlashFusion LLC</span>
+        <span class="badge badge-cc">Chaos Club Co. LLC</span>
+      </div>
+      <h4>Startup / Business Tech Attorney</h4>
+      <p>Handles LLC formation for both entities, operating agreements, IP assignment, employment agreement review, client-facing contracts for FlashFusion, and the three new Chaos Club documents — co-creator agreement, CLC partnership brief, and content licensing framework.</p>
+
+      <h3>Recommended</h3>
+      <table>
+        <tr><th>Firm</th><th>Why</th><th>Contact</th></tr>
+        <tr>
+          <td><strong>goodcounsel</strong></td>
+          <td>Chicago startup attorneys, tech-savvy, early-stage focused, value-oriented billing. Won't meter you to death on a straightforward dual-LLC formation.</td>
+          <td>mygoodcounsel.com</td>
+        </tr>
+        <tr>
+          <td><strong>Airdo Werwas LLC</strong></td>
+          <td>Chicago startup + small business law, Illinois-specific, LLC formation + structuring. Local. Good for founders who want a relationship, not a portal.</td>
+          <td>(312) 506-4450 · airdowerwas.com</td>
+        </tr>
+      </table>
+
+      <h3>Full Scope — What to Ask Them to Do</h3>
+      <ul class="checklist">
+        <li><span class="check">→</span>Form FlashFusion LLC (Illinois) — Articles + registered agent</li>
+        <li><span class="check">→</span>Form Chaos Club Co. LLC (Illinois) — Articles + registered agent</li>
+        <li><span class="check">→</span>Single-member Operating Agreement for each entity</li>
+        <li><span class="check">→</span>IP Assignment Agreement — FlashFusion LLC (pre-formation work)</li>
+        <li><span class="check">→</span>IP Assignment Agreement — Chaos Club Co. LLC (pre-formation work)</li>
+        <li><span class="check warn">!</span>Review employment agreement for IP assignment language before FlashFusion signs any client contracts</li>
+        <li><span class="check">→</span>Master Services Agreement template — FlashFusion client engagements</li>
+        <li><span class="check">→</span>Co-Creator Agreement — Chaos Club Co. / your friend (see tab 08)</li>
+        <li><span class="check warn">!</span>Review any CLC institutional partnership agreement before signing — institutions claim IP (see tab 09)</li>
+        <li><span class="check">→</span>Educational content licensing framework — who owns the curriculum (see tab 10)</li>
+      </ul>
+
+      <h3>Estimated Cost</h3>
+      <table>
+        <tr><th>Item</th><th>Estimate</th></tr>
+        <tr><td>Both Illinois LLC filings</td><td>~$300 (you file, you pay SoS directly)</td></tr>
+        <tr><td>Attorney — formation + OAs + IP assignments</td><td>$1,500–$2,500 flat if negotiated</td></tr>
+        <tr><td>Attorney — MSA + co-creator + CLC review + content licensing</td><td>$1,000–$2,000 add-on</td></tr>
+        <tr><td>Registered agent (optional, ×2)</td><td>$100–$300/yr total</td></tr>
+        <tr><td><strong>Total estimate</strong></td><td><strong>$3,000–$5,000 one-time</strong></td></tr>
+      </table>
+
+      <div class="note info">Brief them upfront on everything — both LLCs, the employment IP question, FlashFusion client contracts, and the Chaos Club education partnership model. Bundling it is cheaper than coming back in pieces.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== STRUCTURE ===================== -->
+<div id="structure" class="section">
+  <div class="content">
+    <h2>Structure Decision</h2>
+    <div class="meta">Two LLCs. Still correct even with Chaos Club pivoting to education.</div>
+
+    <div class="two-col">
+      <div class="card">
+        <div class="card-header"><span class="badge badge-ff">FlashFusion LLC</span></div>
+        <h4>B2B AI Enablement Services</h4>
+        <ul class="checklist">
+          <li><span class="check">→</span>Commercial client contracts</li>
+          <li><span class="check">→</span>Professional services liability</li>
+          <li><span class="check">→</span>Anthropic Partner Network applicant</li>
+          <li><span class="check">→</span>NSF SBIR Phase I Path B target</li>
+          <li><span class="check">→</span>Revenue: audits, sprints, retainers</li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="badge badge-cc">Chaos Club Co. LLC</span></div>
+        <h4>Educational Platform</h4>
+        <ul class="checklist">
+          <li><span class="check">→</span>CLC institutional partnership</li>
+          <li><span class="check">→</span>Co-creator relationship (friend)</li>
+          <li><span class="check">→</span>Curriculum / content ownership</li>
+          <li><span class="check">→</span>Educational product liability</li>
+          <li><span class="check">→</span>Different revenue model than FF</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="note">Still two separate LLCs. A CLC partnership gone sideways, a dispute with your co-creator, or an issue with a student's experience of your content — none of that should ever touch FlashFusion's client contracts or balance sheet.</div>
+
+    <h3>Filing Order</h3>
+    <ul class="checklist">
+      <li><span class="check">1</span><strong>FlashFusion LLC</strong> — File first. Gating item for Anthropic Partner Network and closest to revenue.</li>
+      <li><span class="check">2</span><strong>EIN — FlashFusion</strong> — IRS.gov, 10 min, free. Same day as filing.</li>
+      <li><span class="check">3</span><strong>Business bank account — FlashFusion</strong> — Open immediately. Do not commingle.</li>
+      <li><span class="check">4</span><strong>Chaos Club Co. LLC</strong> — File after FlashFusion is active. No revenue pressure yet, and you need to talk to CLC contacts first to understand the partnership structure before locking the entity.</li>
+      <li><span class="check">5</span><strong>EIN — Chaos Club</strong> — Same process.</li>
+    </ul>
+
+    <div class="note info">Run a name search before filing Chaos Club Co. LLC at ilsos.gov — confirm "Chaos Club Co." isn't already registered in Illinois.</div>
+  </div>
+</div>
+
+<!-- ===================== ARTICLES FF ===================== -->
+<div id="articles-ff" class="section">
+  <div class="content">
+    <h2>Articles of Organization — FlashFusion LLC</h2>
+    <div class="meta">File at: ilsos.gov · Fee: $150 · Processing: 1–2 weeks standard / +$100 for 24hr expedite</div>
+
+    <div class="doc-block"><span class="label">ILLINOIS ARTICLES OF ORGANIZATION — LLC-5.5</span>
+STATE OF ILLINOIS — SECRETARY OF STATE
+DEPARTMENT OF BUSINESS SERVICES
+LIMITED LIABILITY COMPANY ACT — 805 ILCS 180/
+
+ARTICLES OF ORGANIZATION
+
+ARTICLE 1 — NAME
+<span class="placeholder">FlashFusion LLC</span>
+
+ARTICLE 2 — PRINCIPAL PLACE OF BUSINESS
+Street Address:  <span class="placeholder">[YOUR STREET ADDRESS]</span>
+City, State, ZIP: <span class="placeholder">Grayslake, IL [ZIP CODE]</span>
+
+ARTICLE 3 — REGISTERED AGENT AND REGISTERED OFFICE
+Name of Registered Agent: <span class="placeholder">Kyle Rosebrook</span>
+Address of Registered Office: <span class="placeholder">[YOUR STREET ADDRESS]</span>
+City, State, ZIP: <span class="placeholder">Grayslake, IL [ZIP CODE]</span>
+
+ARTICLE 4 — PURPOSE
+The purpose of the limited liability company is to engage in any lawful
+purpose or activity for which a limited liability company may be organized
+under the Illinois Limited Liability Company Act (805 ILCS 180/).
+
+ARTICLE 5 — MANAGEMENT
+The limited liability company is to be managed by: its members
+
+Name and address of each manager or member:
+Name: <span class="placeholder">Kyle Rosebrook</span>
+Address: <span class="placeholder">[YOUR STREET ADDRESS], Grayslake, IL [ZIP CODE]</span>
+
+ARTICLE 6 — DURATION
+Perpetual
+
+ARTICLE 7 — ORGANIZER SIGNATURE
+I, the undersigned, being the organizer of the above LLC, sign and submit
+these articles of organization.
+
+Name: <span class="placeholder">Kyle Rosebrook</span>
+Date: <span class="placeholder">_____________, 2026</span>
+Signature: ___________________________________
+
+Filing Fee: $150.00
+</div>
+  </div>
+</div>
+
+<!-- ===================== ARTICLES CC ===================== -->
+<div id="articles-cc" class="section">
+  <div class="content">
+    <h2>Articles of Organization — Chaos Club Co. LLC</h2>
+    <div class="meta">File after FlashFusion LLC is active and after your CLC conversations clarify the partnership structure.</div>
+
+    <div class="doc-block"><span class="label">ILLINOIS ARTICLES OF ORGANIZATION — LLC-5.5</span>
+STATE OF ILLINOIS — SECRETARY OF STATE
+DEPARTMENT OF BUSINESS SERVICES
+LIMITED LIABILITY COMPANY ACT — 805 ILCS 180/
+
+ARTICLES OF ORGANIZATION
+
+ARTICLE 1 — NAME
+<span class="placeholder">Chaos Club Co. LLC</span>
+
+ARTICLE 2 — PRINCIPAL PLACE OF BUSINESS
+Street Address:  <span class="placeholder">[YOUR STREET ADDRESS]</span>
+City, State, ZIP: <span class="placeholder">Grayslake, IL [ZIP CODE]</span>
+
+ARTICLE 3 — REGISTERED AGENT AND REGISTERED OFFICE
+Name of Registered Agent: <span class="placeholder">Kyle Rosebrook</span>
+Address of Registered Office: <span class="placeholder">[YOUR STREET ADDRESS]</span>
+City, State, ZIP: <span class="placeholder">Grayslake, IL [ZIP CODE]</span>
+
+ARTICLE 4 — PURPOSE
+The purpose of the limited liability company is to engage in any lawful
+purpose or activity for which a limited liability company may be organized
+under the Illinois Limited Liability Company Act (805 ILCS 180/).
+The company's primary activities include developing and operating
+educational platforms, curriculum, and related content and technology.
+
+ARTICLE 5 — MANAGEMENT
+The limited liability company is to be managed by: its members
+
+Name and address of each manager or member:
+Name: <span class="placeholder">Kyle Rosebrook</span>
+Address: <span class="placeholder">[YOUR STREET ADDRESS], Grayslake, IL [ZIP CODE]</span>
+
+ARTICLE 6 — DURATION
+Perpetual
+
+ARTICLE 7 — ORGANIZER SIGNATURE
+I, the undersigned, being the organizer of the above LLC, sign and submit
+these articles of organization.
+
+Name: <span class="placeholder">Kyle Rosebrook</span>
+Date: <span class="placeholder">_____________, 2026</span>
+Signature: ___________________________________
+
+Filing Fee: $150.00
+</div>
+
+    <div class="note">Note the purpose language is broader here — "educational platforms, curriculum, and related content and technology." Keeps options open as the CLC model develops.</div>
+  </div>
+</div>
+
+<!-- ===================== OPERATING AGREEMENT ===================== -->
+<div id="oa" class="section">
+  <div class="content">
+    <h2>Single-Member Operating Agreement</h2>
+    <div class="meta">Template for both LLCs. Swap entity name and purpose clause. Attorney reviews before signing.</div>
+
+    <div class="doc-block"><span class="label">SINGLE-MEMBER LLC OPERATING AGREEMENT — ILLINOIS</span>
+OPERATING AGREEMENT OF <span class="placeholder">[ENTITY NAME]</span>
+
+This Agreement is entered into as of <span class="placeholder">_______________, 2026</span>,
+by <span class="placeholder">Kyle Rosebrook</span> ("Member"), the sole member of
+<span class="placeholder">[ENTITY NAME]</span>, an Illinois LLC ("Company").
+
+────────────────────────────────────────────────
+ARTICLE I — FORMATION
+────────────────────────────────────────────────
+
+1.1  Name: <span class="placeholder">[ENTITY NAME]</span>
+1.2  Principal Office: <span class="placeholder">[ADDRESS], Grayslake, IL [ZIP]</span>
+1.3  Registered Agent: <span class="placeholder">Kyle Rosebrook</span>, at the address above.
+1.4  Organized under: Illinois LLC Act, 805 ILCS 180/
+
+────────────────────────────────────────────────
+ARTICLE II — PURPOSE
+────────────────────────────────────────────────
+
+<span class="placeholder">[FlashFusion LLC]:
+The Company provides AI enablement consulting, advisory, and technology
+services to businesses and conducts any lawful related activity.
+
+[Chaos Club Co. LLC]:
+The Company develops and operates educational platforms, curriculum,
+content, and related technology products and conducts any lawful
+related activity.</span>
+
+────────────────────────────────────────────────
+ARTICLE III — CAPITAL AND MEMBERSHIP
+────────────────────────────────────────────────
+
+3.1  Sole Member: Kyle Rosebrook holds 100% membership interest.
+3.2  Initial Capital Contribution: $<span class="placeholder">________</span>
+3.3  Additional contributions at Member's sole discretion.
+3.4  Distributions at Member's discretion, provided the Company
+     can pay its debts as they come due.
+
+────────────────────────────────────────────────
+ARTICLE IV — MANAGEMENT
+────────────────────────────────────────────────
+
+4.1  Member-managed. Member has full authority to bind the Company.
+4.2  Manager/CEO: Kyle Rosebrook
+
+────────────────────────────────────────────────
+ARTICLE V — BOOKS, RECORDS, AND TAXES
+────────────────────────────────────────────────
+
+5.1  Accurate books maintained at principal office.
+5.2  Tax classification: disregarded entity (sole proprietorship)
+     unless Member elects otherwise.
+5.3  All Company funds in a dedicated Company bank account.
+     No commingling with Member's personal funds.
+
+────────────────────────────────────────────────
+ARTICLE VI — TRANSFER AND NEW MEMBERS
+────────────────────────────────────────────────
+
+6.1  No transfer of membership interest without written amendment.
+6.2  New members admitted only by signed written amendment.
+
+────────────────────────────────────────────────
+ARTICLE VII — DISSOLUTION
+────────────────────────────────────────────────
+
+7.1  Company dissolves upon written decision of Member or judicial decree.
+7.2  Member winds up affairs and distributes assets per Illinois law.
+
+────────────────────────────────────────────────
+ARTICLE VIII — MISCELLANEOUS
+────────────────────────────────────────────────
+
+8.1  Governing Law: Illinois
+8.2  Entire Agreement: This document constitutes the complete agreement.
+8.3  Amendment: Written, signed document only.
+
+────────────────────────────────────────────────
+
+MEMBER:
+
+Signature: ___________________________________
+Printed Name: Kyle Rosebrook
+Date: <span class="placeholder">_______________, 2026</span>
+</div>
+  </div>
+</div>
+
+<!-- ===================== IP ASSIGNMENT ===================== -->
+<div id="ip" class="section">
+  <div class="content">
+    <h2>IP Assignment Agreement</h2>
+    <div class="meta">Execute one for each LLC immediately after formation. Assigns all pre-formation work to the LLC. Attorney reviews before signing.</div>
+
+    <div class="note">Without this, the LLC owns nothing. Every repo, design, domain, and document you built before formation is your personal IP until you formally assign it.</div>
+
+    <div class="doc-block"><span class="label">IP ASSIGNMENT AGREEMENT</span>
+This IP Assignment Agreement is entered into as of
+<span class="placeholder">_______________, 2026</span>, between:
+
+Assignor: Kyle Rosebrook ("Assignor")
+Assignee: <span class="placeholder">[ENTITY NAME]</span>, an Illinois LLC ("Company")
+
+In consideration of the formation of the Company and other good and
+valuable consideration, Assignor assigns to the Company all right,
+title, and interest in the following ("Assigned IP"):
+
+<span class="placeholder">[FOR FLASHFUSION LLC]:
+· FlashFusion brand, name, logo, marks
+· flashfusion.co and associated subdomains
+· All software, apps, and code created for FlashFusion
+· AI Setup Audit Scorecard application
+· Client templates, frameworks, methodologies
+· All marketing copy and content created for FlashFusion
+· FlashFusion-Unified GitHub repository and related code
+· All Figma files and design systems for FlashFusion
+
+[FOR CHAOS CLUB CO. LLC]:
+· Chaos Club Co. brand, name, logo, marks
+· abstrekkt.com and associated subdomains
+· All software, apps, and code created for Chaos Club
+· All curriculum, content, and educational materials
+· Community guidelines and platform documents
+· All marketing copy and content created for Chaos Club
+· All GitHub repositories under the Abstrekkt organization
+· All Figma files and design systems for Chaos Club</span>
+
+Includes all copyrights, trademarks, trade secrets, domain rights,
+and other IP rights in the foregoing.
+
+────────────────────────────────────────────────
+EXCLUDED IP
+────────────────────────────────────────────────
+
+This Agreement does not assign:
+(a) IP owned by or subject to claim by Assignor's employer;
+(b) Personal writings, journals, or memoir-related materials;
+(c) Anything in Exhibit A (excluded list, if any).
+
+────────────────────────────────────────────────
+REPRESENTATIONS
+────────────────────────────────────────────────
+
+Assignor represents:
+(a) Assignor is the sole owner of Assigned IP and has authority to assign it.
+(b) Assigned IP does not infringe third-party rights.
+(c) Assigned IP is not subject to any lien or encumbrance.
+(d) Assignor has not previously assigned the Assigned IP.
+
+Note: Representations are subject to verification of employment agreement.
+See Employment IP Audit (tab 07).
+
+────────────────────────────────────────────────
+
+ASSIGNOR:
+
+Signature: ___________________________________
+Kyle Rosebrook
+Date: <span class="placeholder">_______________, 2026</span>
+
+ASSIGNEE — <span class="placeholder">[ENTITY NAME]</span>:
+
+By: ___________________________________
+Kyle Rosebrook, Sole Member
+Date: <span class="placeholder">_______________, 2026</span>
+</div>
+  </div>
+</div>
+
+<!-- ===================== EMPLOYMENT IP AUDIT ===================== -->
+<div id="employment" class="section">
+  <div class="content">
+    <h2>Employment IP Audit</h2>
+    <div class="meta">One-time review. Must happen before FlashFusion signs any client contract. Not optional.</div>
+
+    <div class="note">Your employer is an MSP. FlashFusion is AI enablement consulting. Close enough to adjacent that a broad IP clause in your employment agreement could create a cloud on FlashFusion's assets — especially any tools built using skills you developed at work, or any time a client might overlap. Needs a clean read before money changes hands.</div>
+
+    <h3>What Your Attorney Is Looking For</h3>
+    <ul class="checklist">
+      <li><span class="check warn">!</span><strong>IP Assignment Clause</strong> — "All inventions" vs. "inventions related to employer's business." Narrower = better for you.</li>
+      <li><span class="check warn">!</span><strong>Work-for-Hire Language</strong> — Does it claim anything created using employer equipment or on employer time?</li>
+      <li><span class="check warn">!</span><strong>Non-Compete</strong> — You believe there isn't one. Verify exact language.</li>
+      <li><span class="check warn">!</span><strong>Moonlighting / Outside Employment</strong> — Does it require disclosure of outside business activity?</li>
+      <li><span class="check warn">!</span><strong>Non-Solicitation</strong> — Restricts you from soliciting employer's clients? Understand the scope.</li>
+      <li><span class="check">→</span><strong>Illinois Employee Patent Act (765 ILCS 1060/2)</strong> — State law exempts IP developed entirely on your own time, without employer equipment, not related to employer's business. Know if this applies.</li>
+    </ul>
+
+    <h3>Brief for Attorney</h3>
+    <div class="doc-block"><span class="label">EMPLOYMENT IP REVIEW — ATTORNEY BRIEF</span>
+I am a full-time employee at a managed IT services firm. I am forming
+FlashFusion LLC, a B2B AI enablement consultancy. I believe I have no
+non-compete clause but need the exact language confirmed.
+
+Questions for review:
+
+1. What does the IP assignment clause cover — is it broad ("all
+   inventions") or narrow ("inventions related to employer's business")?
+
+2. Does the clause reach work done entirely on my own time using
+   my own equipment?
+
+3. My employer is an MSP (managed IT / service desk). My business
+   is B2B AI enablement consulting. Is there a colorable argument
+   that these are related enough to create an IP claim issue?
+
+4. Do I have any disclosure obligation before taking paying clients?
+
+5. Are there non-solicitation restrictions I need to structure around?
+
+6. Does the Illinois Employee Patent Act (765 ILCS 1060/2) protect
+   any of my pre-formation work from employer claims?
+
+Please advise before I execute IP Assignment Agreements or sign
+any client contracts under FlashFusion LLC.
+
+Note: Two internal tools were built for the employer with employer
+knowledge. Please advise how this affects my IP position.
+</div>
+
+    <h3>What to Do Now, Before the Attorney Review</h3>
+    <ul class="checklist">
+      <li><span class="check">→</span>All FlashFusion work on personal devices only</li>
+      <li><span class="check">→</span>No FlashFusion work during employer's work hours</li>
+      <li><span class="check">→</span>No FlashFusion tools built using employer systems, credentials, or licenses</li>
+      <li><span class="check">→</span>No FlashFusion client that is a current employer client</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ===================== CO-CREATOR AGREEMENT ===================== -->
+<div id="cocreator" class="section">
+  <div class="content">
+    <h2>Co-Creator Agreement — Chaos Club Co.</h2>
+    <div class="meta">For your friend who's going to school to teach. Draft before any content is created together. Attorney reviews before signing.</div>
+
+    <div class="note">The most common way these fall apart: one person does more work, one person needs to stop, or both people disagree on direction. The agreement exists so that conversation isn't also a legal crisis. The key questions to answer before you draft: What does each person contribute? What does each person own? What happens if one person exits?</div>
+
+    <h3>Questions to Settle Before This Gets Drafted</h3>
+    <ul class="checklist">
+      <li><span class="check warn">?</span>Is your friend a co-founder (equity) or a contractor (paid per deliverable)?</li>
+      <li><span class="check warn">?</span>Does your friend contribute content/curriculum expertise only, or also platform/technical work?</li>
+      <li><span class="check warn">?</span>If your friend exits mid-build, who owns the curriculum they helped create?</li>
+      <li><span class="check warn">?</span>What's the revenue split, if any? Is your friend being paid, taking equity, or both?</li>
+      <li><span class="check warn">?</span>Does their school program have any claim on work they produce while enrolled?</li>
+    </ul>
+
+    <div class="doc-block"><span class="label">CO-CREATOR AGREEMENT — TEMPLATE</span>
+CO-CREATOR AGREEMENT
+
+This Agreement is entered into as of <span class="placeholder">_______________, 2026</span>,
+between:
+
+Party 1: Chaos Club Co. LLC, an Illinois LLC ("Company"),
+         represented by Kyle Rosebrook
+Party 2: <span class="placeholder">[FRIEND'S FULL NAME]</span> ("Collaborator")
+
+────────────────────────────────────────────────
+1. ROLE AND CONTRIBUTIONS
+────────────────────────────────────────────────
+
+1.1  The Collaborator will contribute the following to the Company:
+     <span class="placeholder">[e.g., curriculum design, instructional framework, lesson
+     content, subject-matter expertise in [topic area],
+     pedagogical review of platform materials]</span>
+
+1.2  The Company (Kyle Rosebrook) will contribute:
+     <span class="placeholder">[e.g., platform development, technical infrastructure,
+     business operations, funding, marketing and distribution]</span>
+
+1.3  Estimated time commitment: <span class="placeholder">[hours/week or milestone-based]</span>
+
+────────────────────────────────────────────────
+2. COMPENSATION
+────────────────────────────────────────────────
+
+<span class="placeholder">[OPTION A — CONTRACTOR MODEL]:
+The Collaborator will be compensated at $[rate] per [hour/deliverable],
+payable within [30] days of completion of each deliverable defined
+in Exhibit A.
+
+[OPTION B — REVENUE SHARE MODEL]:
+The Collaborator will receive [X]% of net revenue attributable to
+content they directly created, as defined in Exhibit A, for [duration
+or in perpetuity].
+
+[OPTION C — EQUITY MODEL]:
+The Collaborator will receive [X]% membership interest in Chaos Club
+Co. LLC, to be documented by amendment to the Operating Agreement.
+Vesting schedule: [describe]. Note: If equity, this becomes a
+multi-member LLC — your Operating Agreement needs updating.</span>
+
+────────────────────────────────────────────────
+3. INTELLECTUAL PROPERTY
+────────────────────────────────────────────────
+
+3.1  Work for Hire. All content, curriculum, materials, and work
+     product created by the Collaborator in connection with this
+     Agreement ("Work Product") is work made for hire owned by
+     the Company.
+
+3.2  Assignment. To the extent Work Product does not qualify as
+     work made for hire, the Collaborator hereby assigns all right,
+     title, and interest in the Work Product to the Company.
+
+3.3  Collaborator Credit. The Company will credit the Collaborator
+     as a content contributor on all materials they create, unless
+     the Collaborator requests otherwise in writing.
+
+3.4  Pre-Existing IP. Each party retains ownership of IP they
+     created before this Agreement. The Collaborator licenses any
+     pre-existing IP incorporated into the Work Product to the
+     Company on a perpetual, royalty-free basis.
+
+────────────────────────────────────────────────
+4. CONFIDENTIALITY
+────────────────────────────────────────────────
+
+4.1  Each party will keep the other's non-public business
+     information confidential and use it only for purposes of
+     this Agreement.
+
+────────────────────────────────────────────────
+5. TERM AND TERMINATION
+────────────────────────────────────────────────
+
+5.1  This Agreement begins on the date above and continues until
+     terminated by either party with <span class="placeholder">[30]</span> days written notice.
+
+5.2  On termination:
+     (a) Company pays Collaborator for all completed, accepted work.
+     (b) Company retains ownership of all completed Work Product.
+     (c) Partially completed work ownership to be negotiated in
+         good faith within 30 days of termination notice.
+
+5.3  Collaborator's obligations in Section 3 (IP) and Section 4
+     (Confidentiality) survive termination.
+
+────────────────────────────────────────────────
+6. INDEPENDENT CONTRACTOR
+────────────────────────────────────────────────
+
+6.1  Collaborator is an independent contractor, not an employee.
+     The Company is not responsible for taxes, benefits, or
+     withholding on Collaborator's behalf.
+
+────────────────────────────────────────────────
+7. MISCELLANEOUS
+────────────────────────────────────────────────
+
+7.1  Governing Law: Illinois
+7.2  Entire Agreement: This document plus any exhibits.
+7.3  Amendment: Written, signed by both parties.
+
+────────────────────────────────────────────────
+
+CHAOS CLUB CO. LLC:
+
+By: ___________________________________
+Kyle Rosebrook, Sole Member
+Date: <span class="placeholder">_______________, 2026</span>
+
+COLLABORATOR:
+
+Signature: ___________________________________
+Printed Name: <span class="placeholder">[FRIEND'S NAME]</span>
+Date: <span class="placeholder">_______________, 2026</span>
+</div>
+  </div>
+</div>
+
+<!-- ===================== CLC BRIEF ===================== -->
+<div id="clc" class="section">
+  <div class="content">
+    <h2>CLC Partnership — Attorney Brief</h2>
+    <div class="meta">Before you sign anything with College of Lake County. Institutions are notorious for IP grabs in partnership agreements.</div>
+
+    <div class="note">Institutions — especially community colleges — have standard partnership agreement templates that are written entirely in their favor. Common landmines: they claim ownership of curriculum developed "in connection with" the partnership, they require exclusivity, they can terminate for any reason. You need eyes on the contract before you sign anything, even an MOU.</div>
+
+    <h3>Questions to Raise with Your CLC Contacts Before Formalizing</h3>
+    <ul class="checklist">
+      <li><span class="check warn">?</span>What type of agreement does CLC typically use — MOU, licensing agreement, vendor contract, or something else?</li>
+      <li><span class="check warn">?</span>Does CLC claim any IP on curriculum or tools developed in partnership with them?</li>
+      <li><span class="check warn">?</span>Are you being brought in as a vendor, a partner, or something informal (guest lecturer, advisor)?</li>
+      <li><span class="check warn">?</span>Is there an exclusivity expectation — i.e., can you offer this curriculum through other channels?</li>
+      <li><span class="check warn">?</span>Does CLC have a procurement process that requires contracts go through legal/admin vs. direct relationship?</li>
+    </ul>
+
+    <h3>Brief for Attorney — CLC Agreement Review</h3>
+    <div class="doc-block"><span class="label">CLC PARTNERSHIP — ATTORNEY BRIEF</span>
+I am the founder of Chaos Club Co. LLC, an educational platform.
+I am in discussions with contacts at College of Lake County (CLC)
+about a partnership to develop and deliver educational content
+through or in collaboration with the institution.
+
+I need you to review any agreement CLC presents before I sign,
+and to advise me on the following:
+
+1. IP OWNERSHIP
+   Does the agreement contain any clause that assigns or licenses
+   curriculum, content, platform, or tool IP to CLC? I need to
+   retain ownership of all IP I bring in and all IP I create.
+
+2. EXCLUSIVITY
+   Does the agreement restrict me from offering this curriculum
+   or platform through other channels (other schools, direct
+   to consumer, online)?
+
+3. TERMINATION
+   What are the termination provisions? Can CLC terminate
+   unilaterally? What happens to IP and work product on
+   termination?
+
+4. REVENUE
+   If any revenue-sharing or licensing fee structure is proposed,
+   review the terms and advise on market reasonableness.
+
+5. INDEMNIFICATION
+   What does CLC require me to indemnify them for? Assess
+   exposure given that I am a single-member LLC.
+
+6. PRE-SIGNING CHECKLIST
+   Before I sign, I need written confirmation that:
+   (a) Chaos Club Co. LLC retains all IP
+   (b) No exclusivity without my explicit written consent
+   (c) Clear termination terms with IP protection
+   (d) Indemnification is reasonable and insurable
+
+If CLC presents a standard MOU rather than a formal contract,
+advise whether it creates any binding obligations I should be
+aware of before proceeding.
+</div>
+
+    <div class="note info">Even if the conversation with your CLC contacts is informal right now — don't let it get to "we shook on it" before the agreement is reviewed. Relationships at institutions are separate from what the institution's standard paperwork says.</div>
+  </div>
+</div>
+
+<!-- ===================== CONTENT LICENSING ===================== -->
+<div id="content" class="section">
+  <div class="content">
+    <h2>Educational Content Licensing Framework</h2>
+    <div class="meta">Who owns the curriculum. How it can be used. Required once you're producing content with your co-creator and distributing through CLC or other channels.</div>
+
+    <div class="note">Three layers here: (1) Chaos Club Co. LLC owns all curriculum. (2) CLC (or any partner institution) gets a limited license to use it — not ownership. (3) Your co-creator contributed under a work-for-hire arrangement, so their contributions already belong to the LLC. This framework documents that cleanly.</div>
+
+    <div class="doc-block"><span class="label">EDUCATIONAL CONTENT LICENSE AGREEMENT — TEMPLATE</span>
+EDUCATIONAL CONTENT LICENSE AGREEMENT
+
+This Agreement is entered into as of <span class="placeholder">_______________, 2026</span>,
+between:
+
+Licensor: Chaos Club Co. LLC, an Illinois LLC ("Licensor")
+Licensee: <span class="placeholder">[INSTITUTION NAME, e.g., College of Lake County]</span>
+          ("Licensee")
+
+────────────────────────────────────────────────
+1. LICENSED CONTENT
+────────────────────────────────────────────────
+
+1.1  Licensor grants Licensee a limited license to use the
+     following educational content ("Content"):
+     <span class="placeholder">[Describe: course modules, curriculum materials, platform
+     access, instructional resources — be specific]</span>
+
+────────────────────────────────────────────────
+2. GRANT OF LICENSE
+────────────────────────────────────────────────
+
+2.1  Scope: <span class="placeholder">[Non-exclusive / Exclusive]</span>, non-transferable,
+     revocable license to use the Content for:
+     <span class="placeholder">[e.g., delivery of [course name] to enrolled students
+     at [institution] during the license term]</span>
+
+2.2  Permitted uses:
+     · Deliver Content to enrolled students
+     · Reproduce Content for enrolled students' personal use
+     · Display Content in classrooms and on Licensee's LMS
+
+2.3  Prohibited uses:
+     · Modify, adapt, or create derivative works
+     · Sublicense or transfer to any third party
+     · Use Content after termination of this Agreement
+     · Claim authorship or ownership of Content
+
+────────────────────────────────────────────────
+3. OWNERSHIP
+────────────────────────────────────────────────
+
+3.1  All Content and IP rights remain exclusively with Licensor.
+     This Agreement does not transfer any ownership interest.
+
+3.2  Any feedback, suggestions, or improvements provided by
+     Licensee become property of Licensor unless otherwise agreed
+     in writing.
+
+────────────────────────────────────────────────
+4. FEES
+────────────────────────────────────────────────
+
+4.1  Licensee will pay Licensor:
+     <span class="placeholder">[e.g., $X per student enrolled / $X flat annual license /
+     $X per course delivery / revenue share of X%]</span>
+
+4.2  Payment terms: <span class="placeholder">[Net 30 / per semester / on enrollment]</span>
+
+────────────────────────────────────────────────
+5. TERM AND TERMINATION
+────────────────────────────────────────────────
+
+5.1  Term: <span class="placeholder">[One academic year / rolling annual / specific dates]</span>
+
+5.2  Either party may terminate with <span class="placeholder">[60]</span> days written notice.
+
+5.3  Licensor may terminate immediately if Licensee breaches
+     Section 2 (prohibited uses) or Section 3 (ownership).
+
+5.4  On termination, Licensee immediately ceases all use of
+     the Content and returns or destroys all copies.
+
+────────────────────────────────────────────────
+6. REPRESENTATIONS AND WARRANTIES
+────────────────────────────────────────────────
+
+6.1  Licensor represents it owns or has rights to license the Content.
+
+6.2  Licensee represents it has authority to enter this Agreement
+     and will comply with all terms.
+
+────────────────────────────────────────────────
+7. LIMITATION OF LIABILITY
+────────────────────────────────────────────────
+
+7.1  Licensor's total liability under this Agreement shall not
+     exceed the fees paid in the prior 12 months.
+
+7.2  Neither party shall be liable for indirect, incidental,
+     or consequential damages.
+
+────────────────────────────────────────────────
+8. MISCELLANEOUS
+────────────────────────────────────────────────
+
+8.1  Governing Law: Illinois
+8.2  Entire Agreement: This document plus any exhibits.
+8.3  Amendment: Written, signed by both parties.
+
+────────────────────────────────────────────────
+
+CHAOS CLUB CO. LLC (LICENSOR):
+
+By: ___________________________________
+Kyle Rosebrook, Sole Member
+Date: <span class="placeholder">_______________, 2026</span>
+
+<span class="placeholder">[INSTITUTION]</span> (LICENSEE):
+
+By: ___________________________________
+Name: <span class="placeholder">_____________</span>
+Title: <span class="placeholder">_____________</span>
+Date: <span class="placeholder">_______________, 2026</span>
+</div>
+  </div>
+</div>
+
+<!-- ===================== CHECKLIST ===================== -->
+<div id="checklist" class="section">
+  <div class="content">
+    <h2>Complete Filing Checklist</h2>
+    <div class="meta">In order. Do not sign client contracts before the employment IP review is complete.</div>
+
+    <h3>Week 1 — FlashFusion LLC</h3>
+    <ul class="checklist">
+      <li><span class="check">☐</span>Run name search at ilsos.gov — confirm "FlashFusion LLC" is available</li>
+      <li><span class="check">☐</span>File Articles of Organization — FlashFusion LLC ($150)</li>
+      <li><span class="check">☐</span>Apply for EIN at irs.gov (free, 10 minutes)</li>
+      <li><span class="check">☐</span>Open dedicated business checking account — FlashFusion LLC</li>
+      <li><span class="check">☐</span>Book attorney consultation (goodcounsel or Airdo Werwas)</li>
+    </ul>
+
+    <h3>Week 2 — Attorney Sprint</h3>
+    <ul class="checklist">
+      <li><span class="check warn">☐</span>Attorney reviews employment agreement — IP assignment language confirmed</li>
+      <li><span class="check">☐</span>Operating Agreement — FlashFusion LLC signed</li>
+      <li><span class="check">☐</span>IP Assignment Agreement — FlashFusion LLC signed</li>
+      <li><span class="check">☐</span>MSA template for FlashFusion clients reviewed and ready</li>
+    </ul>
+
+    <h3>Week 3 — Anthropic Partner Network</h3>
+    <ul class="checklist">
+      <li><span class="check">☐</span>FlashFusion LLC Certificate of Organization in hand</li>
+      <li><span class="check">☐</span>Domain email active: kyle@flashfusion.co</li>
+      <li><span class="check">☐</span>Anthropic Academy certification complete</li>
+      <li><span class="check">☐</span>Apply to Anthropic Partner Network</li>
+    </ul>
+
+    <h3>Month 1–2 — Chaos Club Co. LLC</h3>
+    <ul class="checklist">
+      <li><span class="check">☐</span>CLC conversations complete — understand partnership structure before filing</li>
+      <li><span class="check">☐</span>Run name search — confirm "Chaos Club Co. LLC" available in Illinois</li>
+      <li><span class="check">☐</span>File Articles of Organization — Chaos Club Co. LLC ($150)</li>
+      <li><span class="check">☐</span>Apply for EIN — Chaos Club Co. LLC</li>
+      <li><span class="check">☐</span>Open dedicated business checking account — Chaos Club Co. LLC</li>
+      <li><span class="check">☐</span>Operating Agreement — Chaos Club Co. LLC signed</li>
+      <li><span class="check">☐</span>IP Assignment Agreement — Chaos Club Co. LLC signed</li>
+      <li><span class="check warn">☐</span>Co-Creator Agreement with friend drafted and signed before any content created together</li>
+      <li><span class="check warn">☐</span>Attorney reviews any CLC agreement before signing</li>
+      <li><span class="check">☐</span>Content License Agreement template ready for CLC or other partner institutions</li>
+    </ul>
+
+    <h3>Hard Gates — Do Not Cross Without These Done</h3>
+    <ul class="checklist">
+      <li><span class="check danger">☐</span>Employment IP audit complete → before first FlashFusion client contract</li>
+      <li><span class="check danger">☐</span>FlashFusion LLC active + IP Assignment signed → before first invoice</li>
+      <li><span class="check danger">☐</span>Co-Creator Agreement signed → before any content built with friend</li>
+      <li><span class="check danger">☐</span>CLC agreement reviewed by attorney → before any formal CLC partnership</li>
+    </ul>
+
+    <div class="footer">
+      <strong>NOT LEGAL ADVICE.</strong> These are template documents for reference only. All documents require review by a licensed Illinois attorney before execution. Consult counsel before filing, signing, or entering into any partnership agreement.
+    </div>
+  </div>
+</div>
+
+<script>
+  function show(id) {
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.nav button').forEach(b => b.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    event.target.classList.add('active');
+  }
+</script>
+</body>
+</html>
