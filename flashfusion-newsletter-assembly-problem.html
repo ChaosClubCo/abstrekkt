@@ -1,0 +1,883 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Assembly Problem — FlashFusion Special Edition</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700&family=Inter:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --surface-base:     #0F0618;
+  --surface-raised:   #1A0B2E;
+  --surface-overlay:  #251443;
+  --border-primary:   rgba(168,85,247,0.2);
+  --border-active:    rgba(168,85,247,0.4);
+  --accent-primary:   #A855F7;
+  --accent-secondary: #F472B6;
+  --accent-cyan:      #22D3EE;
+  --gradient-accent:  linear-gradient(90deg,#A855F7 0%,#F472B6 55%,#22D3EE 100%);
+  --glow-primary:     0 0 20px rgba(168,85,247,0.4);
+  --glow-subtle:      0 0 12px rgba(168,85,247,0.2);
+  --text-primary:     #F8FAFC;
+  --text-secondary:   #CBD5E1;
+  --text-tertiary:    #64748B;
+  --font-heading:     'Poppins', sans-serif;
+  --font-body:        'Inter', system-ui, sans-serif;
+  --font-code:        'JetBrains Mono', monospace;
+  --glass-bg:         rgba(15,6,24,0.6);
+  --radius-md:        12px;
+  --radius-lg:        16px;
+  --radius-xl:        24px;
+  --radius-full:      999px;
+  --color-success:    #4ade80;
+  --color-warning:    #fbbf24;
+  --color-error:      #f87171;
+  --color-info:       #22D3EE;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; transition: none !important; }
+}
+
+body {
+  background: var(--surface-base);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.7;
+  min-height: 100vh;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  top: -200px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 800px;
+  height: 600px;
+  background: radial-gradient(ellipse at center, rgba(168,85,247,0.08) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.page {
+  position: relative;
+  z-index: 1;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 0 24px 80px;
+}
+
+/* ── HEADER ── */
+.header {
+  padding: 48px 0 40px;
+  border-bottom: 1px solid var(--border-primary);
+  margin-bottom: 48px;
+}
+
+.header-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 32px;
+}
+
+.wordmark {
+  font-family: var(--font-heading);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  background: var(--gradient-accent);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.divider-dot {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--text-tertiary);
+}
+
+.edition-label {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  letter-spacing: 0.05em;
+}
+
+.header-title {
+  font-family: var(--font-heading);
+  font-size: clamp(32px, 5vw, 52px);
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  margin-bottom: 16px;
+}
+
+.gradient-text {
+  background: var(--gradient-accent);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.header-subtitle {
+  font-size: 17px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  max-width: 580px;
+  margin-bottom: 24px;
+}
+
+.header-badges {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  border-radius: var(--radius-full);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.badge-purple { background: rgba(168,85,247,0.12); color: var(--accent-primary); border: 1px solid rgba(168,85,247,0.25); }
+.badge-cyan   { background: rgba(34,211,238,0.10); color: var(--accent-cyan);    border: 1px solid rgba(34,211,238,0.25); }
+.badge-pink   { background: rgba(244,114,182,0.10); color: var(--accent-secondary); border: 1px solid rgba(244,114,182,0.25); }
+
+/* ── INTRO ── */
+.intro {
+  margin-bottom: 56px;
+}
+
+.intro p {
+  font-size: 17px;
+  line-height: 1.75;
+  color: var(--text-secondary);
+  margin-bottom: 18px;
+}
+
+.intro p:last-child { margin-bottom: 0; }
+
+.callout-line {
+  font-size: 20px;
+  font-weight: 500;
+  color: var(--text-primary);
+  border-left: 3px solid var(--accent-primary);
+  padding-left: 20px;
+  margin: 32px 0;
+  line-height: 1.5;
+}
+
+/* ── SECTION ── */
+.section {
+  margin-bottom: 56px;
+}
+
+.section-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.section-number {
+  font-family: var(--font-code);
+  font-size: 11px;
+  color: var(--text-tertiary);
+  letter-spacing: 0.08em;
+  padding-top: 6px;
+  flex-shrink: 0;
+  min-width: 32px;
+}
+
+.section-title {
+  font-family: var(--font-heading);
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--text-primary);
+}
+
+.section-body p {
+  font-size: 16px;
+  color: var(--text-secondary);
+  line-height: 1.8;
+  margin-bottom: 16px;
+}
+
+.section-body p:last-child { margin-bottom: 0; }
+
+.section-body strong {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+/* ── GLASS CARD ── */
+.glass-card {
+  background: var(--glass-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-lg);
+  padding: 24px 28px;
+  margin-bottom: 16px;
+  transition: border-color 200ms ease, box-shadow 200ms ease;
+}
+
+.glass-card:hover {
+  border-color: var(--border-active);
+  box-shadow: var(--glow-subtle);
+}
+
+.card-vendor {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.card-vendor-name {
+  font-family: var(--font-heading);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.card-body {
+  font-size: 15px;
+  color: var(--text-secondary);
+  line-height: 1.7;
+}
+
+.card-body strong { color: var(--text-primary); font-weight: 500; }
+
+/* ── CHECKLIST ── */
+.checklist {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.checklist li {
+  display: flex;
+  gap: 12px;
+  font-size: 15px;
+  color: var(--text-secondary);
+  padding: 12px 0;
+  border-bottom: 1px solid rgba(168,85,247,0.08);
+  line-height: 1.6;
+}
+
+.checklist li:last-child { border-bottom: none; }
+
+.check-number {
+  font-family: var(--font-code);
+  font-size: 11px;
+  color: var(--accent-primary);
+  background: rgba(168,85,247,0.1);
+  border: 1px solid rgba(168,85,247,0.2);
+  border-radius: 4px;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.checklist li strong { color: var(--text-primary); font-weight: 500; }
+
+/* ── WARNING CARDS ── */
+.warning-card {
+  background: rgba(251,191,36,0.05);
+  border: 1px solid rgba(251,191,36,0.15);
+  border-radius: var(--radius-md);
+  padding: 16px 20px;
+  margin-bottom: 12px;
+  font-size: 15px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.warning-label {
+  font-family: var(--font-code);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  color: var(--color-warning);
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+
+.warning-card strong { color: var(--text-primary); font-weight: 500; }
+
+/* ── ARTIFACT BLOCKS ── */
+.artifact-section {
+  margin-bottom: 48px;
+}
+
+.artifact-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.artifact-label {
+  font-family: var(--font-code);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  color: var(--accent-cyan);
+  text-transform: uppercase;
+}
+
+.artifact-title {
+  font-family: var(--font-heading);
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 6px;
+}
+
+.artifact-desc {
+  font-size: 13px;
+  color: var(--text-tertiary);
+  margin-bottom: 14px;
+  line-height: 1.5;
+}
+
+.code-block {
+  background: #0A0315;
+  border: 1px solid rgba(168,85,247,0.15);
+  border-radius: var(--radius-md);
+  padding: 24px;
+  overflow-x: auto;
+}
+
+.code-block pre {
+  font-family: var(--font-code);
+  font-size: 13px;
+  line-height: 1.7;
+  color: #CBD5E1;
+  white-space: pre;
+  margin: 0;
+}
+
+.code-block .c-comment  { color: #475569; }
+.code-block .c-key      { color: var(--accent-primary); }
+.code-block .c-value    { color: var(--accent-cyan); }
+.code-block .c-bracket  { color: var(--text-tertiary); }
+.code-block .c-heading  { color: var(--accent-secondary); font-weight: 500; }
+.code-block .c-yes      { color: var(--color-success); }
+.code-block .c-no       { color: var(--color-error); }
+.code-block .c-warn     { color: var(--color-warning); }
+
+/* ── SECTION DIVIDER ── */
+.section-divider {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin: 48px 0;
+}
+
+.section-divider-line {
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(168,85,247,0.3), transparent);
+}
+
+.section-divider-icon {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent-primary);
+  box-shadow: 0 0 8px rgba(168,85,247,0.6);
+}
+
+/* ── PATTERN ROW ── */
+.pattern-row {
+  display: flex;
+  gap: 12px;
+  margin-top: 24px;
+  flex-wrap: wrap;
+}
+
+.pattern-chip {
+  background: rgba(168,85,247,0.08);
+  border: 1px solid rgba(168,85,247,0.18);
+  border-radius: var(--radius-full);
+  padding: 6px 14px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.pattern-chip span {
+  color: var(--accent-primary);
+  font-weight: 500;
+}
+
+/* ── FOOTER ── */
+.footer {
+  border-top: 1px solid var(--border-primary);
+  padding-top: 32px;
+  margin-top: 64px;
+}
+
+.footer-wordmark {
+  font-family: var(--font-heading);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  background: var(--gradient-accent);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 8px;
+}
+
+.footer-line {
+  font-size: 13px;
+  color: var(--text-tertiary);
+  margin-bottom: 24px;
+}
+
+.claims-block {
+  background: rgba(15,6,24,0.8);
+  border: 1px solid rgba(168,85,247,0.12);
+  border-radius: var(--radius-md);
+  padding: 20px 24px;
+  font-size: 12px;
+  line-height: 1.8;
+  color: var(--text-tertiary);
+}
+
+.claims-title {
+  font-family: var(--font-code);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+  margin-bottom: 10px;
+}
+
+.claims-block .sourced { color: var(--color-success); font-weight: 500; }
+.claims-block .generated { color: var(--color-warning); font-weight: 500; }
+.claims-block .flag { color: var(--color-error); font-weight: 500; }
+
+/* ── RESPONSIVE ── */
+@media (max-width: 600px) {
+  .page { padding: 0 16px 60px; }
+  .header { padding: 32px 0 28px; }
+  .code-block pre { font-size: 11.5px; }
+}
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <!-- HEADER -->
+  <header class="header">
+    <div class="header-meta">
+      <span class="wordmark">FlashFusion</span>
+      <span class="divider-dot"></span>
+      <span class="edition-label">Special Edition &nbsp;·&nbsp; May 2026</span>
+    </div>
+    <h1 class="header-title">
+      The <span class="gradient-text">Assembly</span> Problem
+    </h1>
+    <p class="header-subtitle">
+      Why the retrieval debate is aimed at the wrong layer — and what the stack looks like when you fix it.
+    </p>
+    <div class="header-badges">
+      <span class="badge badge-purple">Retrieval Architecture</span>
+      <span class="badge badge-cyan">Agentic AI</span>
+      <span class="badge badge-pink">9 min read</span>
+    </div>
+  </header>
+
+  <!-- INTRO -->
+  <section class="intro">
+    <p>There's a debate going on right now about whether vector search is obsolete. That's the wrong layer to be arguing about.</p>
+    <p>The agents I'm watching fail in production aren't failing because the retrieval method is wrong. They're failing because the retrieval system can't assemble what the agent actually needs before it starts acting. A vector database can find text semantically related to a question. That's useful. It's nowhere near enough.</p>
+    <p>Agents need the current account record, the user's permissions, the controlling policy, the right section of a long document, the table behind a metric, the prior decision from a meeting, and the source trail that lets a human reviewer reconstruct why the agent did what it did.</p>
+    <p>When the system doesn't prepare that context, the model improvises — and the cost shows up everywhere except the place you're looking. Wrong refunds get issued. Stale policies get cited. Outdated metrics make it into board decks. The agent burns tokens and wall-clock time rebuilding context every run, and when the answer finally lands, it lands confidently — which is the most expensive way to be wrong.</p>
+    <div class="callout-line">
+      That's the new RAG problem. Not a retrieval problem. An assembly problem.
+    </div>
+  </section>
+
+  <div class="section-divider">
+    <div class="section-divider-line"></div>
+    <div class="section-divider-icon"></div>
+    <div class="section-divider-line"></div>
+  </div>
+
+  <!-- SECTION 1 -->
+  <section class="section">
+    <div class="section-header">
+      <span class="section-number">01</span>
+      <h2 class="section-title">Why Classic RAG Worked — And Where It Stops</h2>
+    </div>
+    <div class="section-body">
+      <p>The original RAG architecture solved a real problem. Before it, you had two bad options: fine-tune on proprietary data (expensive, staleness baked in) or paste document chunks into prompts until you hit the context limit (expensive, noisy). RAG gave you a third path: embed your corpus, store in a vector database, pull the semantically closest chunks at query time. Fast, composable, cheap to prototype.</p>
+      <p>That works well when the agent's task is <strong>lookup</strong>. Question-answering over a corpus. Summarization. Semantic search where "close enough" is acceptable. Most demo-level RAG is exactly this — and it demos beautifully.</p>
+      <p>The problem surfaces when the task is <strong>action</strong>. Not "what does the policy say" — but "apply the correct version of this policy to this specific customer in this account state." Three things break simultaneously when you cross that line.</p>
+    </div>
+
+    <div class="glass-card">
+      <div class="card-body"><strong>Chunk boundaries destroy context.</strong> Semantic similarity finds the paragraph about the policy. It doesn't know whether that paragraph is current, whether it's been superseded by an amendment three pages later, or whether the exception clause in section 7 applies to this customer segment. The embedding doesn't know any of that.</div>
+    </div>
+    <div class="glass-card">
+      <div class="card-body"><strong>Structured data was never in the corpus.</strong> The agent also needs the account record, the user's permissions, the queue state, the decision logged from last week's meeting. Vector search can't retrieve what was never embedded.</div>
+    </div>
+    <div class="glass-card">
+      <div class="card-body"><strong>There's no provenance.</strong> When the output is wrong — and it will be — there's no trail. Every wrong answer becomes a black box, and black boxes in production are expensive to diagnose and impossible to audit.</div>
+    </div>
+  </section>
+
+  <div class="section-divider">
+    <div class="section-divider-line"></div>
+    <div class="section-divider-icon"></div>
+    <div class="section-divider-line"></div>
+  </div>
+
+  <!-- SECTION 2 -->
+  <section class="section">
+    <div class="section-header">
+      <span class="section-number">02</span>
+      <h2 class="section-title">What Four Companies Are All Saying</h2>
+    </div>
+    <div class="section-body">
+      <p>Four vendors made major moves in the last two weeks. On the surface they look unrelated. Together, they're describing the same architectural shift.</p>
+    </div>
+
+    <div class="glass-card" style="border-color: rgba(168,85,247,0.3);">
+      <div class="card-vendor">
+        <span class="badge badge-purple">Pinecone</span>
+        <span class="card-vendor-name">Nexus</span>
+      </div>
+      <div class="card-body">
+        <p>Pinecone built the category. They also just publicly acknowledged the failure mode at the core of it. In their Nexus announcement, they put a number on the problem: <strong>roughly 85% of an agent's effort</strong> in a classic RAG pipeline goes to knowledge retrieval — not reasoning, not acting. Task completion rates stuck at 50–60%. Unpredictable latency. Token costs that collapse production ROI.</p>
+        <p style="margin-top:12px;">Their answer is a context compiler that processes source data <em>before</em> queries happen. Task-specific knowledge artifacts built at ingestion time, not inference time. The same underlying data produces different artifacts for different agents. The product Pinecone is now shipping isn't an improvement to a vector database. It's a knowledge engine with vector search as one component inside it.</p>
+      </div>
+    </div>
+
+    <div class="glass-card">
+      <div class="card-vendor">
+        <span class="badge badge-cyan">VectifyAI</span>
+        <span class="card-vendor-name">PageIndex</span>
+      </div>
+      <div class="card-body">From a different direction: PageIndex drops vector similarity search entirely for long-document retrieval. Instead of embedding chunks, it builds a hierarchical tree index — essentially a structured table of contents — and uses LLM reasoning to navigate that tree at query time. The result: whole sections instead of arbitrary chunks. Tables intact. Arguments connected to their conclusions. For complex policy documents, technical specs, and long contracts — exactly the content that breaks classic RAG at the chunk boundary — that's a materially better approach.</div>
+    </div>
+
+    <div class="glass-card">
+      <div class="card-vendor">
+        <span class="badge badge-pink">SAP + Dremio</span>
+        <span class="card-vendor-name">Acquisition — pending Q3 2026</span>
+      </div>
+      <div class="card-body">SAP's stated acquisition rationale is precise: enterprise AI stalls not because the models are wrong, but because the data isn't ready for agents — fragmented, locked in proprietary formats, stripped of the business context that makes it meaningful. Dremio's "Agentic Lakehouse" gives agents federated queries without ETL pipelines and a semantic layer so every agent draws from the same source of truth. <strong>Structured, governed, context-rich data access is the product. The query is the interface. You can't separate them.</strong></div>
+    </div>
+
+    <div class="section-body" style="margin-top: 24px;">
+      <p>Vector search doesn't disappear in any of these architectures. It gets demoted from <em>the architecture</em> to <em>one component inside the architecture</em>. The "vectors versus something else" debate is happening at the wrong layer.</p>
+    </div>
+
+    <div class="pattern-row">
+      <div class="pattern-chip">retrieval <span>→</span> component</div>
+      <div class="pattern-chip">document structure</div>
+      <div class="pattern-chip">semantic data models</div>
+      <div class="pattern-chip">access control at query time</div>
+      <div class="pattern-chip">provenance + citations</div>
+      <div class="pattern-chip">session memory</div>
+      <div class="pattern-chip">write-back</div>
+    </div>
+  </section>
+
+  <div class="section-divider">
+    <div class="section-divider-line"></div>
+    <div class="section-divider-icon"></div>
+    <div class="section-divider-line"></div>
+  </div>
+
+  <!-- SECTION 3 -->
+  <section class="section">
+    <div class="section-header">
+      <span class="section-number">03</span>
+      <h2 class="section-title">7 Questions to Test Your Knowledge Layer</h2>
+    </div>
+    <div class="section-body">
+      <p>These separate a knowledge layer capable of supporting a production agent from a retrieval system that works in demos. Most teams are at two or three. That gap is where agent failures actually live.</p>
+    </div>
+
+    <div class="glass-card" style="padding: 20px 24px;">
+      <ul class="checklist">
+        <li>
+          <span class="check-number">1</span>
+          <span><strong>Can it deliver structured and unstructured data together?</strong> The account record and the policy document need to arrive in the same response. If your retrieval layer handles only one type, you're assembling context inside the model — which is where it goes wrong.</span>
+        </li>
+        <li>
+          <span class="check-number">2</span>
+          <span><strong>Does it know the current version of a document?</strong> Policies change. A system that returns a superseded policy with high confidence is actively dangerous. Temporal awareness belongs in the knowledge layer, not the prompt.</span>
+        </li>
+        <li>
+          <span class="check-number">3</span>
+          <span><strong>Does it enforce access control at retrieval time?</strong> The agent should never see data the requesting user can't see. Post-retrieval filtering is a leak surface. Permission checks belong at the query layer.</span>
+        </li>
+        <li>
+          <span class="check-number">4</span>
+          <span><strong>Can it navigate document structure instead of returning a similar chunk?</strong> Section 7, paragraph 3 and a chunk about "exception clauses" are not the same thing. For long documents and policy trees, structure navigation is not optional.</span>
+        </li>
+        <li>
+          <span class="check-number">5</span>
+          <span><strong>Does it produce a provenance trail?</strong> Every answer that can be acted on needs to be reconstructable. Field-level citations, source documents, confidence scores. Without this, root cause analysis after an error is archaeology.</span>
+        </li>
+        <li>
+          <span class="check-number">6</span>
+          <span><strong>Does it support memory across sessions?</strong> A decision made in a previous run is context for the next one. An agent that starts cold every time rebuilds state that should already exist.</span>
+        </li>
+        <li>
+          <span class="check-number">7</span>
+          <span><strong>Can the agent write back to it?</strong> A knowledge layer that only gets read from slowly diverges from reality. Agents that can log decisions, flag stale content, and register confirmed facts close the loop.</span>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <div class="section-divider">
+    <div class="section-divider-line"></div>
+    <div class="section-divider-icon"></div>
+    <div class="section-divider-line"></div>
+  </div>
+
+  <!-- SECTION 4 -->
+  <section class="section">
+    <div class="section-header">
+      <span class="section-number">04</span>
+      <h2 class="section-title">What Could Go Wrong</h2>
+    </div>
+    <div class="section-body">
+      <p>This architecture solves real problems. It also introduces new ones.</p>
+    </div>
+
+    <div class="warning-card">
+      <div class="warning-label">Overbuilding</div>
+      The right answer to "our RAG isn't working" might be better chunking, not a full semantic data model. Do the failure triage first. Complexity added to the wrong layer makes debugging harder.
+    </div>
+    <div class="warning-card">
+      <div class="warning-label">Fast-changing data</div>
+      Pre-compiled knowledge artifacts are excellent for policy documents, stable reference data, and product catalogs. They're a mismatch for real-time data — an active CRM record, a live queue, a financial feed. Know which data changes faster than your compilation cycle before you architect around it.
+    </div>
+    <div class="warning-card">
+      <div class="warning-label">Compliance surface</div>
+      Detailed source citations are exactly what you want for debugging. They're also a detailed record of every data point an agent consulted when it made a consequential decision. In regulated environments, that trail has legal implications. Build it intentionally.
+    </div>
+    <div class="warning-card">
+      <div class="warning-label">Semantic layer drift</div>
+      A layer that adds business context needs to be maintained when the business changes. When the layer drifts from reality, you've introduced a failure that's harder to debug than a hallucination — because it looks authoritative.
+    </div>
+    <div class="warning-card">
+      <div class="warning-label">Vendor lock-in</div>
+      Switching LLMs is relatively cheap now. If your compiled knowledge artifacts are in a proprietary format, your switching cost moves to the data layer — where it's expensive and slow.
+    </div>
+  </section>
+
+  <div class="section-divider">
+    <div class="section-divider-line"></div>
+    <div class="section-divider-icon"></div>
+    <div class="section-divider-line"></div>
+  </div>
+
+  <!-- SECTION 5: ARTIFACTS -->
+  <section class="section">
+    <div class="section-header">
+      <span class="section-number">05</span>
+      <h2 class="section-title">Three Artifacts — Paste Ready</h2>
+    </div>
+    <div class="section-body">
+      <p>These cover the three states you'll hit when working on retrieval. Copy and adapt.</p>
+    </div>
+
+    <!-- Artifact 1 -->
+    <div class="artifact-section">
+      <div class="artifact-header">
+        <span class="artifact-label">Artifact 01</span>
+      </div>
+      <div class="artifact-title">Retrieval Contract Spec</div>
+      <div class="artifact-desc">Define the context guarantee before you build the agent. If you can't fill this out, you're not ready to build.</div>
+      <div class="code-block">
+<pre><span class="c-heading">RETRIEVAL CONTRACT — [Agent Name]</span>
+<span class="c-comment">Version: 1.0</span>
+
+<span class="c-heading">GUARANTEED CONTEXT</span>  <span class="c-comment">(must be present before agent acts)</span>
+<span class="c-key">Structured:</span>   <span class="c-value">[entity types — e.g. account_record, user_permissions]</span>
+<span class="c-key">Unstructured:</span> <span class="c-value">[document types — e.g. policy_document, meeting_log]</span>
+<span class="c-key">Temporal:</span>     <span class="c-value">[version constraint — e.g. current as of query time]</span>
+<span class="c-key">Session:</span>      <span class="c-value">[prior decisions from previous runs]</span>
+
+<span class="c-heading">ACCESS CONTROL</span>
+<span class="c-key">Permission check:</span> <span class="c-value">[at retrieval layer / at application layer — pick one]</span>
+<span class="c-key">Data scope:</span>       <span class="c-value">[what requesting user context is allowed to see]</span>
+
+<span class="c-heading">PROVENANCE</span>
+<span class="c-key">Citation level:</span>       <span class="c-value">[field-level / document-level / none]</span>
+<span class="c-key">Confidence threshold:</span> <span class="c-value">[minimum score — e.g. 0.80]</span>
+<span class="c-key">Conflict resolution:</span>  <span class="c-value">[most recent / first-write wins / flag for review]</span>
+
+<span class="c-heading">ON INCOMPLETE CONTEXT</span>
+<span class="c-key">If guaranteed context missing:</span>       <span class="c-warn">[halt + flag / proceed with logged assumption]</span>
+<span class="c-key">If temporal constraint unverifiable:</span> <span class="c-warn">[halt / proceed with stale warning]</span>
+
+<span class="c-heading">WRITE-BACK</span>
+<span class="c-key">Agent may write:</span>  <span class="c-value">[decisions / confirmations / flags / none]</span>
+<span class="c-key">Format:</span>           <span class="c-value">[structured log / record update / session memory append]</span></pre>
+      </div>
+    </div>
+
+    <!-- Artifact 2 -->
+    <div class="artifact-section">
+      <div class="artifact-header">
+        <span class="artifact-label">Artifact 02</span>
+      </div>
+      <div class="artifact-title">Failure Triage</div>
+      <div class="artifact-desc">Use when an agent produced a wrong answer. Find the actual failure point before you touch anything.</div>
+      <div class="code-block">
+<pre><span class="c-heading">STEP 1</span> — Was the wrong answer in the retrieved context?
+  <span class="c-yes">YES</span> → retrieval failure. Go to Step 2.
+  <span class="c-no">NO</span>  → generation failure. Prompt or model issue.
+        Knowledge layer is not the problem.
+
+<span class="c-heading">STEP 2</span> — Was the right information retrievable?
+  <span class="c-yes">YES</span> → wrong content selected. Check:
+        chunk boundaries, version staleness, access control
+        leaks, similarity threshold, structured data excluded.
+  <span class="c-no">NO</span>  → knowledge gap. Not in corpus, not ingested, or
+        in a format that blocks retrieval (scanned PDF,
+        locked table, meeting notes never logged).
+
+<span class="c-heading">STEP 3</span> — Was the context assembled correctly?
+  <span class="c-yes">YES</span> → Go to Step 4.
+  <span class="c-no">NO</span>  → assembly failure. Check:
+        structured + unstructured delivered together,
+        session memory included,
+        permissions enforced at retrieval layer.
+
+<span class="c-heading">STEP 4</span> — Was there a provenance trail?
+  <span class="c-yes">YES</span> → Review it. Identify which source was over-weighted.
+  <span class="c-no">NO</span>  → Root cause analysis not possible.
+        <span class="c-warn">Add field-level citations before the next run.
+        This is your new Step 0.</span>
+
+<span class="c-heading">STEP 5</span> — Is this failure mode repeatable?
+  <span class="c-yes">YES</span> → Systemic. Redesign the affected layer.
+  <span class="c-no">NO</span>  → Edge case. Log it, add regression test, monitor.</pre>
+      </div>
+    </div>
+
+    <!-- Artifact 3 -->
+    <div class="artifact-section">
+      <div class="artifact-header">
+        <span class="artifact-label">Artifact 03</span>
+      </div>
+      <div class="artifact-title">Stack ADR: Knowledge Layer</div>
+      <div class="artifact-desc">Fill this out before picking infrastructure. Decisions made without this tend to be reversed.</div>
+      <div class="code-block">
+<pre><span class="c-heading">ADR-[N]: Knowledge Layer Architecture</span>
+<span class="c-key">Status:</span> <span class="c-value">[Proposed / Accepted / Superseded]</span>
+<span class="c-key">Date:</span>   <span class="c-value">YYYY-MM-DD</span>
+
+<span class="c-heading">CONTEXT</span>
+What agent tasks require this knowledge layer?
+<span class="c-comment">[List actions, not queries.
+ e.g. "issue refund against current policy"
+      "generate board metric with auditable source trail"
+      "classify ticket against active product spec"]</span>
+
+<span class="c-heading">DECISION DRIVERS</span>  <span class="c-comment">(check all that apply)</span>
+<span class="c-value">[ ]</span> Structured + unstructured in single query
+<span class="c-value">[ ]</span> Document structure navigation required
+<span class="c-value">[ ]</span> Real-time data in retrieval scope
+<span class="c-value">[ ]</span> Access control at retrieval layer
+<span class="c-value">[ ]</span> Provenance + citations for human review
+<span class="c-value">[ ]</span> Session memory across agent runs
+<span class="c-value">[ ]</span> Agent write-back required
+
+<span class="c-heading">OPTIONS</span>
+<span class="c-key">A — Classic vector RAG</span>
+   Fits:   lookup tasks, stable corpora, low-stakes generation
+   Breaks: version-sensitive content, structured data, provenance
+
+<span class="c-key">B — Hybrid (vector + keyword + structured query)</span>
+   Fits:   mixed corpus, moderate access control
+   Breaks: complex document navigation, heavy provenance
+
+<span class="c-key">C — Compiled knowledge engine (e.g. Pinecone Nexus)</span>
+   Fits:   stable reference data, high-stakes decisions
+   Breaks: fast-changing data, real-time retrieval
+
+<span class="c-key">D — Agentic lakehouse (e.g. Dremio)</span>
+   Fits:   enterprise structured data, federated sources
+   Breaks: unstructured corpora without additional layer
+
+<span class="c-heading">DECISION</span>
+<span class="c-value">[Chosen option + justification in 2-3 sentences]</span>
+
+<span class="c-heading">RISKS</span>
+<span class="c-value">[Specific to your choice — not generic risks]</span>
+
+<span class="c-heading">REVIEW TRIGGER</span>
+Revisit when: agent task scope expands, data change frequency
+increases, new access control requirements emerge, or agent
+<span class="c-warn">failure rate exceeds [your threshold].</span></pre>
+      </div>
+    </div>
+  </section>
+
+  <div class="section-divider">
+    <div class="section-divider-line"></div>
+    <div class="section-divider-icon"></div>
+    <div class="section-divider-line"></div>
+  </div>
+
+  <!-- CLOSE -->
+  <section class="intro" style="margin-bottom: 0;">
+    <p>That's the shift. Vector search isn't going anywhere — but "we have a vector database" stopped being an architecture answer about six months ago. The actual answer is whether your knowledge layer can make and keep a retrieval contract with the agent before it starts acting.</p>
+    <p>The three artifacts above are where to start — not the destination.</p>
+  </section>
+
+  <!-- FOOTER -->
+  <footer class="footer">
+    <div class="footer-wordmark">FlashFusion</div>
+    <div class="footer-line">Building with AI, not about it. &nbsp;·&nbsp; May 2026</div>
+
+    <div class="claims-block">
+      <div class="claims-title">Claims / Counterexamples / Gaps</div>
+      <span class="sourced">[SOURCED]</span> Pinecone Nexus: ~85% agent effort on retrieval, 50–60% task completion rates, up to 90% token reduction. Source: pinecone.io/blog/knowledge-infrastructure-for-agents<br>
+      <span class="sourced">[SOURCED]</span> SAP acquisition of Dremio announced May 4, 2026, pending regulatory approval Q3 2026. Source: sap.com/news<br>
+      <span class="sourced">[SOURCED]</span> PageIndex: open-source vectorless RAG using hierarchical tree index + LLM tree-search. Source: github.com/VectifyAI/PageIndex<br>
+      <span class="generated">[GENERATED]</span> "Most teams are at two or three of seven" — illustrative, not surveyed.<br>
+      <span class="flag">!</span> Pinecone Nexus pre-compilation conflicts with fast-changing data write-back requirement in Artifact 1.<br>
+      <span class="flag">!</span> Dremio's agentic lakehouse requires additional retrieval layer for unstructured documents — "single platform" claim is partial.<br>
+      <span class="flag">!</span> Overlap with natesnewsletter.substack.com — verify positioning before publishing.
+    </div>
+  </footer>
+
+</div>
+</body>
+</html>
