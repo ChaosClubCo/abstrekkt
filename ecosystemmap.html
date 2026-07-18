@@ -27,7 +27,7 @@
   .title h1{font-size:22px;letter-spacing:.3px;background:linear-gradient(90deg,#fff,#c9a9ff 60%,#7de7f5);-webkit-background-clip:text;background-clip:text;color:transparent}
   .title p{margin:4px 0 0;color:var(--muted);font-size:12.5px}
   .stamp{font-size:11px;color:var(--muted);text-align:right;line-height:1.6}
-  .kpis{display:grid;grid-template-columns:repeat(8,1fr);gap:10px;margin:16px 0 6px}
+  .kpis{display:grid;grid-template-columns:repeat(7,1fr);gap:10px;margin:16px 0 6px}
   .status{margin:10px 0 0;padding:10px 14px;border:1px solid rgba(244,114,182,.35);background:rgba(244,114,182,.08);border-radius:12px;font-size:12px;color:#fbcfe8}
   @media(max-width:820px){.kpis{grid-template-columns:repeat(3,1fr)}}
   .kpi{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:12px 13px;backdrop-filter:blur(8px)}
@@ -67,10 +67,6 @@
   .tag.pre-outreach{background:rgba(34,211,238,.18);color:#a5f3fc}
   .tag.warm{background:rgba(245,158,11,.18);color:#fde68a}
   .tag.passive{background:rgba(148,163,184,.16);color:#cbd5e1}
-  .tag.mlive{background:rgba(52,211,153,.20);color:#a7f3d0}
-  .tag.mflicker{background:rgba(251,191,36,.18);color:#fde68a}
-  .tag.moff{background:rgba(148,163,184,.14);color:#94a3b8}
-  .tag.mauth{background:rgba(244,114,182,.18);color:#fbcfe8}
   .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
   .card{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:14px}
   .card h3{font-size:14px;margin-bottom:4px} .card .meta{font-size:11px;color:var(--muted);margin-bottom:8px}
@@ -94,7 +90,7 @@
       <p>Claude Max · ChatGPT Pro · Gemini Ultra — lanes, projects, storage, infra &amp; the mapping playbook. Updateable &amp; self-contained.</p>
     </div>
     <div class="stamp">
-      Generated 2026-07-14 · Updated 2026-07-16<br/>Owner: Kyle Rosebrook<br/><span class="hl">v1.6 · single-file artifact</span>
+      Generated 2026-07-14 · Updated 2026-07-16<br/>Owner: Kyle Rosebrook<br/><span class="hl">v1.2 · single-file artifact</span>
     </div>
   </header>
 
@@ -103,9 +99,8 @@
     <div class="kpi"><b>44+</b><span>Claude Cowork projects</span></div>
     <div class="kpi"><b>~130</b><span>NotebookLM notebooks / 500 cap</span></div>
     <div class="kpi"><b>6</b><span>storage / sync nodes</span></div>
-    <div class="kpi"><b>74</b><span>MCP servers · 41 live at audit</span></div>
+    <div class="kpi"><b>27+</b><span>infra + connected MCPs</span></div>
     <div class="kpi"><b>12</b><span>pipeline (2 active)</span></div>
-    <div class="kpi"><b>228</b><span>ClaudeEnterprise KB docs/files</span></div>
     <div class="kpi"><b>4</b><span>lanes (focus labels)</span></div>
   </section>
   <div class="status">⛔ <b>Milestone-0 not closed</b> — booked revenue <b>$0</b>; blocked before first paid contract by: LLC filing unconfirmed (forms only), E&O insurance not started, employment-IP review not done, EIN/bank pending. Cert exam Jul 20 (don't claim credential until passed). <span class="hl">[SOURCED: Abstrekkt project 2026-07-11]</span></div>
@@ -116,7 +111,6 @@
     <button class="tab" data-view="pipeline">🎯 Pipeline</button>
     <button class="tab" data-view="notebooks">📔 NotebookLM</button>
     <button class="tab" data-view="infra">🔌 Infra &amp; Storage</button>
-    <button class="tab" data-view="mcp">🛰️ MCP Status</button>
     <button class="tab" data-view="playbook">📘 Mapping Playbook</button>
     <button class="tab" data-view="source">✏️ Edit Source</button>
   </nav>
@@ -128,7 +122,7 @@
       <button class="btn" id="btn-zoomin">＋ Zoom</button>
       <button class="btn" id="btn-zoomout">－ Zoom</button>
       <button class="btn" id="btn-zoomreset">⟲ Reset</button>
-      <span class="note">Expanded mind map — sub-nodes inline (~90 nodes / 21 clusters). Tables in the other tabs stay the row-level source of truth.</span>
+      <span class="note">Grouped nodes carry counts. Full drill-down is in the other tabs.</span>
     </div>
     <div class="panel"><div id="diagram">Rendering diagram…</div></div>
     <div class="legend">
@@ -188,20 +182,6 @@
     </div>
   </div>
 
-  <div class="view" id="view-mcp">
-    <div class="toolbar">
-      <input type="search" id="mcp-search" placeholder="Search MCP servers (name, category, status)…" />
-      <span class="note">Audited 2026-07-16 in 3 timed probe passes (19:29 / 19:31 / 19:33 UTC) + session-long connect/disconnect telemetry. The fleet <b>rotates</b> — treat availability as eventually-consistent, never guaranteed.</span>
-    </div>
-    <div class="panel" style="padding:0;overflow:auto;max-height:70vh">
-      <table id="mcp-table">
-        <thead><tr><th>Server</th><th>Category</th><th>Status at audit</th><th>Session pattern / note</th></tr></thead>
-        <tbody></tbody>
-      </table>
-    </div>
-    <p class="note" id="mcp-count"></p>
-  </div>
-
   <div class="view" id="view-playbook">
     <div class="md" id="playbook"></div>
   </div>
@@ -219,10 +199,6 @@
 
   <div class="foot">
     <b>CLAIMS</b> — Notebook cap 500 on Ultra <span class="hl">[SOURCED]</span>; no consumer API for NotebookLM or claude.ai project listing <span class="hl">[SOURCED]</span>; rclone bisync no longer beta but "advanced" <span class="hl">[SOURCED]</span>; OneDrive+GDrive native clients over one folder = data loss <span class="hl">[SOURCED]</span>. Project lane tags &amp; some cluster counts are <span class="hl">[GENERATED]</span> from your provided data — correct any in the Edit Source / Projects tabs.<br/>
-    <b>v1.6 (2026-07-16)</b> — Expanded the mind map one level deep: every grouped node now has child sub-nodes — Milestone-0 gate (5 blockers + $0 node), Products ×6, Content ×2, offer ladder as a 4-step chain, Pipeline as 4 stage nodes, Learning ×3, CommandCenter builds (NEXUS→managed-systems, AGS→tiers), Cowork projects by lane ×4, skill packs ×5, chatgpt.site apps ×3 named, NotebookLM 9 clusters, Supabase ×3 projects. ~40 → ~90 nodes. <b>Single-source fix:</b> ecosystem.mermaid is now generated from this file's diagram block (the two copies had drifted in wording since v1.0).<br/>
-    <b>v1.5 (2026-07-16)</b> — <b>MCP fleet audit</b>: 3 timed probe passes (19:29 / 19:31 / 19:33 UTC, small no-arg tool schemas) + session-long connect/disconnect telemetry <span class="hl">[SOURCED: live probes]</span>. New <b>MCP Status tab</b>: <b>74 servers observed · 41 live at audit · 29 flickering · 3 auth-blocked (DataGrail, Freshservice, Tropic) · 1 off (desktop bridge)</b>. Findings: the fleet <b>rotates</b> (~55% responding at any moment — treat as eventually-consistent); Vercel partial (only buy/domain subset live); AWS Marketplace quietly returned; Zapier heavy-churn (428→0→6→0 tools); Freshservice auth-blocked is INT-relevant. Counts machine-verified from the registry array. <b>Connected ≠ hands-on: the ~30 hands-on-tools figure stands unchanged.</b><br/>
-    <b>v1.4 (2026-07-16)</b> — Read the attached <b>CommandCenter Project</b> (6 docs + synced repo) <span class="hl">[SOURCED: CommandCenter project — PROJECT NEXUS chain + GraphProvider SDK]</span>: added a <b>Dev-Ops Tooling &amp; Builds</b> node — PROJECT NEXUS (Cloudflare SRE dashboard, D1/Workers/R2/Pages, 6 tabs; manages INT-triage-ai-2.0, rate-limiter, LLM-chaining POC) and Agent Graph Studio (Supabase 3D agent-graph, free/pro/team tiers); added the Agent Graph Studio Supabase project; enriched the CommandCenter project row.<br/>
-    <b>v1.3 (2026-07-16)</b> — Read the attached <b>ClaudeEnterprise Project</b> (136 docs + 92 files) <span class="hl">[SOURCED: ClaudeEnterprise project]</span>: added a <b>Learning &amp; Certification</b> node (Claude Certified Architect prep, exam Jul 20; study corpus of 136 docs + 92 quiz/flashcard sets; INT AIaaS strategic-wedge material; prompt-forge + FF profile-builder tools) and re-tagged ClaudeEnterprise shared with its real contents. KB-docs KPI added.<br/>
     <b>v1.2 (2026-07-16)</b> — Read the attached <b>Abstrekkt Project</b> (250 docs) and folded in real ground truth <span class="hl">[SOURCED: Abstrekkt project 2026-07-11]</span>: new <b>Pipeline tab</b> (12 clients — Art, Ryan/Iron Horse active; CLC, Union VP pre-outreach; +warm/passive); <b>Products</b> (Fusion AI ≈101 entities, FF CRM, plugins-plus 244, Ample, FissionPrompt, chaosclub.co, StoryWeaver); <b>Content</b> (Load-Bearing newsletter, memoir Tax the Damage); <b>FF offer ladder</b> (audit $4.5k→sprint→retainer→vCAIO); <b>Milestone-0 blocker</b> node + status strip; Stripe/Sentry + app./client.flashfusion.co surfaces. Still could NOT read the last-50-chats (no API).<br/>
     <b>v1.1 (2026-07-16)</b> — Added ~18 newly-connected services to Infra (Loveable, Replit, Wix, Figma, PlanetScale, Apollo, HubSpot, Calendly, Supermetrics, Ahrefs, Canva, Cloudinary, Gamma, HeyGen, Invideo, Otter, Mem, Ideabrowser, Shopify); enriched Iron Horse Seating (GSA/gov bids, dealer comms, spec sheets, warranty); split the Infra layer into Build/Analytics/Sales/Media/PKM. Source = skills + MCP servers that surfaced in this session <span class="hl">[SOURCED: session-surfaced]</span>, <b>not</b> chat history.<br/>
     <b>GAPS</b> — <b>This update could NOT read your last 50 chats or Project-knowledge docs</b> (no claude.ai API; nothing pasted this turn) — paste those and I'll fold them in. Claude personal-export coverage of Projects/Artifacts still unverified; NotebookLM per-notebook URLs not provided (clustered, not linked); no new project IDs surfaced so the 44 projects are unchanged.
@@ -240,62 +216,16 @@ subgraph LANES["LANES — focus labels, not walls"]
  LC["🟠 FREELANCE · C · per-client<br/>Iron Horse Seating (GSA/gov bids) · Corey"]
 end
 GOV --> LANES
-subgraph BLOCK["⛔ MILESTONE-0 — safe-to-earn gate (Kyle-only)"]
- direction LR
- B1["🏛️ LLC filing<br/>unconfirmed"]
- B2["🛡️ E&O insurance<br/>not started"]
- B3["⚖️ Employment-IP<br/>attorney review"]
- B4["🏦 EIN + bank"]
- B5["🎓 Cert exam<br/>Jul 20 — no claim before pass"]
- REV0["💰 Booked revenue: $0"]
-end
+BLOCK["⛔ MILESTONE-0 BLOCKERS (Kyle-only, pre-revenue)<br/>LLC not filed · E&O not bound · IP review · EIN/bank · cert exam Jul 20 · booked revenue $0"]
 GOV --> BLOCK
 subgraph BIZ["ABSTREKKT BUSINESS (under Personal lane)"]
  direction LR
- subgraph PROD["📦 Products"]
-  direction TB
-  P1["Fusion AI · Base44 ≈101 entities<br/>app.flashfusion.co"]
-  P2["FF Consulting CRM<br/>client.flashfusion.co"]
-  P3["claude-code-plugins-plus 244<br/>distribution undecided"]
-  P4["Ample · FissionPrompt"]
-  P5["chaosclub.co · Firebase<br/>! retired-brand domain — open Q"]
-  P6["StoryWeaver — gift, never market"]
- end
- subgraph CONTENT["📰 Content"]
-  direction TB
-  C1["Load-Bearing newsletter<br/>platform undecided · no URL yet"]
-  C2["Memoir: Tax the Damage<br/>separate register"]
- end
- subgraph OFFER["🪜 FF offer ladder — champion model"]
-  direction TB
-  O1["1 · Audit — $4,500 floor"] --> O2["2 · Sprint (per-project)"]
-  O2 --> O3["3 · Retainer"] --> O4["4 · vCAIO"]
- end
- subgraph PIPE["🎯 Pipeline ×12"]
-  direction TB
-  PL1["🟢 Active ×2<br/>Art · Ryan/Iron Horse"]
-  PL2["🔷 Pre-outreach ×2<br/>CLC · Union VP"]
-  PL3["🟠 Warm ×6<br/>guitar mfg · cstmprnt · Grand Appliance<br/>O'Toole's · MKE rentals · dive bar"]
-  PL4["⚪ Passive ×2 — never pursue<br/>Sole Revival · print store"]
- end
- subgraph LEARN["🎓 Learning & Certification"]
-  direction TB
-  L1["CCA exam 2026-07-20<br/>no credential claim before pass"]
-  L2["ClaudeEnterprise corpus<br/>136 docs + 92 quiz/flashcard sets"]
-  L3["INT AIaaS strategic wedge"]
- end
+ PROD["📦 Products<br/>Fusion AI (≈101 ent) · FF CRM · plugins-plus (244)<br/>Ample · FissionPrompt · chaosclub.co · StoryWeaver (gift, unmarketed)"]
+ CONTENT["📰 Content<br/>Load-Bearing newsletter (no URL yet)<br/>Memoir: Tax the Damage (separate register)"]
+ OFFER["🪜 FF offer ladder<br/>Audit $4.5k floor → sprint → retainer → vCAIO · champion model"]
+ PIPE["🎯 Pipeline<br/>Active: Art · Ryan · Pre-outreach: CLC · Union VP · +6 warm"]
 end
 LB --> BIZ
-subgraph BUILDS["🛠️ DEV-OPS TOOLING & BUILDS — CommandCenter"]
- direction LR
- NX1["PROJECT NEXUS<br/>Cloudflare SRE dashboard<br/>D1·Workers·R2·Pages · ~$35-50/mo"]
- NX2["manages ×3:<br/>INT-triage-ai-2.0 · rate-limiter<br/>LLM-chaining POC"]
- AG1["Agent Graph Studio<br/>Supabase 3D agent-graph"]
- AG2["tiers free/pro/team<br/>quotas · live · share · export"]
- NX1 --> NX2
- AG1 --> AG2
-end
-LANES --> BUILDS
 subgraph PLAT["AI PLATFORMS — premium + beta"]
  direction LR
  CLA["⚡ CLAUDE MAX"]
@@ -305,53 +235,24 @@ end
 LANES --> PLAT
 subgraph CLAUDE["CLAUDE MAX universe"]
  direction TB
- subgraph CW["🗂️ Cowork Projects — 44 mapped"]
-  direction LR
-  CWP["🟣 Personal ×16<br/>Abstrekkt·FlashFusion·flashnframe·Murmwar…"]
-  CWI["🔵 INT ×9<br/>ServiceDesk·INTeract·SOP-KB·Copilot…"]
-  CWF["🟠 Freelance ×3<br/>art·Ironhorseating·Resume-Corey"]
-  CWS["⚙️ Shared ×16<br/>Prompt Library·MCPs·Claude-Skills·Github…"]
- end
- subgraph SK["🧰 Skills library 100+"]
-  direction LR
-  SK1["kyle-os · production-agents-suite"]
-  SK2["flashfusion-artifacts<br/>ff-build · ff-patch · ff-smoketest"]
-  SK3["nlm-core·media·content·production"]
-  SK4["small-business · agent-teams · conductor"]
-  SK5["Iron Horse ops<br/>bid·dealer·spec·warranty"]
- end
+ CW["🗂️ Cowork Projects ~50<br/>lane-tagged"]
  ART["🎨 Artifacts<br/>publish → stable URLs"]
- MCP["🛰️ MCP fleet 74 servers<br/>41 live · 29 flicker · 3 auth<br/>audited 2026-07-16 · rotating"]
- CC["💻 Claude Code<br/>plugins-plus 244 · agent types"]
+ SK["🧰 Skills library 100+"]
+ MCP["🔌 MCP connectors 40+"]
+ CC["💻 Claude Code + plugins"]
 end
 CLA --> CLAUDE
 subgraph CHATGPT["CHATGPT PRO universe"]
  direction TB
  GPTS["🤖 Custom GPTs"]
- subgraph SITES["🌐 chatgpt.site apps ×3"]
-  direction TB
-  S1["Abstrekkt Command Center"]
-  S2["FF Agent Command Center"]
-  S3["Vibe Coding Systems Lab"]
- end
+ SITES["🌐 chatgpt.site apps ×3"]
  SORA["🎬 Sora"]
  CODX["⌨️ Codex"]
 end
 GPT --> CHATGPT
 subgraph GEMINI["GEMINI ULTRA universe"]
  direction TB
- subgraph NLM["📔 NotebookLM ~130 / 500 cap — 9 clusters"]
-  direction LR
-  NB1["🤖 Agentic/Eng ×8"]
-  NB2["⚡ Claude Mastery ×10"]
-  NB3["🚀 ABS/Branding ×9"]
-  NB4["📈 Business/SaaS ×12"]
-  NB5["🛡️ Governance ×8"]
-  NB6["🪟 Microsoft ×5"]
-  NB7["🏗️ Build/Ship ×6"]
-  NB8["📊 INT ×3"]
-  NB9["🎬 Media/Misc ×8"]
- end
+ NLM["📔 NotebookLM ~130/500"]
  AIS["🛠️ AI Studio"]
  AG["🪐 Antigravity"]
  GAPP["💎 Gemini + Deep Research"]
@@ -373,15 +274,10 @@ LOCAL <-->|rclone bisync| GDRIVE
 LOCAL <-->|rclone bisync| ONEDR
 GH -->|gh clone| LOCAL
 NOTION -.->|API md export-only| LOCAL
-subgraph INFRA["AUTOMATION & INFRA · MCP FLEET: 74 servers · 41 live at audit · rotating availability"]
+subgraph INFRA["AUTOMATION & INFRA · CONNECTORS"]
  direction LR
  N8N["⚙️ n8n (INT)"]
- subgraph SUPA["🟩 Supabase ×3 · PlanetScale"]
-  direction TB
-  SUPINT["INT · oorstbwc… · us-east-2<br/>read ok · write=ask"]
-  SUPFF["flashnframe · etctmapp…<br/>FF production"]
-  SUPAGS["Agent Graph Studio<br/>graphs·shares·quotas·Realtime"]
- end
+ SUPA["🟩 Supabase ×2 · PlanetScale"]
  MAKEZ["🔁 Make · Zapier · composio"]
  BUILD["🏗️ Base44·Vercel·Cloudflare<br/>Loveable·Replit·Wix·Figma"]
  OBS["📈 PostHog·Supermetrics·Ahrefs"]
@@ -409,21 +305,14 @@ classDef platform fill:#101826,stroke:#22D3EE,stroke-width:2px,color:#cffafe;
 classDef gov fill:#160a24,stroke:#F472B6,stroke-width:2px,color:#fce7f3;
 class GOV,BLOCK gov;
 class LB personal;
-class PROD,CONTENT,OFFER,PIPE,LEARN personal;
+class PROD,CONTENT,OFFER,PIPE personal;
 class LA int;
 class LC freelance;
 class CLA,GPT,GEM platform;
 class CW,ART,SK,MCP,CC,GPTS,SITES,SORA,CODX,NLM,AIS,AG,GAPP shared;
 class LOCAL,GDRIVE,ONEDR,GH,NOTION,VAULT shared;
 class N8N,SUPA,MAKEZ,BUILD,OBS,SALES,MEDIA,MAIL,PKM,COMMS shared;
-class BUILDS shared;
 class FF,FFAPP,ABS,FLN,CMD personal;
-class B1,B2,B3,B4,B5,REV0 gov;
-class P1,P2,P3,P4,P5,P6,C1,C2,O1,O2,O3,O4,PL1,PL2,PL3,PL4,L1,L2,L3 personal;
-class NX1,NX2,AG1,AG2 shared;
-class CWP,CWI,CWF,CWS,SK1,SK2,SK3,SK4,SK5,S1,S2,S3 shared;
-class NB1,NB2,NB3,NB4,NB5,NB6,NB7,NB8,NB9 shared;
-class SUPINT,SUPFF,SUPAGS shared;
 </script>
 
 <script>
@@ -4046,7 +3935,7 @@ const projects = [
  ["AI-news","int","INT AI newsletter source project","019cd26a-e058-74c7-999c-a68c17680377"],
  ["INT-SOP-KB-MAKER","int","SOP & KB article generation","019ac095-8c03-76d0-b31a-3d8f9d534ab6"],
  ["MICROSOFT-COPILOT-STUDIO","int","Copilot Studio / MS Frontier","019be1d9-b877-776b-8bec-8adedac0f22f"],
- ["ClaudeEnterprise","shared","Claude/agentic study + certification corpus — 136 docs, 92 quiz/flashcard sets, cert field guide, PDFs; INT AIaaS strategic-wedge material; prompt-forge + FF profile-builder tools","019b0e56-0aa5-7291-bc5c-fe60e9f33bf8"],
+ ["ClaudeEnterprise","int","Enterprise Claude patterns","019b0e56-0aa5-7291-bc5c-fe60e9f33bf8"],
  ["Scripting","int","Scripts for work","019dbc1a-7912-7599-8c12-6e5472339978"],
  ["art","free","Art — real-estate client / AI coach","019ec397-adbd-70ee-b288-ff0d68b218d8"],
  ["Ironhorseating","free","Iron Horse Seating — GSA/gov seating bids (RFP/RFQ), dealer comms, spec sheets, warranty triage","019ea9cc-2bee-7531-af57-5bc68446b327"],
@@ -4058,7 +3947,7 @@ const projects = [
  ["Prompt Library","shared","Prompt library","019975d2-dade-7176-9fa5-a0ad6b31b1f4"],
  ["MCPs","shared","MCP configs & catalog","019cf450-9007-7569-a8c8-db3cb857a2b3"],
  ["Automations","shared","Automations","0199ff61-0fac-741d-9c60-f90dfe2e73c8"],
- ["CommandCenter","shared","Dev-ops tooling — PROJECT NEXUS (Cloudflare SRE dashboard: D1/Workers/R2/Pages, 6 tabs, prompt-regression + log-anomaly + CI/CD + AI file-organizer) & Agent Graph Studio (Supabase 3D agent-graph, free/pro/team tiers); manages INT-triage-ai-2.0, rate-limiter, LLM-chaining POC; synced repo awesome-nodejs","019b6cf1-f754-7004-ab3f-12aca7595416"],
+ ["CommandCenter","shared","Command center","019b6cf1-f754-7004-ab3f-12aca7595416"],
  ["Github","shared","Everything GitHub","019de0d7-6b3f-7221-b346-42fa97e2cec4"],
  ["App.Base44","shared","Base44 app builder","019c2bf2-8d71-71a5-a655-deb5f9b86b67"],
  ["Gemini","shared","Gemini cross-platform","019ac365-9819-75a6-8e91-41e810f8d747"],
@@ -4081,7 +3970,6 @@ const nbClusters = [
 ];
 const infra = [
  ["Supabase — INT","Database","int","project oorstbwcydxwiojrsoim · us-east-2 · read ok, write=ask"],
- ["Supabase — Agent Graph Studio","Database","shared","agent_graphs · graph_shares · user_plan_quotas · Realtime [SOURCED: GraphProvider SDK]"],
  ["Supabase — flashnframe","Database","personal","etctmappdhpjuwptdbeb · FlashFusion production"],
  ["n8n","Automation","int","krosebrook.app.n8n.cloud (INT tenant only)"],
  ["Make + Zapier","Automation","shared","scenario / zap orchestration"],
@@ -4129,89 +4017,6 @@ const pipeline = [
  ["Custom print store","passive","Print","Passive ONLY — blew Kyle off; cstmprnt case study covers the vertical. Never pursue."]
 ];
 const stageName={active:"Active",["pre-outreach"]:"Pre-outreach",warm:"Warm",passive:"Passive"};
-
-/* MCP fleet registry — audited 2026-07-16, 3 probe passes + session telemetry. [SOURCED: live probes]
-   live = schema responded at audit · flicker = live earlier this session, dark at audit · off = never up this session · auth = OAuth needed */
-/*MCPS_START*/
-const mcps = [
- ["Supabase","Data/DB","live","Stable all passes — INT + flashnframe + Agent Graph Studio projects"],
- ["PlanetScale","Data/DB","live","Responded P1"],
- ["Airtable","Data/DB","live","Dropped mid-session, reconnected — responded P1"],
- ["n8n","Automation","live","Dropped mid-session, reconnected — INT tenant"],
- ["composio","Automation","live","Meta-connector (toolkit router) — responded P1"],
- ["IFTTT","Automation","live","Responded P1"],
- ["Zapier","Automation","flicker","Heavy churn: 428 tools → dropped → 6 back → dark at all 3 probes"],
- ["Make","Automation","flicker","Dropped early session; dark P2+P3 (2 tool names tried)"],
- ["Twilio","Automation","flicker","Dropped early; dark P2"],
- ["Base44","App builder","live","Responded P1"],
- ["Loveable","App builder","live","Dropped mid-session, reconnected — responded P1"],
- ["Caffeine","App builder","live","Responded P1 (Internet Computer)"],
- ["Replit","App builder","flicker","Live mid-session; dark P2"],
- ["Wix","Sites","live","Dropped mid-session, reconnected — responded P1"],
- ["WordPress_com","Sites","live","Dropped mid-session, reconnected — responded P1"],
- ["Vercel","Hosting/CI","live","PARTIAL — only buy/domain subset at audit (P3); core list/deploy tools dark"],
- ["Cloudflare_Developer_Platform","Hosting/Edge","live","Dropped mid-session, reconnected — responded P1"],
- ["Manufact","Hosting/MCP","live","MCP-server hosting — responded P1"],
- ["Gmail","Google","live","Dropped mid-session, reconnected — responded P1"],
- ["Google_Drive","Google","live","Stable — responded P1"],
- ["Google_Calendar","Google","live","Dropped mid-session, BACK at P1 — flicker pattern"],
- ["Notion","PKM/Docs","live","Dropped mid-session, reconnected — Freelance hub"],
- ["Todoist","PKM/Tasks","live","Stable P1+P3"],
- ["Mem","PKM/Notes","live","Responded P1"],
- ["ClickUp","PKM/Tasks","flicker","Seen mid-session (1 tool); dark P2"],
- ["Linear","PM/Issues","flicker","Live most of session (47 tools); dropped at audit turn"],
- ["Slack","Comms","flicker","Live most of session; dropped at audit turn — ChaosClubCo only"],
- ["AgentMail","Comms/Email","flicker","Dropped early; dark P2"],
- ["Otter_ai","Meetings","flicker","Live mid-session; dropped at audit turn"],
- ["Apollo_io","Sales/CRM","live","Responded P1"],
- ["HubSpot","Sales/CRM","flicker","Live mid-session; dark P2"],
- ["Calendly","Sales/Scheduling","live","Responded P1"],
- ["Shopify","Commerce","flicker","Live mid-session (25 tools); dropped at audit turn"],
- ["MailerLite","Email/ESP","flicker","Dropped early (76 tools); dark P2"],
- ["Resend","Email/ESP","flicker","Multiple drop/reconnect cycles (85 tools); dropped at audit turn"],
- ["Supermetrics","Analytics/Mktg","flicker","Live mid-session; dark P2"],
- ["Ahrefs","SEO","flicker","Brief appearance (2 tools); dropped at audit turn"],
- ["PostHog","Analytics","flicker","Live early (FF org ctx); dark P1+P2"],
- ["Jam","QA/Debug","flicker","Live mid-session (24 tools); dark P2"],
- ["Canva","Design","flicker","Live early (38 tools); dark P2"],
- ["Figma","Design","flicker","Live mid-session (25 tools); dropped at audit turn"],
- ["Miro","Whiteboard","flicker","Live mid-session (34 tools); dark P2"],
- ["Lucid","Diagrams","flicker","Live early; dark P2"],
- ["Excalidraw","Diagrams","live","Responded P1"],
- ["tldraw","Canvas","live","Responded P1"],
- ["CloudMindMaps","Mind maps","flicker","Live mid-session; dark P2"],
- ["Mermaid_Chart","Diagrams","flicker","Live early; dark P2"],
- ["Goodnotes","Notes/Render","live","Responded P1"],
- ["Magic_Patterns","UI inspiration","flicker","Brief appearance; dark P2"],
- ["Gamma","Decks","flicker","Live mid-session; dark P2"],
- ["Three_js_3D_Viewer","3D","live","Responded P1"],
- ["visualize","Widgets","live","Reconnected after early drop — responded P1"],
- ["Cloudinary","Media CDN","live","Dropped mid-session, reconnected — responded P1"],
- ["Higgsfield","AI media","live","Stable P1+P3 — image/video/audio/3D gen"],
- ["HyperFrames_by_HeyGen","AI video","flicker","Live mid-session; dark P2"],
- ["Invideo","AI video","live","Responded P1"],
- ["Spotify","Music","live","Responded P1"],
- ["Hugging_Face","AI/ML hub","live","Responded P1 — authed as kyrleosebrook"],
- ["Context7","Dev docs","live","Responded P1"],
- ["GraphOS_MCP_Tools","GraphQL","live","Responded P1 (Apollo GraphOS)"],
- ["Nimble","Web research","live","Dropped mid-session, reconnected — responded P1"],
- ["Ideabrowser","Idea research","live","Responded P1"],
- ["Granted","Grants DB","live","Responded P1"],
- ["AWS_Marketplace","Marketplace","live","Dropped early — QUIETLY RETURNED at P2"],
- ["Indeed","Jobs","flicker","Brief appearance; dark P2"],
- ["Klarity","Process KB","flicker","Instructions seen early, disconnected; tool names never enumerated"],
- ["Intuit_Credit_Karma","Finance","flicker","Appeared and dropped same turn (2 tools)"],
- ["3minapi","API builder","live","Responded P1"],
- ["WorkOS","Identity","live","Responded P1"],
- ["DataGrail","Privacy","auth","OAuth never completed — authorize in claude.ai connector settings"],
- ["Freshservice","ITSM","auth","OAuth never completed — INT-lane relevant (service desk)"],
- ["Tropic","Procurement","auth","OAuth never completed"],
- ["claude-code-remote","System","live","Scheduled-tasks MCP — base toolset, always on"],
- ["remote-devices","System/Bridge","off","Desktop bridge — never connected this session (app not open)"]
-];
-/*MCPS_END*/
-const mcpStatusName={live:"🟢 Live",flicker:"🟡 Flicker",off:"⚪ Off all session",auth:"🔐 Auth needed"};
-const mcpTagClass={live:"mlive",flicker:"mflicker",off:"moff",auth:"mauth"};
 
 /* ---------------- MERMAID ---------------- */
 const baseSrc = document.getElementById('mermaid-src').textContent.trim();
@@ -4327,29 +4132,6 @@ function renderPipeline(){
 }
 document.getElementById('pipe-search').addEventListener('input',renderPipeline);
 
-/* ---------------- MCP STATUS ---------------- */
-function renderMCP(){
-  const q=(document.getElementById('mcp-search').value||'').toLowerCase();
-  const tb=document.querySelector('#mcp-table tbody'); tb.innerHTML='';
-  const order={live:0,flicker:1,auth:2,off:3}; let n=0;
-  mcps.slice().sort((a,b)=>order[a[2]]-order[b[2]]||a[0].localeCompare(b[0])).forEach(function(row){
-    const name=row[0],cat=row[1],st=row[2],note=row[3];
-    const hay=(name+' '+cat+' '+mcpStatusName[st]+' '+note).toLowerCase();
-    if(q && hay.indexOf(q)<0) return;
-    n++;
-    const tr=document.createElement('tr');
-    tr.innerHTML='<td><b>'+name.replace(/_/g,' ')+'</b></td>'+
-      '<td style="color:var(--muted)">'+cat+'</td>'+
-      '<td><span class="tag '+mcpTagClass[st]+'">'+mcpStatusName[st]+'</span></td>'+
-      '<td style="color:var(--muted)">'+note+'</td>';
-    tb.appendChild(tr);
-  });
-  const c={live:0,flicker:0,off:0,auth:0}; mcps.forEach(m=>c[m[2]]++);
-  document.getElementById('mcp-count').textContent=n+' of '+mcps.length+' shown · '+
-    c.live+' live at audit · '+c.flicker+' flickering (dark now, live earlier) · '+c.auth+' auth-blocked · '+c.off+' off all session';
-}
-document.getElementById('mcp-search').addEventListener('input',renderMCP);
-
 /* ---------------- PLAYBOOK ---------------- */
 document.getElementById('playbook').innerHTML=
 '<h2>Mapping &amp; Sync Playbook (condensed)</h2>'+
@@ -4397,7 +4179,7 @@ document.getElementById('btn-copysrc').onclick=function(){
 };
 
 /* ---------------- INIT (data tabs first — independent of diagram lib) ---------------- */
-renderProjects(); renderPipeline(); renderNB(); renderInfra(); renderMCP();
+renderProjects(); renderPipeline(); renderNB(); renderInfra();
 try{ renderMap(baseSrc); }catch(e){ document.getElementById('diagram').innerHTML='<pre style="color:#f88">'+e.message+'</pre>'; }
 })();
 </script>
