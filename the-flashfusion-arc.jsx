@@ -331,7 +331,7 @@ const QUARTERS = [
         weeks: [
           'Revenue actual vs $222K target measured. Honest assessment.',
           'Y2 strategy first draft: retainer-heavy vs audit-heavy vs vCAIO-heavy.',
-          'Y2 strategy review against Abstrekkt Products + Memoir bandwidth. Lane discipline retrospective.',
+          'Y2 strategy review against ChaosClubCo + Memoir bandwidth. Lane discipline retrospective.',
           'Y2 strategy locked. Q5 onboarding starts. Year-one closing reflection captured.',
         ],
       },

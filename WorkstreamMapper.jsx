@@ -191,7 +191,7 @@ Active workstreams:
 - Ops/Blockers: n8n (krosebrook.app.n8n.cloud), Obsidian vault integration pending (vault path needed), designs/FlashFusion-tokens.md and docs/content-strategy-v1.md not yet created.
 - AI Providers: Anthropic (claude-sonnet-4-6, Fusion AI + FF Consulting primary), Google Gemini (chaosclub.co, version unconfirmed), OpenAI (usage unconfirmed across apps), Microsoft Copilot (dev workflow + potential enterprise overlap). No unified cost view. No provider intel Notion pages. No version governance. No provider abstraction layer.
 
-FlashFusion tech stack: Supabase, Vercel, Cloudflare (CDN/edge/DNS/R2), Stripe, PostHog, Sentry, Resend, Anthropic Claude API (claude-sonnet-4-6 default), Google Gemini API, OpenAI API (status TBC), Base44, n8n + Make + Zapier, HubSpot, GitHub (Abstrekkt org + Krosebrook user), Notion (FlashFusion HQ: 32eea14fb16781bdb12cff15311e1273).
+FlashFusion tech stack: Supabase, Vercel, Cloudflare (CDN/edge/DNS/R2), Stripe, PostHog, Sentry, Resend, Anthropic Claude API (claude-sonnet-4-6 default), Google Gemini API (chaosclub.co), OpenAI API (status TBC), Base44, n8n + Make + Zapier, HubSpot, GitHub (ChaosClubCo org + Krosebrook user), Notion (FlashFusion HQ: 32eea14fb16781bdb12cff15311e1273).
 
 Answer directly under 200 words. Prioritize unblocking actions over planning.`;
 

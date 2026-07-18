@@ -200,9 +200,9 @@ The tools aren't a productivity flex. They're a medical necessity. Notion, Claud
 
 ### Connection 2: Scan → The Diagnostic Instinct Surviving Injury
 
-`Focus: 59th percentile` → `Pattern recognition intact` → `Reading rooms at O'Tool's` → `Reading processes in QC` → `Reading systems in the work I do now` → `Learning piano (Nuvole Bianche — Einaudi) by shape not note names: a year of practice, still can't name the keys`
+`Focus: 59th percentile` → `Pattern recognition intact` → `Reading rooms at O'Tool's` → `Reading processes in QC` → `Reading systems in the work I do now`
 
-The diagnostic instinct is the memoir's spine — and the cognitive data explains why it survived. Focus and controlled attention are medium-range. The ability to detect patterns in real-time still works. What broke is the ability to store and retrieve what was detected. The piano example is the cleanest proof: the storage was useless (can't name a single key), the pattern processor ran anyway. The instinct reads the room; the tools remember what it found.
+The diagnostic instinct is the memoir's spine — and the cognitive data explains why it survived. Focus and controlled attention are medium-range. The ability to detect patterns in real-time still works. What broke is the ability to store and retrieve what was detected. The instinct reads the room; the tools remember what it found.
 
 ### Connection 3: Scan → The Recursive Trap of Addiction
 

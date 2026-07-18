@@ -381,7 +381,7 @@ export default function MemoirArc() {
             <div className="tradeoff-cell">
               <div className="tradeoff-label">What you give up</div>
               <div className="tradeoff-text">
-                <strong>Bandwidth for FlashFusion + Abstrekkt Products</strong> — memoir writing is slow, expensive in attention, irreducibly non-linear. <strong>Speed of release</strong> — twelve months is conservative; many memoirs take three years. <strong>Comfortable framing</strong> — if a reader needs a brave-recovery hook, this book denies it; smaller audience is the cost.
+                <strong>Bandwidth for FlashFusion + ChaosClubCo</strong> — memoir writing is slow, expensive in attention, irreducibly non-linear. <strong>Speed of release</strong> — twelve months is conservative; many memoirs take three years. <strong>Comfortable framing</strong> — if a reader needs a brave-recovery hook, this book denies it; smaller audience is the cost.
               </div>
             </div>
           </div>
@@ -460,9 +460,9 @@ export default function MemoirArc() {
               <li><strong>The 12-month-to-submittable timeline is aggressive for literary nonfiction.</strong> Solomon, Maté, Cahalan all took longer than 12 months from excavation to submission-ready. Treat the M12 gate as best-case. The fallback is M12 = manuscript exists at quality, Y2 = revision + submission. Both outcomes are valid; only drift is not.</li>
               <li><strong>Tier-3 excavation tasks (follow-up SPECT, Aug 2 2022 review scene, p2/p3 hypoxia date conflict) are treated as memoir material, not errors.</strong> The internal date contradictions stay in the manuscript as evidence of how the mind under hypoxia reorganized time.</li>
               <li><strong>The frame as letter to Kinsley is structural, not aesthetic.</strong> If any chapter reads as written to a general audience, that chapter has lost the frame. The mid-year retrospective at M6 is the structural audit.</li>
-              <li><strong>The Michael journal is highest legal risk.</strong> Attorney review at M11 is non-negotiable before any publication or query letter goes out. Do not draft Michael journal content for public-facing surfaces (newsletter, FF content, Reading Room) under any framing.</li>
+              <li><strong>The Michael journal is highest legal risk.</strong> Attorney review at M11 is non-negotiable before any publication or query letter goes out. Do not draft Michael journal content for public-facing surfaces (newsletter, FF content, ChaosClubCo) under any framing.</li>
               <li><strong>The cognitive profile (PS 99th, Recall 12th, Flex 17th, Resil 2nd) is thesis in data.</strong> It must surface in the prose — engine full speed, storage empty, tools as prosthetic memory — without becoming a clinical-report performance. M4 chapter 1 and M6 chapter 4 test the integration.</li>
-              <li><strong>Lane bleed risk:</strong> Memoir voice borrowing from FlashFusion consulting register or Reading Room brand voice = failure. Three distinct voices required. If a sentence could appear in a FF essay, it does not belong in the memoir.</li>
+              <li><strong>Lane bleed risk:</strong> Memoir voice borrowing from FlashFusion consulting register or ChaosClubCo brand voice = failure. Three distinct voices required. If a sentence could appear in a FF essay, it does not belong in the memoir.</li>
               <li><strong>What this arc does not model:</strong> grief or excavation-fatigue that requires pausing the schedule, publisher response time, the possibility that a deeper structural rewrite emerges at M9 and reopens Q3 entirely. Quarterly retros are the renegotiation point; the manuscript is the only honest deadline.</li>
             </ul>
           </div>

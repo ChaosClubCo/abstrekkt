@@ -56,7 +56,7 @@ const PLATFORMS = [
   { id:'github', name:'GitHub / Dev', color:'#79c0ff', x:650, y:730,
     desc:'656 repos across 3 orgs. Source of truth for everything built.',
     tools:[
-      {id:'gh1',name:'GitHub',tier:1,cost:'paid',lanes:['Build','Deploy'],usage:'656 repos: Krosebrook personal, Abstrekkt org, FlashFusionv1. Version control foundation.'},
+      {id:'gh1',name:'GitHub',tier:1,cost:'paid',lanes:['Build','Deploy'],usage:'656 repos: KR personal, ChaosClubCo, FlashFusionv1. Version control foundation.'},
       {id:'gh2',name:'GitHub Actions',tier:1,cost:'paid',lanes:['Deploy','Automate'],usage:'CI/CD. Auto-deploy to Vercel on merge, run test suites.'},
       {id:'gh3',name:'Copilot CLI',tier:2,cost:'paid',lanes:['Build'],usage:'Terminal AI assist for git ops and shell command gen.'},
       {id:'gh4',name:'Codespaces',tier:2,cost:'paid',lanes:['Build'],usage:'Cloud dev environments for repo-specific isolated contexts.'},
@@ -77,7 +77,7 @@ const PLATFORMS = [
   { id:'deploy', name:'Deploy / Cloud', color:'#0d9488', x:285, y:255,
     desc:'Vercel + Cloudflare as the deploy backbone. Everything ships through here.',
     tools:[
-      {id:'dp1',name:'Vercel',tier:1,cost:'paid',lanes:['Deploy'],usage:'Primary deploy. FlashFusion, Continuum, abstrekkt.com.'},
+      {id:'dp1',name:'Vercel',tier:1,cost:'paid',lanes:['Deploy'],usage:'Primary deploy. FlashFusion, Continuum, kylerosebrook.com.'},
       {id:'dp2',name:'Cloudflare',tier:1,cost:'paid',lanes:['Deploy','Build'],usage:'DNS, CDN, DDoS protection. Foundation layer for all domains.'},
       {id:'dp3',name:'CF Workers',tier:1,cost:'paid',lanes:['Build','Deploy'],usage:'Serverless edge functions. API proxies, webhook handlers, KV + R2.'},
       {id:'dp4',name:'Cloudflare R2',tier:2,cost:'paid',lanes:['Build','Deploy'],usage:'S3-compatible storage. Chaos Club premium content gating.'},
