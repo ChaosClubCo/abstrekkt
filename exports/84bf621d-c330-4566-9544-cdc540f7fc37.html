@@ -1,0 +1,1132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pitch Console</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400;1,9..144,500&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink:#0a0a0a;--ink-2:#131313;--ink-3:#1c1c1c;--ink-4:#232323;
+    --paper:#f4ede1;--paper-2:#c8bfae;--paper-3:#8a7e6b;
+    --brass:#b8893d;--brass-2:#d4a55c;--brass-3:#6e5226;
+    --rust:#b54a25;--green:#7da587;--blue:#8b9bd4;--rule:#2a2520;
+    --serif:'Fraunces',Georgia,serif;--sans:'Inter',system-ui,sans-serif;--mono:'JetBrains Mono',monospace;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{font-family:var(--sans);background:var(--ink);color:var(--paper);min-height:100vh;line-height:1.55;-webkit-font-smoothing:antialiased;}
+  .container{max-width:1160px;margin:0 auto;padding:36px 24px 80px;}
+  .masthead{border-bottom:1px solid var(--rule);padding-bottom:28px;margin-bottom:32px;}
+  .kicker{font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--brass);margin-bottom:14px;}
+  .title{font-family:var(--serif);font-style:italic;font-weight:500;font-size:clamp(32px,6vw,52px);line-height:1.02;letter-spacing:-.02em;margin:0 0 12px;color:var(--paper);}
+  .deck{color:var(--paper-2);font-size:15px;max-width:640px;line-height:1.6;}
+  .stats{display:flex;gap:22px;margin-top:22px;flex-wrap:wrap;font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.12em;}
+  .stat{color:var(--paper-3);}
+  .stat strong{color:var(--brass-2);font-weight:500;margin-right:6px;font-size:14px;}
+  /* filter bar */
+  .filter-bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:22px;}
+  .filter-btn{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;padding:6px 13px;background:transparent;color:var(--paper-3);border:1px solid var(--rule);cursor:pointer;transition:all .15s;}
+  .filter-btn:hover,.filter-btn.active{color:var(--brass-2);border-color:var(--brass-3);background:rgba(184,137,61,.07);}
+  /* cards */
+  .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px;}
+  .card{background:var(--ink-2);border:1px solid var(--rule);padding:22px 22px 16px;cursor:pointer;transition:border-color .18s,background .18s;position:relative;overflow:hidden;}
+  .card:hover{border-color:var(--brass-3);background:var(--ink-3);}
+  .card.hidden{display:none;}
+  .card-num{font-family:var(--mono);font-size:10px;color:var(--brass);letter-spacing:.14em;text-transform:uppercase;margin-bottom:10px;}
+  .card-pub{font-family:var(--serif);font-size:24px;font-weight:500;line-height:1.1;margin-bottom:6px;color:var(--paper);}
+  .card-beat{font-size:13px;color:var(--paper-2);margin-bottom:6px;line-height:1.4;}
+  .card-contact{font-family:var(--mono);font-size:10.5px;color:var(--paper-3);margin-bottom:14px;letter-spacing:.02em;word-break:break-all;}
+  .card-meta{display:flex;justify-content:space-between;align-items:center;padding-top:12px;border-top:1px solid var(--rule);gap:10px;flex-wrap:wrap;}
+  .badge{font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;padding:4px 10px;border:1px solid;}
+  .badge-draft{color:var(--paper-3);border-color:var(--paper-3);}
+  .badge-ready{color:var(--brass-2);border-color:var(--brass-3);background:rgba(184,137,61,.06);}
+  .badge-sent{color:var(--green);border-color:#3a4d3f;background:rgba(125,165,135,.06);}
+  .badge-replied{color:var(--blue);border-color:#353c5a;background:rgba(139,155,212,.08);}
+  .badge-killed{color:#8a6b6b;border-color:#4a3030;text-decoration:line-through;}
+  .badge-locked{color:var(--rust);border-color:var(--rust);background:rgba(181,74,37,.08);}
+  .followup{font-family:var(--mono);font-size:10px;color:var(--paper-3);}
+  .lock-banner{position:absolute;top:0;right:0;background:var(--rust);color:var(--ink);font-family:var(--mono);font-size:9px;letter-spacing:.18em;text-transform:uppercase;padding:4px 11px;font-weight:600;}
+  .sub-tag{position:absolute;top:0;left:0;background:var(--brass-3);color:var(--paper);font-family:var(--mono);font-size:9px;letter-spacing:.14em;text-transform:uppercase;padding:4px 11px;font-weight:600;}
+  /* actions */
+  .actions{margin-top:32px;padding:24px 0 0;border-top:1px solid var(--rule);display:flex;gap:10px;flex-wrap:wrap;}
+  .btn{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;padding:11px 16px;background:transparent;color:var(--brass-2);border:1px solid var(--brass-3);cursor:pointer;transition:all .15s;line-height:1;}
+  .btn:hover{background:var(--brass);color:var(--ink);border-color:var(--brass);}
+  .btn-secondary{color:var(--paper-3);border-color:var(--rule);}
+  .btn-secondary:hover{color:var(--paper);background:var(--ink-3);border-color:var(--paper-3);}
+  .btn-danger{color:#8a6b6b;border-color:#4a3030;}
+  .btn-danger:hover{background:#3a1f1f;color:var(--paper);border-color:#8a6b6b;}
+  /* modal */
+  .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.88);display:none;align-items:flex-start;justify-content:center;overflow-y:auto;padding:32px 16px;z-index:100;}
+  .modal-backdrop.open{display:flex;}
+  .modal{background:var(--ink-2);border:1px solid var(--rule);max-width:800px;width:100%;padding:32px;position:relative;}
+  .modal-close{position:absolute;top:14px;right:14px;background:none;border:1px solid var(--rule);color:var(--paper-3);font-family:var(--mono);font-size:16px;width:32px;height:32px;cursor:pointer;line-height:1;padding:0;}
+  .modal-close:hover{color:var(--paper);border-color:var(--paper-3);}
+  .modal-kicker{font-family:var(--mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--brass);margin-bottom:10px;padding-right:40px;}
+  .modal-title{font-family:var(--serif);font-size:30px;font-weight:500;line-height:1.1;margin:0 0 6px;letter-spacing:-.01em;color:var(--paper);}
+  .modal-meta{font-family:var(--mono);font-size:11px;color:var(--paper-3);letter-spacing:.04em;margin-bottom:22px;line-height:1.5;word-break:break-word;}
+  .modal-section{margin-bottom:18px;}
+  .label{font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--brass);margin-bottom:7px;display:block;}
+  .practices{background:var(--ink-3);border-left:2px solid var(--brass-3);padding:13px 16px;font-size:13px;color:var(--paper-2);line-height:1.55;}
+  .practices ul{margin:0;padding-left:18px;}
+  .practices li{margin-bottom:4px;}
+  .lock-warning{background:rgba(181,74,37,.1);border:1px solid var(--rust);color:var(--paper);padding:12px 14px;font-size:12.5px;margin-bottom:18px;font-family:var(--mono);line-height:1.5;}
+  .lock-warning strong{color:var(--rust);font-weight:500;}
+  input[type=text],input[type=date],textarea,select{width:100%;background:var(--ink);border:1px solid var(--rule);color:var(--paper);font-family:var(--sans);font-size:14px;padding:10px 12px;line-height:1.5;}
+  input:focus,textarea:focus,select:focus{outline:none;border-color:var(--brass-3);}
+  textarea{min-height:340px;font-family:var(--mono);font-size:12.5px;line-height:1.65;resize:vertical;}
+  select{cursor:pointer;}
+  input[type=date]{color-scheme:dark;cursor:pointer;}
+  .field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  @media(max-width:500px){.field-row{grid-template-columns:1fr;}}
+  .modal-actions{display:flex;gap:8px;margin-top:24px;flex-wrap:wrap;padding-top:20px;border-top:1px solid var(--rule);}
+  /* ai */
+  .ai-row{display:flex;gap:6px;margin-top:6px;flex-wrap:wrap;}
+  .btn-ai{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;padding:6px 12px;background:transparent;color:var(--brass);border:1px solid var(--brass-3);cursor:pointer;transition:all .15s;line-height:1;display:flex;align-items:center;gap:5px;}
+  .btn-ai:hover:not(:disabled){background:rgba(184,137,61,.12);border-color:var(--brass-2);color:var(--brass-2);}
+  .btn-ai:disabled{opacity:.4;cursor:not-allowed;}
+  .btn-ai .spin{display:inline-block;width:10px;height:10px;border:1.5px solid var(--brass-3);border-top-color:var(--brass);border-radius:50%;animation:spin .7s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  .ai-panel{margin-top:8px;background:var(--ink-3);border:1px solid var(--brass-3);overflow:hidden;display:none;}
+  .ai-panel.open{display:block;}
+  .ai-panel-header{font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--brass);padding:8px 12px 6px;border-bottom:1px solid var(--rule);display:flex;justify-content:space-between;align-items:center;}
+  .ai-panel-close{background:none;border:none;color:var(--paper-3);cursor:pointer;font-size:14px;line-height:1;padding:0 2px;}
+  .ai-panel-close:hover{color:var(--paper);}
+  .ai-suggestions{padding:10px 12px;display:flex;flex-direction:column;gap:7px;}
+  .ai-chip{background:var(--ink-2);border:1px solid var(--rule);color:var(--paper-2);font-size:12.5px;font-family:var(--mono);line-height:1.55;padding:8px 11px;cursor:pointer;transition:all .15s;text-align:left;white-space:pre-wrap;width:100%;}
+  .ai-chip:hover{border-color:var(--brass-3);background:var(--ink-3);color:var(--paper);}
+  .ai-chip-label{font-family:var(--mono);font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--brass-3);margin-bottom:3px;}
+  .ai-prose{padding:10px 12px;font-size:13px;font-family:var(--sans);color:var(--paper-2);line-height:1.6;white-space:pre-wrap;}
+  .ai-apply-row{padding:8px 12px 10px;border-top:1px solid var(--rule);display:flex;gap:6px;}
+  /* toast */
+  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--brass);color:var(--ink);font-family:var(--mono);font-size:11px;padding:10px 18px;letter-spacing:.08em;text-transform:uppercase;z-index:200;opacity:0;transition:opacity .2s;pointer-events:none;}
+  .toast.show{opacity:1;}
+  .colophon{margin-top:56px;padding-top:22px;border-top:1px solid var(--rule);font-family:var(--mono);font-size:10px;letter-spacing:.06em;color:var(--paper-3);line-height:1.7;text-transform:uppercase;}
+  .colophon p{margin:6px 0;}
+</style>
+</head>
+<body>
+<div class="container">
+  <header class="masthead">
+    <div class="kicker">Outreach Console · v4 · Jun 2026 · 19 press targets + 9 templates</div>
+    <h1 class="title">Nineteen pitches.<br>Nine templates. One surface.</h1>
+    <p class="deck">Targeting-report contacts merged with prior triage. Edit per pitch. AI assist on every field. Plain-text and master-tracker downloads on demand. State is in-memory — download tracker before closing.</p>
+    <div class="stats" id="stats"></div>
+  </header>
+
+  <div class="filter-bar" style="margin-bottom:18px">
+    <button class="filter-btn active" id="mode-pitches" onclick="switchMode('pitches')">📮 Press Pitches (19)</button>
+    <button class="filter-btn" id="mode-templates" onclick="switchMode('templates')">✉️ Comm Templates (9)</button>
+  </div>
+
+  <div id="pitch-view">
+
+  <div class="filter-bar" id="filters"></div>
+  <div class="cards" id="cards"></div>
+  </div>
+
+  <div id="template-view" style="display:none">
+    <div class="cards" id="template-cards"></div>
+  </div>
+
+  <div class="actions">
+    <button class="btn" onclick="downloadAllTxt()">Download all .txt</button>
+    <button class="btn" onclick="downloadTracker()">Download master tracker.md</button>
+    <button class="btn btn-secondary" onclick="filterAll()">Show all</button>
+    <button class="btn btn-danger" onclick="resetAll()">Reset all</button>
+  </div>
+
+  <div class="colophon">
+    <p>No employer named. No "Staff Engineer." Tool count ~30. Three brands distinct. Lee Chong Ming = he/him always.</p>
+    <p>Targeting report (deep research) drives 13–19 + Fast Company. Verified self-published emails: Lindzon, Paradis, Aki Ito, Aten. Do NOT guess: Breen, Sherry, Pletz, Columbus (use LinkedIn / tip lines).</p>
+    <p>Stage order per report: 1) Lindzon + Breen. 2) Paradis + Sherry (champion model). 3) Aten + Aki Ito + Pletz (Chicago hook). Columbus parked — enterprise only.</p>
+    <p>Excluded by report: Jennifer Ortakales Dawkins (left Business Insider), Geoffrey Fowler (left WaPo, AI-skeptic, adversarial fit).</p>
+    <p>Unvalidated by deep research — keep but verify before sending: Inc/Peter Keating (ADHD angle; Sherry + Aten are the researched current Inc contacts), Arc/Shaifali, JRN/Taylor Six, DIY Genius/Kyle Pearce, Conduit Books.</p>
+    <p>Lee Chong Ming: open kill/revive decision + gated until flashfusion.co live + playbook URL published.</p>
+    <p>Shadow-AI data (citable): MIT NANDA GenAI Divide 40%-bought-vs-90%-use; Cyberhaven 73.8% unauthorized ChatGPT accounts; IBM 2025 shadow-AI breach avg $4.63M. Moltbook (Jan 31 2026): 1.5M tokens + 35K emails, Supabase RLS disabled, Wiz Security.</p>
+    <p>Storage: in-memory this session. Download tracker.md to persist.</p>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="modal" onclick="closeModalBackdrop(event)">
+  <div class="modal" id="modalContent" onclick="event.stopPropagation()"></div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+// ============ PITCHES ============
+const PITCHES = [
+  {
+    id:'sifted', num:'01', pub:'Sifted', brand:'FlashFusion', status:'ready', locked:false,
+    beat:'Startup Life — founder stories, operator wisdom',
+    contact:'Amy Lewin', email:'amy@sifted.eu',
+    practices:[
+      'Lead with the founder story, not the health angle',
+      'European audience; operator-class founder angle is universal',
+      'One brand only: FlashFusion. Do NOT mention memoir or Chaos Club',
+      'Length target for eventual piece: 1,500–2,000 words',
+      'Avoid medical jargon entirely'
+    ],
+    subject:'Founder story — B2B AI consultancy built from an IT support day-job',
+    body:`Hi Amy,
+
+I'm a self-taught builder running FlashFusion, a B2B AI enablement consultancy I started while keeping a day-job in IT support. The mechanism is specific: I don't install AI in a business — I install an AI expert inside the team. I train one internal person to become their organization's AI operator, then I exit the dependency. That's the product. Most AI consultants make the client dependent on them. The exit is how FlashFusion makes money.
+
+The proof-of-concept I didn't expect — the day-job is the credibility, not the embarrassment. Showing up as someone who lives inside business IT every day lands differently with founders than showing up as a "transformation consultant."
+
+I built a production AI tool internally at my IT firm — AWS S3, Supabase with RLS configured, n8n — and got it killed by internal stakeholder resistance. The VP of Finance had exactly the reaction I expected. I took that as market validation and built FlashFusion externally.
+
+Revenue ladder live: free audit → paid Audit ($4,500) → Enablement Sprint ($5,000 fixed) → Managed Retainer ($2,000/mo). IC model — I sell and deliver, no bench. First paid-client work delivered. Roughly 30 hands-on tools.
+
+Path before this: bartending and hospitality management at Timothy O'Toole's for years, then quality control work, then self-taught engineering. No CS degree. The diagnostic instinct that made me useful reading rooms at a bar is the same one I use to read broken AI implementations.
+
+The Sifted angle: a founder who didn't quit his job to build, didn't take outside money, and is using the constraint as a positioning asset. Happy to send a one-pager and the IC-model breakdown.
+
+Kyle Rosebrook
+flashfusion.co`
+  },
+  {
+    id:'additude', num:'02', pub:'ADDitude Magazine', brand:'Memoir / Personal', status:'ready', locked:false,
+    beat:'ADHD founders, practical operator strategies',
+    contact:'Editorial Team', email:'submissions@additudemag.com',
+    practices:[
+      'Practical, not aspirational — readers want what to do, not how to feel',
+      'No "ADHD as superpower" framing — over-covered',
+      'No medical jargon or clinical claims you can\'t document',
+      'Outline first, full draft after acceptance',
+      'Single brand: personal/memoir-adjacent. No FlashFusion, no Chaos Club'
+    ],
+    subject:'ADHD founder essay — what changes when you stop fighting the wiring',
+    body:`Hi,
+
+I'd like to pitch a 1,200–1,500 word essay for ADDitude on what changes when an ADHD founder stops trying to medicate his way into other people's productivity systems and starts building infrastructure around the wiring he actually has.
+
+The frame: years of trying to make my brain work like a neurotypical operator's — calendars, blocks, accountability partners, GTD. None of it held. What held was the opposite move: accepting that recall is going to fail, focus is going to scatter, and the working-memory budget is small. Then building a stack of tools that absorb those failures before they compound.
+
+Path: bartending and hospitality management at Timothy O'Toole's → quality control work → self-taught engineering → running a B2B AI consultancy as a side build alongside an IT support day-job. No CS degree. Roughly 30 tools in the stack.
+
+Practical pieces I'd cover:
+
+— Why "just write it down" is wrong advice for ADHD founders. The issue isn't capture, it's retrieval.
+— What a tool actually has to do to function as prosthetic memory rather than another shiny thing.
+— The under-discussed downside: building this scaffolding means the ADHD never gets visibly fixed, which messes with how clinicians and family read your progress.
+— The honest part — these systems work, and they also keep the operator at arm's length from feeling. Both are true.
+
+Happy to send an outline.
+
+Kyle Rosebrook
+flashfusion.co`
+  },
+  {
+    id:'chongming', num:'03', pub:'Business Insider Singapore', brand:'FlashFusion', status:'draft', locked:true,
+    beat:'Vibe coding, non-traditional builders, AI adoption, security',
+    contact:'Lee Chong Ming (he/him)', email:'cmlee@insider.com',
+    practices:[
+      'OPEN DECISION — kyle_todo_v4.html flags this as "killed vs still drafting?" — resolve that before any action. Do not send without a deliberate yes.',
+      'GATED: do not send until flashfusion.co is live with a published playbook URL',
+      'Lee Chong Ming uses he/him — always, no exceptions',
+      'Reference a specific recent article of his — insert in [INSERT] slot before sending. Find it; do not guess.',
+      'Angle: Moltbook failure mode / competence story not productivity story — HumanX build is the specific proof',
+      'Moltbook stat is verified and citable: Jan 31 2026, Wiz Security, 1.5M API tokens + 35K emails, Supabase RLS disabled, founder said "I didn\'t write a single line of code"',
+      'Keep under 250 words'
+    ],
+    subject:'The Moltbook failure mode — IT support tech who saw it coming',
+    body:`Hi Lee,
+
+I read your [INSERT SPECIFIC ARTICLE TITLE AND DATE]. The part about [SPECIFIC DETAIL] mapped directly to what I've been watching from the inside.
+
+On January 31, 2026, Moltbook exposed 1.5 million API authentication tokens and 35,000 email addresses. Root cause: Supabase database with Row Level Security disabled. The founder's response: "I didn't write a single line of code." Wiz Security found it within minutes of examining the client-side bundle.
+
+I'm an L1 IT service desk tech who recognized that failure mode immediately — because I already built the safer version of that exact product category. At my IT firm, I shipped a conference tool using AWS S3, Supabase with RLS actually configured, and n8n orchestration. Internal stakeholder resistance killed it. The VP of Finance had exactly the reaction I'd predicted. I took that as market validation and built FlashFusion externally — a B2B AI consultancy. First client engagements underway. Roughly 30 hands-on tools.
+
+The story I think fits your beat: the operator-class version of vibe coding. Not the Stanford hacker or the Google hackathon team — the line worker in IT who went deep on AI without a mandate, built something competent enough to see the gap before it became a breach, and got shut down internally for being right too early.
+
+Full build playbook: flashfusion.co
+
+Kyle Rosebrook
+flashfusion.co`
+  },
+  {
+    id:'narratively', num:'04', pub:'Narratively', brand:'Personal', status:'draft', locked:false,
+    beat:'"The Personals" series — single surprising unforgettable moment, cinematic, first person',
+    contact:'Editorial', email:'narratively.submittable.com/submit',
+    practices:[
+      'DIRECT SUBMISSION — not a pitch. Submit full piece via narratively.submittable.com/submit',
+      'Format: "The Personals" — single surprising moment, first person, cinematic, 500–700 words',
+      'The real person in the scene: Ryan Anderskow, Iron Horse Seating (ironhorseseating.com) — PeeWee football QB from childhood, hadn\'t spoken in years before this. Already using Claude. In the piece: use first name or "a childhood friend" only — do NOT name the company without checking with Ryan first.',
+      'Start IN the scene. No setup, no preamble, no "and that\'s when I realized"',
+      'No performative vulnerability. Let the reader get there. Don\'t explain the word: vindication — answering Kyle\'s own doubt, not his company\'s or friends\'. That\'s the emotional load-bearing beat.',
+      'This is memoir-adjacent. Do NOT mention FlashFusion as a business pitch. The story is about being believed, not about the business.'
+    ],
+    subject:'Submission — "The Personals": The Nod',
+    body:`[WRITE BY HAND FIRST — then paste here for editing]
+
+The scene:
+- Location: a bar
+- Ryan Anderskow — PeeWee football quarterback from childhood, hadn't spoken in years
+- Ryan's company just started using AI
+- Kyle explained, without being asked and without a deck or title: Moltbook-style API key exposure risk, how a misconfigured Supabase database puts 1.5 million credentials in an unlocked drawer, how a company paired language models with robotics to spatially map a warehouse
+- Ryan nodded the whole way through
+- Kyle offered to audit Ryan's setup
+- The word Kyle felt: vindication — answering his own doubt, not his company's, not his friends'
+
+CRAFT RULES FOR THIS PIECE:
+- Start in the scene. No setup.
+- No "and that's when I realized"
+- No performative vulnerability
+- Don't explain what it means — let the reader get there
+- Kyle's voice: direct, engineering metaphors as natural thought, dry humor, no performance of grit
+- ~600 words. First draft is yours to write. Use ⚡ Rewrite after you have a rough draft.`
+  },
+  {
+    id:'lindzon', num:'05', pub:'Fast Company', brand:'FlashFusion', status:'draft', locked:false,
+    beat:'Future of work, AI\'s impact on jobs, trades-to-tech, bootstrapped/independent work',
+    contact:'Jared Lindzon (freelance)', email:'JaredLindzon@gmail.com',
+    practices:[
+      'Targeting report #1 overall fit — receptivity 9. Email is publicly posted on his LinkedIn (verified, not guessed).',
+      'He is a FREELANCER — the pitch must pass his editors. Sources independently; only ~1 of his recent stories came from a pitch. Lower base rate, high value.',
+      'Embargoes don\'t land well with him — never offer one.',
+      'Lead with the trades/service-work-to-AI underdog origin (#1) tied to the future-of-work frame he owns. He wrote "Why some white-collar workers are shifting to blue-collar work" — Kyle is the inverse vector.',
+      'Single brand: FlashFusion. He writes for Fast Company, Globe and Mail, and freelances for NYT/TIME/BBC/Guardian — a hit can syndicate.',
+      'Shadow AI = shadow IT is support, not the lead. The lead is the human career-path inversion.'
+    ],
+    subject:'Future-of-work story — the bartender-to-AI-consultant vector nobody covers',
+    body:`Hi Jared,
+
+I read "Why some white-collar workers are shifting to blue-collar work." I'm the inverse vector, and I think it's the more interesting one.
+
+I went service work → quality control → self-taught AI. Bartending and hospitality management at Timothy O'Toole's for years, then QC, then building production AI systems. No CS degree. The thread that survived every transition: diagnosing. Reading a room, reading a process, reading a system — same instinct, three industries.
+
+I now run FlashFusion, a B2B AI enablement consultancy, as a side build alongside a day-job in IT support. The mechanism: I don't install AI in a business — I install an AI expert inside the team, train one internal person to own it, then exit. The exit is the product. First client engagements underway. Roughly 30 hands-on tools.
+
+The future-of-work angle: the dominant narrative is white-collar workers fleeing toward trades because AI is coming for desk jobs. The undercovered countercurrent is service- and trades-class workers moving toward AI without a mandate, a degree, or permission — and being more credible to small-business owners than the credentialed consultants, precisely because they speak the operator's language.
+
+I built a production AI tool inside my IT firm and got it killed by internal resistance. The shutdown was the market signal. I took it external. That's the story.
+
+Happy to talk or send a one-pager. No embargo, no strings.
+
+Kyle Rosebrook
+flashfusion.co`
+  },
+  {
+    id:'fortune', num:'06', pub:'Fortune', brand:'FlashFusion', status:'draft', locked:false,
+    beat:'AI / worker adoption — white-collar AI rebellion beat',
+    contact:'AI/Worker desk', email:'',
+    practices:[
+      'Find the specific editor who wrote or edited the Apr 9 2026 AI rebellion piece before sending',
+      'Frame as a TIP/SOURCE pitch — Kyle as a voice for a follow-up, not a profile request',
+      'Reference the Apr 9 2026 piece by exact title: "White-collar workers are quietly rebelling against AI"',
+      'Single brand: FlashFusion. Under 200 words',
+      'Do NOT lead with personal story — lead with the complication to their narrative'
+    ],
+    subject:'Source tip — counter-narrative to your AI rebellion piece',
+    body:`Hi,
+
+Your April 9 piece — "White-collar workers are quietly rebelling against AI as 80% outright refuse adoption mandates" — is missing a data point I can provide: the worker who went the other direction without a mandate.
+
+I'm an L1 service desk tech in IT support. Not a developer, not an executive. My employer hasn't asked me to use AI. But I've been building with it seriously for years. I built a production AI tool internally at my firm — AWS S3, Supabase with RLS configured, n8n orchestration — and got it killed by internal stakeholder resistance. I took that as market validation and built FlashFusion externally. First client engagements underway (pre-revenue; gates clearing).
+
+Here's the shadow IT parallel your follow-up needs: employees are already using AI without governance, exactly as they used personal Dropbox and iMessage for work in 2012. The companies that treated shadow IT as a policy problem lost that fight. The rebellion your piece documented is one signal. The quiet adoption happening in parallel — without mandates, without training budgets, without anyone asking — is the other half of the story.
+
+I'm not the rebellion. I'm the worker who chose adoption before anyone asked, and built something competent enough to know the difference between vibe-coded risk and production-grade work.
+
+Happy to be a source for a follow-up piece or provide a first-person account.
+
+Kyle Rosebrook
+flashfusion.co`
+  },
+  {
+    id:'keating', num:'07', pub:'Inc Magazine', brand:'Memoir / Personal', status:'draft', locked:false,
+    beat:'ADHD founders, entrepreneurship, neurodivergence',
+    contact:'Peter Keating', email:'',
+    practices:[
+      'NOT in the deep targeting report — this is older triage. The researched current Inc. contacts are Ben Sherry (AI lead) and Jason Aten (Tech Inc columnist), pitch 15 + 17. Keating is a DIFFERENT angle (ADHD/memoir, not SMB-AI) — keep only if you want the personal-essay angle at Inc.',
+      'Verify Peter Keating still freelances for Inc — confirm current email. Do not guess.',
+      'Reference his actual 2023 Inc piece on ADHD founders — confirm URL is live',
+      'Single brand: personal/memoir-adjacent. Do NOT mention FlashFusion or Chaos Club',
+      'Pitch a reported essay, not a profile',
+      '1,500–2,000 words target'
+    ],
+    subject:'Follow-up to your ADHD founders piece — the constraint angle nobody pitched',
+    body:`Hi Peter,
+
+I read your 2023 Inc piece on whether ADHD founders are built for entrepreneurship. The Mark Suster thread about not being able to function in command-and-control environments is what stuck. There's a related angle I haven't seen written.
+
+Most ADHD-founder coverage frames the disorder as either an obstacle or a superpower. The missing angle: ADHD as a binding constraint — neither asset nor liability, just a hard limit on which strategies actually work for the operator carrying it. Some founder playbooks are flat-out unavailable to an ADHD brain. The job is figuring out which ones, fast, before you waste years pretending otherwise.
+
+I'd write it as a reported essay built around my own case. Path: bartending and hospitality management at Timothy O'Toole's → quality control → self-taught engineering → B2B AI consultancy as a side build alongside an IT support day-job. No CS degree. A documented run of failed attempts at neurotypical productivity systems before settling on a stack that actually holds.
+
+What I'd bring:
+— Which founder playbooks the ADHD brain can't run
+— What actually stuck (it isn't "discipline")
+— The honest trade-offs: systems that work also create distance from the people they're supposed to free up time for
+
+1,500–2,000 words. Outline on request.
+
+Kyle Rosebrook
+flashfusion.co`
+  },
+  {
+    id:'shaifali', num:'08', pub:'Arc Talent Blog', brand:'Memoir / Personal', status:'draft', locked:false,
+    beat:'Self-taught developers, non-traditional engineering paths',
+    contact:'Shaifali', email:'',
+    practices:[
+      'Verify Shaifali\'s correct surname and current role at Arc before sending',
+      'Reference her actual Arc piece on self-taught dev earnings — confirm URL',
+      'Single brand: personal path story. No employer name. No "Staff Engineer"',
+      'Position as a data point — lower friction than a profile request',
+      'Lead with the messy middle: the jobs that don\'t use the skill yet'
+    ],
+    subject:'Data point for your self-taught dev coverage — IT support to working AI builds',
+    body:`Hi Shaifali,
+
+I read your Arc piece on self-taught developers' earnings versus CS grads at the senior end of the curve. I'm a data point for the unconventional version of that story.
+
+Path: bartending and hospitality management at Timothy O'Toole's → quality control → roughly 10 community-college withdrawals and failures to complete → IT support (current day-job) → self-taught engineer building production AI systems on the Anthropic, n8n, and Cloudflare stacks. The work currently shipping is FlashFusion, a B2B AI consultancy. No CS degree. Roughly 30 tools in the stack.
+
+The angle for your audience: most "self-taught" coverage skips the messy middle. People are not bootcamp grads or Twitter polymaths — they're employed in jobs that don't yet use the skill, building in the margins, betting the build will outpace the day-job. That's a different pattern than the ones Arc usually profiles, and I think it's becoming the more common one.
+
+Happy to send a longer brief or talk through whether it fits the talent blog format.
+
+Kyle Rosebrook
+flashfusion.co`
+  },
+  {
+    id:'taylor', num:'09', pub:'Lexington Herald-Leader / JRN', brand:'Chaos Club Co.', status:'killed', locked:false,
+    beat:'Recovery community, peer support, journalist health',
+    contact:'Taylor Six', email:'',
+    practices:[
+      'Verify JRN founding article URL and Taylor\'s current email before sending',
+      'Single brand: Chaos Club Co. only. Do NOT mention FlashFusion',
+      'Frame as a beat angle, not a coverage ask for Chaos Club',
+      'Stay on the platform thesis — no clinical claims about Kyle',
+      'Chaos Club Co. is content/media + peer support. Not therapy-adjacent, not clinical'
+    ],
+    subject:'Peer-built support platform — angle for JRN coverage?',
+    body:`Hi Taylor,
+
+I read about the Journalists Recovery Network and the gap it's filling. I'm building something parallel in the consumer space — Chaos Club Co., a peer-support platform for people navigating mental health, recovery, and neurodivergence without the toxic-positivity tone most existing apps lean on.
+
+The premise: the people who actually understand what someone in chaos needs are other people in chaos. Not clinicians, not coaches, not curated influencer voices. Built around peer connection with low-friction entry points. No session matching, no intake forms, no clinical distance.
+
+I'm not pitching coverage of Chaos Club specifically. I'm pitching a beat angle: the JRN model and the peer-tech model are converging on the same core insight — community without performance. There's a story in why both are emerging now, and what's failing in the official-channel options that's pushing people to build their own.
+
+Based in Grayslake, Illinois. Happy to talk if the angle resonates.
+
+Kyle Rosebrook
+flashfusion.co`
+  },
+  {
+    id:'pearce', num:'10', pub:'DIY Genius', brand:'Memoir / Personal', status:'draft', locked:false,
+    beat:'ADHD, neurodiversity, entrepreneurship',
+    contact:'Kyle Pearce', email:'',
+    practices:[
+      'Smaller blog — useful low-stakes test of the constraint-not-superpower angle',
+      'Verify his actual 2024 piece on ADHD + neurodiversity facts — confirm URL',
+      'Single brand: personal/memoir-adjacent. Keep pitch short',
+      'Offer the specifics (the stack) — he wants concrete, not philosophical',
+      'Acknowledge both names being Kyle'
+    ],
+    subject:'Adding a constraint angle to your ADHD entrepreneurship coverage',
+    body:`Hi Kyle,
+
+(Confusingly, also a Kyle.) I read your piece on ADHD, neurodiversity, and entrepreneurship. The framing of ADHD as advantage is well-covered ground — I'd like to offer an angle that sits next to it: ADHD as a binding constraint that forces a specific kind of operator infrastructure.
+
+Path: bartending and hospitality management at Timothy O'Toole's → quality control → self-taught engineering. No CS degree. I run FlashFusion, a B2B AI consultancy, as a side build alongside an IT support day-job. ADHD throughout. I tried every neurotypical productivity system before settling on a stack of roughly 30 tools that absorb the failures my brain reliably produces.
+
+The piece I'd write: the specifics — what's in the stack, what each tool actually does, and what got abandoned and why. Practical, not aspirational. Roughly 1,200 words. Outline available.
+
+Kyle Rosebrook
+flashfusion.co`
+  },
+  {
+    id:'mit', num:'11', pub:'MIT Technology Review', brand:'FlashFusion', status:'draft', locked:true,
+    beat:'AI, technology and society, cognitive systems, future of work',
+    contact:'Rachel Courtland', email:'rachel.courtland@technologyreview.com',
+    practices:[
+      'GATED: send only after (1) published clip from Sifted or ADDitude, (2) flashfusion.co live, (3) Chaos Club Co. launched with real traction',
+      'Jun 1 was the original target — it has passed. Reassess gate conditions before sending.',
+      'MIT gets 100+ pitches/week. The published clip is the differentiator — lead with it',
+      'Lead with the systemic argument, not the personal story. Editors want "this matters because..." not "this happened to me"',
+      'Angle: what happens to cognition when the scaffolding IS the system — AI tools as infrastructure, not productivity',
+      'Expected length for eventual piece: 4,000–5,500 words (feature format)',
+      'Subject must include "PITCH" by their convention',
+      'Single brand: FlashFusion / personal. Memoir frame is the through-line but FlashFusion is the proof'
+    ],
+    subject:'PITCH — The operator who built AI as cognitive infrastructure, not a productivity hack',
+    body:`Hi Rachel,
+
+[SEND ONLY AFTER: published clip from Sifted or ADDitude is live. Open with: "Following my piece in [publication], I'd like to pitch a longer feature for MIT Technology Review."]
+
+The angle I'm pitching: most AI coverage frames tools as productivity multipliers. I want to write about what happens when the tools are the architecture — when someone rebuilds cognition around AI not to work faster, but because organic memory and executive function aren't reliable enough to run a business without them.
+
+I'm a self-taught builder, L1 IT support tech by day, running FlashFusion as a B2B AI consultancy on the side. ADHD. Roughly 30 tools in the stack — not catalogued, actually used. The stack isn't a productivity system. It's the operating layer that makes the work possible at all.
+
+The systemic argument I'd make: the "AI as tool" framing misses the more interesting phenomenon — people who are building AI as infrastructure for cognition itself. Not enhancement. Replacement of what was unreliable. This is a different human-AI relationship than the productivity narrative describes, and it has different implications for how we think about AI dependency, cognitive augmentation, and what it means to "use" a tool.
+
+I have the operational case (live consultancy, documented build playbook), the personal case (ADHD, self-taught, non-credentialed), and the systemic framing to support a 4,000–5,000 word feature.
+
+Kyle Rosebrook
+flashfusion.co`
+  },
+  {
+    id:'conduit', num:'12', pub:'Conduit Books', brand:'Memoir / Personal', status:'draft', locked:false,
+    beat:'Literary memoir — male voices, UK indie press, direct submissions open 2026',
+    contact:'Editorial', email:'',
+    practices:[
+      'DIRECT SUBMISSION — no agent required. Verify current submission portal on conduit-books.co.uk before sending',
+      'A press clip from Sifted or ADDitude would strengthen this submission if it lands first — sequence accordingly',
+      'Standard query format: hook paragraph, synopsis (2-3 paragraphs), bio, comps (2-3 comparable titles)',
+      'Under 400 words total',
+      'Comp titles to research: Brain on Fire (Cahalan), The Noonday Demon (Solomon), What My Mother and I Don\'t Talk About (essays)',
+      'Frame as literary nonfiction, NOT self-help or memoir-with-lessons',
+      'The fresh contribution is the systems angle — construction of what never existed, not recovery of what was lost',
+      'Do NOT mention FlashFusion pricing or business mechanics — this is the memoir lane'
+    ],
+    subject:'Query — Construction, Not Recovery (literary memoir)',
+    body:`[QUERY LETTER — follow standard format: hook + synopsis + bio + comps. Under 400 words.]
+
+Dear Conduit Books,
+
+[HOOK — one paragraph, the argument of the book:]
+Construction, Not Recovery is a literary memoir about rebuilding cognitive function after a traumatic brain injury — not by recovering what was lost, but by constructing something that never existed. The spine is a letter to my daughter Kinsley, written from the other side of a collapse I wasn't supposed to survive with any useful function intact.
+
+[SYNOPSIS — 2-3 paragraphs:]
+The book opens after the injury, not before. I am not writing a before-and-after story. I am writing about the years inside the gap — when organic memory wasn't reliable, when executive function had to be externalized, when the choice was between pretending to recover and actually building. I built. The building is the story.
+
+The through-line is the diagnostic instinct: the same ability to read a room that made me useful as a bartender at Timothy O'Toole's, the same pattern recognition that made me useful in quality control, applied to the problem of my own cognition. I am not a sympathetic patient. I am an engineer diagnosing a broken system and replacing what can't be repaired.
+
+The book ends not at recovery but at competence — a more honest destination. It ends with Kinsley. Not with what I wanted to say to her, but with what I can now.
+
+[BIO:]
+I am a self-taught builder, L1 IT service desk tech, and founder of FlashFusion, a B2B AI consultancy. I live in Grayslake, Illinois. No previous publications. No credentials except the work.
+
+[COMPS:]
+[INSERT 2-3 comparable titles with one sentence each on why]
+
+Kyle Rosebrook
+flashfusion.co`
+  },
+  {
+    id:'paradis', num:'13', pub:'Business Insider', brand:'FlashFusion', status:'draft', locked:false,
+    beat:'Future-of-work correspondent — AI in the workplace, AI anxiety, AI-first consulting upstarts',
+    contact:'Tim Paradis', email:'tparadis@businessinsider.com', verifyNote:'VERIFY OUTLET before send — Apr-2026 bylines + self-listed Muck Rack show BI, but his LinkedIn carries a "joined Bloomberg" post (undated). If at Bloomberg, BI address may bounce.',
+    practices:[
+      'Targeting report Tier 1 — receptivity 8. Email self-listed on Muck Rack (verified). Signal: tparadis.70.',
+      'Lead with the champion model (#3) as the fix for the "training your replacement" AI-anxiety tension he is actively writing about — he wrote "Workers are feeling AI anxiety and that they might be training their replacements" (Apr 2026).',
+      'He has covered enterprise rollouts (KPMG vibe-coding feature). Frame explicitly around the overlooked SMB middle to differentiate.',
+      'Bring a concrete client example — real estate agent or furniture maker — to anchor the SMB angle.',
+      'Single brand: FlashFusion. Shadow AI (#4) is support.'
+    ],
+    subject:'The AI-anxiety fix you haven\'t covered — train the human to own the agent',
+    body:`Hi Tim,
+
+Your piece on workers feeling like they're training their replacements named the tension exactly. I run a consultancy built on the opposite premise, and it works specifically because it resolves that fear.
+
+FlashFusion is a B2B AI enablement consultancy I run as a side build alongside a day-job in IT support. The mechanism: I don't install AI in a business — I install an AI expert inside the team. I find one domain person, train them to own the AI workflows, and exit. The employee doesn't train their replacement. The employee becomes the person who can't be replaced because they're now the one directing the agents.
+
+That reframe lands with the SMB middle your beat tends to skip — the real estate agent, the furniture maker, the owner-operator with no AI budget and no mandate. One of my active clients is a custom furniture maker already using Claude; my job was turning casual use into owned workflow.
+
+I came to this without credentials — service work, then quality control, then self-taught AI. I built a production tool inside my IT firm, got it killed by internal resistance, and took it external. First client engagements underway. Roughly 30 hands-on tools.
+
+The story: the champion model as the structural answer to replacement anxiety, reported through SMB operators rather than KPMG.
+
+Happy to connect you with a client or send specifics.
+
+Kyle Rosebrook
+flashfusion.co`
+  },
+  {
+    id:'breen', num:'14', pub:'Entrepreneur', brand:'FlashFusion', status:'draft', locked:false,
+    beat:'Side hustles, bootstrapped/self-funded founders, "Side Hustle Spotlight," building-a-business profiles',
+    contact:'Amanda Breen', email:'', channel:'LinkedIn /in/breen-amanda (active at Entrepreneur, confirmed) — no public email; do not guess an @entrepreneur.com address',
+    practices:[
+      'Targeting report Tier 1 — receptivity 8. NO public email. Pitch via LinkedIn /in/breen-amanda or Entrepreneur editorial channels. Do NOT guess an address.',
+      'Lead with the nights-and-weekends, self-funded, no-VC build (#6) plus the trades/service-work origin (#1) — this is exactly her franchise.',
+      'She is format-driven: first-person "as told to" success stories with concrete revenue and time figures. Come with real numbers — ~15–20 hrs/week, pricing ladder, client count.',
+      'Not a hard-news AI reporter — the tech angle must serve a personal founder narrative, not lead it.',
+      'Single brand: FlashFusion.'
+    ],
+    subject:'Side-hustle profile — bootstrapped AI consultancy built nights-and-weekends on an IT salary',
+    body:`Hi Amanda,
+
+A side-hustle story that fits Building a Business: a B2B AI consultancy built entirely on nights and weekends, no outside money, while keeping a full-time IT support job.
+
+The numbers: roughly 15–20 hours a week outside the day-job. No VC, no loan, no co-founder. Revenue ladder live — free audit → paid Audit ($4,500) → Enablement Sprint ($5,000 fixed) → Managed Retainer ($2,000/mo). IC model: I sell and deliver, no bench. First client engagements underway — a real-estate brokerage and a custom furniture maker.
+
+The origin is the hook: I didn't come from tech. Bartending and hospitality management at Timothy O'Toole's for years, then quality control, then self-taught AI. No CS degree, no bootcamp. The constraint — building in the margins around a day-job — is the whole story, not an apology for it.
+
+The mechanism that makes it sellable: I don't install AI and leave a dependency. I train one person inside the business to own it, then exit. Clients get an internal expert, not a permanent consultant bill.
+
+I can do this as a first-person "as told to" with real revenue and time figures, or give you what you need to report it.
+
+Kyle Rosebrook
+flashfusion.co`
+  },
+  {
+    id:'sherry', num:'15', pub:'Inc.', brand:'FlashFusion', status:'draft', locked:false,
+    beat:'Inc.\'s AI lead — AI for entrepreneurs and small business, founder tools, the shadow-AI economy',
+    contact:'Ben Sherry', email:'', channel:'LinkedIn /in/ben-sherry or BlueSky @bensherry.bsky.social (leads Inc AI coverage, pro-Claude, confirmed active) — no public email',
+    practices:[
+      'Targeting report Tier 1 — receptivity 7. NO public email found. Reach via BlueSky @bensherry.bsky.social or site bensherry.org. Muck Rack: muckrack.com/spidermenz. Do NOT guess.',
+      'Lead with the champion model (#3) as the practical fix for SMBs that "fell behind" — he wrote "Fallen Behind on AI? These Companies Will Help You Catch Up" (Nov 2025).',
+      'Anchor in the MIT Project NANDA "GenAI Divide" data — the 40%-bought-vs-90%-use gap. He responds to that dataset specifically.',
+      'He covers funded/name-brand AI companies (Anthropic, OpenAI, Replit). Frame the bootstrapped-solo angle as a fresh contrast to the funded-startup coverage he usually does.',
+      'Single brand: FlashFusion.'
+    ],
+    subject:'The bootstrapped version of "help SMBs catch up on AI" — champion model, no funding',
+    body:`Hi Ben,
+
+Your "Fallen Behind on AI? These Companies Will Help You Catch Up" covered the funded players solving this. Here's the bootstrapped contrast.
+
+The data you've worked near — MIT Project NANDA's GenAI Divide — found roughly 40% of companies bought an official LLM subscription while workers at 90%+ already use personal AI tools for work, and 95% of organizations saw zero P&L impact despite $30–40B in spend. The gap isn't access. It's that nobody inside the business owns the workflow.
+
+FlashFusion is my fix for that, run solo as a side build on an IT-support salary. I don't install AI and bill forever. I find one domain expert inside the company, train them to own the AI workflows, and exit. The internal champion is what closes the NANDA gap — adoption that survives because someone in the building owns it, not a vendor.
+
+First engagements underway — a real-estate brokerage, a custom furniture maker. No funding, no bench. Roughly 30 hands-on tools. I came to this from service work and quality control, not a CS program.
+
+The angle: the GenAI Divide gets closed by internal ownership, not more tools — reported through a bootstrapped operator instead of a funded startup.
+
+Happy to send specifics or walk you through a live engagement.
+
+Kyle Rosebrook
+flashfusion.co`
+  },
+  {
+    id:'akiito', num:'16', pub:'Business Insider', brand:'FlashFusion', status:'draft', locked:false,
+    beat:'Chief correspondent — narrative features on work, the labor market, AI and jobs, career reinvention',
+    contact:'Aki Ito', email:'aito@businessinsider.com',
+    practices:[
+      'Targeting report Tier 2 — receptivity 6. Email self-listed on Muck Rack/Twitter (verified). X @itoaki.',
+      'Lead with the human, non-linear founder journey (#1/#7) set against the white-collar/AI-disruption narrative she owns.',
+      'She writes BIG narrative features, not quick founder profiles. High bar for access and reporting depth. This is a long-form relationship pitch, not a quick hit.',
+      'Not an SMB-tools writer — the small-business angle alone will NOT hook her. The hook is the person and the labor-market arc.',
+      'Single brand: FlashFusion as the proof, but the story is the career inversion.'
+    ],
+    subject:'A non-linear AI career — service work to consultancy without the credential ladder',
+    body:`Hi Aki,
+
+Your features on people confronting AI's effect on their own work read like the real labor-market story underneath the hype. I have a version that runs the other direction.
+
+I didn't lose a job to AI. I built a career out of it from a starting point nobody profiles: bartending and hospitality management for years, then quality control, then self-taught AI — no CS degree, no bootcamp, a stack of community-college courses I never finished. I now run a B2B AI consultancy as a side build alongside a day-job in IT support.
+
+The arc I think is worth reporting: the labor-market conversation assumes AI flows downhill from credentialed engineers to everyone else. My path is the inversion — service-class worker goes deep on AI without permission, and ends up more useful to small-business owners than the people with the degrees, because he speaks the operator's language first and the technical one second.
+
+I built a production AI tool inside my firm, got it shut down by internal resistance, and took it external. That shutdown is the turning point of the story, not a footnote.
+
+This is a longer-form, reported piece — I can give you the access and the timeline to do it properly.
+
+Kyle Rosebrook
+flashfusion.co`
+  },
+  {
+    id:'aten', num:'17', pub:'Inc.', brand:'FlashFusion', status:'draft', locked:false,
+    beat:'"Tech Inc." columnist — technology and business framed for SMB/entrepreneur readers',
+    contact:'Jason Aten', email:'me@jasonaten.net',
+    practices:[
+      'Targeting report Tier 2 — receptivity 6. Email self-published (verified). Newsletter creativeeffort.substack.com; co-hosts primarytech.fm.',
+      'Lead with shadow AI / "the right way to use AI at work" (#4) translated for owner-operators (#5). He wrote a "right way to use AI at work" Stanford-study column.',
+      'His column favors Apple/big-tech consumer angles — the founder story MUST connect to a concrete tech-and-business takeaway, not a personal profile.',
+      'Bring the shadow-AI hard data (NANDA 40-vs-90, Cyberhaven 73.8% unauthorized ChatGPT accounts) as the column\'s spine.',
+      'Single brand: FlashFusion.'
+    ],
+    subject:'Column angle — the right way to use AI at work, for owner-operators',
+    body:`Hi Jason,
+
+Your "right way to use AI at work" column took the question seriously for individuals. The owner-operator version of that question has a cleaner answer and almost no coverage.
+
+The data: MIT Project NANDA's GenAI Divide found ~40% of companies bought an official LLM subscription while workers at 90%+ already use personal AI tools for work. Cyberhaven puts 73.8% of workplace ChatGPT accounts as unauthorized personal accounts. For a small business, that's not a productivity story — it's a governance gap with real exposure.
+
+The "right way" for an owner-operator isn't a tool purchase. It's designating one person inside the business to own AI workflows under actual guardrails. That's the consultancy I run as a side build on an IT salary — I train an internal champion and exit, instead of selling a dependency.
+
+The concrete takeaway for your SMB readers: the move that closes the gap is organizational, not technical — one owned workflow beats ten unmanaged tools. I can give you a real example (a furniture maker, a real estate agent) and the data to anchor it.
+
+I came to this from service work and QC, not a CS track — so I write and talk about it for non-technical owners by default.
+
+Kyle Rosebrook
+flashfusion.co`
+  },
+  {
+    id:'pletz', num:'18', pub:'Crain\'s Chicago Business', brand:'FlashFusion', status:'draft', locked:false,
+    beat:'Senior reporter — Chicago tech ecosystem, AI adoption, local economy',
+    contact:'John Pletz', email:'jpletz@crain.com',
+    practices:[
+      'Targeting report Tier 2 — receptivity 5. NO public direct email. LinkedIn /in/john-pletz-42358; Crain\'s tips via chicagobusiness.com. Do NOT guess.',
+      'VIABLE because Kyle is Grayslake, IL (Chicago metro) and his clients are local — the Chicago hook is real, not forced.',
+      'Lead with the local small-business AI-adoption angle (#5). He wrote "Chicago ranked among top U.S. cities for AI" (Brookings "second engine" framing).',
+      'He tends toward established/funded companies and ecosystem stories, not solo bootstrappers — frame as a local-economy/SMB-adoption data point, not a personal profile.',
+      'Single brand: FlashFusion.'
+    ],
+    subject:'Local angle — Chicago\'s AI "second engine" reaches Lake County small businesses',
+    body:`Hi John,
+
+You reported Chicago as one of Brookings' "second engine" AI metros. The story under that ranking is whether AI adoption reaches the small businesses outside the Loop — and from the ground in Lake County, it's starting to.
+
+I'm a Grayslake-based AI consultant running FlashFusion as a side build alongside a day-job in IT support. My clients are local small operators — a real estate agent, a custom furniture maker in the region — already experimenting with AI but with nobody inside the business owning it. My model is to train one internal person to own the workflows and then exit, so the capability stays in the company.
+
+The local-economy angle for Crain's: the metro's AI strength is measured in talent pools and enterprise adoption, but the adoption gap is widest among the owner-operators who make up most of the regional economy. There's a reportable question in whether the "second engine" reaches them — and what it looks like when it does.
+
+I can connect you with local clients and give you concrete adoption specifics. No funding announcement here — just on-the-ground SMB adoption in the metro you cover.
+
+Kyle Rosebrook
+flashfusion.co`
+  },
+  {
+    id:'columbus', num:'19', pub:'VentureBeat', brand:'FlashFusion', status:'draft', locked:true,
+    beat:'Enterprise AI, ML, cybersecurity, shadow-AI governance, zero trust',
+    contact:'Louis Columbus', email:'',
+    practices:[
+      'Targeting report Tier 3 LONG SHOT — receptivity 4. TOPIC OVERLAP ONLY. Gated/parked, not a near-term send.',
+      'MAJOR red flag: writes almost exclusively enterprise/Fortune 500 + cybersecurity-vendor coverage. No demonstrated interest in bootstrapped solo founders or SMB owner-operators.',
+      'ONLY viable if reframed as enterprise shadow-AI governance with a hard-data spine — which contradicts the bootstrapped-SMB narrative. Per the report: do not pursue unless Kyle lands a notable enterprise client or publishes original shadow-AI data.',
+      'NO public email. LinkedIn /in/louiscolumbus; X @LouisColumbus; BlueSky @louiscolumbus.bsky.social. Do NOT guess.',
+      'If ever sent: lead with hard data only — Cyberhaven 73.8% unauthorized ChatGPT accounts; IBM 2025 shadow-AI breaches avg $4.63M (~$670K above norm); 97% of breached orgs lacked basic AI access controls.',
+      'Kept here so the research isn\'t lost — not because it should be sent now.'
+    ],
+    subject:'[PARKED] Shadow-AI governance data — only if reframed for enterprise',
+    body:`[DO NOT SEND in current form. This target is parked.
+
+Louis Columbus covers enterprise shadow-AI governance for security buyers, not bootstrapped founders. The targeting report scores him receptivity 4 — topic overlap only — and flags a MAJOR mismatch with Kyle's SMB/solo narrative.
+
+Revive only if: Kyle lands a notable enterprise client, OR publishes original shadow-AI data of his own.
+
+If revived, the ONLY viable frame is hard-data enterprise governance:
+- MIT NANDA GenAI Divide: ~40% bought official LLM access, 90%+ of workers use personal AI tools for work, 95% zero P&L impact on $30–40B spend
+- Cyberhaven: 73.8% of workplace ChatGPT accounts unauthorized
+- IBM 2025: shadow-AI breaches avg $4.63M per incident, ~$670K above norm; 97% of breached orgs lacked basic AI access controls
+
+The pitch would have to be a data/analysis contribution, not a founder story. That is a different document than everything else in this console.]
+
+Kyle Rosebrook
+flashfusion.co`
+  }
+];
+
+const TEMPLATES = [{"id": "t_audit_recap", "lane": "FlashFusion", "label": "Audit recap to client", "sub": "Post-delivery summary · case-study consent ask", "subject": "Your AI audit — three findings and what comes next", "body": "Hi [name],\n\nQuick recap of the audit we wrapped last [day/week]. Three findings worth your direct attention:\n\n1. [Highest-leverage finding — specific, measurable, recommendation in one sentence]\n2. [Second finding]\n3. [Third finding]\n\nSequencing recommendation: address #1 in the next two weeks; #2 and #3 can wait for the sprint engagement if you decide to go that direction.\n\nOne ask: would you be open to letting me use this engagement as a case study (anonymized to whatever extent you prefer)? It helps future clients see the shape of what we do; it does not have to surface your company name.\n\nHappy to talk through any of it on a follow-up call.\n\nBest,\nKyle", "asks": "Case study consent. Decision on sprint engagement timing."}, {"id": "t_prospect", "lane": "FlashFusion", "label": "Outreach to warm prospect", "sub": "Floor pricing held · case study attached", "subject": "AI audit — sequenced roadmap scoped to your stack", "body": "Hi [name],\n\n[One-sentence personal opener that proves this isn't cold — referenced person, prior conversation, specific work they did].\n\nI run an AI enablement practice that does one specific thing well: 30-day audits that produce a sequenced roadmap of where AI fits and where it doesn't, scoped to your actual stack and team.\n\nAttached case study from a recent engagement gives you the shape of what gets delivered. The audit is $4,500 fixed. Three to four weeks. Outcome is a roadmap document and a working session walking your team through it.\n\nIf the timing or fit isn't right, no worries — but if it is, happy to set up a 30-min discovery call to scope properly before either of us commits.\n\nBest,\nKyle", "asks": "Discovery call scheduled. Decision-maker confirmed."}, {"id": "t_sprint", "lane": "FlashFusion", "label": "Sprint kickoff to client", "sub": "Scope locked in writing · cadence set", "subject": "Enablement Sprint — kickoff, scope, and cadence", "body": "Hi [name],\n\nLooking forward to the sprint kickoff [day/date]. To get everyone aligned before we start:\n\n**Scope (in writing, locked)**\n[Bullet list of in-scope deliverables — be specific]\n\n**Out of scope (also in writing)**\n[Bullet list of what we are NOT doing — prevents scope creep mid-sprint]\n\n**Cadence**\n- Daily Slack/email check-in (async, 5 min)\n- Weekly 45-min sync, [day] at [time]\n- Sprint review + handoff on [end date]\n\n**Success criteria**\n[1-2 specific outcomes that will tell us the sprint worked]\n\n**Escalation path**\nIf anything is unclear or going sideways, you can text me directly. Better to surface early than at the end.\n\nLooking forward to it.\n\nBest,\nKyle", "asks": "Kickoff call attendance confirmed. Scope sign-off via email."}, {"id": "t_newsletter", "lane": "Abstrekkt Products", "label": "Load-Bearing newsletter essay", "sub": "No hype · what holds under load", "subject": "[This week's tool/pattern] — tested under load", "body": "Last [day/week] I [specific situation that put a tool/pattern under load].\n\nHere's what I tried, what held, what didn't.\n\n## The setup\n\n[Specific context, no abstraction — readers should be able to picture the workflow]\n\n## What held under load\n\n[The tool/technique that surprised you positively. Specifics — exactly what worked and why]\n\n## What didn't\n\n[Honest about the failure mode. The thing the tool claimed to do that it didn't. This is what distinguishes Load-Bearing from every other AI newsletter]\n\n## What I'd do differently\n\n[One concrete adjustment for next time. Specific enough that a reader could apply it]\n\n— Kyle", "asks": "No ask. Newsletter is value-given, not value-extracted. The ask happens in adjacent surfaces."}, {"id": "t_marketplace", "lane": "Abstrekkt Products", "label": "Marketplace announcement", "sub": "claude-code-plugins-plus · 244 plugins · install path", "subject": "claude-code-plugins-plus — 244 plugins, install path", "body": "[Hook — specific problem the marketplace solves, one sentence, no marketing copy]\n\nclaude-code-plugins-plus is a Claude Code marketplace catalog of 244 plugins, browseable, installable via /plugin install.\n\n**What's in it**\n[3-5 specific use cases the plugins cover. Pick the most concrete examples.]\n\n**What it doesn't do**\nIt's not a replacement for Anthropic's official tooling. It's a curated index of community plugins. Some are mine, most are not.\n\n**Install**\n[Specific install command — must be tested, must work]\n\nLink: [github URL]\n\nIf you build something with it that I should add to the catalog, the contribution guide is in the README.\n\n— Kyle", "asks": "Plugin contributions via PR. Issue reports for broken installs."}, {"id": "t_product_update", "lane": "Abstrekkt Products", "label": "Product update (Ample / FissionPrompt)", "sub": "Beta user-facing · honest about state", "subject": "[Product] beta — what shipped, what broke, what's next", "body": "Quick update for [product] beta users.\n\n**What shipped this [period]**\n[Specific features / fixes — be honest about size of changes]\n\n**What broke / I caught**\n[Bugs found, fixes shipped or in progress. This section builds trust; do not skip it]\n\n**What's next**\n[Next 2-3 items in the queue. Estimated timing, hedged honestly]\n\n**What I need from you**\n[Specific feedback ask — not \"any thoughts?\" — something concrete]\n\nThanks for testing this. The beta phase is what makes the production version not break.\n\n— Kyle", "asks": "Specific feedback on named issue. Continued testing."}, {"id": "t_agent_query", "lane": "Memoir", "label": "Agent query letter", "sub": "Comp titles · pitch paragraph · first 50 ready", "subject": "Query — Construction, Not Recovery (literary memoir)", "body": "Dear [Agent name],\n\n[Personalized opening — why this agent specifically. Reference a recent sale or interview, NOT generic flattery]\n\n*Construction, Not Recovery* is a literary nonfiction memoir of [word count] words about [one-sentence pitch — the structural premise, not the back cover]. It will resonate with readers of *[Comp 1]* by [Author 1] and *[Comp 2]* by [Author 2].\n\n[Two-paragraph pitch — what happens, who it's for, why now. The frame as letter to Kinsley should be visible. The thesis (construction, not recovery) should be visible without being announced.]\n\nI live in Grayslake, Illinois. [One sentence of non-memoir credentials only if directly relevant.]\n\nFirst 50 pages and a synopsis are attached per your submission guidelines.\n\nThank you for your time.\n\nBest,\nKyle Rosebrook", "asks": "Partial manuscript request. Decision on representation."}, {"id": "t_test_reader", "lane": "Memoir", "label": "Test reader request", "sub": "Specific lens · honest signal · 2-week turn", "subject": "Would you read a section with one specific lens?", "body": "Hi [name],\n\nI'm at a point in the memoir where I need one trusted reader on [specific section / full draft / specific question].\n\n**What you'd be reading**\n[Specific scope — chapters, pages, or full draft. Word count. Estimated reading time]\n\n**The lens I need**\n[Specific question. e.g., \"Does the recursive frame land?\" \"Does this read as recovery memoir despite my intention?\"]\n\n**What I don't need**\nLine edits, copy editing, or \"I would have written this differently.\" Those are useful at a later stage, not this one.\n\n**Timing**\n2-week turnaround would be great. If that's not workable, I'd rather know now than have it slip silently.\n\nI know reading a draft is real time. Owe you one if you take this on.\n\nBest,\nKyle", "asks": "Yes/no on reading. Date locked. Specific feedback lens confirmed."}, {"id": "t_kinsley", "lane": "Memoir", "label": "Letter to Kinsley (structural)", "sub": "Inside the frame · private · not for a recipient", "subject": "— (inside the frame, not sent)", "body": "[This is the only template that doesn't pre-populate. The frame as letter to Kinsley is structural — it has to be written, not assembled from a starter.]\n\n[Write what you'd say if she were sitting across from you and the whole book had to fit into one sitting. Then cut everything that is performance, that's a reach for a wider reader, that's explanation she doesn't need.]\n\n[What remains is what belongs in the memoir.]", "asks": "No ask. Structural rehearsal, not communication. It exists because the frame is the load-bearing element of the book."}];
+
+// ============ STATE ============
+let state = {};
+let currentId = null;
+const pending = {};
+let pendingSeq = 0;
+function stash(val){const k='p'+(pendingSeq++);pending[k]=val;return k;}
+function pop(k){const v=pending[k];delete pending[k];return v;}
+
+function blankEntry(p){return{subject:p.subject,body:p.body,status:p.status,notes:'',sentAt:'',followUpAt:'',replyAt:''};}
+function initState(){const s={};PITCHES.forEach(p=>{s[p.id]=blankEntry(p);});return s;}
+
+function loadState(){state=initState();render();}
+
+// ============ RENDER ============
+function render(){renderStats();renderCards();renderTemplates();}
+
+function renderStats(){
+  const counts={draft:0,ready:0,sent:0,replied:0,killed:0,gated:0};
+  PITCHES.forEach(p=>{
+    if(p.locked){counts.gated++;}
+    else{const s=state[p.id]?.status||p.status;counts[s]=(counts[s]||0)+1;}
+  });
+  const html=Object.entries(counts).filter(([k,v])=>v>0)
+    .map(([k,v])=>`<div class="stat"><strong>${v}</strong>${k}</div>`).join('');
+  document.getElementById('stats').innerHTML=html;
+}
+
+const BRANDS=['All','FlashFusion','Memoir / Personal','Chaos Club Co.','Personal'];
+let activeFilter='All';
+
+function renderFilters(){
+  const uniqueBrands=[...new Set(PITCHES.map(p=>p.brand))];
+  const allFilters=['All',...uniqueBrands];
+  document.getElementById('filters').innerHTML=allFilters.map(b=>
+    `<button class="filter-btn${b===activeFilter?' active':''}" onclick="filterBy('${b}')">${b}</button>`
+  ).join('');
+}
+
+function filterBy(brand){
+  activeFilter=brand;
+  renderFilters();
+  document.querySelectorAll('.card').forEach(c=>{
+    const b=c.dataset.brand;
+    c.classList.toggle('hidden',brand!=='All'&&b!==brand);
+  });
+}
+function filterAll(){filterBy('All');}
+
+function renderCards(){
+  renderFilters();
+  const html=PITCHES.map(p=>{
+    const s=state[p.id]||blankEntry(p);
+    const status=p.locked?'locked':(s.status||p.status);
+    const followUp=s.followUpAt&&status==='sent'?`<div class="followup">F/U · ${s.followUpAt}</div>`:'';
+    const lockBanner=p.locked?'<div class="lock-banner">Gated</div>':'';
+    const subTag=p.id==='narratively'?'<div class="sub-tag">Submission</div>':'';
+    const emailLine=p.email&&!p.email.includes('submit')?p.email:'<span style="color:#5a5040">verify/submit</span>';
+    return`<div class="card" data-brand="${escapeAttr(p.brand)}" onclick="openModal('${p.id}')">
+      ${lockBanner}${subTag}
+      <div class="card-num">${p.num} · ${escapeHtml(p.brand)}</div>
+      <div class="card-pub">${escapeHtml(p.pub)}</div>
+      <div class="card-beat">${escapeHtml(p.beat)}</div>
+      <div class="card-contact">${escapeHtml(p.contact)} · ${emailLine}</div>
+      <div class="card-meta">
+        <span class="badge badge-${status}">${status}</span>
+        ${followUp}
+      </div>
+    </div>`;
+  }).join('');
+  document.getElementById('cards').innerHTML=html;
+  if(activeFilter!=='All'){filterBy(activeFilter);}
+}
+
+// ============ MODAL ============
+function openModal(id){
+  currentId=id;
+  const p=PITCHES.find(x=>x.id===id);
+  const s=state[id];
+  const lockWarning=p.locked?`<div class="lock-warning"><strong>GATED · do not send.</strong> Pitch requires flashfusion.co live with a published playbook URL. Verify both exist, then flip status to Ready.</div>`:'';
+  const submitNote=p.id==='narratively'?`<div class="lock-warning" style="border-color:var(--brass-3);background:rgba(184,137,61,.08)"><strong>SUBMISSION — not a pitch.</strong> Submit full piece via narratively.submittable.com/submit. Write the piece by hand first, paste here to edit, then use ⚡ Rewrite to refine.</div>`:'';
+  const emailDisplay=p.email&&!p.email.includes('submit')?p.email:'<span style="color:var(--rust)">VERIFY / SUBMIT URL — see practices</span>';
+  const html=`
+    <button class="modal-close" onclick="closeModal()" aria-label="Close">×</button>
+    <div class="modal-kicker">${p.num} · ${escapeHtml(p.brand)}</div>
+    <h2 class="modal-title">${escapeHtml(p.pub)}</h2>
+    <div class="modal-meta">${escapeHtml(p.contact)} · ${emailDisplay}<br>${escapeHtml(p.beat)}</div>
+    ${lockWarning}${submitNote}
+    <div class="modal-section">
+      <span class="label">Best practices for this target</span>
+      <div class="practices"><ul>${p.practices.map(x=>`<li>${escapeHtml(x)}</li>`).join('')}</ul></div>
+    </div>
+    <div class="modal-section">
+      <span class="label">Subject line</span>
+      <input type="text" id="f-subject" value="${escapeAttr(s.subject)}" oninput="updateField('subject',this.value)">
+      <div class="ai-row">
+        <button class="btn-ai" id="btn-subj" onclick="aiSubjects()">⚡ Generate 3 subjects</button>
+      </div>
+      <div class="ai-panel" id="panel-subj">
+        <div class="ai-panel-header">AI Suggestions <button class="ai-panel-close" onclick="closePanel('panel-subj')">×</button></div>
+        <div class="ai-suggestions" id="suggestions-subj"></div>
+      </div>
+    </div>
+    <div class="modal-section">
+      <span class="label">Body</span>
+      <textarea id="f-body" oninput="updateField('body',this.value)">${escapeHtml(s.body)}</textarea>
+      <div class="ai-row">
+        <button class="btn-ai" id="btn-rewrite" onclick="aiRewrite()">⚡ Rewrite</button>
+        <button class="btn-ai" id="btn-critique" onclick="aiCritique()">⚡ Critique</button>
+        <button class="btn-ai" id="btn-hook" onclick="aiHook()">⚡ Sharpen hook</button>
+      </div>
+      <div class="ai-panel" id="panel-body">
+        <div class="ai-panel-header"><span id="panel-body-label">AI Output</span><button class="ai-panel-close" onclick="closePanel('panel-body')">×</button></div>
+        <div id="panel-body-content"></div>
+      </div>
+    </div>
+    <div class="modal-section">
+      <span class="label">Notes (private — not sent)</span>
+      <textarea id="f-notes" style="min-height:80px" oninput="updateField('notes',this.value)" placeholder="Strategy, contacts, timing, follow-up reminders...">${escapeHtml(s.notes||'')}</textarea>
+      <div class="ai-row">
+        <button class="btn-ai" id="btn-notes" onclick="aiNotes()">⚡ Suggest angle strategy</button>
+      </div>
+      <div class="ai-panel" id="panel-notes">
+        <div class="ai-panel-header">Angle Strategy <button class="ai-panel-close" onclick="closePanel('panel-notes')">×</button></div>
+        <div id="panel-notes-content"></div>
+      </div>
+    </div>
+    <div class="field-row">
+      <div>
+        <span class="label">Status</span>
+        <select onchange="updateStatus(this.value)">
+          <option value="draft" ${s.status==='draft'?'selected':''}>Draft</option>
+          <option value="ready" ${s.status==='ready'?'selected':''}>Ready</option>
+          <option value="sent" ${s.status==='sent'?'selected':''}>Sent</option>
+          <option value="replied" ${s.status==='replied'?'selected':''}>Replied</option>
+          <option value="killed" ${s.status==='killed'?'selected':''}>Killed</option>
+        </select>
+      </div>
+      <div>
+        <span class="label">Sent date</span>
+        <input type="date" value="${s.sentAt||''}" onchange="updateSent(this.value)">
+      </div>
+    </div>
+    <div class="field-row" style="margin-top:14px">
+      <div>
+        <span class="label">Follow-up (auto = sent + 10d)</span>
+        <input type="date" value="${s.followUpAt||''}" onchange="updateField('followUpAt',this.value)">
+      </div>
+      <div>
+        <span class="label">Reply date</span>
+        <input type="date" value="${s.replyAt||''}" onchange="updateField('replyAt',this.value)">
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="downloadOne('${id}')">Download .txt</button>
+      <button class="btn btn-secondary" onclick="copyToClipboard('${id}')">Copy to clipboard</button>
+      <button class="btn btn-danger" onclick="resetOne('${id}')">Reset this pitch</button>
+    </div>`;
+  document.getElementById('modalContent').innerHTML=html;
+  document.getElementById('modal').classList.add('open');
+  document.body.style.overflow='hidden';
+}
+
+function closeModal(){document.getElementById('modal').classList.remove('open');document.body.style.overflow='';currentId=null;}
+function closeModalBackdrop(e){if(e.target.id==='modal')closeModal();}
+
+// ============ UTILS ============
+function escapeHtml(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function escapeAttr(s){return String(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+// ============ UPDATE ============
+function updateField(field,value){if(!currentId)return;state[currentId][field]=value;renderStats();renderCards();}
+function updateStatus(value){if(!currentId)return;state[currentId].status=value;renderStats();renderCards();}
+function updateSent(value){
+  if(!currentId)return;
+  state[currentId].sentAt=value;
+  if(value){const d=new Date(value);d.setDate(d.getDate()+10);state[currentId].followUpAt=d.toISOString().split('T')[0];state[currentId].status='sent';}
+  const id=currentId;render();openModal(id);
+}
+
+// ============ DOWNLOADS ============
+function downloadOne(id){
+  const p=PITCHES.find(x=>x.id===id);const s=state[id];
+  const text=`To: ${p.email||'[VERIFY EMAIL]'}\nSubject: ${s.subject}\n\n${s.body}\n`;
+  download(`pitch-${p.id}.txt`,text);toast(`${p.pub} downloaded`);
+}
+function downloadAllTxt(){PITCHES.forEach((p,i)=>setTimeout(()=>downloadOne(p.id),i*250));}
+function downloadTracker(){
+  const today=new Date().toISOString().split('T')[0];
+  let md=`# Pitch Tracker — Master\n\n**Generated:** ${today}\n**Pitches:** ${PITCHES.length}\n\n---\n\n## Summary\n\n| # | Publication | Brand | Status | Sent | Follow-up | Reply |\n|---|---|---|---|---|---|---|\n`;
+  PITCHES.forEach(p=>{
+    const s=state[p.id];const status=p.locked?'GATED':(s.status||'draft').toUpperCase();
+    md+=`| ${p.num} | ${p.pub} | ${p.brand} | ${status} | ${s.sentAt||'—'} | ${s.followUpAt||'—'} | ${s.replyAt||'—'} |\n`;
+  });
+  md+=`\n---\n\n`;
+  PITCHES.forEach(p=>{
+    const s=state[p.id];const status=p.locked?'GATED — do not send':(s.status||'draft').toUpperCase();
+    md+=`## ${p.num} · ${p.pub}\n\n- **Brand:** ${p.brand}\n- **Contact:** ${p.contact}\n- **Email:** ${p.email||'[PENDING]'}\n- **Beat:** ${p.beat}\n- **Status:** ${status}\n`;
+    if(s.sentAt)md+=`- **Sent:** ${s.sentAt}\n`;
+    if(s.followUpAt)md+=`- **Follow-up:** ${s.followUpAt}\n`;
+    if(s.replyAt)md+=`- **Replied:** ${s.replyAt}\n`;
+    if(s.notes?.trim())md+=`\n### Notes\n\n${s.notes}\n`;
+    md+=`\n### Best practices\n\n`;p.practices.forEach(pr=>{md+=`- ${pr}\n`;});
+    md+=`\n### Email\n\n**Subject:** ${s.subject}\n\n\`\`\`\n${s.body}\n\`\`\`\n\n---\n\n`;
+  });
+  download('pitch-tracker.md',md);toast('Master tracker downloaded');
+}
+function download(filename,content){
+  try{const blob=new Blob([content],{type:'text/plain;charset=utf-8'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=filename;document.body.appendChild(a);a.click();document.body.removeChild(a);setTimeout(()=>URL.revokeObjectURL(url),1000);}
+  catch(e){toast('Download failed');}
+}
+async function copyToClipboard(id){
+  const p=PITCHES.find(x=>x.id===id);const s=state[id];
+  try{await navigator.clipboard.writeText(`Subject: ${s.subject}\n\n${s.body}`);toast(`${p.pub} copied`);}
+  catch(e){toast('Copy failed — use download');}
+}
+
+// ============ RESET ============
+function resetOne(id){
+  if(!confirm('Reset this pitch to defaults?'))return;
+  const p=PITCHES.find(x=>x.id===id);state[id]=blankEntry(p);render();openModal(id);
+}
+function resetAll(){if(!confirm('Reset ALL pitches?'))return;state=initState();render();toast('All pitches reset');}
+
+// ============ TOAST ============
+let toastTimer=null;
+function toast(msg){const el=document.getElementById('toast');el.textContent=msg;el.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove('show'),1800);}
+
+// ============ AI ============
+const KYLE_CONTEXT=`You are assisting Kyle Rosebrook write journalist pitch emails and personal essays.
+
+HARD CONSTRAINTS — never violate:
+- Kyle's title: L1 Service Desk Tech at a managed IT firm. Never "Staff Engineer," "senior architect," or any inflation. Employer never named.
+- Tool count: "roughly 30 hands-on tools" or no number. Never "240+." (244 is catalogued MCP configs, not mastered tools — never conflate.)
+- Three brand lanes SEPARATE: FlashFusion (B2B AI consultancy), Chaos Club Co. (content/media + peer support), personal/memoir. One brand per pitch. Never blend.
+- No clinical claims stated as fact.
+- No "construction not recovery" as a public pitch line — that is the memoir's spine, not outward messaging.
+- Banned phrases: "and that's when I realized," "rock bottom," "grateful for the journey," epiphanies, "engineer who built his brain back."
+- Kyle's voice: direct, engineering metaphors as natural thought, dry humor, no performance of vulnerability.
+- Lee Chong Ming uses he/him pronouns — always.
+
+Kyle's verified facts:
+- DOB 1/16/1986, Grayslake, Illinois
+- L1 Service Desk Tech, managed IT firm (employer never named externally). Written employment clearance exists.
+- Self-taught, no CS degree. ~10 community-college withdrawals/failures before stopping
+- Father to Kinsley (daughter)
+- Founder: FlashFusion — B2B AI enablement consultancy. IC model (sells and delivers solo, no bench).
+  Revenue ladder: Free AI audit (lead magnet) → paid Audit ($4,500 floor) → Enablement Sprint ($5,000 fixed) → Managed Retainer ($2,000/mo)
+  First paid-client work delivered. Active engagements:
+  - Art: real estate, 3D room configurator (Three.js + Claude, iPad-optimized)
+  - Ryan Anderskow: Iron Horse Seating (ironhorseseating.com), custom furniture, already using Claude before the engagement. Scope has expanded to the whole company. Outreach draft exists. He is also the "Ryan" in the Narratively bar scene (PeeWee football QB from childhood — use first name only in public submissions).
+- Founder: Chaos Club Co. — content/media + peer support platform, in development
+- Writing memoir: "Construction, Not Recovery" — literary nonfiction, letter to Kinsley
+- ADHD
+- ~30 hands-on tools used in production: Claude/Anthropic, n8n, Base44, Cloudflare, Vercel, GitHub, Supabase, Three.js, React
+- Site: flashfusion.co
+
+Verified production builds (specific, citable):
+- HumanX conference tool: built internally at the managed IT firm using AWS S3, Supabase with RLS enabled, n8n. Killed by internal stakeholder resistance — VP of Finance reaction validated the framing. This is the proof-of-competence credential.
+- 3D room configurator: Three.js + Claude API, iPad-optimized, built for real estate client (Art)
+- Drive automation pipeline: CrewAI + Supabase audit trail, multi-agent
+- CCA-F study suite: interactive HTML artifact, 42 questions across 5 official domains
+- 50 reusable AI skills built and deployed
+- 32 courses built on SparkAcademy platform
+
+Career path (exact sequence — no embellishment):
+Timothy O'Toole's bartending + hospitality management (years) → quality control → self-taught engineering → L1 Service Desk Tech (current day job) → FlashFusion + Chaos Club Co. (side builds)
+
+The diagnostic instinct thread (the through-line):
+Reading rooms at O'Toole's → reading processes in QC → reading systems in engineering. This survived the cognitive disruption. It is the credential.
+
+The defining mechanism (FlashFusion champion model):
+"Kyle does not install AI in a business — he installs an AI expert inside the team." The exit IS the product. Kyle trains one internal person to become their organization's AI expert, then removes the dependency on Kyle. This is what separates FlashFusion from tool installers and agencies.
+
+Key content angles (usable in pitches):
+- Shadow AI = shadow IT: employees are already using AI tools without governance, exactly as they did with personal cloud storage and messaging apps in 2012. The question is not whether to adopt — it's whether to govern.
+- The HumanX episode: built production AI internally, got shut down by internal resistance. That shutdown was market validation, not failure. The VP of Finance reaction confirmed the framing was landing.
+- Domain expertise + AI compounds: vertical knowledge makes AI output dramatically more useful. Generalist AI users are not the interesting story. Domain experts who cross the threshold are.
+
+Moltbook stat (verified, citable):
+Jan 31 2026: Moltbook exposed 1.5M API authentication tokens + 35K email addresses. Root cause: Supabase RLS disabled. Found by Wiz Security within minutes of examining client-side code. Founder said "I didn't write a single line of code." Sources: Wiz Security, 404 Media, Infosecurity Magazine.
+
+Shadow-AI hard data (verified, citable — the empirical backbone for the "shadow AI = shadow IT" angle):
+- MIT Project NANDA, "The GenAI Divide: State of AI in Business 2025" (300+ AI initiatives, 52 interviews, 153 senior-leader surveys): only ~40% of companies bought an official LLM subscription, but workers from 90%+ of companies reported regular use of personal AI tools for work. 95% of organizations saw zero P&L impact despite an estimated $30–40B in enterprise GenAI spend. (per Fortune, Aug 19 2025.) The 40%-vs-90% gap is the quantified version of shadow AI.
+- Cyberhaven: 73.8% of workplace ChatGPT accounts are unauthorized (personal accounts used for work).
+- IBM 2025: shadow-AI breaches cost on average $4.63M per incident (~$670K above the norm); 97% of breached organizations lacked basic AI access controls.`;
+
+function pitchContext(){
+  const p=PITCHES.find(x=>x.id===currentId);const s=state[currentId];
+  return`Publication: ${p.pub}\nBeat: ${p.beat}\nContact: ${p.contact}\nBrand lane: ${p.brand}\nBest practices: ${p.practices.join('; ')}\nCurrent subject: ${s.subject}\nCurrent body:\n${s.body}`;
+}
+async function callAI(userPrompt){
+  const resp=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1000,system:KYLE_CONTEXT,messages:[{role:'user',content:userPrompt}]})});
+  const data=await resp.json();if(data.error)throw new Error(data.error.message);
+  return data.content.filter(b=>b.type==='text').map(b=>b.text).join('');
+}
+function setAIBtnLoading(id,loading){
+  const btn=document.getElementById(id);if(!btn)return;
+  btn.disabled=loading;
+  const labels={'btn-subj':'⚡ Generate 3 subjects','btn-rewrite':'⚡ Rewrite','btn-critique':'⚡ Critique','btn-hook':'⚡ Sharpen hook','btn-notes':'⚡ Suggest angle strategy'};
+  btn.innerHTML=loading?'<span class="spin"></span> Generating…':(labels[id]||'⚡ Generate');
+}
+function openPanel(id){document.getElementById(id)?.classList.add('open');}
+function closePanel(id){document.getElementById(id)?.classList.remove('open');}
+
+async function aiSubjects(){
+  setAIBtnLoading('btn-subj',true);openPanel('panel-subj');
+  const container=document.getElementById('suggestions-subj');
+  container.innerHTML='<div style="padding:10px 0;color:var(--paper-3);font-family:var(--mono);font-size:11px;">Generating…</div>';
+  try{
+    const result=await callAI(`${pitchContext()}\n\nGenerate exactly 3 subject line options for this pitch email. Each under 12 words. Specific to this publication's beat. Return ONLY a JSON array of 3 strings. No preamble. Example: ["Subject one","Subject two","Subject three"]`);
+    let options;try{options=JSON.parse(result.replace(/```json|```/g,'').trim());}catch{options=result.split('\n').filter(l=>l.trim()&&!l.startsWith('```')).slice(0,3);}
+    container.innerHTML=options.map((opt,i)=>{const k=stash(opt);return`<div><div class="ai-chip-label">Option ${i+1}</div><button class="ai-chip" onclick="applySubject('${k}')">${escapeHtml(opt)}</button></div>`;}).join('');
+  }catch(e){container.innerHTML=`<div style="padding:10px;color:var(--rust);font-family:var(--mono);font-size:11px;">Error: ${escapeHtml(e.message)}</div>`;}
+  setAIBtnLoading('btn-subj',false);
+}
+function applySubject(key){const val=pop(key);const input=document.getElementById('f-subject');if(input&&val){input.value=val;updateField('subject',val);}closePanel('panel-subj');toast('Subject applied');}
+
+async function aiRewrite(){
+  setAIBtnLoading('btn-rewrite',true);const label=document.getElementById('panel-body-label');if(label)label.textContent='Rewrite';
+  openPanel('panel-body');const content=document.getElementById('panel-body-content');
+  content.innerHTML='<div style="padding:14px;color:var(--paper-3);font-family:var(--mono);font-size:11px;">Rewriting…</div>';
+  try{
+    const result=await callAI(`${pitchContext()}\n\nRewrite the full pitch body. Keep brand lane and publication target. Apply Kyle's voice: direct, engineering metaphors natural, dry humor, no performance of vulnerability, no epiphanies. No recovery narrative. No inflated title or tool count. Return ONLY the email body — no subject, no explanation.`);
+    const rk=stash(result);
+    content.innerHTML=`<div class="ai-prose">${escapeHtml(result)}</div><div class="ai-apply-row"><button class="btn-ai" onclick="applyBody('${rk}')">Apply to body</button><button class="btn-ai" style="color:var(--paper-3);border-color:var(--rule)" onclick="closePanel('panel-body')">Discard</button></div>`;
+  }catch(e){content.innerHTML=`<div style="padding:14px;color:var(--rust);font-family:var(--mono);font-size:11px;">Error: ${escapeHtml(e.message)}</div>`;}
+  setAIBtnLoading('btn-rewrite',false);
+}
+async function aiCritique(){
+  setAIBtnLoading('btn-critique',true);const label=document.getElementById('panel-body-label');if(label)label.textContent='Critique';
+  openPanel('panel-body');const content=document.getElementById('panel-body-content');
+  content.innerHTML='<div style="padding:14px;color:var(--paper-3);font-family:var(--mono);font-size:11px;">Critiquing…</div>';
+  try{
+    const result=await callAI(`${pitchContext()}\n\nCritique this pitch. Give exactly 3 specific, actionable improvements: (1) hook strength — specific enough to this journalist's beat?, (2) clarity of the ask — does the journalist know exactly what they're being pitched?, (3) anything generic, inflated, or mismatched. Be blunt. Return ONLY a numbered list. No preamble.`);
+    content.innerHTML=`<div class="ai-prose">${escapeHtml(result)}</div>`;
+  }catch(e){content.innerHTML=`<div style="padding:14px;color:var(--rust);font-family:var(--mono);font-size:11px;">Error: ${escapeHtml(e.message)}</div>`;}
+  setAIBtnLoading('btn-critique',false);
+}
+async function aiHook(){
+  setAIBtnLoading('btn-hook',true);const label=document.getElementById('panel-body-label');if(label)label.textContent='Hook options';
+  openPanel('panel-body');const content=document.getElementById('panel-body-content');
+  content.innerHTML='<div style="padding:14px;color:var(--paper-3);font-family:var(--mono);font-size:11px;">Generating hooks…</div>';
+  try{
+    const result=await callAI(`${pitchContext()}\n\nWrite 3 alternative opening paragraphs. Different approaches: one leads with journalist/beat relevance, one leads with a specific surprising fact or constraint, one leads with the core business angle. 2–4 sentences max each. Return ONLY a JSON array of 3 strings.`);
+    let options;try{options=JSON.parse(result.replace(/```json|```/g,'').trim());}catch{options=result.split(/\n\n+/).filter(x=>x.trim()).slice(0,3);}
+    const labels=['Beat-first','Constraint-first','Business-first'];
+    content.innerHTML=options.map((opt,i)=>{const hk=stash(opt);return`<div style="padding:10px 12px;border-bottom:1px solid var(--rule)"><div class="ai-chip-label" style="margin-bottom:5px">${labels[i]||`Option ${i+1}`}</div><div style="font-size:13px;color:var(--paper-2);line-height:1.6;margin-bottom:8px;white-space:pre-wrap">${escapeHtml(opt)}</div><button class="btn-ai" style="font-size:9px" onclick="applyHook('${hk}')">Apply this hook</button></div>`;}).join('');
+  }catch(e){content.innerHTML=`<div style="padding:14px;color:var(--rust);font-family:var(--mono);font-size:11px;">Error: ${escapeHtml(e.message)}</div>`;}
+  setAIBtnLoading('btn-hook',false);
+}
+function applyHook(key){
+  const hookText=pop(key);if(!hookText)return;
+  const textarea=document.getElementById('f-body');if(!textarea)return;
+  const current=textarea.value;const firstBlank=current.indexOf('\n\n');
+  const newBody=firstBlank!==-1?hookText+'\n\n'+current.slice(firstBlank+2):hookText+'\n\n'+current;
+  textarea.value=newBody;updateField('body',newBody);closePanel('panel-body');toast('Hook applied');
+}
+function applyBody(key){const val=pop(key);const textarea=document.getElementById('f-body');if(textarea&&val){textarea.value=val;updateField('body',val);}closePanel('panel-body');toast('Body applied');}
+
+async function aiNotes(){
+  setAIBtnLoading('btn-notes',true);openPanel('panel-notes');const content=document.getElementById('panel-notes-content');
+  content.innerHTML='<div style="padding:14px;color:var(--paper-3);font-family:var(--mono);font-size:11px;">Generating strategy…</div>';
+  try{
+    const result=await callAI(`${pitchContext()}\n\nGenerate a short private strategy note covering: 1) The single strongest angle for this publication 2) One thing the current pitch does well 3) One thing most likely to get it ignored or rejected 4) Best timing/sequencing note. Under 200 words. Direct. No fluff.`);
+    const nk=stash(result);
+    content.innerHTML=`<div class="ai-prose">${escapeHtml(result)}</div><div class="ai-apply-row"><button class="btn-ai" onclick="applyNotes('${nk}')">Add to notes</button><button class="btn-ai" style="color:var(--paper-3);border-color:var(--rule)" onclick="closePanel('panel-notes')">Discard</button></div>`;
+  }catch(e){content.innerHTML=`<div style="padding:14px;color:var(--rust);font-family:var(--mono);font-size:11px;">Error: ${escapeHtml(e.message)}</div>`;}
+  setAIBtnLoading('btn-notes',false);
+}
+function applyNotes(key){
+  const val=pop(key);if(!val)return;const textarea=document.getElementById('f-notes');if(!textarea)return;
+  const existing=textarea.value.trim();const newVal=existing?existing+'\n\n---\n'+val:val;
+  textarea.value=newVal;updateField('notes',newVal);closePanel('panel-notes');toast('Notes updated');
+}
+
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&currentId)closeModal();});
+// ============ MODE + TEMPLATES ============
+function switchMode(mode){
+  const showP = mode==='pitches';
+  document.getElementById('pitch-view').style.display = showP ? '' : 'none';
+  document.getElementById('template-view').style.display = showP ? 'none' : '';
+  document.getElementById('mode-pitches').classList.toggle('active', showP);
+  document.getElementById('mode-templates').classList.toggle('active', !showP);
+}
+const LANE_COLOR = {'FlashFusion':'var(--brass-2)','Abstrekkt Products':'#34d399','Memoir':'#b89968'};
+function renderTemplates(){
+  const html = TEMPLATES.map(t=>`<div class="card" onclick="openTemplate('${t.id}')">
+      <div class="card-num" style="color:${LANE_COLOR[t.lane]||'var(--brass-2)'}">TEMPLATE \u00b7 ${escapeHtml(t.lane)}</div>
+      <div class="card-pub">${escapeHtml(t.label)}</div>
+      <div class="card-beat">${escapeHtml(t.sub)}</div>
+      <div class="card-contact" style="white-space:normal">${escapeHtml(t.subject)}</div>
+      <div class="card-meta"><span class="badge badge-ready">template</span></div>
+    </div>`).join('');
+  document.getElementById('template-cards').innerHTML = html;
+}
+function openTemplate(id){
+  const t = TEMPLATES.find(x=>x.id===id); if(!t) return;
+  document.getElementById('modalContent').innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:8px">
+      <div>
+        <div class="card-num" style="color:${LANE_COLOR[t.lane]||'var(--brass-2)'}">TEMPLATE \u00b7 ${escapeHtml(t.lane)}</div>
+        <h2 style="font-family:var(--serif);margin:4px 0 0;font-size:22px">${escapeHtml(t.label)}</h2>
+      </div>
+      <button onclick="closeModal()" style="background:none;border:1px solid var(--rule);color:var(--paper-2);width:32px;height:32px;border-radius:4px;cursor:pointer;font-size:14px">\u2715</button>
+    </div>
+    <div style="font-family:var(--mono);font-size:10px;letter-spacing:.12em;color:var(--paper-3);text-transform:uppercase;margin:14px 0 4px">Subject</div>
+    <div style="font-family:var(--mono);font-size:12px;color:var(--paper-2);margin-bottom:14px;white-space:pre-wrap">${escapeHtml(t.subject)}</div>
+    <div style="font-family:var(--mono);font-size:10px;letter-spacing:.12em;color:var(--paper-3);text-transform:uppercase;margin:0 0 4px">Body</div>
+    <pre style="font-family:var(--mono);font-size:12px;line-height:1.7;color:var(--paper-2);white-space:pre-wrap;background:rgba(255,255,255,.02);border:1px solid var(--rule);padding:14px;border-radius:4px;margin:0">${escapeHtml(t.body)}</pre>
+    <div style="font-family:var(--mono);font-size:10px;letter-spacing:.12em;color:var(--paper-3);text-transform:uppercase;margin:14px 0 4px">Ask / purpose</div>
+    <div style="font-size:13px;color:var(--paper-3);line-height:1.6">${escapeHtml(t.asks)}</div>
+    <button class="btn-ai" style="margin-top:16px" onclick="copyTemplate('${t.id}')">Copy subject + body</button>`;
+  document.getElementById('modal').classList.add('open');
+  document.body.style.overflow='hidden';
+}
+async function copyTemplate(id){
+  const t = TEMPLATES.find(x=>x.id===id); if(!t) return;
+  try{ await navigator.clipboard.writeText(`Subject: ${t.subject}\n\n${t.body}`); toast(`${t.label} copied`);}catch(e){ toast('Copy failed'); }
+}
+
+loadState();
+</script>
+</body>
+</html>
