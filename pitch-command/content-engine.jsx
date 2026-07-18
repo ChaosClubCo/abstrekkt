@@ -10,7 +10,7 @@ YES: "I'm not a security professional. I'm an L1 service desk tech who builds AI
 NO:  "As an AI practitioner and founder, I've seen a lot of workflows..."
 
 THE SAME-SKILL-DIFFERENT-SUBSTRATE MOVE:
-YES: "The diagnostic instinct I developed reading drunks at the bar worked on processes in QC. Same instinct. Different substrate."
+YES: "The diagnostic instinct I developed reading drunks at the bar worked on processes in QC. Same instinct. Different substrate. I learned a Ludovico Einaudi piece on piano without knowing the note names — just memorized the shape. Same thing."
 NO:  "I've always been good at reading situations across many domains."
 
 THE CONSTRAINT REFRAME:
