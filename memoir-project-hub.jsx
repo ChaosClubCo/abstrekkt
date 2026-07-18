@@ -326,6 +326,7 @@ function SkillsTab() {
         <div style={{ fontSize: 12, color: C.textDim, lineHeight: 1.7 }}>
           <div><span style={{ color: C.green }}>✓</span> 50 Phase 1+2 production-ready skills</div>
           <div><span style={{ color: C.green }}>✓</span> Pipeline tooling scripts complete</div>
+          <div><span style={{ color: C.green }}>✓</span> Chris Butler 5-skill suite complete</div>
           <div><span style={{ color: C.accent }}>→</span> Teams-embedded migration agent in progress</div>
           <div><span style={{ color: C.red }}>✕</span> 4 compliance gaps block Intinc deployment</div>
         </div>

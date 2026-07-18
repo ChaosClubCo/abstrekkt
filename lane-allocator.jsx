@@ -14,7 +14,7 @@ const LANES = [
     ],
   },
   {
-    id: 'prod', em: 'Abstrekkt Products', accent: '#c8a86a', surface: 'rgba(200,168,106,0.06)',
+    id: 'ccc', em: 'ChaosClubCo', accent: '#e11d48', surface: 'rgba(225,29,72,0.06)',
     fullHours: 14, maintHours: 5,
     quarters: { Q1: 'Marketplace distribution launched', Q2: 'Ample MVP shipped to closed beta', Q3: 'FissionPrompt + portfolio thesis tested', Q4: 'Consolidation + flagship decision' },
     peakWeeks: [

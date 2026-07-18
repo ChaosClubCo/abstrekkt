@@ -31,12 +31,12 @@ const useTheme = () => useContext(ThemeCtx);
 // ─── DATA ────────────────────────────────────────────────────────────────────
 const ARCS = [
   { id:"diagnostic",name:"The Diagnostic Instinct",sym:"⬡",colorKey:"accent",
-    tagline:"Reading rooms. Reading processes. Reading systems. Reading music.",
+    tagline:"Reading rooms. Reading processes. Reading systems.",
     badges:["Spine","Through-Line","Confirmed"],
-    explorer:"Kyle has one skill that survived every version of him: the ability to read a room. At O'Toole's, that meant knowing which customer needed distance. In QC, spotting process failures before they compounded. In engineering, diagnosing system failures the same way. On the piano — he spent a year learning Nuvole Bianche by Ludovico Einaudi without reading a single note. Never knew the key names. Just memorized the shape: the order, the arpeggios, where the syncopation falls. Pattern before content. The book is about how that instinct survived a brain injury — and became the thread holding the reconstruction together.",
-    poweruser:"The diagnostic instinct connects four domains (hospitality → QC → engineering → music) through a common pattern: recognition under uncertainty, without declarative knowledge. The piano example is the clearest proof of the mechanism — the medium was completely foreign, the storage was irrelevant, the processor ran the same way. Post-injury, this became explicit rather than implicit. The eval data supports it: Processing Speed 99th percentile, Recall Memory 12th. The processor survived; the storage didn't.",
-    admin:"Every claim about rebuilding depends on this through-line being legible across the bartender → engineer arc. The piano beat is available as a non-technical concrete example if a scene needs it. Any scene that doesn't connect to it is a candidate for cutting. Test: can a reader trace the same cognitive pattern through O'Toole's, QC gap detection, the card table build, and Nuvole Bianche?",
-    useCases:["O'Toole's customer reads","QC process gap detection","Engineering system diagnosis","Piano — Nuvole Bianche by shape not notes","Memoir self-diagnosis"],
+    explorer:"Kyle has one skill that survived every version of him: the ability to read a room. At O'Toole's, that meant knowing which customer needed distance. In QC, spotting process failures before they compounded. In engineering, diagnosing system failures the same way. The book is about how that instinct survived a brain injury — and became the thread holding the reconstruction together.",
+    poweruser:"The diagnostic instinct connects three career phases (hospitality → QC → engineering) through a common pattern: recognition under uncertainty. Post-injury, this became explicit rather than implicit. The eval data supports it: Processing Speed 99th percentile, Recall Memory 12th. The processor survived; the storage didn't.",
+    admin:"Every claim about rebuilding depends on this through-line being legible across the bartender → engineer arc. Any scene that doesn't connect to it is a candidate for cutting. Test: can a reader trace the same cognitive pattern through O'Toole's, QC gap detection, and the card table build?",
+    useCases:["O'Toole's customer reads","QC process gap detection","Engineering system diagnosis","Memoir self-diagnosis"],
     mockInput:"How does the diagnostic instinct survive cognitive disruption?",
     mockOutput:`The instinct doesn't live in explicit memory.
 
@@ -540,7 +540,7 @@ Key facts:
 1. Amen Clinic eval (July 2022): Processing Speed 99th percentile, Recall Memory 12th. Engine works; storage doesn't.
 2. Book thesis: Construction (building what never existed) vs Recovery (returning to what was lost). Recovery assumes a prior baseline — there is none.
 3. The card table (1:30am, screenshot method) is the physical anchor of Chapter 11. Origin of the self-teaching arc that leads to Chaos Club.
-4. The diagnostic instinct (reading rooms → processes → systems → music: learned Nuvole Bianche by Einaudi by shape, not note names) is the book's spine. Survived the brain injury. Pattern before content. Same processor, every substrate.
+4. The diagnostic instinct (reading rooms → processes → systems) is the book's spine. Survived the brain injury. Connects bartending to QC to engineering.
 5. The book is addressed as a letter to Kyle's daughter Kinsley.
 Voice rules: No "and that's when I realized," no epiphanies, no self-help patterns. Kyle has incremental recalibrations. Be specific to this book.`;
 
@@ -603,7 +603,7 @@ without waiting for the right moment.`,
         const res = await fetch("https://api.anthropic.com/v1/messages", {
           method:"POST",
           headers:{ "Content-Type":"application/json","x-api-key":settings.apiKey,"anthropic-version":"2023-06-01" },
-          body:JSON.stringify({ model:"claude-sonnet-4-6",max_tokens:600,system:SYSTEM,messages:history }),
+          body:JSON.stringify({ model:"claude-sonnet-4-20250514",max_tokens:600,system:SYSTEM,messages:history }),
         });
         const data = await res.json();
         setMsgs(m => [...m, { role:"assistant",content:data.content?.[0]?.text||"No response." }]);
@@ -891,7 +891,7 @@ That's the book's argument, documented.`;
         const res = await fetch("https://api.anthropic.com/v1/messages", {
           method:"POST",
           headers:{ "Content-Type":"application/json","x-api-key":settings.apiKey,"anthropic-version":"2023-06-01" },
-          body:JSON.stringify({ model:"claude-sonnet-4-6",max_tokens:mt,temperature:temp,system:sys,messages:[{ role:"user",content:userP }] }),
+          body:JSON.stringify({ model:"claude-sonnet-4-20250514",max_tokens:mt,temperature:temp,system:sys,messages:[{ role:"user",content:userP }] }),
         });
         const data = await res.json();
         setResp(data.content?.[0]?.text||"No response.");
@@ -1018,7 +1018,7 @@ function SectionVoice({ settings }) {
       items:["The Kinsley test on every scene","Stakes must be legible to a future reader","Not sentiment — architecture","Epilogue completes the frame"],
     },
     { name:"Spine Layer",color:theme.accent,access:"Diagnostic Instinct. Through-line. Credibility.",
-      desc:"The spine layer holds the book together. The diagnostic instinct — reading rooms, processes, systems, and music (Nuvole Bianche by shape not note names) — must be legible across the bartender → QC → engineering arc. Any scene that doesn't connect to it is a candidate for cutting.",
+      desc:"The spine layer holds the book together. The diagnostic instinct — reading rooms, processes, systems — must be legible across the bartender → QC → engineering arc. Any scene that doesn't connect to it is a candidate for cutting.",
       items:["Pattern recognition in O'Toole's scenes","Process gap detection in QC arc","System diagnosis in engineering arc","Explicit in the Arsenal chapter"],
     },
     { name:"Scene Layer",color:theme.blue,access:"Confirmed excavated material only. Ground truth.",
@@ -1126,7 +1126,7 @@ function SectionChecklist({ settings }) {
         const res = await fetch("https://api.anthropic.com/v1/messages", {
           method:"POST",
           headers:{ "Content-Type":"application/json","x-api-key":settings.apiKey,"anthropic-version":"2023-06-01" },
-          body:JSON.stringify({ model:"claude-sonnet-4-6",max_tokens:400,system:`You are a memoir project manager for "Construction, Not Recovery." Generate a concise status update for the topic. Direct, no fluff.`,messages:[{ role:"user",content:`Generate a status message for: ${topic?.label}` }] }),
+          body:JSON.stringify({ model:"claude-sonnet-4-20250514",max_tokens:400,system:`You are a memoir project manager for "Construction, Not Recovery." Generate a concise status update for the topic. Direct, no fluff.`,messages:[{ role:"user",content:`Generate a status message for: ${topic?.label}` }] }),
         });
         const data = await res.json();
         setMsgOut(data.content?.[0]?.text||"No response.");
