@@ -10,7 +10,7 @@ YES: "I'm not a security professional. I'm an L1 service desk tech who builds AI
 NO:  "As an AI practitioner and founder, I've seen a lot of workflows..."
 
 THE SAME-SKILL-DIFFERENT-SUBSTRATE MOVE:
-YES: "The diagnostic instinct I developed reading drunks at the bar worked on processes in QC. Same instinct. Different substrate. I learned a Ludovico Einaudi piece on piano without knowing the note names — just memorized the shape. Same thing."
+YES: "The diagnostic instinct I developed reading drunks at the bar worked on processes in QC. Same instinct. Different substrate."
 NO:  "I've always been good at reading situations across many domains."
 
 THE CONSTRAINT REFRAME:
@@ -196,7 +196,7 @@ async function callClaude(system, userContent, maxTokens = 1000) {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      model: "claude-sonnet-4-6",
+      model: "claude-sonnet-4-20250514",
       max_tokens: maxTokens,
       system,
       messages: [{ role: "user", content: userContent }],
@@ -476,7 +476,7 @@ export default function ContentEngine() {
             </div>
             <div style={{ marginTop:20, paddingTop:16, borderTop:"1px solid rgba(168,85,247,0.1)", fontSize:11, color:"#475569", display:"flex", justifyContent:"space-between" }}>
               <span>{wordCount} words</span>
-              <span style={{ color:badge.color, opacity:0.7 }}>claude-sonnet-4-6</span>
+              <span style={{ color:badge.color, opacity:0.7 }}>claude-sonnet-4-20250514</span>
             </div>
           </div>
         )}

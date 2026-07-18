@@ -368,7 +368,7 @@ Respond ONLY with valid JSON. No markdown. No fences. No preamble.
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          model: "claude-sonnet-4-6",
+          model: "claude-sonnet-4-20250514",
           max_tokens: 1000,
           messages: [{ role: "user", content: prompt }]
         })
