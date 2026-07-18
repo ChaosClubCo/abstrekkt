@@ -1,22 +1,33 @@
-# CODING AGENTS: READ THIS FIRST
+# Arc System - Documentation
 
-This is a **handoff bundle** from Claude Design (claude.ai/design).
+The **Arc System** is a planning, visualization, and AI-editing platform for **74 learning arcs across 9 series**. Seven catalog tools share one data layer and a localStorage overlay (plus an optional Supabase sync layer), so an edit made in one surface shows up in the rest.
 
-A user mocked up designs in HTML/CSS/JS using an AI design tool, then exported this bundle so a coding agent can implement the designs for real.
+This folder is the documentation suite. Start here.
 
-## What you should do — IMPORTANT
+## The suite
 
-**Read `abstrekkt/project/Repository Operations Hub.html` in full.** The user had this file open when they triggered the handoff, so it's almost certainly the primary design they want built. Read it top to bottom — don't skim. Then **follow its imports**: open every file it pulls in (shared components, CSS, scripts) so you understand how the pieces fit together before you start implementing.
+| Doc | Read it when you want to... |
+|---|---|
+| **[ARC_SYSTEM_DOCS.md](ARC_SYSTEM_DOCS.md)** | Understand the whole system - data layer, overlay, AI engine, every tool, automations, storage keys. The canonical reference. |
+| **[CATALOG.md](CATALOG.md)** | See all 74 arcs - ids, display names, series, and which have full curriculum vs. roadmap stubs. |
+| **[CHANGELOG.md](CHANGELOG.md)** | See what changed release to release, with per-file diffs. |
+| **[EXTENDING.md](EXTENDING.md)** | Add an arc, wire a new tool, or add an AI operation - the exact patterns, with the gotchas. |
 
-**If anything is ambiguous, ask the user to confirm before you start implementing.** It's much cheaper to clarify scope up front than to build the wrong thing.
+## 60-second orientation
 
-## About the design files
+- **Entry point:** `Arc Reader.dc.html` - the canonical editor; it owns the AI assistant. `Arc Momentum.dc.html` is the daily driver. `Arc Agents.dc.html` is the goal-planner/connector dashboard. `Arc Home.dc.html` is the surface index.
+- **Data:** `arcs-data.json` (74 arcs) + `arcs-prose.json` (tradeoff/claims for the 26 originals). **Never hand-edit for user changes** - go through the overlay (assistant -> `applyOp` -> `saveOverlay`). Direct JSON edits are base-library work only.
+- **Archived:** `arcs-archived.json` holds retired arcs preserved for lineage (currently: `chaosclubco`, retired brand superseded by `abstrekkt` - see CHANGELOG v1.5). Not read by any live tool.
+- **Tools are Design Components** (`.dc.html`), styled inline, on the **FlashFusion** design system (`_ds/`).
+- **Two gotchas:** the `mastery` key displays as **Gemini** (don't rename it); **series/lane live in two places** (the JSON for new arcs, each tool's SEED map for the original 26).
 
-The design medium is **HTML/CSS/JS** — these are prototypes, not production code. Your job is to **recreate them pixel-perfectly** in whatever technology makes sense for the target codebase (React, Vue, native, whatever fits). Match the visual output; don't copy the prototype's internal structure unless it happens to fit.
+## The 74, at a glance
 
-**Don't render these files in a browser or take screenshots unless the user asks you to.** Everything you need — dimensions, colors, layout rules — is spelled out in the source. Read the HTML and CSS directly; a screenshot won't tell you anything they don't.
+- **26 originals** - full 12-month curriculum + tradeoff prose. Series 1-3 in the tools.
+- **4 personal** - full curriculum, Series 9: FlashFusion, Abstrekkt, Memoir, Reading Room. (ChaosClubCo retired/archived in v1.5 - absorbed by Abstrekkt.)
+- **44 roadmap stubs** - title + series + one-line focus, no week curriculum yet. They appear on every surface; author their detail via the assistant or source extraction.
 
-## Bundle contents
+See **[CATALOG.md](CATALOG.md)** for the complete list, **[CHANGELOG.md](CHANGELOG.md) -> v1.3** for how they were merged and wired.
 
-- `abstrekkt/README.md` — this file
-- `abstrekkt/project/` — the `abstrekkt` project files (HTML prototypes, assets, components)
+---
+*Suite version 1.8 | July 16, 2026*
