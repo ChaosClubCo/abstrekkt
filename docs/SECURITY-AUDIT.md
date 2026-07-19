@@ -98,11 +98,11 @@ now in place to prevent future credential commits:
 | Pattern | Coverage |
 |---|---|
 | `*.env` | `flashnframe_secrets.env` and similar |
-| `.env` | bare `.env` file |
-| `.env.*` | `.env.local`, `.env.production`, etc. |
-| `.env*` | `.envrc`, `.env_backup`, etc. *(added 2026-07-19)* |
-| `*secret*` / `*Secret*` | secret-named files |
-| `*credential*` / `*Credential*` / `*CRED*` | credential-named files |
+| `.env` | bare `.env` file (explicit for clarity; subsumed by `.env*`) |
+| `.env.*` | `.env.local`, `.env.production`, etc. (explicit; subsumed by `.env*`) |
+| `.env*` | `.envrc`, `.env_backup`, etc. — superset pattern *(added 2026-07-19)* |
+| `*secret*` / `*Secret*` | secret-named files (case variants kept for macOS/Linux parity) |
+| `*credential*` / `*Credential*` / `*CRED*` | credential-named files (case variants) |
 | `Backup-codes*` | Google-style backup code files |
 | `*.pem` / `*.key` / `*.p12` | TLS/SSL and certificate files (`*.p12` *added 2026-07-19*) |
 | `id_rsa*` | SSH private keys |
