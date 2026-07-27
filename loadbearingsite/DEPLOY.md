@@ -9,7 +9,7 @@ The whole `site/` folder is the site. `index.html` is the home page; each
 **Cloudflare Pages (recommended — you already use Cloudflare)**
 1. Go to Cloudflare Pages → Create → Upload assets (or connect a Git repo).
 2. Drag the whole `site/` folder in. No build command; output dir = `/`.
-3. Add a custom domain: `load-bearing.flashfusion.co` (or point `abstrekkt.com`).
+3. Add the custom domain: `blog.abstrekkt.com`.
    DNS is a single CNAME Cloudflare walks you through.
 
 **Vercel**
@@ -26,12 +26,14 @@ The whole `site/` folder is the site. `index.html` is the home page; each
 1. Push `site/` to a repo, enable Pages on the `main` branch root.
 2. Add the custom domain in Pages settings (writes a CNAME file).
 
-## Domain note
+## Domain decision — July 27, 2026
 
-Every essay footer and the index link to `flashfusion.co`, and the masthead is
-"Load-Bearing" (a FlashFusion property). `load-bearing.flashfusion.co` keeps that
-consistent. If you'd rather sit it on `abstrekkt.com`, it's a DNS change only —
-no file edits needed, but consider updating the footer links for brand match.
+Founder-approved destination: `blog.abstrekkt.com`. The broader writing property
+will contain Load-Bearing alongside the Kyle Rosebrook essay corpus. Do not deploy
+this package to `load-bearing.flashfusion.co` or the `abstrekkt.com` root.
+
+Before launch, update essay footer and canonical links so they resolve consistently
+under `blog.abstrekkt.com`; then run a link check across the full 13-essay package.
 
 ## What is NOT here (by design)
 
