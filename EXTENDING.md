@@ -105,7 +105,7 @@ A new `.dc.html` Design Component that:
 4. Reads shared progress from `arc-reader-done-v1` if it shows completion.
 5. Styles inline (no stylesheets/classes).
 
-Then add it to the file tree in `ARC_SYSTEM_DOCS.md`, the surface grid in `Arc Home.dc.html`, and mention it in `README.md`.
+Then add it to the file tree in `ARC_SYSTEM_DOCS.md`, the surface grid in `Arc Home.dc.html`, and mention it in `ARC_SYSTEM_README.md`.
 
 ---
 *Suite v1.3 | July 7, 2026*

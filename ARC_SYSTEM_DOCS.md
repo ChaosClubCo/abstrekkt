@@ -9,7 +9,7 @@ The 74 arcs fall into three tiers: **26 originals** (full 12-month curriculum + 
 **Latest release:** July 2026 (v1.8)  
 **Data sources:** `arcs-data.json` (74 arcs, up to 12 months x 4 weeks each) + `arcs-prose.json` (tradeoff/claims narratives, 26 originals)  
 **AI engine:** `arc-ai.js` (provider-agnostic router + ops schema + store overlay)  
-**Documentation suite:** `README.md` (index) | this file (canonical reference) | `CATALOG.md` (all 74 arcs) | `CHANGELOG.md` (versions + diffs) | `EXTENDING.md` (add arcs / tools / ops)
+**Documentation suite:** `ARC_SYSTEM_README.md` (index) | this file (canonical reference) | `CATALOG.md` (all 74 arcs) | `CHANGELOG.md` (versions + diffs) | `EXTENDING.md` (add arcs / tools / ops)
 
 > **New in v1.8 (July 2026):** GitHub + Obsidian bridges (`arc-github.js`, `arc-obsidian.js`) - low-risk ops commit direct, create_arc/delete_arc open a PR; Obsidian gets one note per arc via the Local REST API plugin. Both fire-and-forget alongside the existing Supabase push, silent until configured. Also reconciled `Arc Extraction.dc.html`'s hardcoded ChaosClubCo lane - superseded-notice banner added, historical planning content left untouched. See `PERSISTENCE_PLAN.md` and `CHANGELOG.md`.
 >
@@ -451,7 +451,7 @@ project root/
 +-- arcs-prose.json             <- Narrative blocks (tradeoff + claims, 26 originals)
 +-- arcs-prose.backup*.json     <- Rollback snapshots, same points-in-time as the data backups
 +-- ARC_SYSTEM_DOCS.md          <- Canonical reference (this document)
-+-- README.md                   <- Documentation suite index (start here)
++-- ARC_SYSTEM_README.md        <- Documentation suite index (start here)
 +-- CATALOG.md                  <- All 74 arcs by tier + series
 +-- CHANGELOG.md                <- Version history + per-release diffs
 +-- EXTENDING.md                <- How to add arcs / tools / AI ops
