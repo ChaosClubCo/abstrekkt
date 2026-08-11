@@ -25,7 +25,7 @@
 - `memoir-project-hub.jsx` — removed from project
 - `memoir-command-center.jsx` · `memoir-hub-v3.jsx` — functions absorbed by `abstrekkt-author-hub.jsx`; source recoverable from knowledge index if needed
 
-**Jul 29, 2026 — `memoir_engine.html` REVIEW resolved (archive branch):** carried a "REVIEW — absorb into author hub or archive" flag with no ground-truth check behind it. Sitewide grep for inbound links (`.html`/`.jsx`/`.md`) turned up zero references anywhere in the live project — same orphaned status as `memoir-command-center.jsx`/`memoir-hub-v3.jsx` above, which already went the archive route. Renamed to `memoir_engine_archive_2026-07.html` per §2; no content changes, no feature-parity diff against `abstrekkt-author-hub.jsx` performed — if it turns out the hub is missing something this surface had, recover from this archive copy or the knowledge index.
+**Aug 11, 2026 — `memoir_engine.html` REVIEW resolved (archive branch):** carried a "REVIEW — absorb into author hub or archive" flag with no ground-truth check behind it. Sitewide grep for inbound links (`.html`/`.jsx`/`.md`) turned up zero references anywhere in the live project — same orphaned status as `memoir-command-center.jsx`/`memoir-hub-v3.jsx` above, which already went the archive route. Renamed to `memoir_engine_archive_2026-07.html` per §2; no content changes, no feature-parity diff against `abstrekkt-author-hub.jsx` performed — if it turns out the hub is missing something this surface had, recover from this archive copy or the knowledge index.
 
 ---
 
@@ -45,7 +45,7 @@
 | `abstrekkt/nav-toggle.js` | Shared mobile-nav disclosure behavior (hamburger open/close) | Loaded by every page with a `header.nav` + `.nav-links` |
 | `Abstrekkt Studio Landing.html` | Consulting-studio marketing landing ("Clarity isn't simple. It's constructed." — Strategy/Communication/Systems, Book Advisory/Start a Brief) built against the bound `_ds/` Reading Room at Midnight bundle per Kyle's directly-edited reference mock (`uploads/clarity-its-simple-constructed.png`) | Studio/consulting positioning — **not** a replacement for `Abstrekkt Home.html`, which stays live with its own "Construction, not recovery" peer-support positioning and Brutalist Archive tokens |
 
-**Jul 29, 2026 — ground-truth check on two open REVIEW flags in this lane (no disposition changed, findings only):**
+**Aug 11, 2026 — ground-truth check on two open REVIEW flags in this lane (no disposition changed, findings only):**
 - `Abstrekkt Founder.html` (v1) is **not** a stale orphan — verified via `href=` grep (not just filename mentions) it's genuinely hyperlinked from `Abstrekkt Home.html`, `Abstrekkt Pillars.html`, `Abstrekkt Contact.html`, `Tax the Damage.html`, `Index.html`, and `Abstrekkt Founder v2.html` itself. `Abstrekkt Founder v2.html` has exactly one genuine inbound `<a href>`, from `Index.html` — the two `Audit -` pages only *mention* its filename as plain text inside chip/item markup, not as a link (`Audit - Ecosystem, Jul 8.html` says outright that v2 is "reachable only through the Index"). Retiring v1 in favor of v2 means repointing five live nav links — an active editorial/content decision, not bookkeeping. Leaving REVIEW as-is for Kyle rather than resolving unilaterally.
 - `Abstrekkt Design.html` has exactly one inbound link sitewide, from `Index.html` (a sitemap/index page — weak evidence of active use, not proof of orphan status either). Relationship to the studio site remains genuinely unclear; REVIEW left open.
 
@@ -83,7 +83,7 @@ Kyle Rosebrook personal, Memoir/Corridor incl. the stitch scene archive) are que
 
 **✓ RESOLVED — Jul 13, 2026, hybrid policy (interim, until Kyle rules definitively):** two systems exist — CLAUDE.md's **Brutalist Archive** (carbon `#131315`/`#0A0A0C`, amber `#ffbf00`/`#ffe2ab`, EB Garamond/Literata/JetBrains Mono) and the bound `_ds/abstrekkt-design-system-00b28ec4-...` **Reading Room at Midnight** (ink `#0d0c0a`, brass `#C8A86A`, Fraunces/Crimson Pro/JetBrains Mono). Rather than pick a winner or mass-restyle, the two are kept as **separate, non-mixing registers**:
 - **Existing corpus (all ~182 pre-Jul-13 files) stays on Brutalist Archive.** No silent restyle. This is the identity readers/journalists/pitches already saw.
-- **`_ds/` Reading Room bundle is reserved for net-new Studio-lane builds** that explicitly load the bundle — treat it as this lane's "quiet variant," not a replacement. As of Jul 29, 2026, three files genuinely load it via `<link>`/`<script>` tags: `Abstrekkt Studio Landing.html` (the original), `Abstrekkt Operator Console.html`, and `Repository Operations Hub.html` (registered Jul 29, 2026 — see Operations & Handoff lane). A fourth file, `Audit - Full Corpus, Jul 13.html`, only *mentions* `_ds/` in prose describing this policy — it does not load the bundle. Sitewide grep for the `_ds/` substring in `.html` files confirms no others beyond these four occurrences.
+- **`_ds/` Reading Room bundle is reserved for net-new Studio-lane builds** that explicitly load the bundle — treat it as this lane's "quiet variant," not a replacement. As of Aug 11, 2026, three files genuinely load it via `<link>`/`<script>` tags: `Abstrekkt Studio Landing.html` (the original), `Abstrekkt Operator Console.html`, and `Repository Operations Hub.html` (registered Aug 11, 2026 — see Operations & Handoff lane). A fourth file, `Audit - Full Corpus, Jul 13.html`, only *mentions* `_ds/` in prose describing this policy — it does not load the bundle. Sitewide grep for the `_ds/` substring in `.html` files confirms no others beyond these four occurrences.
 - **Never mix token sets in one file.** A page either loads `_ds/` and uses its components, or defines Brutalist Archive tokens inline — not both.
 - Both share the same structural DNA (dark ink base, single warm accent, serif display + mono meta) so cross-lane visits don't feel like different brands, just different rooms of the same studio.
 - This is the working default for this audit pass. Still flagged for a real founder ruling — revisit if Kyle wants one system going forward.
@@ -203,7 +203,15 @@ is wrong, restore from knowledge index. Known open defect carried with it:
 **STALE:**
 - `project-focus-evolution_archive_2026-07.html` — was the `_v2` canonical; content promoted to the suffix-free name above
 
-**REVIEW list resolved Jul 29, 2026 (ground-truth check against disk):** of the 6 files previously listed here, `voice-generator.html`, `kyle_brilliant_moments.html`, and `matt-wolfe-tldr.html` no longer exist anywhere in the project tree — sitewide `find` turned up nothing; dropped from this list rather than left as a stale claim. `writing-fixer.jsx`, `antigravity-build-prompts.md`, and `stitch-prompts.md` do exist and are now registered above (Cross-lane reference table).
+**REVIEW list resolved Aug 11, 2026 (ground-truth check against disk):** of the 6 files previously listed here, `voice-generator.html`, `kyle_brilliant_moments.html`, and `matt-wolfe-tldr.html` no longer exist anywhere in the project tree — sitewide `find` turned up nothing; dropped from this list rather than left as a stale claim. `writing-fixer.jsx`, `antigravity-build-prompts.md`, and `stitch-prompts.md` do exist and are now registered above (Cross-lane reference table).
+
+**Aug 11, 2026 — `abstrekkt-author-hub.jsx` CANON-drift mechanism closed:** the hub's `CanonTab()`
+previously hardcoded a parallel copy of this table (`CANON_TABLE`/`STALE` arrays) — third drift
+incident per `canon-sync-ops.md`. Replaced with a single pasted `CANON_SOURCE` block (verbatim
+copy of §1, from this heading through the divider before §2) parsed client-side by
+`parseCanonSource()`. Future syncs: finish editing §1 first, then paste it into `CANON_SOURCE` —
+in that order, so the pasted copy includes its own sync notes instead of omitting itself. See
+`canon-sync-ops.md` for the parser spec.
 
 ---
 
@@ -216,7 +224,7 @@ is wrong, restore from knowledge index. Known open defect carried with it:
 
 **Jul 11, 2026 — built from the portable package, incorporating Kyle's direct edits to the source `.md` files.** The uploads package (generated by Claude Cowork from the 225-doc KB) existed only as flat markdown in `uploads/`, no live counterpart in this project. Built as one interactive console rather than a flat document render so the Milestone-0 checklist and the 9 registers (decisions, contradictions, risks, gaps, bottlenecks, blindspots, failure modes, unknown-unknowns, open loops) are actually usable, not just read — checklist state persists per-browser via localStorage. Did not alter any existing FlashFusion/LLC-kit canonical file. Where the package's own Contradiction Log flags something the live project already resolved — C-2, the obsolete "Chaos Club Co. LLC" two-entity plan — that's already fixed in `LLC Formation Kit.html` per the Jul 8 audit fix log; the console reports the package's finding as-is (this registry entry is the cross-reference, the package source wasn't edited). This lane is Kyle-owned business/legal fact, not design content — do not "resolve" a flagged contradiction (Ryan $ amount, chaosclub.co naming, cert name) on Kyle's behalf; those stay open pending Kyle.
 
-**Jul 29, 2026 — registered `Repository Operations Hub.html` (previously live but unregistered).** The root handoff `README.md` names this file as the design open at export — the primary design of the handoff — yet it had no registry entry, violating §4 ("any artifact not in this table doesn't exist officially"). Registered as-is; no content edits. It loads the `_ds/` Reading Room bundle (tokens + `_ds_bundle.js` components), which is worth knowing before assuming the Studio-lane `_ds/` usage notes elsewhere in this file are exhaustive.
+**Aug 11, 2026 — registered `Repository Operations Hub.html` (previously live but unregistered).** The root handoff `README.md` names this file as the design open at export — the primary design of the handoff — yet it had no registry entry, violating §4 ("any artifact not in this table doesn't exist officially"). Registered as-is; no content edits. It loads the `_ds/` Reading Room bundle (tokens + `_ds_bundle.js` components), which is worth knowing before assuming the Studio-lane `_ds/` usage notes elsewhere in this file are exhaustive.
 
 **STALE:** none.
 
@@ -267,4 +275,4 @@ NEVER:       pitch_console_v2.html                ← v2 implies v1 is still ali
 
 ---
 
-*Reconciled Jul 9, 2026 — synced canonical set to 9 directly-edited/added artifacts (book_command_center, editorial-framework, pitch_console, pitch_generator, memoir_engine, kyle-abstrekkt-index, playbook, project-focus-evolution, publishing_command_center). Last touched Jul 29, 2026 — see dated notes throughout §1 for the full history; this line records the most recent full-file bookkeeping pass, not every incremental edit since.*
+*Reconciled Jul 9, 2026 — synced canonical set to 9 directly-edited/added artifacts (book_command_center, editorial-framework, pitch_console, pitch_generator, memoir_engine, kyle-abstrekkt-index, playbook, project-focus-evolution, publishing_command_center). Last touched Aug 11, 2026 — see dated notes throughout §1 for the full history; this line records the most recent full-file bookkeeping pass, not every incremental edit since.*

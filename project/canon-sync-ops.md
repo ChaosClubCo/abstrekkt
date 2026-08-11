@@ -87,6 +87,11 @@ const STALE = [
 > incident from this mechanism. Follow-up worth 30 min: render the CANON tab
 > from one pasted source block instead of a maintained array.
 
+**RESOLVED Aug 11, 2026:** implemented — `abstrekkt-author-hub.jsx` now stores CANON.md §1 as one
+pasted `CANON_SOURCE` template string; `parseCanonSource()` derives lane groups, rows, and a
+best-effort stale list from it for `CanonTab()`. Syncing CANON.md into the hub is now a single
+copy-paste (escape backticks/`${` on paste) instead of a manual field-by-field transcription.
+
 ---
 
 ## 3. Upload set
