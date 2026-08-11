@@ -1,4 +1,40 @@
-# Deploy — kyle.abstrekkt.com
+# Deploy — abstrekkt.com root + kyle.abstrekkt.com
+
+## abstrekkt.com (root) — blocked on freeing the domain first
+
+**Upload the contents of `abstrekkt-com/` to a static host once the domain is freed.**
+Everything in that folder is generated from the four studio canonicals
+(`Abstrekkt Home.html`, `Abstrekkt Founder.html`, `Abstrekkt Pillars.html`,
+`Abstrekkt Contact.html`) with `image-slot` tooling stripped and cross-page links made
+root-relative. Never edit the copies — edit the canonicals, then regenerate.
+
+| File | Live URL |
+|---|---|
+| `index.html` | abstrekkt.com |
+| `founder/index.html` | abstrekkt.com/founder |
+| `pillars/index.html` | abstrekkt.com/pillars |
+| `contact/index.html` | abstrekkt.com/contact |
+| `abstrekkt/nav-toggle.js` | shared mobile-nav script, loaded by all four pages |
+| `404.html` | any bad URL |
+
+**Why this is blocked right now:** the bare `abstrekkt.com` apex is currently bound to
+Kyle's Dispatch tool (a "Continue with ChatGPT" sign-in wall, `/_sites/dispatch-assets/`) —
+found Aug 11, 2026. Full diagnosis and decision log in `../canon-sync-ops.md` §6 (D11).
+Nothing on the live domain has been changed; this needs Kyle to act on two systems this
+project can't reach:
+
+1. **In whatever ChatGPT-Apps/OpenAI dashboard set up Dispatch's custom domain:** move that
+   binding from the bare `abstrekkt.com` apex to `dispatch.abstrekkt.com`.
+2. **In the Cloudflare DNS zone for abstrekkt.com** (once step 1 is done and the apex is
+   free): replace whatever A/CNAME record currently answers the apex (today: A records
+   `104.21.53.197` / `172.67.218.64`, the Cloudflare-proxied IPs Dispatch was using) with a
+   Cloudflare Pages custom-domain binding pointed at an upload of this `abstrekkt-com/`
+   folder. Add a `CNAME dispatch → <target the ChatGPT-Apps dashboard gives you>`. Leave the
+   MX records and the two Google-verification TXT records untouched — unrelated to this.
+3. **Verify** — abstrekkt.com, /founder, /pillars, /contact all load over https; a bad URL
+   shows the 404; `dispatch.abstrekkt.com` still reaches Dispatch correctly.
+
+## kyle.abstrekkt.com
 
 **Upload the contents of `kyle-abstrekkt-com/` to a static host. That is the whole deploy.**
 Everything in that folder is generated from the three root canonicals

@@ -2,6 +2,31 @@
 
 > Working backlog. Update as sprints close. See CANON.md for canonical-file rules.
 
+### Sprint — Aug 11, 2026: abstrekkt.com domain-gate diagnosis + deploy package
+Diagnosed why abstrekkt.com and /playbook were returning a "Continue with ChatGPT" sign-in
+wall instead of any Abstrekkt content: Kyle's Dispatch tool has the bare apex bound at the
+DNS/platform level, not this project's own code. Full finding + exact DNS/dashboard steps in
+`canon-sync-ops.md` §6 (decision D11, OPEN). Built the buildable half — same shape as the
+Jul 12 kyle.abstrekkt.com sprint: package generated, Kyle's remaining steps are two systems
+this project can't reach (the ChatGPT-Apps domain binding, and Cloudflare DNS writes).
+
+- [x] `deploy/abstrekkt-com/` — production copies of the four studio canonicals: `index.html`,
+      `founder/index.html` (v1, matches live nav), `pillars/index.html`, `contact/index.html`,
+      `404.html`. `image-slot` → static "PHOTO ON REQUEST" frames; cross-page links among the
+      four rebased root-relative; links to not-yet-live sibling properties (Corridor,
+      Load-Bearing, Journal) left as-is — known 404s until those lanes ship. GENERATED — never
+      edit; regenerate from root canonicals after any edit.
+- [x] "Root routing" (line below) resolved: root = studio, per the Jul 12 recommendation
+      Kyle never explicitly confirmed but which `domain-map.html` already documented as the
+      plan — the "properties" footer/nav block gate is now built (links kyle.abstrekkt.com),
+      so nothing else blocks root = studio going live once the domain is freed.
+- [x] CANON.md + `domain-map.html` updated to point at the package and record the domain-gate
+      finding.
+- [ ] **Kyle only — two systems this project has no access to:** (1) move Dispatch's custom
+      domain off the bare apex to `dispatch.abstrekkt.com` in the ChatGPT-Apps dashboard,
+      (2) point the freed apex at a Cloudflare Pages deploy of `deploy/abstrekkt-com/` per the
+      DNS records in `canon-sync-ops.md` §6. Unblocks root = studio going live.
+
 ### Sprint — Jul 12, 2026 (pm): kyle.abstrekkt.com deploy package
 Every other open item is gated on a Kyle decision or input; the buildable half of Deploy
 step 1 was the only implementable work. Production package generated — Kyle's remaining
@@ -37,7 +62,7 @@ Walls stay up ("all present, clearly separated"). Journalists are audience #1.
       keep standing" is now part of the angle); press-kit fact sheet row added.
 - [ ] **Memoir excerpt selection** — gates memoir.abstrekkt.com public face.
 - [ ] **HOVAV scope** — corridor-walk of existing 111 scenes vs. bigger game.
-- [ ] **Root routing** — accept recommendation (root = studio + properties block) or router.
+- [x] **Root routing** — root = studio, properties block built (Aug 11, see sprint above).
 - [ ] **Deploy step 1** — kyle.abstrekkt.com. Build half done Jul 12 pm: production
       package at `deploy/kyle-abstrekkt-com/`. Remaining is Kyle-only: pick host, upload
       folder, CNAME `kyle` → host, `kyle@abstrekkt.com` mailbox — steps in
