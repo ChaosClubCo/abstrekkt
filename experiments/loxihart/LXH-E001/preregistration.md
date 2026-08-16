@@ -1,6 +1,6 @@
 # LXH-E001 Preregistration
 
-Preregistration state: LOCKED WHEN BOTH ARMS HAVE NOT STARTED
+Preregistration state: LOCKED ONCE EITHER ARM HAS STARTED
 
 ## Research question
 Can Loxihart reduce verification cost enough to preserve the economics of one generated internal workflow while maintaining equivalent-or-better assurance than conventional verification?
