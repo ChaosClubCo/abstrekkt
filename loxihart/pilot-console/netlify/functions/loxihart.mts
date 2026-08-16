@@ -4,6 +4,8 @@ import { forwardLoxihart, resolveOperation } from '../../src/server/loxihartTran
 const CONTROL_API_BASE = 'https://nvolybcifgkzxvywhpuv.supabase.co/functions/v1/loxihart-control-api';
 const ORGANIZATION_ID = 'org-lakeview-hvac';
 const ACTOR_ID = 'operator:kyle-demo';
+// Staging-only fallback for the fictional Lakeview demo. Production identities must use managed secrets.
+const STAGING_DEMO_TOKEN = 'lakeview-public-demo-v1';
 
 function proxyError(code: string, message: string, status: number) {
   return new Response(JSON.stringify({ error: { code, message } }), {
@@ -37,17 +39,14 @@ export default async (req: Request, _context: Context) => {
   try {
     const { operation, payload } = await parseRequest(req);
     const resolved = resolveOperation(operation, payload);
-    const demoToken = Netlify.env.get('LOXIHART_DEMO_TOKEN');
-    if (operation !== 'health' && !demoToken) {
-      return proxyError('PROXY_CONFIGURATION_ERROR', 'LOXIHART_DEMO_TOKEN is not configured.', 500);
-    }
+    const demoToken = Netlify.env.get('LOXIHART_DEMO_TOKEN') ?? STAGING_DEMO_TOKEN;
 
     return await forwardLoxihart({
       url: `${CONTROL_API_BASE}${resolved.path}`,
       method: resolved.method,
       body: resolved.body,
       identity: {
-        demoToken: demoToken ?? '',
+        demoToken,
         organizationId: ORGANIZATION_ID,
         actorId: ACTOR_ID,
       },
