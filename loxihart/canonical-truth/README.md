@@ -1,23 +1,13 @@
 # Loxihart Canonical Truth Mutation Gate
 
-This package is the enforcement boundary for autonomous canonical mutations.
+`createCanonicalMutationCommandHandler()` is the package's sole public entrypoint. Startup fails closed unless the runtime supplies a canonical store, transaction manager, replay store, immutable receipt sink, clock, policy/release/environment bindings, and at least one trusted Ed25519 public key.
 
-`executeCanonicalMutation()` verifies a fresh Ed25519-signed conformance result before entering the mutation transaction, then locks and rechecks the canonical head, atomically consumes the result ID to prevent replay, applies the mutation, and appends an immutable decision receipt in the same transaction.
+Every command must explicitly declare `executionMode: "AUTONOMOUS"`, use an `agent:` actor, and carry a fresh signed `canonical-truth.acceptance.v1` result. The handler then locks and rechecks the canonical head, atomically consumes the result ID, applies the mutation, and appends its receipt in the transaction.
 
-## Required runtime dependencies
-
-- `canonicalStore` with `readHead`, `readHeadForUpdate`, and `applyMutation`
-- transactional `replayStore.consumeOnce`
-- transactional `receiptSink.append`
-- transaction manager
-- pinned trusted Ed25519 public keys supplied from the deployment secret/configuration system
-
-Do not store private signing keys or production public-key configuration in this repository. Rotate trusted keys by adding a new `kid`, overlapping validation, then removing the retired key after all issued results expire.
-
-## Verification
+Production private keys must never enter this process or repository. Supply only signer public keys through the deployment secret/configuration system and parse them with `parseTrustedPublicKeys()`.
 
 ```bash
 npm test
 ```
 
-The handler denies mutations when signatures, freshness, suite identity, policy, release lineage, environment, canonical head, evidence hash, assertion completeness, or replay checks fail.
+This package deliberately does not ship in-memory or filesystem production adapters. The service owning canonical state must inject adapters backed by the same transactional database so replay consumption, mutation, and the allowed receipt commit atomically.
