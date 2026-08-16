@@ -7,11 +7,7 @@ source_repositories:
   Krosebrook/Talk-2-me: 8205a5eefc70b677a682b76b3b81f93cd37343d2
   Krosebrook/beta-tester-army: def23fbd2721895711db075e443cd4ceada1959d
 invalidation_policy:
-  status_precedence:
-  - STOP_SHIP
-  - HOLD
-  - GO
-  - NOT_STARTED
+  status_precedence: [STOP_SHIP, HOLD, GO, NOT_STARTED]
   rules:
   - FAIL on any required check => STOP_SHIP
   - INVALIDATED, MISSING, NOT_RUN, BLOCKED, pending reruns, missing release SHA, or unresolved UNKNOWN_IMPACT => HOLD once verification has started
@@ -90,7 +86,7 @@ components:
     voice-studio: [VS-E2E-01, VS-PREVIEW-01]
 - component_id: talk-radio-ui
   repository: Krosebrook/Talk-2-me
-  path_patterns: [src/components/JuniorJingleStudio.tsx, src/KIDS_FEATURES.md]
+  path_patterns: [src/components/JuniorJingleStudio.tsx]
   classification: SCOPED_FUNCTIONAL
   affects:
     kids-radio: [KR-DELETE-01, KR-E2E-01, KR-MIX-01, KR-OFFLINE-01, KR-SAVE-01, KR-VOICE-01]
@@ -109,7 +105,7 @@ components:
     release-tester: [RT-BUILD-01]
 - component_id: bta-runner
   repository: Krosebrook/beta-tester-army
-  path_patterns: [src/functions/browserbaseRunner.js, src/functions/executeFlowTest.js]
+  path_patterns: [src/functions/browserbaseRunner.js, src/functions/agentBrowserRunner.js]
   classification: SCOPED_FUNCTIONAL
   affects:
     release-tester: [RT-E2E-01, RT-EVIDENCE-01, RT-FIXTURE-01, RT-NET-01, RT-RUN-01, RT-SELECTOR-01]
@@ -119,38 +115,28 @@ components:
   classification: SCOPED_FUNCTIONAL
   affects:
     release-tester: [RT-BUILD-01, RT-E2E-01, RT-EVIDENCE-01, RT-FIXTURE-01, RT-NET-01, RT-NOSIM-01, RT-PROV-01, RT-SELECTOR-01]
-check_dependencies:
-- check_id: C-FLOW-01
-  prerequisites: [C-STATUS-01, C-STALE-01, C-SOURCE-01, C-LOC-01, C-DETOUR-01]
-- check_id: C-STABILITY-01
-  prerequisites: [C-FLOW-01]
-- check_id: S-PERSIST-02
-  prerequisites: [S-PERSIST-01]
-- check_id: S-EXPORT-01
-  prerequisites: [S-GESTURE-01]
-- check_id: KR-E2E-01
-  prerequisites: [KR-REC-01, KR-MIX-01, KR-SAVE-01, KR-OFFLINE-01, KR-AUTH-01, KR-DELETE-01, KR-VOICE-01]
-- check_id: VS-E2E-01
-  prerequisites: [VS-CONSENT-01, VS-TRAIN-01, VS-FAIL-01, VS-AUTH-01, VS-ISOLATION-01, VS-DELETE-01, VS-PREVIEW-01]
-- check_id: RT-E2E-01
-  prerequisites: [RT-RUN-01, RT-FIXTURE-01, RT-SELECTOR-01, RT-NET-01, RT-EVIDENCE-01, RT-PROV-01, RT-NOSIM-01]
-release_wide_rules:
-- repository: Krosebrook/Crossing
-  patterns: [app/build.gradle.kts, build.gradle.kts, settings.gradle.kts, 'gradle/**']
-  products: [crossing]
-  reason: Build/runtime dependency or signing changes.
-- repository: Krosebrook/crinkle-n-crease
-  patterns: [app/build.gradle.kts, build.gradle.kts, settings.gradle.kts, 'gradle/**']
-  products: [sticker-room]
-  reason: Build/runtime dependency or signing changes.
+non_functional_rules:
 - repository: Krosebrook/Talk-2-me
-  patterns: [package.json, package-lock.json, server.ts, 'vite.config.*', 'tsconfig*.json']
-  products: [kids-radio, voice-studio]
-  reason: Shared runtime/server/build contract change.
+  patterns: [README.md, ROADMAP.md, 'docs/**', src/KIDS_FEATURES.md]
+- repository: Krosebrook/Crossing
+  patterns: [README.md, DOCUMENTATION.md, 'docs/**']
+- repository: Krosebrook/crinkle-n-crease
+  patterns: [README.md, 'docs/**']
 - repository: Krosebrook/beta-tester-army
-  patterns: [package.json, package-lock.json, 'vite.config.*', jsconfig.json]
-  products: [release-tester]
-  reason: Runtime/build/test contract change.
+  patterns: [README.md, 'docs/**']
+check_dependencies:
+- {check_id: C-FLOW-01, prerequisites: [C-STATUS-01, C-STALE-01, C-SOURCE-01, C-LOC-01, C-DETOUR-01]}
+- {check_id: C-STABILITY-01, prerequisites: [C-FLOW-01]}
+- {check_id: S-PERSIST-02, prerequisites: [S-PERSIST-01]}
+- {check_id: S-EXPORT-01, prerequisites: [S-GESTURE-01]}
+- {check_id: KR-E2E-01, prerequisites: [KR-REC-01, KR-MIX-01, KR-SAVE-01, KR-OFFLINE-01, KR-AUTH-01, KR-DELETE-01, KR-VOICE-01]}
+- {check_id: VS-E2E-01, prerequisites: [VS-CONSENT-01, VS-TRAIN-01, VS-FAIL-01, VS-AUTH-01, VS-ISOLATION-01, VS-DELETE-01, VS-PREVIEW-01]}
+- {check_id: RT-E2E-01, prerequisites: [RT-RUN-01, RT-FIXTURE-01, RT-SELECTOR-01, RT-NET-01, RT-EVIDENCE-01, RT-PROV-01, RT-NOSIM-01]}
+release_wide_rules:
+- {repository: Krosebrook/Crossing, patterns: [app/build.gradle.kts, build.gradle.kts, settings.gradle.kts, 'gradle/**'], products: [crossing], reason: 'Build/runtime dependency or signing changes.'}
+- {repository: Krosebrook/crinkle-n-crease, patterns: [app/build.gradle.kts, build.gradle.kts, settings.gradle.kts, 'gradle/**'], products: [sticker-room], reason: 'Build/runtime dependency or signing changes.'}
+- {repository: Krosebrook/Talk-2-me, patterns: [package.json, package-lock.json, server.ts, 'vite.config.*', 'tsconfig*.json'], products: [kids-radio, voice-studio], reason: 'Shared runtime/server/build contract change.'}
+- {repository: Krosebrook/beta-tester-army, patterns: [package.json, package-lock.json, 'vite.config.*', jsconfig.json], products: [release-tester], reason: 'Runtime/build/test contract change.'}
 unknown_impact_policy:
   rule: Any changed production path not matched by a NON_FUNCTIONAL, SCOPED_FUNCTIONAL, or RELEASE_WIDE rule creates UNKNOWN_IMPACT.
   effect: Every potentially affected product is HOLD until impact is resolved; no direct transition from UNKNOWN_IMPACT to GO.
