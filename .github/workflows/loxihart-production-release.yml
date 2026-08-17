@@ -16,6 +16,9 @@ env:
   CANDIDATE_SHA: ${{ inputs.candidate_sha }}
   EVIDENCE_ROOT: evidence/production-readiness
 
+permissions:
+  contents: read
+
 jobs:
   freeze:
     name: Freeze / Same-SHA preflight
@@ -33,6 +36,9 @@ jobs:
           set -euo pipefail
           ACTUAL="$(git rev-parse HEAD)"
           test "$ACTUAL" = "$CANDIDATE_SHA" || { echo "STOP: checkout SHA $ACTUAL != frozen SHA $CANDIDATE_SHA"; exit 1; }
+          REF_SHA="$(git ls-remote origin "${{ inputs.candidate_ref }}" | awk '{print $1}')"
+          test -n "$REF_SHA" || { echo "STOP: candidate_ref '${{ inputs.candidate_ref }}' not found on remote"; exit 1; }
+          test "$REF_SHA" = "$CANDIDATE_SHA" || { echo "STOP: candidate_ref resolves to $REF_SHA, expected frozen SHA $CANDIDATE_SHA"; exit 1; }
           mkdir -p "$EVIDENCE_ROOT/$CANDIDATE_SHA/freeze"
           printf '{"schemaVersion":"loxihart.production-gate.v1","gateId":"FREEZE","candidateSha":"%s","candidateRef":"%s","status":"PASS","observedSha":"%s"}\n' "$CANDIDATE_SHA" "${{ inputs.candidate_ref }}" "$ACTUAL" > "$EVIDENCE_ROOT/$CANDIDATE_SHA/freeze/gate-result.json"
           echo "sha=$ACTUAL" >> "$GITHUB_OUTPUT"
@@ -77,9 +83,15 @@ jobs:
           if ((v.critical||0)>0 || (v.high||0)>0) process.exit(2);
           NODE
       - name: Existing tests
-        run: npm test | tee "$GITHUB_WORKSPACE/$EVIDENCE_ROOT/$CANDIDATE_SHA/rg-01/test-results.txt"
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm test | tee "$GITHUB_WORKSPACE/$EVIDENCE_ROOT/$CANDIDATE_SHA/rg-01/test-results.txt"
       - name: Production build
-        run: npm run build | tee "$GITHUB_WORKSPACE/$EVIDENCE_ROOT/$CANDIDATE_SHA/rg-01/build-result.txt"
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run build | tee "$GITHUB_WORKSPACE/$EVIDENCE_ROOT/$CANDIDATE_SHA/rg-01/build-result.txt"
       - name: Record PASS
         if: success()
         run: printf '{"schemaVersion":"loxihart.production-gate.v1","gateId":"RG-01","candidateSha":"%s","status":"PASS"}\n' "$CANDIDATE_SHA" > "$GITHUB_WORKSPACE/$EVIDENCE_ROOT/$CANDIDATE_SHA/rg-01/gate-result.json"
@@ -223,3 +235,10 @@ jobs:
         run: |
           test "$FROZEN_SHA" = "$CANDIDATE_SHA" || { echo 'STOP: gate chain SHA drift'; exit 1; }
           echo "PRODUCTION-DATA-ELIGIBLE: $CANDIDATE_SHA"
+          mkdir -p "$EVIDENCE_ROOT/$CANDIDATE_SHA/gate"
+          printf '{"schemaVersion":"loxihart.production-gate.v1","gateId":"PRODUCTION-DATA-ELIGIBLE","candidateSha":"%s","status":"PASS","gates":["FREEZE","RG-01","RG-02","RG-03","RG-04"]}\n' "$CANDIDATE_SHA" > "$EVIDENCE_ROOT/$CANDIDATE_SHA/gate/gate-result.json"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: loxihart-production-data-eligible-${{ inputs.candidate_sha }}
+          path: evidence/production-readiness/${{ inputs.candidate_sha }}/gate/

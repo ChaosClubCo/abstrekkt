@@ -6,7 +6,7 @@
 - Frozen SHA: `a237db22e7159df2327d0b92ca624079ac124ff8`
 - Frozen ref: `release/loxihart-pilot-console-rc-2026-08-16`
 - Source branch at freeze: `loxihart-pilot-console-build`
-- Release status at freeze: `PENDING_RG01_RG04`
+- Release eligibility at freeze: `PENDING_RG01_RG04`
 
 Never move the frozen ref. A new candidate requires a new ref and release-candidate record.
 
