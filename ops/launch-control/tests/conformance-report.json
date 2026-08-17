@@ -1,0 +1,52 @@
+{
+  "schema_version": "1.0",
+  "generated_at": "2026-08-17T08:47:00-05:00",
+  "suite": "launch-control-status-conformance",
+  "contract_sources": [
+    "ops/launch-control/status-contract.yaml",
+    "ops/launch-control/execution-plan.yaml"
+  ],
+  "runner": "ops/launch-control/tests/status-conformance.mjs",
+  "fixtures": "ops/launch-control/tests/status-fixtures.json",
+  "execution": {
+    "behavioral_validation": "independent execution of the same decision rules",
+    "github_actions_workflow": ".github/workflows/launch-control-conformance.yml",
+    "github_actions_observation": "UNAVAILABLE_TO_CONNECTOR",
+    "github_actions_observation_reason": "GitHub integration returned 403 for workflow-runs access; no CI success claim is made from connector data."
+  },
+  "summary": {
+    "behavioral_fixtures_total": 32,
+    "behavioral_fixtures_passed": 32,
+    "behavioral_fixtures_failed": 0,
+    "contract_mismatches": 1,
+    "overall": "FAIL"
+  },
+  "coverage": {
+    "trusted_fail": true,
+    "untrusted_fail": true,
+    "control_artifact_invalid": true,
+    "precedence_collisions": true,
+    "not_started": true,
+    "hold": true,
+    "go": true,
+    "stop_ship": true,
+    "queue_failure_reconciliation": true,
+    "baseline_mapping_gap": true,
+    "unknown_impact": true,
+    "invalidation": true,
+    "release_sha_build_binding": true,
+    "execution_plan_42_check_anchors": true
+  },
+  "mismatches": [
+    {
+      "id": "SEMANTIC-NOT-STARTED-REACHABILITY",
+      "severity": "HIGH",
+      "status": "OPEN",
+      "description": "Potential contract contradiction: control_plane_validity requires exactly_one_current_evidence_record_per_required_check, while not_started_predicate requires current_evidence_set_exists=false and no rerun queue. Because control_plane_invalid is evaluated before NOT_STARTED, a strict evaluator that applies the evidence-cardinality assertion universally will derive HOLD before NOT_STARTED can be reached.",
+      "affected_status": "NOT_STARTED",
+      "recommended_resolution": "Scope exactly_one_current_evidence_record_per_required_check to products whose current_evidence_set_exists=true, or explicitly exempt lifecycle_state=PLANNED products with no evidence/queue from that control-plane assertion. Preserve control-plane-invalid precedence for every other case."
+    }
+  ],
+  "behavioral_result": "All 32 adversarial behavioral fixtures matched the intended precedence and blocker outcomes. No behavioral mismatch was found for trusted FAIL, untrusted FAIL, HOLD, GO, STOP_SHIP, queue reconciliation, baseline gaps, unknown impacts, invalidation, or release SHA/build binding.",
+  "ci_policy": "The committed GitHub Actions workflow runs the Node conformance runner on launch-control changes. Because workflow-run access is unavailable through the current connector, this report does not claim an observed GitHub Actions result."
+}
