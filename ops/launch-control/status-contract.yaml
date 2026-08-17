@@ -1,0 +1,311 @@
+schema_version: "1.0"
+generated_at: "2026-08-17T08:39:00-05:00"
+control_repository: Krosebrook/abstrekkt
+control_path: ops/launch-control/
+
+sources:
+  audit: launch-audit.yaml
+  dependency_map: dependency-map.yaml
+  execution_plan: execution-plan.yaml
+
+allowed_statuses:
+  - NOT_STARTED
+  - HOLD
+  - GO
+  - STOP_SHIP
+
+allowed_lifecycle_states:
+  - PLANNED
+  - VERIFYING
+  - RELEASE_CANDIDATE
+  - RELEASED
+
+allowed_evidence_states:
+  - PASS
+  - FAIL
+  - MISSING
+  - NOT_RUN
+  - INVALIDATED
+  - BLOCKED
+
+allowed_provenance:
+  - OBSERVED
+  - EXECUTED
+  - SIMULATED
+  - INFERRED
+  - SYNTHETIC
+  - UNVERIFIED
+
+status_precedence:
+  - priority: 1
+    status: STOP_SHIP
+    rule: trusted_required_fail_exists
+  - priority: 2
+    status: HOLD
+    rule: control_plane_invalid
+    blocker_code: CONTROL_ARTIFACT_INVALID
+  - priority: 3
+    status: NOT_STARTED
+    rule: planned_without_evidence_or_queue
+  - priority: 4
+    status: GO
+    rule: hold_to_go_predicate
+  - priority: 5
+    status: HOLD
+    rule: default_unresolved_state
+
+trust_boundary:
+  trusted_required_fail:
+    all:
+      - product_id_is_canonical: true
+      - check_id_is_required_for_product: true
+      - exactly_one_current_record_for_check: true
+      - current_result: FAIL
+      - provenance: EXECUTED
+      - executed_at_present: true
+      - verified_commit_sha_present: true
+      - verified_commit_sha_matches_release_commit_sha: true
+      - evidence_artifact_or_execution_reference_present: true
+      - record_schema_valid: true
+    build_binding:
+      rule: >-
+        If the failing check is build-bound, or verified_build_id is populated,
+        verified_build_id must match release_build_id. A non-build-bound executed
+        failure may be trusted from exact-commit execution without a build id.
+    result: TRUSTED_FAIL
+
+  untrusted_fail:
+    rule: >-
+      A FAIL record that does not satisfy trusted_required_fail is not allowed to
+      produce STOP_SHIP by itself. It creates CONTROL_EVIDENCE_INCONSISTENCY and HOLD
+      until reconciled, unless another trusted required FAIL exists.
+    blocker_code: CONTROL_EVIDENCE_INCONSISTENCY
+
+  queue_failure_reconciliation:
+    rule: >-
+      A rerun item with state FAILED must have one corresponding current required
+      evidence record with result FAIL. If that evidence is trusted, derive
+      STOP_SHIP. If missing, duplicated, stale, or untrusted, derive HOLD with
+      CONTROL_EVIDENCE_INCONSISTENCY.
+
+control_plane_validity:
+  required_assertions:
+    - canonical_product_ids
+    - product_ids_match_dependency_map
+    - required_check_sets_match_dependency_map
+    - audited_shas_match_dependency_map
+    - exactly_one_current_evidence_record_per_required_check
+    - evidence_states_are_mutually_exclusive
+    - evidence_and_rerun_states_agree
+    - evidence_counts_equal_required_check_counts
+    - rerun_counts_equal_queue_items
+    - release_wide_rules_invalidate_all_required_checks
+    - baseline_mapping_gaps_are_separate_from_change_impacts
+    - sticker_resource_path_is_mapped
+    - lifecycle_status_derivation_is_deterministic
+    - no_go_with_unresolved_blockers
+  valid_when:
+    artifact_validation_result: PASS
+    every_required_assertion: true
+
+not_started_predicate:
+  all:
+    - lifecycle_state: PLANNED
+    - current_evidence_set_exists: false
+    - rerun_queue_exists: false
+  note: >-
+    Baseline mapping gaps may exist while a product is genuinely PLANNED; they become
+    GO blockers once verification starts. Any current evidence set or rerun queue means
+    the product is no longer eligible for NOT_STARTED.
+
+hold_to_go_predicate:
+  all:
+    lifecycle:
+      state_in:
+        - VERIFYING
+        - RELEASE_CANDIDATE
+        - RELEASED
+
+    release_identity:
+      release_commit_sha_present: true
+      release_build_id_present: true
+
+    evidence_cardinality:
+      exactly_one_current_record_per_required_check: true
+      current_record_count_equals_required_check_count: true
+
+    evidence_states:
+      fail: 0
+      missing: 0
+      not_run: 0
+      invalidated: 0
+      blocked: 0
+      pass_equals_required_check_count: true
+
+    evidence_validity:
+      every_required_record_current_result: PASS
+      every_required_record_provenance: EXECUTED
+      every_required_record_verified_commit_matches_release_commit: true
+      every_required_record_verified_build_matches_release_build: true
+      every_required_record_rerun_required: false
+      every_required_record_invalidation_invalidated: false
+      stale_required_records: 0
+
+    rerun_queue:
+      pending: 0
+      blocked: 0
+      running: 0
+      failed: 0
+      unresolved: 0
+
+    dependency_integrity:
+      open_baseline_mapping_gaps: 0
+      open_unknown_change_impacts: 0
+      unresolved_invalidation_events: 0
+
+    control_plane:
+      valid: true
+
+status_algorithm:
+  pseudocode:
+    - "normalize canonical product/check/evidence inputs"
+    - "if trusted_required_fail_exists: STOP_SHIP"
+    - "else if control_plane_valid == false: HOLD"
+    - "else if not_started_predicate == true: NOT_STARTED"
+    - "else if hold_to_go_predicate == true: GO"
+    - "else: HOLD"
+
+collision_rules:
+  - conditions: [trusted_required_fail, pending_reruns, baseline_gap]
+    status: STOP_SHIP
+  - conditions: [trusted_required_fail, control_plane_warning]
+    status: STOP_SHIP
+    note: "Only when FAIL trust can be independently established."
+  - conditions: [untrusted_fail, control_plane_invalid]
+    status: HOLD
+  - conditions: [planned, no_evidence, no_queue, baseline_gap]
+    status: NOT_STARTED
+  - conditions: [planned, evidence_or_queue_exists]
+    status: HOLD
+  - conditions: [all_checks_pass, baseline_gap]
+    status: HOLD
+  - conditions: [all_checks_pass, pending_or_blocked_rerun]
+    status: HOLD
+  - conditions: [all_checks_pass, stale_commit_evidence]
+    status: HOLD
+  - conditions: [all_checks_pass, missing_release_build_id]
+    status: HOLD
+  - conditions: [all_checks_pass, unknown_impact]
+    status: HOLD
+  - conditions: [complete_hold_to_go_predicate]
+    status: GO
+
+required_product_gate_fields:
+  product_id: string
+  product_name: string
+  source_repository: string
+  lifecycle_state: "PLANNED|VERIFYING|RELEASE_CANDIDATE|RELEASED"
+  release:
+    commit_sha: "string|null"
+    build_id: "string|null"
+    commit_present: boolean
+    build_present: boolean
+  required_checks:
+    count: integer
+    check_ids: array
+  evidence:
+    total_records: integer
+    exactly_one_per_required_check: boolean
+    counts:
+      pass: integer
+      fail: integer
+      missing: integer
+      not_run: integer
+      invalidated: integer
+      blocked: integer
+    valid_for_release: boolean
+    all_verified_commit_sha_match: boolean
+    all_verified_build_id_match: boolean
+    stale_records: integer
+    rerun_required_records: integer
+    trusted_fail_count: integer
+    untrusted_fail_count: integer
+  rerun_queue:
+    total: integer
+    pending: integer
+    blocked: integer
+    running: integer
+    failed: integer
+    unresolved: integer
+    empty: boolean
+  baseline_mapping_gaps:
+    open: integer
+    ids: array
+  unknown_change_impacts:
+    open: integer
+    ids: array
+  invalidation:
+    unresolved_events: integer
+  blockers:
+    total: integer
+    codes: array
+  control_artifact:
+    validation_result: "PASS|FAIL"
+    valid: boolean
+  predicates:
+    trusted_required_fail_exists: boolean
+    not_started: boolean
+    hold_to_go: boolean
+  derived_status: "NOT_STARTED|HOLD|GO|STOP_SHIP"
+
+products:
+  crossing:
+    product_id: crossing
+    product_name: Crossing
+    source_repository: Krosebrook/Crossing
+    lifecycle_state: VERIFYING
+    release_commit_sha: d788862eabef286c4c1c71ed145c77e275b0cd0a
+    required_check_count: 9
+    current_baseline_mapping_gaps: [BMG-CROSS-001]
+    current_unknown_change_impacts: []
+    current_derived_status: HOLD
+  sticker-room:
+    product_id: sticker-room
+    product_name: Sticker Room
+    source_repository: Krosebrook/crinkle-n-crease
+    lifecycle_state: VERIFYING
+    release_commit_sha: edcebd9b86aac4b801861e4eade45b03d9ecb2c6
+    required_check_count: 8
+    current_baseline_mapping_gaps: []
+    current_unknown_change_impacts: []
+    current_derived_status: HOLD
+  kids-radio:
+    product_id: kids-radio
+    product_name: Kids Radio Studio
+    source_repository: Krosebrook/Talk-2-me
+    lifecycle_state: VERIFYING
+    release_commit_sha: 8205a5eefc70b677a682b76b3b81f93cd37343d2
+    required_check_count: 8
+    current_baseline_mapping_gaps: [BMG-TALK-001, BMG-TALK-002]
+    current_unknown_change_impacts: []
+    current_derived_status: HOLD
+  voice-studio:
+    product_id: voice-studio
+    product_name: Voice Studio
+    source_repository: Krosebrook/Talk-2-me
+    lifecycle_state: VERIFYING
+    release_commit_sha: 8205a5eefc70b677a682b76b3b81f93cd37343d2
+    required_check_count: 8
+    current_baseline_mapping_gaps: [BMG-TALK-001, BMG-TALK-002]
+    current_unknown_change_impacts: []
+    current_derived_status: HOLD
+  release-tester:
+    product_id: release-tester
+    product_name: Release Tester
+    source_repository: Krosebrook/beta-tester-army
+    lifecycle_state: VERIFYING
+    release_commit_sha: def23fbd2721895711db075e443cd4ceada1959d
+    required_check_count: 9
+    current_baseline_mapping_gaps: [BMG-BTA-001, BMG-BTA-002]
+    current_unknown_change_impacts: []
+    current_derived_status: HOLD
