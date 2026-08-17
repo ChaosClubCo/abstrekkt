@@ -1,5 +1,5 @@
-schema_version: "1.0"
-generated_at: "2026-08-17T08:39:00-05:00"
+schema_version: "1.1"
+generated_at: "2026-08-17T12:20:00-05:00"
 control_repository: Krosebrook/abstrekkt
 control_path: ops/launch-control/
 
@@ -94,29 +94,61 @@ control_plane_validity:
     - product_ids_match_dependency_map
     - required_check_sets_match_dependency_map
     - audited_shas_match_dependency_map
-    - exactly_one_current_evidence_record_per_required_check
     - evidence_states_are_mutually_exclusive
     - evidence_and_rerun_states_agree
-    - evidence_counts_equal_required_check_counts
     - rerun_counts_equal_queue_items
     - release_wide_rules_invalidate_all_required_checks
     - baseline_mapping_gaps_are_separate_from_change_impacts
     - sticker_resource_path_is_mapped
     - lifecycle_status_derivation_is_deterministic
     - no_go_with_unresolved_blockers
+
+  scoped_assertions:
+    exactly_one_current_evidence_record_per_required_check:
+      applies_when:
+        current_evidence_set_exists: true
+      when_not_applicable: PASS
+      rule: >-
+        A product with a current evidence set must have exactly one current evidence
+        record for every required check. A product with no current evidence set is
+        not invalid merely because those records do not exist.
+
+    evidence_counts_equal_required_check_counts:
+      applies_when:
+        current_evidence_set_exists: true
+      when_not_applicable: PASS
+      rule: >-
+        Evidence-state counts must equal the required-check count only after a current
+        evidence set exists. Absence of evidence is valid for a genuinely PLANNED
+        product that also has no rerun queue.
+
+  not_started_control_exemption:
+    all:
+      - lifecycle_state: PLANNED
+      - current_evidence_set_exists: false
+      - rerun_queue_exists: false
+    effect: >-
+      The absence of evidence records and rerun-queue items is valid control-plane
+      state for NOT_STARTED and must not cause CONTROL_ARTIFACT_INVALID. All other
+      required control assertions still apply.
+
   valid_when:
     artifact_validation_result: PASS
     every_required_assertion: true
+    every_applicable_scoped_assertion: true
 
 not_started_predicate:
   all:
     - lifecycle_state: PLANNED
     - current_evidence_set_exists: false
     - rerun_queue_exists: false
+  result: NOT_STARTED
   note: >-
-    Baseline mapping gaps may exist while a product is genuinely PLANNED; they become
-    GO blockers once verification starts. Any current evidence set or rerun queue means
-    the product is no longer eligible for NOT_STARTED.
+    This path is explicitly valid. Baseline mapping gaps may exist while a product is
+    genuinely PLANNED; they become GO blockers once verification starts. Evidence
+    cardinality and evidence-count assertions do not apply until a current evidence
+    set exists. Any current evidence set or rerun queue means the product is no longer
+    eligible for NOT_STARTED.
 
 hold_to_go_predicate:
   all:
@@ -131,6 +163,7 @@ hold_to_go_predicate:
       release_build_id_present: true
 
     evidence_cardinality:
+      current_evidence_set_exists: true
       exactly_one_current_record_per_required_check: true
       current_record_count_equals_required_check_count: true
 
@@ -171,7 +204,7 @@ status_algorithm:
     - "normalize canonical product/check/evidence inputs"
     - "if trusted_required_fail_exists: STOP_SHIP"
     - "else if control_plane_valid == false: HOLD"
-    - "else if not_started_predicate == true: NOT_STARTED"
+    - "else if lifecycle_state == PLANNED and current_evidence_set_exists == false and rerun_queue_exists == false: NOT_STARTED"
     - "else if hold_to_go_predicate == true: GO"
     - "else: HOLD"
 
@@ -184,6 +217,8 @@ collision_rules:
   - conditions: [untrusted_fail, control_plane_invalid]
     status: HOLD
   - conditions: [planned, no_evidence, no_queue, baseline_gap]
+    status: NOT_STARTED
+  - conditions: [planned, no_evidence, no_queue, no_baseline_gap]
     status: NOT_STARTED
   - conditions: [planned, evidence_or_queue_exists]
     status: HOLD
@@ -214,8 +249,9 @@ required_product_gate_fields:
     count: integer
     check_ids: array
   evidence:
+    current_evidence_set_exists: boolean
     total_records: integer
-    exactly_one_per_required_check: boolean
+    exactly_one_per_required_check: "boolean|null"
     counts:
       pass: integer
       fail: integer
@@ -231,6 +267,7 @@ required_product_gate_fields:
     trusted_fail_count: integer
     untrusted_fail_count: integer
   rerun_queue:
+    exists: boolean
     total: integer
     pending: integer
     blocked: integer
