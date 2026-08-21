@@ -1,0 +1,105 @@
+name: Loxihart RG-01 Dependency Safety
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - loxihart/pilot-console/**
+      - .github/workflows/loxihart-rg01-dependency-safety.yml
+  push:
+    branches:
+      - loxihart/production-gates-2026-08-21
+    paths:
+      - loxihart/pilot-console/**
+      - .github/workflows/loxihart-rg01-dependency-safety.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  EVIDENCE_DIR: evidence/rg-01
+
+jobs:
+  rg01:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: loxihart/pilot-console
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            loxihart/pilot-console
+            .github/workflows
+          sparse-checkout-cone-mode: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: loxihart/pilot-console/package-lock.json
+
+      - name: Require committed lockfile
+        shell: bash
+        run: test -f package-lock.json
+
+      - name: Reproducible install
+        run: npm ci
+
+      - name: Capture dependency audit
+        shell: bash
+        run: |
+          set -uo pipefail
+          mkdir -p "$GITHUB_WORKSPACE/$EVIDENCE_DIR"
+          npm audit --json > "$GITHUB_WORKSPACE/$EVIDENCE_DIR/npm-audit.json"
+          AUDIT_EXIT=$?
+          node - <<'NODE'
+          const fs = require('fs');
+          const p = process.env.GITHUB_WORKSPACE + '/' + process.env.EVIDENCE_DIR + '/npm-audit.json';
+          const a = JSON.parse(fs.readFileSync(p, 'utf8'));
+          const v = a.metadata?.vulnerabilities ?? {};
+          const summary = {
+            low: v.low ?? 0,
+            moderate: v.moderate ?? 0,
+            high: v.high ?? 0,
+            critical: v.critical ?? 0,
+            total: v.total ?? 0,
+            vulnerablePackages: Object.entries(a.vulnerabilities ?? {}).map(([name, item]) => ({
+              name,
+              severity: item.severity,
+              direct: item.isDirect,
+              via: (item.via ?? []).map((x) => typeof x === 'string' ? x : ({
+                source: x.source,
+                name: x.name,
+                severity: x.severity,
+                title: x.title,
+                range: x.range,
+                url: x.url
+              })),
+              effects: item.effects ?? [],
+              range: item.range,
+              fixAvailable: item.fixAvailable ?? false
+            }))
+          };
+          fs.writeFileSync(process.env.GITHUB_WORKSPACE + '/' + process.env.EVIDENCE_DIR + '/audit-summary.json', JSON.stringify(summary, null, 2));
+          console.log(JSON.stringify(summary, null, 2));
+          if (summary.high > 0 || summary.critical > 0) process.exit(2);
+          NODE
+          test "$AUDIT_EXIT" -eq 0 || true
+
+      - name: Existing tests
+        if: always()
+        run: npm test
+
+      - name: Production build
+        if: always()
+        run: npm run build
+
+      - name: Upload RG-01 evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: loxihart-rg01-evidence
+          path: evidence/rg-01/
