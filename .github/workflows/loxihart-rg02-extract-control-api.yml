@@ -1,0 +1,60 @@
+name: Loxihart RG-02 Extract Control API Source
+
+on:
+  push:
+    branches:
+      - loxihart/production-gates-2026-08-21
+    paths:
+      - .github/workflows/loxihart-rg02-extract-control-api.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  extract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: loxihart/production-gates-2026-08-21
+          fetch-depth: 0
+
+      - name: Verify frozen bundle hash
+        working-directory: loxihart/control-api
+        run: sha256sum -c BUNDLE_SHA256
+
+      - name: Extract to reviewable source tree
+        shell: bash
+        run: |
+          set -euo pipefail
+          test ! -e loxihart/control-api/source || { echo 'source already materialized'; exit 0; }
+          mkdir -p /tmp/loxihart-control-api loxihart/control-api/source
+          tar -xzf loxihart/control-api/bundle.tgz -C /tmp/loxihart-control-api
+          find /tmp/loxihart-control-api -maxdepth 4 -type f -print | sort
+          cp -a /tmp/loxihart-control-api/. loxihart/control-api/source/
+
+      - name: Reject obvious secret material before commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          if grep -RInE --exclude-dir=node_modules --exclude='*.map' \
+            'BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY|AKIA[0-9A-Z]{16}|ghp_[A-Za-z0-9]{30,}|github_pat_[A-Za-z0-9_]{30,}|xox[baprs]-[A-Za-z0-9-]{20,}|sk-(proj-)?[A-Za-z0-9_-]{20,}' \
+            loxihart/control-api/source; then
+            echo 'STOP: possible secret material in extracted bundle'
+            exit 2
+          fi
+
+      - name: Commit exact extracted source
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add loxihart/control-api/source
+          if git diff --cached --quiet; then
+            echo 'No extraction change to commit.'
+            exit 0
+          fi
+          git commit -m 'chore(loxihart): materialize control-api bundle source for RG-02'
+          git push origin HEAD:loxihart/production-gates-2026-08-21
