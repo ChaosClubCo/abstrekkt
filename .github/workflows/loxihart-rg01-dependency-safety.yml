@@ -53,8 +53,8 @@ jobs:
         run: |
           set -uo pipefail
           mkdir -p "$GITHUB_WORKSPACE/$EVIDENCE_DIR"
-          npm audit --json > "$GITHUB_WORKSPACE/$EVIDENCE_DIR/npm-audit.json"
-          AUDIT_EXIT=$?
+          AUDIT_EXIT=0
+          npm audit --json > "$GITHUB_WORKSPACE/$EVIDENCE_DIR/npm-audit.json" || AUDIT_EXIT=$?
           node - <<'NODE'
           const fs = require('fs');
           const p = process.env.GITHUB_WORKSPACE + '/' + process.env.EVIDENCE_DIR + '/npm-audit.json';
@@ -87,7 +87,9 @@ jobs:
           console.log(JSON.stringify(summary, null, 2));
           if (summary.high > 0 || summary.critical > 0) process.exit(2);
           NODE
-          test "$AUDIT_EXIT" -eq 0 || true
+          SUMMARY_EXIT=$?
+          if test "$SUMMARY_EXIT" -ne 0; then exit "$SUMMARY_EXIT"; fi
+          if test "$AUDIT_EXIT" -ne 0; then exit "$AUDIT_EXIT"; fi
 
       - name: Existing tests
         if: always()
