@@ -6,6 +6,12 @@ on:
       - loxihart/production-gates-2026-08-21
     paths:
       - .github/workflows/loxihart-rg02-extract-control-api.yml
+  pull_request:
+    branches:
+      - main
+    paths:
+      - .github/workflows/loxihart-rg02-extract-control-api.yml
+      - loxihart/control-api/**
   workflow_dispatch:
 
 permissions:
@@ -28,13 +34,16 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test ! -e loxihart/control-api/source || { echo 'source already materialized'; exit 0; }
-          mkdir -p /tmp/loxihart-control-api loxihart/control-api/source
+          rm -rf /tmp/loxihart-control-api
+          mkdir -p /tmp/loxihart-control-api
           tar -xzf loxihart/control-api/bundle.tgz -C /tmp/loxihart-control-api
-          find /tmp/loxihart-control-api -maxdepth 4 -type f -print | sort
+          echo '--- bundle contents ---'
+          find /tmp/loxihart-control-api -maxdepth 5 -type f -print | sort
+          rm -rf loxihart/control-api/source
+          mkdir -p loxihart/control-api/source
           cp -a /tmp/loxihart-control-api/. loxihart/control-api/source/
 
-      - name: Reject obvious secret material before commit
+      - name: Reject obvious secret material
         shell: bash
         run: |
           set -euo pipefail
@@ -45,7 +54,14 @@ jobs:
             exit 2
           fi
 
-      - name: Commit exact extracted source
+      - name: Upload extracted source for review
+        uses: actions/upload-artifact@v4
+        with:
+          name: loxihart-control-api-source-review
+          path: loxihart/control-api/source/
+
+      - name: Commit exact extracted source on branch push
+        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
         shell: bash
         run: |
           set -euo pipefail
