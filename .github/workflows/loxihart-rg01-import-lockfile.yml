@@ -1,0 +1,73 @@
+name: Loxihart RG-01 Import Candidate Lockfile
+
+on:
+  push:
+    branches:
+      - loxihart/production-gates-2026-08-21
+    paths:
+      - .github/workflows/loxihart-rg01-import-lockfile.yml
+      - docs/loxihart/CANONICAL_STATE.md
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
+
+env:
+  SOURCE_RUN_ID: '31977104955'
+  SOURCE_ARTIFACT: loxihart-pilot-console-build
+  EXPECTED_PACKAGE_SHA256: dd29e2e9154642ff33a63c66b79196f05232963b425c026e2f1663290ca889cf
+  EXPECTED_LOCK_SHA256: 992551ebb4df726bf5e762a6005437f983a952caab6bb0c4fb68d5baad7e20ca
+
+jobs:
+  import-lockfile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: loxihart/production-gates-2026-08-21
+          fetch-depth: 0
+
+      - name: Stop when lockfile is already committed
+        id: guard
+        shell: bash
+        run: |
+          if test -f loxihart/pilot-console/package-lock.json; then
+            echo 'already=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'already=false' >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Download exact candidate build artifact
+        if: steps.guard.outputs.already != 'true'
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ env.SOURCE_ARTIFACT }}
+          path: /tmp/loxihart-candidate
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          repository: ${{ github.repository }}
+          run-id: ${{ env.SOURCE_RUN_ID }}
+
+      - name: Verify artifact provenance and package identity
+        if: steps.guard.outputs.already != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f /tmp/loxihart-candidate/package.json
+          test -f /tmp/loxihart-candidate/package-lock.json
+          printf '%s  %s\n' "$EXPECTED_PACKAGE_SHA256" /tmp/loxihart-candidate/package.json | sha256sum -c -
+          printf '%s  %s\n' "$EXPECTED_LOCK_SHA256" /tmp/loxihart-candidate/package-lock.json | sha256sum -c -
+          diff -u loxihart/pilot-console/package.json /tmp/loxihart-candidate/package.json
+
+      - name: Import verified lockfile
+        if: steps.guard.outputs.already != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp /tmp/loxihart-candidate/package-lock.json loxihart/pilot-console/package-lock.json
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add loxihart/pilot-console/package-lock.json
+          git diff --cached --exit-code && { echo 'No lockfile change to commit'; exit 0; }
+          git commit -m 'chore(loxihart): restore candidate lockfile for RG-01'
+          git push origin HEAD:loxihart/production-gates-2026-08-21
