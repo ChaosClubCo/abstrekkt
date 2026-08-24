@@ -61,7 +61,7 @@ test('demo token fallback is restricted to the intended staging hostname', async
   const stagingToken = 'public-demo-token';
 
   assert.equal(mod.resolveDemoToken?.({
-    configuredToken: 'managed-secret',
+    configuredToken: '  managed-secret  ',
     requestUrl: 'https://production.example/api/loxihart',
     stagingToken,
     allowedHosts,
