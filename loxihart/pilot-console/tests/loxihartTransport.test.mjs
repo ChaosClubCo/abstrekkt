@@ -48,6 +48,13 @@ test('verification rejects client authoritative fields', () => {
   );
 });
 
+test('verification rejects client-supplied receiptId instead of silently stripping it', () => {
+  assert.throws(
+    () => resolveOperation('verification.commit', { expectedVersion: 1, mutationId: 'm1', receiptId: 'cr_client_supplied' }),
+    /Authoritative verification fields cannot be supplied by the client/,
+  );
+});
+
 for (const status of [403, 404, 409, 422, 500]) {
   test(`Netlify transport preserves ${status} and raw JSON body`, async () => {
     const raw = JSON.stringify({ error: { code: `E${status}`, message: `status-${status}` } });
