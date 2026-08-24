@@ -32,6 +32,19 @@ const AUTHORITATIVE_FIELDS = new Set([
   'canonicalExpectedVersion',
 ]);
 
+export function resolveDemoToken({ configuredToken, requestUrl, stagingToken, allowedHosts }) {
+  if (typeof configuredToken === 'string' && configuredToken.trim()) return configuredToken.trim();
+
+  let hostname;
+  try {
+    hostname = new URL(requestUrl).hostname;
+  } catch {
+    return null;
+  }
+
+  return allowedHosts?.has(hostname) ? stagingToken : null;
+}
+
 export function buildUpstreamHeaders({ browserHeaders = {}, identity }) {
   const headers = new Headers();
   for (const [name, value] of Object.entries(browserHeaders)) {
@@ -83,7 +96,7 @@ export function resolveOperation(operation, payload = {}) {
     case 'evidence.append':
       return { method: 'POST', path: `/v1/pilots/${PILOT_ID}/evidence`, body };
     case 'verification.commit':
-      assertNoAuthoritativeFields(body);
+      assertNoAuthoritativeFields(payload);
       return { method: 'POST', path: `/v1/pilots/${PILOT_ID}/verification/commit`, body };
     case 'stream.head':
       return { method: 'GET', path: `/v1/pilots/${PILOT_ID}/stream/head`, body: undefined };
