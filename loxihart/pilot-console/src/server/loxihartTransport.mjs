@@ -83,7 +83,7 @@ export function resolveOperation(operation, payload = {}) {
     case 'evidence.append':
       return { method: 'POST', path: `/v1/pilots/${PILOT_ID}/evidence`, body };
     case 'verification.commit':
-      assertNoAuthoritativeFields(body);
+      assertNoAuthoritativeFields(payload);
       return { method: 'POST', path: `/v1/pilots/${PILOT_ID}/verification/commit`, body };
     case 'stream.head':
       return { method: 'GET', path: `/v1/pilots/${PILOT_ID}/stream/head`, body: undefined };
