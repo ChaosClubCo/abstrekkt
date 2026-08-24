@@ -33,7 +33,7 @@ const AUTHORITATIVE_FIELDS = new Set([
 ]);
 
 export function resolveDemoToken({ configuredToken, requestUrl, stagingToken, allowedHosts }) {
-  if (typeof configuredToken === 'string' && configuredToken.trim()) return configuredToken;
+  if (typeof configuredToken === 'string' && configuredToken.trim()) return configuredToken.trim();
 
   let hostname;
   try {
