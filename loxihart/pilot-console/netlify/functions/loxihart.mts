@@ -1,11 +1,12 @@
 import type { Config, Context } from '@netlify/functions';
-import { forwardLoxihart, resolveOperation } from '../../src/server/loxihartTransport.mjs';
+import { forwardLoxihart, resolveDemoToken, resolveOperation } from '../../src/server/loxihartTransport.mjs';
 
 const CONTROL_API_BASE = 'https://nvolybcifgkzxvywhpuv.supabase.co/functions/v1/loxihart-control-api';
 const ORGANIZATION_ID = 'org-lakeview-hvac';
 const ACTOR_ID = 'operator:kyle-demo';
 // Staging-only fallback for the fictional Lakeview demo. Production identities must use managed secrets.
 const STAGING_DEMO_TOKEN = 'lakeview-public-demo-v1';
+const STAGING_DEMO_HOSTS = new Set(['loxihart-pilot-console.netlify.app']);
 
 function proxyError(code: string, message: string, status: number) {
   return new Response(JSON.stringify({ error: { code, message } }), {
@@ -39,14 +40,23 @@ export default async (req: Request, _context: Context) => {
   try {
     const { operation, payload } = await parseRequest(req);
     const resolved = resolveOperation(operation, payload);
-    const demoToken = Netlify.env.get('LOXIHART_DEMO_TOKEN') ?? STAGING_DEMO_TOKEN;
+    const demoToken = resolveDemoToken({
+      configuredToken: Netlify.env.get('LOXIHART_DEMO_TOKEN'),
+      requestUrl: req.url,
+      stagingToken: STAGING_DEMO_TOKEN,
+      allowedHosts: STAGING_DEMO_HOSTS,
+    });
+
+    if (operation !== 'health' && !demoToken) {
+      return proxyError('PROXY_CONFIGURATION_ERROR', 'LOXIHART_DEMO_TOKEN is not configured for this deployment.', 500);
+    }
 
     return await forwardLoxihart({
       url: `${CONTROL_API_BASE}${resolved.path}`,
       method: resolved.method,
       body: resolved.body,
       identity: {
-        demoToken,
+        demoToken: demoToken ?? '',
         organizationId: ORGANIZATION_ID,
         actorId: ACTOR_ID,
       },
