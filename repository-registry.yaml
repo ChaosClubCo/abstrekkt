@@ -1,0 +1,91 @@
+schema: AbstrekktRepositoryRegistry/v1
+repository: Krosebrook/abstrekkt
+policy:
+  authority_precedes_path: true
+  destructive_cleanup_requires_verified_migration: true
+  code_file_max_loc: 400
+
+domains:
+  abstrekkt_publication:
+    authority: canonical
+    owner_repository: Krosebrook/abstrekkt
+    paths:
+      - README.md
+      - REPOSITORY.md
+      - AGENTS.md
+      - repository-registry.yaml
+      - docs/
+      - project/deploy/abstrekkt-com/
+    notes: Publishing, public-site source, press/portfolio evidence, governance, and approved editorial derivatives.
+
+  project_legacy_corpus:
+    authority: canonical_within_domain
+    owner_repository: Krosebrook/abstrekkt
+    paths:
+      - project/
+    secondary_registry: project/CANON.md
+    notes: Resolve repository ownership first; then use CANON for artifact identity and lane rules.
+
+  loxihart_operating_product:
+    authority: external_canonical
+    owner_repository: Krosebrook/Loxihart
+    frozen_source_paths:
+      - loxihart/
+    allowed_local_evidence_paths:
+      - docs/migrations/loxihart/
+      - docs/export/
+    mutation_policy: migration_evidence_only
+    notes: Runtime, product, control plane, ChangeReceipt/canonical truth, Pilot Console, experiments, tests, migrations, release gates, and product evidence belong to Krosebrook/Loxihart.
+
+  flashfusion_history:
+    authority: classify_by_role_and_provenance
+    owner_repository: conditional
+    notes: Historical business/company material may remain here; current subordinate product/platform material belongs to Loxihart. Fixed technical identifiers are not renamed for branding alone.
+
+  int_intinc:
+    authority: excluded
+    owner_repository: external
+    mutation_policy: no_promotion_or_publication
+    notes: Mixed-corpus presence does not establish Abstrekkt ownership.
+
+  private_personal_sources:
+    authority: restricted
+    owner_repository: Krosebrook/abstrekkt
+    mutation_policy: explicit_derivative_publication_authority_required
+    examples:
+      - memoir
+      - clinical
+      - family
+      - custody
+
+  vendored_imported:
+    authority: noncanonical
+    owner_repository: upstream_or_historical
+    mutation_policy: preserve_provenance
+
+migration:
+  required_receipt_fields:
+    - source_repository
+    - source_revision
+    - source_path
+    - source_hash
+    - target_repository
+    - target_revision
+    - target_path
+    - target_hash
+    - verification_status
+  deletion_gate: target_hash_verified
+
+deployment:
+  abstrekkt_com:
+    status: UNKNOWN
+    proof_required:
+      - repository
+      - commit_sha
+      - provider
+      - provider_project_id
+      - deployment_id
+      - public_url
+      - deployed_at
+      - verified_at
+      - readback_result
