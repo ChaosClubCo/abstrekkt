@@ -1,0 +1,99 @@
+name: Pilot Console Netlify Deploy Once
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize]
+    paths:
+      - 'loxihart/pilot-console/**'
+      - '.github/workflows/pilot-console-netlify-deploy-once.yml'
+
+jobs:
+  deploy-and-verify:
+    if: contains(github.event.pull_request.body || '', 'NETLIFY_PROXY_PATH=')
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: loxihart/pilot-console
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            loxihart/pilot-console
+          sparse-checkout-cone-mode: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Load one-time Netlify deployment proxy
+        shell: bash
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const event = JSON.parse(fs.readFileSync(process.env.GITHUB_EVENT_PATH, 'utf8'));
+          const body = event.pull_request?.body || '';
+          const match = body.match(/NETLIFY_PROXY_PATH=(https:\/\/netlify-mcp\.netlify\.app\/proxy\/[^\s]+)/);
+          if (!match) process.exit(2);
+          fs.appendFileSync(process.env.GITHUB_ENV, `NETLIFY_PROXY_PATH<<LOXIHART_EOF\n${match[1]}\nLOXIHART_EOF\n`);
+          NODE
+      - name: Deploy merged hardening to Netlify
+        run: npx -y @netlify/mcp@1.15.1 --site-id 80ed3606-b9af-4b37-89e9-6b9cdcad10d2 --proxy-path "$NETLIFY_PROXY_PATH"
+      - name: Verify live hardened staging state
+        env:
+          BASE_URL: https://loxihart-pilot-console.netlify.app/api/loxihart
+        run: |
+          node --input-type=module <<'NODE'
+          const base = process.env.BASE_URL;
+          const get = async (operation) => {
+            const response = await fetch(`${base}?operation=${encodeURIComponent(operation)}`, { headers: { Accept: 'application/json' } });
+            const text = await response.text();
+            let body;
+            try { body = text ? JSON.parse(text) : null; } catch { body = text; }
+            console.log(`GET ${operation} -> ${response.status}`, JSON.stringify(body));
+            if (!response.ok) throw new Error(`${operation} failed with ${response.status}`);
+            return body;
+          };
+          const post = async (operation, payload = {}) => {
+            const response = await fetch(base, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+              body: JSON.stringify({ operation, ...payload }),
+            });
+            const text = await response.text();
+            let body;
+            try { body = text ? JSON.parse(text) : null; } catch { body = text; }
+            console.log(`POST ${operation} -> ${response.status}`, JSON.stringify(body));
+            if (!response.ok) throw new Error(`${operation} failed with ${response.status}`);
+            return body;
+          };
+          const assert = (condition, message) => { if (!condition) throw new Error(message); };
+
+          const health = await get('health');
+          assert(health?.ok === true, 'health did not return ok=true');
+          assert(health?.authority === 'supabase-staging', 'unexpected health authority');
+
+          const pilot = await get('pilot.read');
+          const head = await get('stream.head');
+          const stream = await get('stream.read');
+          const receiptId = pilot?.canonical?.latestReceiptId;
+
+          assert(pilot?.pilot?.stage === 'RECEIPT_ISSUED', `expected RECEIPT_ISSUED, got ${pilot?.pilot?.stage}`);
+          assert(pilot?.canonical?.currentVersion === 1, `expected canonical version 1, got ${pilot?.canonical?.currentVersion}`);
+          assert(pilot?.canonical?.latestVerdict === 'PASS', `expected PASS, got ${pilot?.canonical?.latestVerdict}`);
+          assert(typeof receiptId === 'string' && receiptId.length > 0, 'missing latest receipt ID');
+          assert(head?.latestReceiptId === receiptId, 'stream head receipt ID mismatch');
+          assert(head?.latestVerdict === 'PASS', 'stream head verdict mismatch');
+          assert(Array.isArray(stream?.records) && stream.records.length >= 1, 'canonical stream is empty');
+
+          const verify = await post('receipt.verify', { receiptId });
+          assert(verify?.valid === true, `receipt invalid: ${JSON.stringify(verify)}`);
+          assert(Array.isArray(verify?.errors) && verify.errors.length === 0, 'receipt verification returned errors');
+
+          console.log('POST_DEPLOY_HARDENING_PASS', JSON.stringify({
+            receiptId,
+            stage: pilot.pilot.stage,
+            controlVersion: pilot.pilot.version,
+            canonicalVersion: pilot.canonical.currentVersion,
+            verdict: pilot.canonical.latestVerdict,
+            recordCount: stream.records.length,
+            signatureValid: verify.valid,
+          }));
+          NODE
