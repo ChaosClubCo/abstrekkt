@@ -1,0 +1,539 @@
+#!/bin/bash
+
+# =============================================================================
+# AGENT ORCHESTRATION SYSTEM - MAIN SETUP SCRIPT
+# =============================================================================
+
+set -euo pipefail
+
+# Configuration
+AGENT_HOME="${AGENT_HOME:-$HOME/.agents}"
+AGENT_CONFIG_DIR="$AGENT_HOME/config"
+AGENT_LOGS_DIR="$AGENT_HOME/logs"
+AGENT_PERMISSIONS_DIR="$AGENT_HOME/permissions"
+AGENT_SCRIPTS_DIR="$AGENT_HOME/scripts"
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+# =============================================================================
+# UTILITY FUNCTIONS
+# =============================================================================
+
+log() {
+    echo -e "${GREEN}[$(date +'%Y-%m-%d %H:%M:%S')] $1${NC}"
+}
+
+warn() {
+    echo -e "${YELLOW}[WARNING] $1${NC}"
+}
+
+error() {
+    echo -e "${RED}[ERROR] $1${NC}"
+    exit 1
+}
+
+# =============================================================================
+# DIRECTORY SETUP
+# =============================================================================
+
+setup_directories() {
+    log "Setting up agent directory structure..."
+    
+    mkdir -p "$AGENT_HOME"
+    mkdir -p "$AGENT_CONFIG_DIR"
+    mkdir -p "$AGENT_LOGS_DIR"
+    mkdir -p "$AGENT_PERMISSIONS_DIR"
+    mkdir -p "$AGENT_SCRIPTS_DIR"
+    mkdir -p "$AGENT_HOME/agents"
+    mkdir -p "$AGENT_HOME/templates"
+    mkdir -p "$AGENT_HOME/backups"
+    
+    # Set proper permissions
+    chmod 750 "$AGENT_HOME"
+    chmod 700 "$AGENT_PERMISSIONS_DIR"
+    chmod 755 "$AGENT_CONFIG_DIR"
+    chmod 755 "$AGENT_LOGS_DIR"
+    chmod 755 "$AGENT_SCRIPTS_DIR"
+    
+    log "Directory structure created successfully"
+}
+
+# =============================================================================
+# AGENT CONFIGURATION GENERATOR
+# =============================================================================
+
+generate_agent_config() {
+    local agent_name="$1"
+    local role="$2"
+    local capabilities="$3"
+    local reports_to="$4"
+    local oversight_triggers="$5"
+    
+    cat > "$AGENT_CONFIG_DIR/${agent_name}.json" << EOF
+{
+  "agent_id": "${agent_name}",
+  "metadata": {
+    "name": "${agent_name}",
+    "role": "${role}",
+    "created_at": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+    "version": "1.0.0",
+    "status": "inactive"
+  },
+  "capabilities": [
+    $(echo "$capabilities" | sed 's/,/","/g' | sed 's/^/"/' | sed 's/$/"/')
+  ],
+  "hierarchy": {
+    "reports_to": "${reports_to}",
+    "oversight_level": "standard"
+  },
+  "triggers": {
+    "oversight_triggers": [
+      $(echo "$oversight_triggers" | sed 's/,/","/g' | sed 's/^/"/' | sed 's/$/"/')
+    ]
+  },
+  "permissions": {
+    "config_file": "${AGENT_PERMISSIONS_DIR}/${agent_name}_permissions.yaml",
+    "access_level": "restricted",
+    "api_quotas": {
+      "requests_per_hour": 1000,
+      "max_concurrent": 5
+    }
+  },
+  "security": {
+    "encryption_required": true,
+    "audit_logging": true,
+    "access_token_rotation": "24h"
+  },
+  "resources": {
+    "max_memory": "2Gi",
+    "max_cpu": "1000m",
+    "storage": "10Gi"
+  }
+}
+EOF
+}
+
+# =============================================================================
+# PERMISSIONS SYSTEM
+# =============================================================================
+
+generate_permissions_config() {
+    local agent_name="$1"
+    local capabilities="$2"
+    
+    cat > "$AGENT_PERMISSIONS_DIR/${agent_name}_permissions.yaml" << EOF
+apiVersion: v1
+kind: AgentPermissions
+metadata:
+  name: ${agent_name}
+  namespace: agent-system
+spec:
+  agent: ${agent_name}
+  
+  # Resource Access Permissions
+  resources:
+    - resource: "config"
+      actions: ["read"]
+    - resource: "logs"
+      actions: ["read", "write"]
+    - resource: "metrics"
+      actions: ["read", "write"]
+  
+  # API Access Controls
+  api_access:
+    github:
+      enabled: true
+      scopes: ["repo:read", "issues:write"]
+    cloud_providers:
+      aws:
+        enabled: $(echo "$capabilities" | grep -q "aws\|ec2\|s3\|lambda" && echo "true" || echo "false")
+        permissions: ["read", "deploy"]
+      gcp:
+        enabled: $(echo "$capabilities" | grep -q "gcp\|cloud-functions\|gke" && echo "true" || echo "false")
+        permissions: ["read", "deploy"]
+      azure:
+        enabled: $(echo "$capabilities" | grep -q "azure" && echo "true" || echo "false")
+        permissions: ["read", "deploy"]
+  
+  # Network Policies
+  network:
+    egress:
+      - to: "github.com"
+        ports: [443]
+      - to: "*.amazonaws.com"
+        ports: [443]
+        condition: $(echo "$capabilities" | grep -q "aws" && echo "aws_enabled" || echo "false")
+  
+  # Security Constraints
+  security:
+    privilege_escalation: false
+    run_as_user: 1000
+    fs_group: 2000
+    
+  # Audit Requirements
+  audit:
+    log_level: "INFO"
+    retain_days: 30
+    sensitive_operations: true
+EOF
+}
+
+# =============================================================================
+# RBAC SETUP
+# =============================================================================
+
+setup_rbac() {
+    log "Setting up Role-Based Access Control..."
+    
+    cat > "$AGENT_PERMISSIONS_DIR/rbac_roles.yaml" << 'EOF'
+# Agent System RBAC Configuration
+roles:
+  supervisor:
+    name: "tessa"
+    permissions:
+      - "agent:create"
+      - "agent:delete" 
+      - "agent:modify"
+      - "agent:delegate"
+      - "system:monitor"
+      - "logs:access"
+    agents: ["*"]
+    
+  language_specialist:
+    permissions:
+      - "code:read"
+      - "code:write"
+      - "repo:access"
+      - "build:trigger"
+    constraints:
+      - "no_production_deploy_without_approval"
+      
+  cloud_engineer:
+    permissions:
+      - "infrastructure:read"
+      - "infrastructure:deploy"
+      - "monitoring:access"
+      - "cost:monitor"
+    constraints:
+      - "production_changes_require_oversight"
+      
+  data_scientist:
+    permissions:
+      - "model:train"
+      - "model:deploy"
+      - "data:access"
+      - "pipeline:modify"
+    constraints:
+      - "pii_handling_compliance_required"
+      
+  mobile_developer:
+    permissions:
+      - "app:build"
+      - "app:deploy"
+      - "store:publish"
+    constraints:
+      - "app_store_compliance_required"
+      
+  security_specialist:
+    permissions:
+      - "security:scan"
+      - "compliance:audit"
+      - "incident:respond"
+      - "policy:enforce"
+    elevation: true
+
+# Access Control Matrix
+access_matrix:
+  production_deployment:
+    required_approvals: 2
+    required_roles: ["supervisor", "security_specialist"]
+    
+  sensitive_data_access:
+    required_approvals: 1
+    required_roles: ["supervisor"]
+    audit_required: true
+    
+  infrastructure_changes:
+    required_approvals: 1
+    required_roles: ["supervisor", "cloud_engineer"]
+    
+  security_policy_changes:
+    required_approvals: 2
+    required_roles: ["supervisor", "security_specialist"]
+    immutable_audit: true
+EOF
+}
+
+# =============================================================================
+# MONITORING & LOGGING SETUP
+# =============================================================================
+
+setup_monitoring() {
+    log "Setting up monitoring and logging system..."
+    
+    cat > "$AGENT_SCRIPTS_DIR/monitoring.sh" << 'EOF'
+#!/bin/bash
+
+# Agent Monitoring Script
+AGENT_HOME="${AGENT_HOME:-$HOME/.agents}"
+LOG_FILE="$AGENT_HOME/logs/monitoring.log"
+
+monitor_agent() {
+    local agent_name="$1"
+    local timestamp=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+    
+    # Check agent status
+    if [ -f "$AGENT_HOME/agents/${agent_name}.pid" ]; then
+        local pid=$(cat "$AGENT_HOME/agents/${agent_name}.pid")
+        if kill -0 "$pid" 2>/dev/null; then
+            echo "[$timestamp] $agent_name: RUNNING (PID: $pid)"
+        else
+            echo "[$timestamp] $agent_name: STOPPED (stale PID file)"
+            rm -f "$AGENT_HOME/agents/${agent_name}.pid"
+        fi
+    else
+        echo "[$timestamp] $agent_name: INACTIVE"
+    fi
+}
+
+# Monitor all agents
+while IFS= read -r -d '' config_file; do
+    agent_name=$(basename "$config_file" .json)
+    monitor_agent "$agent_name"
+done < <(find "$AGENT_HOME/config" -name "*.json" -print0)
+EOF
+
+    chmod +x "$AGENT_SCRIPTS_DIR/monitoring.sh"
+}
+
+# =============================================================================
+# AGENT CREATION FUNCTIONS
+# =============================================================================
+
+create_agent() {
+    local name="$1"
+    local role="$2" 
+    local capabilities="$3"
+    local reports_to="$4"
+    local oversight_triggers="$5"
+    
+    log "Creating agent: $name"
+    
+    # Generate configuration
+    generate_agent_config "$name" "$role" "$capabilities" "$reports_to" "$oversight_triggers"
+    
+    # Generate permissions
+    generate_permissions_config "$name" "$capabilities"
+    
+    # Create agent runtime directory
+    mkdir -p "$AGENT_HOME/agents/$name"
+    
+    # Create startup script
+    cat > "$AGENT_HOME/agents/$name/start.sh" << EOF
+#!/bin/bash
+echo "Starting agent: $name"
+echo \$\$ > "$AGENT_HOME/agents/$name.pid"
+# Agent startup logic would go here
+EOF
+    
+    chmod +x "$AGENT_HOME/agents/$name/start.sh"
+    
+    log "Agent $name created successfully"
+}
+
+# =============================================================================
+# AGENT DEFINITIONS
+# =============================================================================
+
+create_all_agents() {
+    log "Creating all agents..."
+    
+    # Language Specialists
+    create_agent "Java-Spring-Agent" "Senior Java/Spring Boot Developer" \
+        "spring-boot,microservices,junit,maven,gradle,hibernate,rest-apis,kafka,rabbitmq" \
+        "tessa" "production-deployment,security-config,database-migrations"
+        
+    create_agent "Python-Engineer-Agent" "Senior Python Developer" \
+        "django,fastapi,flask,pandas,numpy,pytest,celery,sqlalchemy,asyncio" \
+        "tessa" "ml-model-deployment,data-pipeline-changes,async-architecture"
+        
+    create_agent "Golang-Engineer-Agent" "Senior Go Developer" \
+        "gin,fiber,gorm,cobra,testify,docker,kubernetes,grpc" \
+        "tessa" "microservice-architecture,performance-critical-code,concurrency-patterns"
+        
+    create_agent "Rust-Engineer-Agent" "Senior Rust Developer" \
+        "actix-web,tokio,serde,wasm-bindgen,cargo,diesel,tonic" \
+        "tessa" "memory-safety-critical,performance-optimization,wasm-deployment"
+    
+    # Cloud & Infrastructure
+    create_agent "AWS-Architect-Agent" "Senior AWS Solutions Architect" \
+        "ec2,s3,lambda,rds,ecs,eks,cloudformation,terraform,vpc,iam" \
+        "tessa" "production-infrastructure,cost-optimization,security-groups,iam-policies"
+        
+    create_agent "Azure-Engineer-Agent" "Senior Azure Cloud Engineer" \
+        "azure-functions,app-service,cosmos-db,aks,arm-templates,azure-devops,key-vault" \
+        "tessa" "azure-ad-integration,enterprise-deployment,hybrid-cloud"
+        
+    create_agent "GCP-Engineer-Agent" "Senior Google Cloud Engineer" \
+        "cloud-functions,gke,big-query,cloud-run,deployment-manager,pub-sub,firestore" \
+        "tessa" "big-data-processing,ml-pipeline-deployment,serverless-architecture"
+        
+    create_agent "K8s-Platform-Agent" "Senior Kubernetes Platform Engineer" \
+        "kubernetes,helm,istio,prometheus,grafana,harbor,tekton,argo-cd" \
+        "tessa" "cluster-security,production-deployments,service-mesh-config"
+        
+    create_agent "IaC-Agent" "Infrastructure as Code Specialist" \
+        "terraform,ansible,pulumi,cloudformation,vagrant,packer" \
+        "tessa" "infrastructure-changes,multi-cloud-deployment,disaster-recovery"
+    
+    # Data & AI
+    create_agent "ML-Engineer-Agent" "Senior Machine Learning Engineer" \
+        "tensorflow,pytorch,scikit-learn,mlflow,kubeflow,docker,kubernetes,python" \
+        "tessa" "model-deployment,training-pipeline,data-privacy,bias-detection"
+        
+    create_agent "Data-Engineer-Agent" "Senior Data Engineer" \
+        "apache-spark,kafka,airflow,dbt,snowflake,bigquery,python,sql,scala" \
+        "tessa" "data-pipeline-architecture,pii-handling,data-quality-issues"
+        
+    create_agent "AI-Research-Agent" "AI Research Scientist" \
+        "transformers,huggingface,pytorch,wandb,jupyter,python,cuda,distributed-training" \
+        "tessa" "novel-architecture,research-publication,ethical-ai-considerations"
+        
+    create_agent "CV-Engineer-Agent" "Computer Vision Engineer" \
+        "opencv,pytorch,tensorflow,yolo,detectron2,roboflow,onnx" \
+        "tessa" "real-time-processing,model-accuracy,edge-deployment"
+        
+    create_agent "NLP-Engineer-Agent" "Natural Language Processing Engineer" \
+        "transformers,spacy,nltk,bert,gpt,langchain,vector-databases" \
+        "tessa" "language-model-deployment,bias-mitigation,content-filtering"
+    
+    # Mobile & Specialized
+    create_agent "iOS-Developer-Agent" "Senior iOS Developer" \
+        "swift,swiftui,uikit,core-data,combine,xcode,testflight,app-store-connect" \
+        "tessa" "app-store-submission,in-app-purchases,privacy-compliance"
+        
+    create_agent "Android-Developer-Agent" "Senior Android Developer" \
+        "kotlin,jetpack-compose,room,retrofit,dagger-hilt,gradle,play-console" \
+        "tessa" "play-store-submission,android-permissions,performance-optimization"
+        
+    create_agent "Flutter-Developer-Agent" "Senior Flutter Developer" \
+        "dart,flutter,bloc,provider,hive,firebase,platform-channels" \
+        "tessa" "cross-platform-performance,native-integration,state-management"
+        
+    create_agent "Blockchain-Developer-Agent" "Senior Blockchain Developer" \
+        "solidity,web3,hardhat,truffle,ethers-js,ipfs,metamask,defi-protocols" \
+        "tessa" "smart-contract-deployment,token-economics,security-audits"
+        
+    create_agent "Security-Engineer-Agent" "Senior Cybersecurity Engineer" \
+        "penetration-testing,owasp,burp-suite,nmap,wireshark,metasploit,compliance" \
+        "tessa" "security-vulnerabilities,compliance-violations,incident-response"
+    
+    log "All agents created successfully!"
+}
+
+# =============================================================================
+# MANAGEMENT COMMANDS
+# =============================================================================
+
+create_management_cli() {
+    cat > "$AGENT_HOME/agents" << 'EOF'
+#!/bin/bash
+
+# Agent Management CLI
+AGENT_HOME="${AGENT_HOME:-$HOME/.agents}"
+
+case "$1" in
+    "status")
+        echo "Agent System Status:"
+        echo "==================="
+        find "$AGENT_HOME/config" -name "*.json" | while read config; do
+            agent_name=$(basename "$config" .json)
+            if [ -f "$AGENT_HOME/agents/${agent_name}.pid" ]; then
+                pid=$(cat "$AGENT_HOME/agents/${agent_name}.pid")
+                if kill -0 "$pid" 2>/dev/null; then
+                    echo "✓ $agent_name: RUNNING"
+                else
+                    echo "✗ $agent_name: STOPPED"
+                fi
+            else
+                echo "○ $agent_name: INACTIVE"
+            fi
+        done
+        ;;
+        
+    "start")
+        agent_name="$2"
+        if [ -f "$AGENT_HOME/agents/$agent_name/start.sh" ]; then
+            "$AGENT_HOME/agents/$agent_name/start.sh" &
+            echo "Started agent: $agent_name"
+        else
+            echo "Agent not found: $agent_name"
+        fi
+        ;;
+        
+    "stop")
+        agent_name="$2"
+        if [ -f "$AGENT_HOME/agents/${agent_name}.pid" ]; then
+            pid=$(cat "$AGENT_HOME/agents/${agent_name}.pid")
+            kill "$pid" 2>/dev/null && echo "Stopped agent: $agent_name"
+            rm -f "$AGENT_HOME/agents/${agent_name}.pid"
+        else
+            echo "Agent not running: $agent_name"
+        fi
+        ;;
+        
+    "delegate")
+        supervisor="$2"
+        task="$3"
+        echo "Delegating task to $supervisor: $task"
+        # Delegation logic would go here
+        ;;
+        
+    "list")
+        echo "Available Agents:"
+        find "$AGENT_HOME/config" -name "*.json" -exec basename {} .json \; | sort
+        ;;
+        
+    *)
+        echo "Usage: agents {status|start|stop|delegate|list} [agent-name] [task]"
+        ;;
+esac
+EOF
+
+    chmod +x "$AGENT_HOME/agents"
+}
+
+# =============================================================================
+# MAIN EXECUTION
+# =============================================================================
+
+main() {
+    log "Starting Agent Orchestration System Setup..."
+    
+    setup_directories
+    setup_rbac
+    setup_monitoring
+    create_all_agents
+    create_management_cli
+    
+    log "Setup completed successfully!"
+    log "Agent home directory: $AGENT_HOME"
+    log "Use '$AGENT_HOME/agents status' to check agent status"
+    log "Use '$AGENT_HOME/agents list' to see all available agents"
+    
+    # Add to PATH suggestion
+    if ! echo "$PATH" | grep -q "$AGENT_HOME"; then
+        echo ""
+        warn "Consider adding $AGENT_HOME to your PATH:"
+        echo "export PATH=\$PATH:$AGENT_HOME"
+        echo "Add this to your ~/.bashrc or ~/.zshrc for persistence"
+    fi
+}
+
+# Run main function
+main "$@"

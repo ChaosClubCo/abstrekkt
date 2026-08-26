@@ -1,0 +1,171 @@
+{
+  "name": "OAI System Health Snapshot",
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "nodes": [
+    {
+      "id": "n1-hlt",
+      "name": "Schedule Every Hour",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        100,
+        300
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 1
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "n2-hlt",
+      "name": "Get Active Orgs",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        300,
+        300
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "",
+          "name": "Base44 API Key"
+        }
+      },
+      "parameters": {
+        "method": "GET",
+        "url": "https://api.base44.com/apps/694c756124d640756ea9ba23/entities/Organization",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "status",
+              "value": "active"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "n3-hlt",
+      "name": "Build Health Snapshots",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        500,
+        300
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const orgs=($input.first().json.items||[]);const now=new Date();return orgs.map(o=>({json:{workspace_id:o._id||o.id,snapshot_type:'hourly',period_start:new Date(now-3600000).toISOString(),period_end:now.toISOString(),overall_health_score:100,open_alerts:0,critical_alerts:0}}));"
+      }
+    },
+    {
+      "id": "n4-hlt",
+      "name": "Save Health Snapshot",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        700,
+        300
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "",
+          "name": "Base44 API Key"
+        }
+      },
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.base44.com/apps/694c756124d640756ea9ba23/entities/SystemHealthSnapshot",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{JSON.stringify($json)}}"
+      }
+    },
+    {
+      "id": "n5-hlt",
+      "name": "Update Org Health Score",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        900,
+        300
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "",
+          "name": "Base44 API Key"
+        }
+      },
+      "parameters": {
+        "method": "PUT",
+        "url": "=https://api.base44.com/apps/694c756124d640756ea9ba23/entities/Organization/{{$json.workspace_id}}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={\"overall_health_score\":{{$json.overall_health_score}},\"last_health_check_at\":\"{{$now.toISO()}}\"}"
+      }
+    }
+  ],
+  "connections": {
+    "Schedule Every Hour": {
+      "main": [
+        [
+          {
+            "node": "Get Active Orgs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Active Orgs": {
+      "main": [
+        [
+          {
+            "node": "Build Health Snapshots",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Health Snapshots": {
+      "main": [
+        [
+          {
+            "node": "Save Health Snapshot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Health Snapshot": {
+      "main": [
+        [
+          {
+            "node": "Update Org Health Score",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

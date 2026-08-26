@@ -1,0 +1,796 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Index, The Corridor Archive</title>
+<meta name="description" content="Master index of every document in the archive." />
+<link rel="stylesheet" href="kr/kr.css" />
+<style>
+  .ix-page { position:relative; z-index:1; max-width:var(--ultra); margin:0 auto; padding:0 40px 8rem; }
+  @media(max-width:780px){ .ix-page{ padding:0 20px 5rem; } }
+
+  .ix-hero { padding:7rem 0 3rem; border-bottom:1px solid var(--rule); }
+  .ix-kicker { font-family:var(--f-mono); font-size:.72rem; letter-spacing:.34em; text-transform:uppercase; color:var(--brass); margin-bottom:1.4rem; }
+  .ix-hero h1 { font-family:var(--f-display); font-weight:500; font-size:clamp(2.6rem,6vw,4.6rem); line-height:1.02; color:var(--ink); letter-spacing:-0.01em; }
+  .ix-hero h1 em { font-style:italic; color:var(--brass-bright); }
+  .ix-lede { margin-top:1.6rem; max-width:40rem; color:var(--body); font-size:1.18rem; }
+  .ix-stamp { margin-top:2.2rem; display:flex; gap:2.4rem; flex-wrap:wrap; font-family:var(--f-mono); font-size:.74rem; letter-spacing:.12em; color:var(--dim); text-transform:uppercase; }
+  .ix-stamp b { color:var(--ink-2); font-weight:500; }
+
+  .ix-group { padding:3.4rem 0 0; }
+  .ix-group-head { display:flex; align-items:baseline; justify-content:space-between; gap:1rem; padding-bottom:.9rem; margin-bottom:.4rem; border-bottom:1px solid var(--rule); }
+  .ix-group-head h2 { font-family:var(--f-title); font-weight:500; font-size:1.04rem; letter-spacing:.16em; text-transform:uppercase; color:var(--brass); }
+  .ix-count { font-family:var(--f-mono); font-size:.72rem; letter-spacing:.16em; color:var(--faint); text-transform:uppercase; }
+
+  .ix-row { display:grid; grid-template-columns:3.4rem minmax(11rem,17rem) 1fr 1.6rem; align-items:baseline; gap:1.4rem;
+    padding:.92rem .6rem; border-bottom:1px solid var(--rule-soft); text-decoration:none; transition:background .2s, padding .2s; }
+  .ix-row:hover { background:var(--brass-15); padding-left:1.1rem; }
+  .ix-id { font-family:var(--f-mono); font-size:.78rem; color:var(--faint); letter-spacing:.06em; }
+  .ix-row:hover .ix-id { color:var(--brass); }
+  .ix-name { font-family:var(--f-display); font-size:1.18rem; color:var(--ink); line-height:1.2; }
+  .ix-sub { font-family:var(--f-body); font-size:.96rem; color:var(--dim); line-height:1.4; text-wrap:pretty; }
+  .ix-go { font-family:var(--f-mono); color:var(--faint); text-align:right; opacity:0; transition:opacity .2s; }
+  .ix-row:hover .ix-go { opacity:1; color:var(--brass); }
+  @media(max-width:780px){
+    .ix-row{ grid-template-columns:2.6rem 1fr; gap:.3rem .9rem; }
+    .ix-sub{ grid-column:2; }
+    .ix-go{ display:none; }
+  }
+
+  /* ---- audit corrections ---- */
+  .ix-vh{ position:absolute!important; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; border:0; }
+  .ix-skip{ position:absolute; left:-999px; top:0; z-index:50; background:var(--brass); color:#1a1206;
+    font-family:var(--f-mono); font-size:.8rem; letter-spacing:.06em; padding:10px 16px; text-decoration:none; }
+  .ix-skip:focus{ left:40px; top:12px; }
+  #main:focus{ outline:none; }
+  .ix-controls{ position:sticky; top:0; z-index:20; background:var(--bg); padding:1.4rem 0 1.1rem; border-bottom:1px solid var(--rule); }
+  .ix-search{ position:relative; display:flex; align-items:center; max-width:34rem; }
+  .ix-search-ico{ position:absolute; left:14px; color:var(--dim); pointer-events:none; }
+  .ix-q{ width:100%; background:var(--panel-solid,#15110b); border:1px solid var(--rule); color:var(--ink);
+    font-family:var(--f-mono); font-size:.92rem; letter-spacing:.02em; padding:13px 44px 13px 42px; border-radius:8px; outline:none; transition:border-color .15s; }
+  .ix-q::placeholder{ color:var(--faint); }
+  .ix-q:focus-visible{ border-color:var(--brass); box-shadow:0 0 0 3px var(--brass-15,rgba(199,154,87,.25)); }
+  .ix-clear{ position:absolute; right:7px; width:30px; height:30px; min-width:30px; display:flex; align-items:center; justify-content:center;
+    background:none; border:0; color:var(--dim); cursor:pointer; font-size:14px; border-radius:6px; }
+  .ix-clear:hover{ color:var(--brass-bright); } .ix-clear[hidden]{ display:none; } .ix-clear:focus-visible{ outline:2px solid var(--brass); outline-offset:1px; color:var(--brass-bright); }
+  .ix-status{ margin-top:1rem; font-family:var(--f-mono); font-size:.72rem; letter-spacing:.14em; text-transform:uppercase; color:var(--dim); }
+  .ix-jumpnav{ display:flex; flex-wrap:wrap; gap:.5rem; margin-top:1rem; }
+  .ix-jump{ font-family:var(--f-mono); font-size:.68rem; letter-spacing:.06em; text-transform:uppercase; color:var(--body);
+    text-decoration:none; padding:6px 11px; border:1px solid var(--rule); border-radius:999px; transition:border-color .15s, color .15s, background .15s; }
+  .ix-jump:hover{ color:var(--brass-bright); border-color:var(--brass); }
+  .ix-jump:focus-visible{ outline:2px solid var(--brass); outline-offset:2px; }
+  .ix-row:focus-visible{ outline:2px solid var(--brass); outline-offset:-2px; background:var(--brass-15,rgba(199,154,87,.1)); }
+  .ix-row:focus-visible .ix-go, .ix-row:focus-visible .ix-id{ opacity:1; color:var(--brass); }
+  .ix-row.ix-hidden, .ix-group.ix-hidden, .ix-jump.ix-hidden{ display:none!important; }
+  .ix-noresults{ padding:3rem .6rem; color:var(--dim); font-family:var(--f-body); font-size:1.1rem; }
+  .ix-noresults b{ color:var(--ink-2); }
+  mark.ix-hit{ background:var(--brass-15,rgba(199,154,87,.3)); color:var(--brass-bright); border-radius:2px; padding:0 1px; }
+  @media(prefers-reduced-motion: reduce){ .ix-row, .ix-jump, .ix-q, .ix-clear{ transition:none!important; } html{ scroll-behavior:auto!important; } }
+  @media(min-width:781px){ html{ scroll-behavior:smooth; } }
+
+</style>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "CollectionPage",
+  "name": "The Corridor Archive — Master Index",
+  "description": "A complete catalog of the archive: essays, case files, tools, and working documents, indexed and cross-linked.",
+  "numberOfItems": 91,
+  "hasPart": [{"@type":"CollectionPage","name":"Tools & Apps"},{"@type":"CollectionPage","name":"Kyle Rosebrook, Site"},{"@type":"CollectionPage","name":"Kyle Rosebrook, Essays"},{"@type":"CollectionPage","name":"Kyle Rosebrook, Case Files"},{"@type":"CollectionPage","name":"Essays"},{"@type":"CollectionPage","name":"Load-Bearing"},{"@type":"CollectionPage","name":"FlashFusion"},{"@type":"CollectionPage","name":"Abstrekkt"},{"@type":"CollectionPage","name":"Midnight Academy"},{"@type":"CollectionPage","name":"Other Documents"}]
+}
+</script>
+</head>
+<body>
+<a class="ix-skip" href="#main">Skip to index</a>
+<main class="ix-page" id="main" tabindex="-1">
+
+  <header class="ix-hero">
+    <div class="ix-kicker">The Corridor Archive · Master Index</div>
+    <h1>Every document,<br /><em>one corridor.</em></h1>
+    <p class="ix-lede">A complete catalog of the archive, essays, case files, tools, and working documents, indexed and cross-linked.</p>
+    <div class="ix-stamp">
+      <span>Entries <b>091</b></span>
+      <span>Collections <b>10</b></span>
+      <span>Compiled <b>2026.06.22</b></span>
+    </div>
+  </header>
+
+  <div class="ix-controls">
+    <div class="ix-search">
+      <label for="ix-q" class="ix-vh">Filter the index by title, collection, or keyword</label>
+      <svg class="ix-search-ico" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.2-3.2"/></svg>
+      <input id="ix-q" class="ix-q" type="search" autocomplete="off" placeholder="Filter 91 documents…" aria-describedby="ix-q-cue" />
+      <button id="ix-clear" class="ix-clear" type="button" aria-label="Clear filter" hidden>✕</button>
+    </div>
+    <p id="ix-q-cue" class="ix-vh">Results filter as you type.</p>
+    <div id="ix-status" class="ix-status" role="status" aria-live="polite">91 entries · 10 collections</div>
+    <nav class="ix-jumpnav" aria-label="Jump to collection">
+      <a class="ix-jump" href="#grp-tools-amp-apps">Tools & Apps</a>
+      <a class="ix-jump" href="#grp-kyle-rosebrook-site">Kyle Rosebrook, Site</a>
+      <a class="ix-jump" href="#grp-kyle-rosebrook-essays">Kyle Rosebrook, Essays</a>
+      <a class="ix-jump" href="#grp-kyle-rosebrook-case-files">Kyle Rosebrook, Case Files</a>
+      <a class="ix-jump" href="#grp-essays">Essays</a>
+      <a class="ix-jump" href="#grp-load-bearing">Load-Bearing</a>
+      <a class="ix-jump" href="#grp-flashfusion">FlashFusion</a>
+      <a class="ix-jump" href="#grp-abstrekkt">Abstrekkt</a>
+      <a class="ix-jump" href="#grp-midnight-academy">Midnight Academy</a>
+      <a class="ix-jump" href="#grp-other-documents">Other Documents</a>
+    </nav>
+  </div>
+
+
+      <section class="ix-group" id="grp-tools-amp-apps" aria-labelledby="grp-tools-amp-apps-h">
+        <div class="ix-group-head">
+          <h2 id="grp-tools-amp-apps-h">Tools &amp; Apps</h2>
+          <span class="ix-count">01 app</span>
+        </div>
+        <a class="ix-row" href="IconHub.html">
+          <span class="ix-id">001</span>
+          <span class="ix-name">IconHub</span>
+          <span class="ix-sub">Icon browser, search, recolor, transform &amp; export across Lucide, Tabler, Heroicons &amp; Bootstrap</span>
+          <span class="ix-go" aria-hidden="true">↗</span>
+        </a>
+      </section>
+
+      <section class="ix-group" id="grp-kyle-rosebrook-site" aria-labelledby="grp-kyle-rosebrook-site-h">
+        <div class="ix-group-head">
+          <h2 id="grp-kyle-rosebrook-site-h">Kyle Rosebrook, Site</h2>
+          <span class="ix-count">13 docs</span>
+        </div>
+        <a class="ix-row" href="Kyle Rosebrook About.html">
+          <span class="ix-id">002</span>
+          <span class="ix-name">About</span>
+          <span class="ix-sub">About, Kyle Rosebrook</span>
+          <span class="ix-go" aria-hidden="true">↗</span>
+        </a>
+        <a class="ix-row" href="Kyle Rosebrook Active Drafts.html">
+          <span class="ix-id">003</span>
+          <span class="ix-name">Active Drafts</span>
+          <span class="ix-sub">Active Drafts, Kyle Rosebrook</span>
+          <span class="ix-go" aria-hidden="true">↗</span>
+        </a>
+        <a class="ix-row" href="Kyle Rosebrook Case Files.html">
+          <span class="ix-id">004</span>
+          <span class="ix-name">Case Files</span>
+          <span class="ix-sub">Case Files, Kyle Rosebrook</span>
+          <span class="ix-go" aria-hidden="true">↗</span>
+        </a>
+        <a class="ix-row" href="Kyle Rosebrook Contact.html">
+          <span class="ix-id">005</span>
+          <span class="ix-name">Contact</span>
+          <span class="ix-sub">Contact, Kyle Rosebrook</span>
+          <span class="ix-go" aria-hidden="true">↗</span>
+        </a>
+        <a class="ix-row" href="Kyle Rosebrook Decision Matrix.html">
+          <span class="ix-id">006</span>
+          <span class="ix-name">Decision Matrix</span>
+          <span class="ix-sub">Decision Matrix, Kyle Rosebrook</span>
+          <span class="ix-go" aria-hidden="true">↗</span>
+        </a>
+        <a class="ix-row" href="Kyle Rosebrook Essays.html">
+          <span class="ix-id">007</span>
+          <span class="ix-name">Essays</span>
+          <span class="ix-sub">Essays, Kyle Rosebrook</span>
+          <span class="ix-go" aria-hidden="true">↗</span>
+        </a>
+        <a class="ix-row" href="Kyle Rosebrook Home.html">
+          <span class="ix-id">008</span>
+          <span class="ix-name">Home</span>
+          <span class="ix-sub">Kyle Rosebrook, Documenting truth. Building what lasts.</span>
+          <span class="ix-go" aria-hidden="true">↗</span>
+        </a>
+        <a class="ix-row" href="Kyle Rosebrook Notes.html">
+          <span class="ix-id">009</span>
+          <span class="ix-name">Notes</span>
+          <span class="ix-sub">Notes, Kyle Rosebrook</span>
+          <span class="ix-go" aria-hidden="true">↗</span>
+        </a>
+        <a class="ix-row" href="Kyle Rosebrook Now.html">
+          <span class="ix-id">010</span>
+          <span class="ix-name">Now</span>
+          <span class="ix-sub">Now, Kyle Rosebrook</span>
+          <span class="ix-go" aria-hidden="true">↗</span>
+        </a>
+        <a class="ix-row" href="Kyle Rosebrook Principles.html">
+          <span class="ix-id">011</span>
+          <span class="ix-name">Principles</span>
+          <span class="ix-sub">Principles, Kyle Rosebrook</span>
+          <span class="ix-go" aria-hidden="true">↗</span>
+        </a>
+        <a class="ix-row" href="Kyle Rosebrook Reading List.html">
+          <span class="ix-id">012</span>
+          <span class="ix-name">Reading List</span>
+          <span class="ix-sub">Reading List, Kyle Rosebrook</span>
+          <span class="ix-go" aria-hidden="true">↗</span>
+        </a>
+        <a class="ix-row" href="Kyle Rosebrook Research Threads.html">
+          <span class="ix-id">013</span>
+          <span class="ix-name">Research Threads</span>
+          <span class="ix-sub">Research Threads, Kyle Rosebrook</span>
+          <span class="ix-go" aria-hidden="true">↗</span>
+        </a>
+        <a class="ix-row" href="Kyle Rosebrook Tools.html">
+          <span class="ix-id">014</span>
+          <span class="ix-name">Tools</span>
+          <span class="ix-sub">Tools, Kyle Rosebrook</span>
+          <span class="ix-go" aria-hidden="true">↗</span>
+        </a>
+      </section>
+      <section class="ix-group" id="grp-kyle-rosebrook-essays" aria-labelledby="grp-kyle-rosebrook-essays-h">
+        <div class="ix-group-head">
+          <h2 id="grp-kyle-rosebrook-essays-h">Kyle Rosebrook, Essays</h2>
+          <span class="ix-count">04 docs</span>
+        </div>
+        <a class="ix-row" href="KR Essay - Build for Asymmetry.html">
+          <span class="ix-id">015</span>
+          <span class="ix-name">Build for Asymmetry</span>
+          <span class="ix-sub">Build for Asymmetry, Kyle Rosebrook</span>
+          <span class="ix-go" aria-hidden="true">↗</span>
+        </a>
+        <a class="ix-row" href="KR Essay - Mental Models for Difficult Seasons.html">
+          <span class="ix-id">016</span>
+          <span class="ix-name">Mental Models for Difficult Seasons</span>
+          <span class="ix-sub">Mental Models for Difficult Seasons, Kyle Rosebrook</span>
+          <span class="ix-go" aria-hidden="true">↗</span>
+        </a>
+        <a class="ix-row" href="KR Essay - Theory of Explanatory Depth.html">
+          <span class="ix-id">017</span>
+          <span class="ix-name">Theory of Explanatory Depth</span>
+          <span class="ix-sub">The Theory of Explanatory Depth, Kyle Rosebrook</span>
+          <span class="ix-go" aria-hidden="true">↗</span>
+        </a>
+        <a class="ix-row" href="KR Essay - Writing to Find the Shape of a Thought.html">
+          <span class="ix-id">018</span>
+          <span class="ix-name">Writing to Find the Shape of a Thought</span>
+          <span class="ix-sub">Writing to Find the Shape of a Thought, Kyle Rosebrook</span>
+          <span class="ix-go" aria-hidden="true">↗</span>
+        </a>
+      </section>
+      <section class="ix-group" id="grp-kyle-rosebrook-case-files" aria-labelledby="grp-kyle-rosebrook-case-files-h">
+        <div class="ix-group-head">
+          <h2 id="grp-kyle-rosebrook-case-files-h">Kyle Rosebrook, Case Files</h2>
+          <span class="ix-count">04 docs</span>
+        </div>
+        <a class="ix-row" href="KR Case - AI Is a Mirror.html">
+          <span class="ix-id">019</span>
+          <span class="ix-name">AI Is a Mirror</span>
+          <span class="ix-sub">AI Is a Mirror, Case File, Kyle Rosebrook</span>
+          <span class="ix-go" aria-hidden="true">↗</span>
+        </a>
+        <a class="ix-row" href="KR Case - Blockbuster.html">
+          <span class="ix-id">020</span>
+          <span class="ix-name">Blockbuster</span>
+          <span class="ix-sub">Blockbuster, Case File, Kyle Rosebrook</span>
+          <span class="ix-go" aria-hidden="true">↗</span>
+        </a>
+        <a class="ix-row" href="KR Case - Systems Over Hacks.html">
+          <span class="ix-id">021</span>
+          <span class="ix-name">Systems Over Hacks</span>
+          <span class="ix-sub">Systems Over Hacks, Case File, Kyle Rosebrook</span>
+          <span class="ix-go" aria-hidden="true">↗</span>
+        </a>
+        <a class="ix-row" href="KR Case - Theory of Explanatory Depth.html">
+          <span class="ix-id">022</span>
+          <span class="ix-name">Theory of Explanatory Depth</span>
+          <span class="ix-sub">Theory of Explanatory Depth, Case File, Kyle Rosebrook</span>
+          <span class="ix-go" aria-hidden="true">↗</span>
+        </a>
+      </section>
+      <section class="ix-group" id="grp-essays" aria-labelledby="grp-essays-h">
+        <div class="ix-group-head">
+          <h2 id="grp-essays-h">Essays</h2>
+          <span class="ix-count">33 docs</span>
+        </div>
+        <a class="ix-row" href="Essay - 48 Viral Prompts.html">
+          <span class="ix-id">023</span>
+          <span class="ix-name">48 Viral Prompts</span>
+          <span class="ix-sub">I Audited 48 Viral Prompts. Six Were Worth Keeping., Kyle Rosebrook</span>
+          <span class="ix-go" aria-hidden="true">↗</span>
+        </a>
+        <a class="ix-row" href="Essay - AI as a Search Engine.html">
+          <span class="ix-id">024</span>
+          <span class="ix-name">AI as a Search Engine</span>
+          <span class="ix-sub">Stop Using AI as a Search Engine, FlashFusion</span>
+          <span class="ix-go" aria-hidden="true">↗</span>
+        </a>
+        <a class="ix-row" href="Essay - Augmentors.html">
+          <span class="ix-id">025</span>
+          <span class="ix-name">Augmentors</span>
+          <span class="ix-sub">Augmentors, Six Prompts That Sharpen Thinking · Kyle Rosebrook</span>
+          <span class="ix-go" aria-hidden="true">↗</span>
+        </a>
+        <a class="ix-row" href="Essay - Best Code Never Wrote.html">
+          <span class="ix-id">026</span>
+          <span class="ix-name">Best Code Never Wrote</span>
+          <span class="ix-sub">The Best Code Is the Code You Never Wrote · Kyle Rosebrook</span>
+          <span class="ix-go" aria-hidden="true">↗</span>
+        </a>
+        <a class="ix-row" href="Essay - Claude Code Blueprint.html">
+          <span class="ix-id">027</span>
+          <span class="ix-name">Claude Code Blueprint</span>
+          <span class="ix-sub">The Claude Code Blueprint Nobody Posts, FlashFusion</span>
+          <span class="ix-go" aria-hidden="true">↗</span>
+        </a>
+        <a class="ix-row" href="Essay - Claude Slot Machine.html">
+          <span class="ix-id">028</span>
+          <span class="ix-name">Claude Slot Machine</span>
+          <span class="ix-sub">Stop Using Claude as a Slot Machine, FlashFusion</span>
+          <span class="ix-go" aria-hidden="true">↗</span>
+        </a>
+        <a class="ix-row" href="Essay - HR Skills Intelligence.html">
+          <span class="ix-id">029</span>
+          <span class="ix-name">HR Skills Intelligence</span>
+          <span class="ix-sub">13 Strategies, One Problem: HR Skills Intelligence Is Still Playing Catch-Up, FlashFusion</span>
+          <span class="ix-go" aria-hidden="true">↗</span>
+        </a>
+        <a class="ix-row" href="Essay - Knowledge Worker Reclassified.html">
+          <span class="ix-id">030</span>
+          <span class="ix-name">Knowledge Worker Reclassified</span>
+          <span class="ix-sub">The Knowledge Worker Isn't Being Replaced, Kyle Rosebrook</span>
+          <span class="ix-go" aria-hidden="true">↗</span>
+        </a>
+        <a class="ix-row" href="Essay - Moving in Silence.html">
+          <span class="ix-id">031</span>
+          <span class="ix-name">Moving in Silence</span>
+          <span class="ix-sub">Moving in Silence Was Phase One, Kyle Rosebrook</span>
+          <span class="ix-go" aria-hidden="true">↗</span>
+        </a>
+        <a class="ix-row" href="Essay - Moving to Base44.html">
+          <span class="ix-id">032</span>
+          <span class="ix-name">Moving to Base44</span>
+          <span class="ix-sub">Tools &amp; Tips, Six Things I Wish I Knew Before Moving to Base44 · Kyle Rosebrook</span>
+          <span class="ix-go" aria-hidden="true">↗</span>
+        </a>
+        <a class="ix-row" href="Essay - MSP AI Playbook Is Fiction.html">
+          <span class="ix-id">033</span>
+          <span class="ix-name">MSP AI Playbook Is Fiction</span>
+          <span class="ix-sub">The MSP AI Playbook Is Fiction | The Cognitive Architect</span>
+          <span class="ix-go" aria-hidden="true">↗</span>
+        </a>
+        <a class="ix-row" href="Essay - Multimodal AI.html">
+          <span class="ix-id">034</span>
+          <span class="ix-name">Multimodal AI</span>
+          <span class="ix-sub">The Machine Finally Got Eyes, Kyle Rosebrook</span>
+          <span class="ix-go" aria-hidden="true">↗</span>
+        </a>
+        <a class="ix-row" href="Essay - Pre-Flight Checklist.html">
+          <span class="ix-id">035</span>
+          <span class="ix-name">Pre-Flight Checklist</span>
+          <span class="ix-sub">Pre-Flight, What I Check Before I Ship an AI App · Kyle Rosebrook</span>
+          <span class="ix-go" aria-hidden="true">↗</span>
+        </a>
+        <a class="ix-row" href="Essay - Prompt Engineering Diagnosis.html">
+          <span class="ix-id">036</span>
+          <span class="ix-name">Prompt Engineering Diagnosis</span>
+          <span class="ix-sub">Prompt Engineering Is a Diagnosis Problem, FlashFusion</span>
+          <span class="ix-go" aria-hidden="true">↗</span>
+        </a>
+        <a class="ix-row" href="Essay - Reading the Org.html">
+          <span class="ix-id">037</span>
+          <span class="ix-name">Reading the Org</span>
+          <span class="ix-sub">Reading the Org, Kyle Rosebrook</span>
+          <span class="ix-go" aria-hidden="true">↗</span>
+        </a>
+        <a class="ix-row" href="Essay - Reading the Pattern.html">
+          <span class="ix-id">038</span>
+          <span class="ix-name">Reading the Pattern</span>
+          <span class="ix-sub">Reading the Pattern, Kyle Rosebrook</span>
+          <span class="ix-go" aria-hidden="true">↗</span>
+        </a>
+        <a class="ix-row" href="Essay - Reading the Process.html">
+          <span class="ix-id">039</span>
+          <span class="ix-name">Reading the Process</span>
+          <span class="ix-sub">Reading the Process, Kyle Rosebrook</span>
+          <span class="ix-go" aria-hidden="true">↗</span>
+        </a>
+        <a class="ix-row" href="Essay - Reading the Room.html">
+          <span class="ix-id">040</span>
+          <span class="ix-name">Reading the Room</span>
+          <span class="ix-sub">Reading the Room, Kyle Rosebrook</span>
+          <span class="ix-go" aria-hidden="true">↗</span>
+        </a>
+        <a class="ix-row" href="Essay - Reading the System.html">
+          <span class="ix-id">041</span>
+          <span class="ix-name">Reading the System</span>
+          <span class="ix-sub">Reading the System, Kyle Rosebrook</span>
+          <span class="ix-go" aria-hidden="true">↗</span>
+        </a>
+        <a class="ix-row" href="Essay - Sales Page vs Setup.html">
+          <span class="ix-id">042</span>
+          <span class="ix-name">Sales Page vs Setup</span>
+          <span class="ix-sub">The Gap Between the Sales Page and the Setup, FlashFusion</span>
+          <span class="ix-go" aria-hidden="true">↗</span>
+        </a>
+        <a class="ix-row" href="Essay - Security Checklist.html">
+          <span class="ix-id">043</span>
+          <span class="ix-name">Security Checklist</span>
+          <span class="ix-sub">The Checklist I Wish Someone Had Handed Me · Kyle Rosebrook</span>
+          <span class="ix-go" aria-hidden="true">↗</span>
+        </a>
+        <a class="ix-row" href="Essay - Seven Hidden Gems.html">
+          <span class="ix-id">044</span>
+          <span class="ix-name">Seven Hidden Gems</span>
+          <span class="ix-sub">Hidden Gems, Seven Things Worth Knowing About · Kyle Rosebrook</span>
+          <span class="ix-go" aria-hidden="true">↗</span>
+        </a>
+        <a class="ix-row" href="Essay - Shipping in Public.html">
+          <span class="ix-id">045</span>
+          <span class="ix-name">Shipping in Public</span>
+          <span class="ix-sub">Three Lessons From a Week of Shipping in Public · Kyle Rosebrook</span>
+          <span class="ix-go" aria-hidden="true">↗</span>
+        </a>
+        <a class="ix-row" href="Essay - Still Behind in AI.html">
+          <span class="ix-id">046</span>
+          <span class="ix-name">Still Behind in AI</span>
+          <span class="ix-sub">Why You're Still "Behind" in AI (and the $0 Blueprint to Fix It), Kyle Rosebrook</span>
+          <span class="ix-go" aria-hidden="true">↗</span>
+        </a>
+        <a class="ix-row" href="Essay - The AI Race.html">
+          <span class="ix-id">047</span>
+          <span class="ix-name">The AI Race</span>
+          <span class="ix-sub">The Race Isn't the Benchmark, Kyle Rosebrook</span>
+          <span class="ix-go" aria-hidden="true">↗</span>
+        </a>
+        <a class="ix-row" href="Essay - The Floor Isnt the Code.html">
+          <span class="ix-id">048</span>
+          <span class="ix-name">The Floor Isnt the Code</span>
+          <span class="ix-sub">The Floor Isn't the Code, Kyle Rosebrook</span>
+          <span class="ix-go" aria-hidden="true">↗</span>
+        </a>
+        <a class="ix-row" href="Essay - The Logic You Outsource.html">
+          <span class="ix-id">049</span>
+          <span class="ix-name">The Logic You Outsource</span>
+          <span class="ix-sub">The Logic You Outsource Is the Logic You Lose, Kyle Rosebrook</span>
+          <span class="ix-go" aria-hidden="true">↗</span>
+        </a>
+        <a class="ix-row" href="Essay - The Real MSP AI Moat.html">
+          <span class="ix-id">050</span>
+          <span class="ix-name">The Real MSP AI Moat</span>
+          <span class="ix-sub">The Real MSP AI Moat | The Cognitive Architect</span>
+          <span class="ix-go" aria-hidden="true">↗</span>
+        </a>
+        <a class="ix-row" href="Essay - The U-Curve.html">
+          <span class="ix-id">051</span>
+          <span class="ix-name">The U-Curve</span>
+          <span class="ix-sub">The U-Curve Nobody's Talking About, Kyle Rosebrook</span>
+          <span class="ix-go" aria-hidden="true">↗</span>
+        </a>
+        <a class="ix-row" href="Essay - Three Small Habits.html">
+          <span class="ix-id">052</span>
+          <span class="ix-name">Three Small Habits</span>
+          <span class="ix-sub">Tidbits, Three Small Habits from This Week · Kyle Rosebrook</span>
+          <span class="ix-go" aria-hidden="true">↗</span>
+        </a>
+        <a class="ix-row" href="Essay - Vibe Coding.html">
+          <span class="ix-id">053</span>
+          <span class="ix-name">Vibe Coding</span>
+          <span class="ix-sub">Vibe Coding Isn't What You Think It Is, Kyle Rosebrook</span>
+          <span class="ix-go" aria-hidden="true">↗</span>
+        </a>
+        <a class="ix-row" href="Essay - Your AI Problem Isnt the Model.html">
+          <span class="ix-id">054</span>
+          <span class="ix-name">Your AI Problem Isnt the Model</span>
+          <span class="ix-sub">Your AI Problem Isn't the Model, FlashFusion</span>
+          <span class="ix-go" aria-hidden="true">↗</span>
+        </a>
+        <a class="ix-row" href="Essay - Your Files Are a Mess.html">
+          <span class="ix-id">055</span>
+          <span class="ix-name">Your Files Are a Mess</span>
+          <span class="ix-sub">The Agent Doesn't Know Your Files Are a Mess, Load-Bearing</span>
+          <span class="ix-go" aria-hidden="true">↗</span>
+        </a>
+      </section>
+      <section class="ix-group" id="grp-load-bearing" aria-labelledby="grp-load-bearing-h">
+        <div class="ix-group-head">
+          <h2 id="grp-load-bearing-h">Load-Bearing</h2>
+          <span class="ix-count">10 docs</span>
+        </div>
+        <a class="ix-row" href="Load-Bearing - Claude Code at Ninety Days.html">
+          <span class="ix-id">056</span>
+          <span class="ix-name">Claude Code at Ninety Days</span>
+          <span class="ix-sub">Claude Code at Ninety Days: What Held, Load-Bearing</span>
+          <span class="ix-go" aria-hidden="true">↗</span>
+        </a>
+        <a class="ix-row" href="Load-Bearing - Make vs n8n.html">
+          <span class="ix-id">057</span>
+          <span class="ix-name">Make vs n8n</span>
+          <span class="ix-sub">Make vs n8n: Which One I'm Still Running, Load-Bearing</span>
+          <span class="ix-go" aria-hidden="true">↗</span>
+        </a>
+        <a class="ix-row" href="Load-Bearing - The MCPs That Earned Their Keep.html">
+          <span class="ix-id">058</span>
+          <span class="ix-name">The MCPs That Earned Their Keep</span>
+          <span class="ix-sub">The MCPs That Earned Their Keep, Load-Bearing</span>
+          <span class="ix-go" aria-hidden="true">↗</span>
+        </a>
+        <a class="ix-row" href="Load-Bearing - When the Stack Falls Over.html">
+          <span class="ix-id">059</span>
+          <span class="ix-name">When the Stack Falls Over</span>
+          <span class="ix-sub">When the Stack Falls Over, Load-Bearing</span>
+          <span class="ix-go" aria-hidden="true">↗</span>
+        </a>
+        <a class="ix-row" href="Load-Bearing Archive.html">
+          <span class="ix-id">060</span>
+          <span class="ix-name">Archive</span>
+          <span class="ix-sub">The Archive, Load-Bearing</span>
+          <span class="ix-go" aria-hidden="true">↗</span>
+        </a>
+        <a class="ix-row" href="Load-Bearing Article.html">
+          <span class="ix-id">061</span>
+          <span class="ix-name">Article</span>
+          <span class="ix-sub">The brittle nature of local-first LLMs, Load-Bearing</span>
+          <span class="ix-go" aria-hidden="true">↗</span>
+        </a>
+        <a class="ix-row" href="Load-Bearing Bench.html">
+          <span class="ix-id">062</span>
+          <span class="ix-name">Bench</span>
+          <span class="ix-sub">The Bench, Load-Bearing</span>
+          <span class="ix-go" aria-hidden="true">↗</span>
+        </a>
+        <a class="ix-row" href="Load-Bearing Catalog.html">
+          <span class="ix-id">063</span>
+          <span class="ix-name">Catalog</span>
+          <span class="ix-sub">Load-Bearing Catalog, 83 Screens</span>
+          <span class="ix-go" aria-hidden="true">↗</span>
+        </a>
+        <a class="ix-row" href="Load-Bearing Home.html">
+          <span class="ix-id">064</span>
+          <span class="ix-name">Home</span>
+          <span class="ix-sub">Load-Bearing, Technical Editorial for the Midnight Hour</span>
+          <span class="ix-go" aria-hidden="true">↗</span>
+        </a>
+        <a class="ix-row" href="Load-Bearing Subscribe.html">
+          <span class="ix-id">065</span>
+          <span class="ix-name">Subscribe</span>
+          <span class="ix-sub">Subscribe, Load-Bearing</span>
+          <span class="ix-go" aria-hidden="true">↗</span>
+        </a>
+      </section>
+      <section class="ix-group" id="grp-flashfusion" aria-labelledby="grp-flashfusion-h">
+        <div class="ix-group-head">
+          <h2 id="grp-flashfusion-h">FlashFusion</h2>
+          <span class="ix-count">12 docs</span>
+        </div>
+        <a class="ix-row" href="FlashFusion - Anthropic Partner Narrative.html">
+          <span class="ix-id">066</span>
+          <span class="ix-name">Anthropic Partner Narrative</span>
+          <span class="ix-sub">Anthropic Claude Partner Network, Application Narrative · Confidential</span>
+          <span class="ix-go" aria-hidden="true">↗</span>
+        </a>
+        <a class="ix-row" href="FlashFusion - How Do You Know.html">
+          <span class="ix-id">067</span>
+          <span class="ix-name">How Do You Know</span>
+          <span class="ix-sub">How Do You Know When You've Earned It?, FlashFusion</span>
+          <span class="ix-go" aria-hidden="true">↗</span>
+        </a>
+        <a class="ix-row" href="FlashFusion - Reading AI Readiness.html">
+          <span class="ix-id">068</span>
+          <span class="ix-name">Reading AI Readiness</span>
+          <span class="ix-sub">Reading Your Organization's AI Readiness, FlashFusion</span>
+          <span class="ix-go" aria-hidden="true">↗</span>
+        </a>
+        <a class="ix-row" href="FlashFusion - The Context Moat.html">
+          <span class="ix-id">069</span>
+          <span class="ix-name">The Context Moat</span>
+          <span class="ix-sub">The Context Moat, FlashFusion</span>
+          <span class="ix-go" aria-hidden="true">↗</span>
+        </a>
+        <a class="ix-row" href="FlashFusion - The Exit.html">
+          <span class="ix-id">070</span>
+          <span class="ix-name">The Exit</span>
+          <span class="ix-sub">The Exit: Why Firing Yourself Is the Product, FlashFusion</span>
+          <span class="ix-go" aria-hidden="true">↗</span>
+        </a>
+        <a class="ix-row" href="FlashFusion - The Ratio Inverts.html">
+          <span class="ix-id">071</span>
+          <span class="ix-name">The Ratio Inverts</span>
+          <span class="ix-sub">The Ratio Inverts, FlashFusion</span>
+          <span class="ix-go" aria-hidden="true">↗</span>
+        </a>
+        <a class="ix-row" href="FlashFusion - The Speed Layer Runs on Top.html">
+          <span class="ix-id">072</span>
+          <span class="ix-name">The Speed Layer Runs on Top</span>
+          <span class="ix-sub">The Speed Layer Runs on Top, FlashFusion</span>
+          <span class="ix-go" aria-hidden="true">↗</span>
+        </a>
+        <a class="ix-row" href="FlashFusion - Training for Transfer.html">
+          <span class="ix-id">073</span>
+          <span class="ix-name">Training for Transfer</span>
+          <span class="ix-sub">Training for Transfer, Not Compliance, FlashFusion</span>
+          <span class="ix-go" aria-hidden="true">↗</span>
+        </a>
+        <a class="ix-row" href="FlashFusion - Use It as a Pressure-Tester.html">
+          <span class="ix-id">074</span>
+          <span class="ix-name">Use It as a Pressure-Tester</span>
+          <span class="ix-sub">Use It as a Pressure-Tester, Not a Word Processor, FlashFusion</span>
+          <span class="ix-go" aria-hidden="true">↗</span>
+        </a>
+        <a class="ix-row" href="FlashFusion - What a Champion Builds in 90 Days.html">
+          <span class="ix-id">075</span>
+          <span class="ix-name">What a Champion Builds in 90 Days</span>
+          <span class="ix-sub">What a Champion Actually Builds in 90 Days, FlashFusion</span>
+          <span class="ix-go" aria-hidden="true">↗</span>
+        </a>
+        <a class="ix-row" href="FlashFusion - What a Champion Is.html">
+          <span class="ix-id">076</span>
+          <span class="ix-name">What a Champion Is</span>
+          <span class="ix-sub">What a Champion Is (and Isn't), FlashFusion</span>
+          <span class="ix-go" aria-hidden="true">↗</span>
+        </a>
+        <a class="ix-row" href="FlashFusion Blog.html">
+          <span class="ix-id">077</span>
+          <span class="ix-name">Blog</span>
+          <span class="ix-sub">The Blog, FlashFusion</span>
+          <span class="ix-go" aria-hidden="true">↗</span>
+        </a>
+      </section>
+      <section class="ix-group" id="grp-abstrekkt" aria-labelledby="grp-abstrekkt-h">
+        <div class="ix-group-head">
+          <h2 id="grp-abstrekkt-h">Abstrekkt</h2>
+          <span class="ix-count">07 docs</span>
+        </div>
+        <a class="ix-row" href="Abstrekkt Brand System.html">
+          <span class="ix-id">078</span>
+          <span class="ix-name">Brand System</span>
+          <span class="ix-sub">Abstrekkt, Brand System</span>
+          <span class="ix-go" aria-hidden="true">↗</span>
+        </a>
+        <a class="ix-row" href="Abstrekkt Contact.html">
+          <span class="ix-id">079</span>
+          <span class="ix-name">Contact</span>
+          <span class="ix-sub">Abstrekkt, Start where you are</span>
+          <span class="ix-go" aria-hidden="true">↗</span>
+        </a>
+        <a class="ix-row" href="Abstrekkt Design.html">
+          <span class="ix-id">080</span>
+          <span class="ix-name">Design</span>
+          <span class="ix-sub">Abstrekkt, AI Assessment Design System</span>
+          <span class="ix-go" aria-hidden="true">↗</span>
+        </a>
+        <a class="ix-row" href="Abstrekkt Founder v2.html">
+          <span class="ix-id">081</span>
+          <span class="ix-name">Founder v2</span>
+          <span class="ix-sub">Abstrekkt, Kyle Rosebrook · Founder</span>
+          <span class="ix-go" aria-hidden="true">↗</span>
+        </a>
+        <a class="ix-row" href="Abstrekkt Founder.html">
+          <span class="ix-id">082</span>
+          <span class="ix-name">Founder</span>
+          <span class="ix-sub">Abstrekkt, Kyle Rosebrook · Founder</span>
+          <span class="ix-go" aria-hidden="true">↗</span>
+        </a>
+        <a class="ix-row" href="Abstrekkt Home.html">
+          <span class="ix-id">083</span>
+          <span class="ix-name">Home</span>
+          <span class="ix-sub">Abstrekkt, Progress. Not pretending.</span>
+          <span class="ix-go" aria-hidden="true">↗</span>
+        </a>
+        <a class="ix-row" href="Abstrekkt Pillars.html">
+          <span class="ix-id">084</span>
+          <span class="ix-name">Pillars</span>
+          <span class="ix-sub">The Construction Manifesto, Abstrekkt</span>
+          <span class="ix-go" aria-hidden="true">↗</span>
+        </a>
+      </section>
+      <section class="ix-group" id="grp-midnight-academy" aria-labelledby="grp-midnight-academy-h">
+        <div class="ix-group-head">
+          <h2 id="grp-midnight-academy-h">Midnight Academy</h2>
+          <span class="ix-count">02 docs</span>
+        </div>
+        <a class="ix-row" href="Midnight Academy Objection Handler.html">
+          <span class="ix-id">085</span>
+          <span class="ix-name">Objection Handler</span>
+          <span class="ix-sub">Objection Handler, Midnight Academy</span>
+          <span class="ix-go" aria-hidden="true">↗</span>
+        </a>
+        <a class="ix-row" href="Midnight Academy Suite Hub.html">
+          <span class="ix-id">086</span>
+          <span class="ix-name">Suite Hub</span>
+          <span class="ix-sub">Suite Hub, Midnight Academy</span>
+          <span class="ix-go" aria-hidden="true">↗</span>
+        </a>
+      </section>
+      <section class="ix-group" id="grp-other-documents" aria-labelledby="grp-other-documents-h">
+        <div class="ix-group-head">
+          <h2 id="grp-other-documents-h">Other Documents</h2>
+          <span class="ix-count">05 docs</span>
+        </div>
+        <a class="ix-row" href="Claude Design Briefing.html">
+          <span class="ix-id">087</span>
+          <span class="ix-name">Claude Design Briefing</span>
+          <span class="ix-sub">Claude Design, Briefing (concept)</span>
+          <span class="ix-go" aria-hidden="true">↗</span>
+        </a>
+        <a class="ix-row" href="Corridor Archive Manifest.html">
+          <span class="ix-id">088</span>
+          <span class="ix-name">Corridor Archive Manifest</span>
+          <span class="ix-sub">Corridor Archive, Manifest</span>
+          <span class="ix-go" aria-hidden="true">↗</span>
+        </a>
+        <a class="ix-row" href="LLC Formation Kit.html">
+          <span class="ix-id">089</span>
+          <span class="ix-name">LLC Formation Kit</span>
+          <span class="ix-sub">LLC Formation Kit, Kyle Rosebrook</span>
+          <span class="ix-go" aria-hidden="true">↗</span>
+        </a>
+        <a class="ix-row" href="Regeneration Era Article.html">
+          <span class="ix-id">090</span>
+          <span class="ix-name">Regeneration Era Article</span>
+          <span class="ix-sub">The Rise of the Regeneration Era, Kyle Rosebrook</span>
+          <span class="ix-go" aria-hidden="true">↗</span>
+        </a>
+        <a class="ix-row" href="Sedona - The Meditation Pivot.html">
+          <span class="ix-id">091</span>
+          <span class="ix-name">Sedona - The Meditation Pivot</span>
+          <span class="ix-sub">Sedona, Kyle Rosebrook</span>
+          <span class="ix-go" aria-hidden="true">↗</span>
+        </a>
+      </section>
+
+</main>
+<script>
+(function(){
+  var q = document.getElementById('ix-q');
+  var clear = document.getElementById('ix-clear');
+  var status = document.getElementById('ix-status');
+  var page = document.getElementById('main');
+  var rows = Array.prototype.slice.call(document.querySelectorAll('.ix-row'));
+  var groups = Array.prototype.slice.call(document.querySelectorAll('.ix-group'));
+  var jumps = Array.prototype.slice.call(document.querySelectorAll('.ix-jump'));
+  var TOTAL = 91, GROUPS = 10;
+  var baseStatus = TOTAL + ' entries \u00b7 ' + GROUPS + ' collections';
+  // index each row's searchable text once
+  rows.forEach(function(r){ r.__t = (r.textContent + ' ' + (r.getAttribute('href')||'')).toLowerCase(); });
+  var noRes = document.createElement('div');
+  noRes.className = 'ix-noresults'; noRes.hidden = true;
+  noRes.setAttribute('role','status');
+  page.appendChild(noRes);
+
+  function run(){
+    var raw = q.value.trim().toLowerCase();
+    clear.hidden = !raw;
+    var terms = raw.split(/\s+/).filter(Boolean);
+    var shown = 0;
+    rows.forEach(function(r){
+      var ok = terms.every(function(t){ return r.__t.indexOf(t) >= 0; });
+      r.classList.toggle('ix-hidden', !ok);
+      if(ok) shown++;
+    });
+    var liveGroups = {};
+    groups.forEach(function(g){
+      var any = g.querySelector('.ix-row:not(.ix-hidden)');
+      g.classList.toggle('ix-hidden', !any);
+      if(any) liveGroups[g.id] = true;
+    });
+    jumps.forEach(function(j){
+      var id = (j.getAttribute('href')||'').slice(1);
+      j.classList.toggle('ix-hidden', !!raw && !liveGroups[id]);
+    });
+    if(!raw){ status.textContent = baseStatus; noRes.hidden = true; }
+    else if(shown === 0){
+      status.textContent = 'No entries match \u201c' + q.value.trim() + '\u201d';
+      noRes.innerHTML = 'No entries match <b>\u201c' + q.value.trim().replace(/[<>&]/g,'') + '\u201d</b>. Try a shorter or different term.';
+      noRes.hidden = false;
+    } else {
+      status.textContent = shown + (shown===1?' entry':' entries') + ' match';
+      noRes.hidden = true;
+    }
+  }
+  var t;
+  q.addEventListener('input', function(){ clearTimeout(t); t = setTimeout(run, 160); });
+  clear.addEventListener('click', function(){ q.value=''; run(); q.focus(); });
+  q.addEventListener('keydown', function(e){ if(e.key==='Escape' && q.value){ q.value=''; run(); } });
+
+  // jump-nav: move focus to the group heading for screen-reader context
+  jumps.forEach(function(j){
+    j.addEventListener('click', function(e){
+      var id = (j.getAttribute('href')||'').slice(1);
+      var sec = document.getElementById(id);
+      if(sec){ var hh = sec.querySelector('h2'); if(hh){ hh.setAttribute('tabindex','-1'); setTimeout(function(){ hh.focus({preventScroll:true}); }, 60); } }
+    });
+  });
+})();
+</script>
+</body>
+</html>

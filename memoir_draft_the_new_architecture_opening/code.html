@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Chapter 7: The New Architecture</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,500;0,7..72,600;1,7..72,400;1,7..72,500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-surface-variant": "#d4c5ab",
+                        "surface-bright": "#39393b",
+                        "inverse-surface": "#e5e1e4",
+                        "inverse-primary": "#795900",
+                        "surface-tint": "#fbbc00",
+                        "on-primary": "#402d00",
+                        "tertiary-fixed-dim": "#c6c7c2",
+                        "primary": "#ffe2ab",
+                        "surface-container-low": "#1c1b1d",
+                        "on-primary-container": "#6d5000",
+                        "secondary": "#a9c7ff",
+                        "primary-fixed": "#ffdfa0",
+                        "surface-dim": "#131315",
+                        "on-error-container": "#ffdad6",
+                        "error": "#ffb4ab",
+                        "on-error": "#690005",
+                        "surface-container-highest": "#353437",
+                        "on-secondary-fixed": "#001b3e",
+                        "secondary-fixed-dim": "#a9c7ff",
+                        "on-primary-fixed": "#261a00",
+                        "tertiary-container": "#c9cac5",
+                        "on-secondary-container": "#ebf0ff",
+                        "tertiary": "#e6e6e1",
+                        "surface-container-lowest": "#0e0e10",
+                        "surface-variant": "#353437",
+                        "primary-fixed-dim": "#fbbc00",
+                        "secondary-fixed": "#d6e3ff",
+                        "on-tertiary-fixed": "#1a1c19",
+                        "tertiary-fixed": "#e3e3de",
+                        "surface-container-high": "#2a2a2c",
+                        "secondary-container": "#026bd2",
+                        "outline-variant": "#504532",
+                        "on-tertiary-fixed-variant": "#454744",
+                        "error-container": "#93000a",
+                        "on-secondary": "#003064",
+                        "on-primary-fixed-variant": "#5c4300",
+                        "on-background": "#e5e1e4",
+                        "surface": "#131315",
+                        "outline": "#9c8f78",
+                        "surface-container": "#201f21",
+                        "on-tertiary-container": "#535551",
+                        "on-tertiary": "#2f312e",
+                        "primary-container": "#ffbf00",
+                        "on-secondary-fixed-variant": "#00468c",
+                        "inverse-on-surface": "#313032",
+                        "on-surface": "#e5e1e4",
+                        "background": "#131315"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "gutter": "24px",
+                        "container-padding": "40px",
+                        "window-frame-thickness": "12px",
+                        "unit": "8px"
+                    },
+                    "fontFamily": {
+                        "body-md": ["Literata", "serif"],
+                        "technical-sm": ["IBM Plex Mono", "monospace"],
+                        "display-lg": ["EB Garamond", "serif"],
+                        "display-lg-mobile": ["EB Garamond", "serif"],
+                        "body-lg": ["Literata", "serif"],
+                        "label-caps": ["EB Garamond", "serif"],
+                        "headline-md": ["EB Garamond", "serif"]
+                    },
+                    "fontSize": {
+                        "body-md": ["16px", { "lineHeight": "1.6", "fontWeight": "400" }],
+                        "technical-sm": ["12px", { "lineHeight": "1.5", "letterSpacing": "-0.01em", "fontWeight": "400" }],
+                        "display-lg": ["48px", { "lineHeight": "1.1", "letterSpacing": "-0.02em", "fontWeight": "500" }],
+                        "display-lg-mobile": ["32px", { "lineHeight": "1.2", "fontWeight": "500" }],
+                        "body-lg": ["18px", { "lineHeight": "1.6", "fontWeight": "400" }],
+                        "label-caps": ["12px", { "lineHeight": "1.0", "letterSpacing": "0.1em", "fontWeight": "600" }],
+                        "headline-md": ["24px", { "lineHeight": "1.4", "fontWeight": "400" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body {
+            background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100' height='100' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+            background-color: #131315;
+            background-blend-mode: overlay;
+        }
+        .window-frame {
+            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05), inset 0 0 20px rgba(0, 0, 0, 0.8);
+        }
+        .glass-panel {
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 0.5px solid rgba(229, 225, 228, 0.1);
+        }
+        .perspective-1000 {
+            perspective: 1000px;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-surface antialiased selection:bg-primary-container selection:text-on-primary-container min-h-screen p-1 md:p-window-frame-thickness">
+<div class="window-frame relative min-h-[calc(100vh-8px)] md:min-h-[calc(100vh-24px)] rounded-xl border border-outline-variant bg-surface-dim overflow-hidden flex flex-col md:flex-row">
+<!-- TopAppBar (Mobile) / SideNavBar (Desktop) -->
+<header class="md:hidden glass-panel flex justify-between items-center w-full px-container-padding h-20 sticky top-0 z-50">
+<h1 class="font-display-lg-mobile text-display-lg-mobile text-primary tracking-tight">Halls of Villains and Virtues</h1>
+<div class="flex gap-4">
+<span class="material-symbols-outlined text-primary">settings</span>
+</div>
+</header>
+<nav class="hidden md:flex fixed left-0 top-0 h-full z-40 flex-col py-10 bg-surface-dim/80 backdrop-blur-xl docked left-0 h-screen w-64 border-r border-white/10 shadow-2xl">
+<div class="px-container-padding mb-12">
+<p class="text-headline-md font-headline-md text-primary">The Narrator</p>
+<p class="font-label-caps text-label-caps text-on-surface-variant mt-2">Archivist of Souls</p>
+</div>
+<ul class="flex flex-col gap-6 flex-1">
+<li class="pl-4 text-on-surface-variant font-label-caps text-label-caps hover:bg-white/5 hover:text-primary transition-all cursor-pointer flex items-center gap-3">
+<span class="material-symbols-outlined">fingerprint</span> Identity
+                </li>
+<li class="pl-4 text-on-surface-variant font-label-caps text-label-caps hover:bg-white/5 hover:text-primary transition-all cursor-pointer flex items-center gap-3">
+<span class="material-symbols-outlined">auto_awesome</span> Virtues
+                </li>
+<li class="pl-4 text-on-surface-variant font-label-caps text-label-caps hover:bg-white/5 hover:text-primary transition-all cursor-pointer flex items-center gap-3">
+<span class="material-symbols-outlined">skull</span> Villains
+                </li>
+<li class="pl-4 text-primary font-bold border-l-2 border-primary pl-4 font-label-caps text-label-caps hover:bg-white/5 hover:text-primary transition-all cursor-pointer flex items-center gap-3">
+<span class="material-symbols-outlined">balance</span> Integrity
+                </li>
+</ul>
+</nav>
+<!-- Main Canvas -->
+<main class="flex-1 w-full md:ml-64 p-container-padding pb-32 md:pb-container-padding overflow-y-auto">
+<div class="max-w-4xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-gutter">
+<!-- Prose Column -->
+<article class="lg:col-span-7 space-y-8">
+<header class="space-y-4 mb-12 border-b border-outline-variant pb-8">
+<p class="font-technical-sm text-technical-sm text-primary uppercase tracking-widest">Chapter VII</p>
+<h1 class="font-display-lg-mobile text-display-lg-mobile md:font-display-lg md:text-display-lg text-primary">The New Architecture</h1>
+<p class="font-body-md text-body-md text-on-surface-variant italic">In which the volatile ether of human memory is traded for the rigid permanence of machine logic.</p>
+</header>
+<div class="font-body-lg text-body-lg text-on-surface space-y-6">
+<p>
+                            It began not as an act of creation, but as an act of desperation. The biological storage medium—my own mind—was a faulty vessel, bleeding data into the void. A 12th-percentile recall wrapped around a 99th-percentile processing engine meant I could understand everything in the moment, but hold nothing for the morrow. Learning to code was not merely acquiring a skill; it was an act of cognitive reconstruction.
+                        </p>
+<blockquote class="border-l-2 border-primary pl-6 py-2 my-8 font-display-lg-mobile text-display-lg-mobile text-surface-tint italic">
+                            "The shift from hoping to remember, to authoring logic that persists."
+                        </blockquote>
+<p>
+                            There is a distinct, physical sensation when a script executes successfully for the first time. It is the feeling of a ghost taking solid form. I remember staring at the terminal. A simple loop, a minor data transformation, yet the implications were monumental. The logic I had conceived in the ephemeral theater of my mind had been externalized, etched into silicon. It would not forget. It would not decay.
+                        </p>
+</div>
+</article>
+<!-- Technical Diagnostics Column (Bento Grid) -->
+<aside class="lg:col-span-5 space-y-6">
+<!-- System Status Card -->
+<div class="glass-panel bg-surface-container-low p-6 rounded-lg relative overflow-hidden group">
+<div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-primary to-transparent opacity-50"></div>
+<div class="flex justify-between items-start mb-4">
+<h3 class="font-label-caps text-label-caps text-on-surface-variant">System Status</h3>
+<span class="material-symbols-outlined text-primary text-sm">memory</span>
+</div>
+<div class="flex items-baseline gap-2 mb-2">
+<span class="w-3 h-3 rounded-full bg-primary animate-pulse"></span>
+<span class="font-technical-sm text-technical-sm text-primary">SYSTEM_OPTIMIZED</span>
+</div>
+<p class="font-technical-sm text-technical-sm text-on-surface-variant opacity-70">Phase: Construction</p>
+</div>
+<!-- Logic Compilation Audit -->
+<div class="glass-panel bg-surface-container-low p-6 rounded-lg">
+<h3 class="font-label-caps text-label-caps text-on-surface-variant border-b border-white/5 pb-2 mb-4">Logic Compilation Audit</h3>
+<div class="space-y-4">
+<div class="flex justify-between items-center group">
+<span class="font-technical-sm text-technical-sm text-error opacity-70 group-hover:opacity-100 transition-opacity">Biological Recall</span>
+<span class="font-technical-sm text-technical-sm text-on-surface-variant">12th Pctl</span>
+</div>
+<div class="flex items-center justify-center py-2">
+<span class="material-symbols-outlined text-on-surface-variant opacity-30 transform rotate-90">sync_alt</span>
+</div>
+<div class="flex justify-between items-center group">
+<span class="font-technical-sm text-technical-sm text-primary opacity-70 group-hover:opacity-100 transition-opacity">Machine Persistence</span>
+<span class="font-technical-sm text-technical-sm text-on-surface-variant">∞ Pctl</span>
+</div>
+</div>
+</div>
+<!-- Architecture Log -->
+<div class="glass-panel bg-surface-container-low p-6 rounded-lg">
+<h3 class="font-label-caps text-label-caps text-on-surface-variant border-b border-white/5 pb-2 mb-4">Architecture Log</h3>
+<ul class="space-y-3 font-technical-sm text-technical-sm">
+<li class="flex gap-3 text-on-surface-variant">
+<span class="text-surface-tint">[09:12]</span>
+<span>Init neural re-routing...</span>
+</li>
+<li class="flex gap-3 text-on-surface-variant">
+<span class="text-surface-tint">[09:15]</span>
+<span>Syntax parsing established.</span>
+</li>
+<li class="flex gap-3 text-primary">
+<span class="text-surface-tint">[09:22]</span>
+<span>Stable Build Detected. Logic anchored.</span>
+</li>
+</ul>
+</div>
+</aside>
+</div>
+</main>
+<!-- BottomNavBar (Mobile) -->
+<nav class="md:hidden glass-panel fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-8 pb-8 pt-4 docked full-width rounded-t-xl shadow-[0_-10px_30px_rgba(0,0,0,0.5)]">
+<button class="flex flex-col items-center justify-center text-on-surface-variant opacity-60 hover:opacity-100 hover:text-primary transition-opacity font-technical-sm text-technical-sm">
+<span class="material-symbols-outlined mb-1">theater_comedy</span>
+                Villains
+            </button>
+<button class="flex flex-col items-center justify-center text-primary bg-primary/10 rounded-full px-6 py-2 shadow-[0_0_15px_rgba(255,191,0,0.3)] perspective-1000 active:rotate-x-12 transition-transform duration-500 font-technical-sm text-technical-sm">
+<span class="material-symbols-outlined mb-1">history_toggle_off</span>
+                Timeline
+            </button>
+<button class="flex flex-col items-center justify-center text-on-surface-variant opacity-60 hover:opacity-100 hover:text-primary transition-opacity font-technical-sm text-technical-sm">
+<span class="material-symbols-outlined mb-1">verified</span>
+                Virtues
+            </button>
+</nav>
+</div>
+</body></html>

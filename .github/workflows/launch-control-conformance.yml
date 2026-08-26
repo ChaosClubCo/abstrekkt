@@ -1,0 +1,38 @@
+name: Launch Control Conformance
+
+on:
+  push:
+    paths:
+      - "ops/launch-control/**"
+      - ".github/workflows/launch-control-conformance.yml"
+  pull_request:
+    paths:
+      - "ops/launch-control/**"
+      - ".github/workflows/launch-control-conformance.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  conformance:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Run launch-control conformance suite
+        run: node ops/launch-control/tests/status-conformance.mjs
+
+      - name: Upload conformance report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: launch-control-conformance-report
+          path: ops/launch-control/tests/conformance-report.json
+          if-no-files-found: error

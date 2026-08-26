@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Security Posture — Intinc AppSec</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            void: '#0A0A0F',
+            violet: { 400:'#A78BFA', 500:'#8B5CF6', 600:'#7C3AED', 700:'#6D28D9', 800:'#5B21B6' },
+            panel: '#12121A',
+            'panel-border': '#1E1E2E',
+            sev: { critical:'#EF4444', high:'#F97316', medium:'#EAB308', low:'#22C55E', info:'#3B82F6' }
+          },
+          fontFamily: { heading:['Space Grotesk','sans-serif'], body:['Inter','sans-serif'] }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { font-family: 'Inter', sans-serif; background: #0A0A0F; }
+    .glow { box-shadow: 0 0 20px rgba(124,58,237,0.15); }
+    .sev-pulse { animation: pulse 2s infinite; }
+    @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.6; } }
+  </style>
+</head>
+<body class="text-gray-300 min-h-screen">
+
+  <!-- Header -->
+  <header class="border-b border-panel-border px-6 py-4">
+    <div class="max-w-7xl mx-auto flex items-center justify-between">
+      <div>
+        <h1 class="text-2xl font-heading font-bold text-white">Security Posture Dashboard</h1>
+        <p class="text-sm text-gray-500 mt-1">Intinc · AppSec + Platform · 50–200 Engineer Org</p>
+      </div>
+      <div class="flex items-center gap-3">
+        <span class="text-xs text-gray-500">Snapshot</span>
+        <span class="bg-violet-600/20 text-violet-400 text-xs font-medium px-3 py-1 rounded-full" id="snapDate"></span>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-6 py-8 space-y-8">
+
+    <!-- Risk Score Banner -->
+    <section class="bg-panel border border-panel-border rounded-xl p-6 glow flex items-center justify-between">
+      <div>
+        <p class="text-xs text-gray-500 uppercase tracking-wide font-medium">Overall Security Score</p>
+        <div class="flex items-end gap-3 mt-2">
+          <span class="text-5xl font-heading font-bold text-violet-400" id="overallScore">74</span>
+          <span class="text-lg text-gray-500 mb-1">/100</span>
+        </div>
+        <p class="text-sm text-gray-500 mt-1">Rating: <span class="text-yellow-400 font-medium">Good — Needs Improvement in Dependency Scanning</span></p>
+      </div>
+      <div class="text-right space-y-1">
+        <p class="text-xs text-gray-500">Trend (30d)</p>
+        <p class="text-green-400 font-medium text-lg">▲ +6 pts</p>
+        <p class="text-xs text-gray-500">from 68</p>
+      </div>
+    </section>
+
+    <!-- Severity Summary Cards -->
+    <section class="grid grid-cols-2 md:grid-cols-5 gap-4">
+      <div class="bg-panel border border-panel-border rounded-xl p-4 text-center">
+        <p class="text-xs text-gray-500 uppercase">Critical</p>
+        <p class="text-3xl font-bold text-sev-critical mt-1 sev-pulse" id="sevCritical">2</p>
+        <p class="text-xs text-gray-600 mt-1">Open findings</p>
+      </div>
+      <div class="bg-panel border border-panel-border rounded-xl p-4 text-center">
+        <p class="text-xs text-gray-500 uppercase">High</p>
+        <p class="text-3xl font-bold text-sev-high mt-1">7</p>
+        <p class="text-xs text-gray-600 mt-1">Open findings</p>
+      </div>
+      <div class="bg-panel border border-panel-border rounded-xl p-4 text-center">
+        <p class="text-xs text-gray-500 uppercase">Medium</p>
+        <p class="text-3xl font-bold text-sev-medium mt-1">14</p>
+        <p class="text-xs text-gray-600 mt-1">Open findings</p>
+      </div>
+      <div class="bg-panel border border-panel-border rounded-xl p-4 text-center">
+        <p class="text-xs text-gray-500 uppercase">Low</p>
+        <p class="text-3xl font-bold text-sev-low mt-1">23</p>
+        <p class="text-xs text-gray-600 mt-1">Open findings</p>
+      </div>
+      <div class="bg-panel border border-panel-border rounded-xl p-4 text-center">
+        <p class="text-xs text-gray-500 uppercase">Resolved (30d)</p>
+        <p class="text-3xl font-bold text-violet-400 mt-1">31</p>
+        <p class="text-xs text-gray-600 mt-1">Closed this period</p>
+      </div>
+    </section>
+
+    <!-- OWASP Top 10 Coverage -->
+    <section class="bg-panel border border-panel-border rounded-xl p-6">
+      <h2 class="text-lg font-heading font-semibold text-white mb-4">OWASP Top 10 (2021) Coverage</h2>
+      <div class="space-y-3" id="owaspBars"></div>
+    </section>
+
+    <!-- Charts Row -->
+    <section class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div class="bg-panel border border-panel-border rounded-xl p-6">
+        <h3 class="text-base font-heading font-semibold text-white mb-4">Vulnerability Trend (12 weeks)</h3>
+        <canvas id="vulnTrendChart" height="260"></canvas>
+      </div>
+      <div class="bg-panel border border-panel-border rounded-xl p-6">
+        <h3 class="text-base font-heading font-semibold text-white mb-4">Findings by Category</h3>
+        <canvas id="categoryChart" height="260"></canvas>
+      </div>
+    </section>
+
+    <!-- MTTR + SLA -->
+    <section class="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div class="bg-panel border border-panel-border rounded-xl p-5">
+        <p class="text-xs text-gray-500 uppercase tracking-wide">MTTR (Critical)</p>
+        <p class="text-2xl font-bold text-white mt-1">2.1d</p>
+        <p class="text-xs text-green-400 mt-1">SLA: 3d ✓</p>
+      </div>
+      <div class="bg-panel border border-panel-border rounded-xl p-5">
+        <p class="text-xs text-gray-500 uppercase tracking-wide">MTTR (High)</p>
+        <p class="text-2xl font-bold text-white mt-1">6.8d</p>
+        <p class="text-xs text-green-400 mt-1">SLA: 7d ✓</p>
+      </div>
+      <div class="bg-panel border border-panel-border rounded-xl p-5">
+        <p class="text-xs text-gray-500 uppercase tracking-wide">MTTR (Medium)</p>
+        <p class="text-2xl font-bold text-white mt-1">18d</p>
+        <p class="text-xs text-yellow-400 mt-1">SLA: 14d ✗</p>
+      </div>
+      <div class="bg-panel border border-panel-border rounded-xl p-5">
+        <p class="text-xs text-gray-500 uppercase tracking-wide">SLA Compliance</p>
+        <p class="text-2xl font-bold text-violet-400 mt-1">82%</p>
+        <p class="text-xs text-gray-500 mt-1">Target: 90%</p>
+      </div>
+    </section>
+
+    <!-- SAST/DAST/SCA Pipeline Status -->
+    <section class="bg-panel border border-panel-border rounded-xl p-6">
+      <h2 class="text-lg font-heading font-semibold text-white mb-4">Security Pipeline Status</h2>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4" id="pipelineCards"></div>
+    </section>
+
+    <!-- Training & Awareness -->
+    <section class="bg-panel border border-panel-border rounded-xl p-6">
+      <h2 class="text-lg font-heading font-semibold text-white mb-4">Security Training Progress</h2>
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4" id="trainingCards"></div>
+    </section>
+
+  </main>
+
+  <footer class="border-t border-panel-border mt-12 py-4 text-center text-xs text-gray-600">
+    Security Posture Dashboard · Lane: Intinc · INT Design Profile · Tailwind + Chart.js
+  </footer>
+
+  <script>
+    // --- DATA ---
+    const OWASP = [
+      { id:'A01', name:'Broken Access Control', coverage:85, findings:4 },
+      { id:'A02', name:'Cryptographic Failures', coverage:78, findings:2 },
+      { id:'A03', name:'Injection', coverage:92, findings:1 },
+      { id:'A04', name:'Insecure Design', coverage:65, findings:6 },
+      { id:'A05', name:'Security Misconfiguration', coverage:70, findings:5 },
+      { id:'A06', name:'Vulnerable Components', coverage:45, findings:12 },
+      { id:'A07', name:'Auth Failures', coverage:88, findings:2 },
+      { id:'A08', name:'Data Integrity Failures', coverage:72, findings:3 },
+      { id:'A09', name:'Logging & Monitoring', coverage:60, findings:7 },
+      { id:'A10', name:'SSRF', coverage:82, findings:1 }
+    ];
+
+    const VULN_TREND = {
+      labels: ['W1','W2','W3','W4','W5','W6','W7','W8','W9','W10','W11','W12'],
+      critical: [5,4,4,3,3,3,2,2,3,2,2,2],
+      high: [12,11,10,10,9,9,8,8,8,7,7,7],
+      medium: [20,19,18,17,16,16,15,15,14,14,14,14],
+      low: [30,29,28,27,26,25,25,24,24,23,23,23]
+    };
+
+    const CATEGORIES = [
+      { name:'Dependency Vulns', count:18, color:'#EF4444' },
+      { name:'Access Control', count:8, color:'#F97316' },
+      { name:'Config Issues', count:7, color:'#EAB308' },
+      { name:'Input Validation', count:5, color:'#8B5CF6' },
+      { name:'Auth/Session', count:4, color:'#3B82F6' },
+      { name:'Crypto', count:2, color:'#22C55E' },
+      { name:'Other', count:2, color:'#6B7280' }
+    ];
+
+    const PIPELINES = [
+      { name:'SAST (Semgrep)', status:'Active', lastRun:'2h ago', findings:14, trend:'↓3', color:'text-green-400' },
+      { name:'DAST (ZAP)', status:'Scheduled', lastRun:'Weekly Sun 2AM', findings:8, trend:'↓1', color:'text-violet-400' },
+      { name:'SCA (Socket/Snyk)', status:'Active', lastRun:'42m ago', findings:18, trend:'→0', color:'text-yellow-400' }
+    ];
+
+    const TRAINING = [
+      { name:'OWASP Basics', completed:142, total:180, pct:79 },
+      { name:'Secure Code Review', completed:45, total:60, pct:75 },
+      { name:'STRIDE Modeling', completed:18, total:30, pct:60 },
+      { name:'Incident Response', completed:55, total:60, pct:92 }
+    ];
+
+    // --- RENDER ---
+    document.getElementById('snapDate').textContent = new Date().toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' });
+
+    // OWASP bars
+    const owaspContainer = document.getElementById('owaspBars');
+    OWASP.forEach(o => {
+      const barColor = o.coverage >= 80 ? 'bg-green-500' : o.coverage >= 60 ? 'bg-yellow-500' : 'bg-red-500';
+      owaspContainer.innerHTML += `<div class="flex items-center gap-4">
+        <span class="w-8 text-xs text-gray-500 font-mono">${o.id}</span>
+        <span class="w-48 text-sm text-gray-400 truncate">${o.name}</span>
+        <div class="flex-1 bg-gray-800 rounded-full h-3 overflow-hidden">
+          <div class="${barColor} h-3 rounded-full" style="width:${o.coverage}%"></div>
+        </div>
+        <span class="w-12 text-right text-sm font-medium text-gray-300">${o.coverage}%</span>
+        <span class="w-20 text-right text-xs text-gray-500">${o.findings} open</span>
+      </div>`;
+    });
+
+    // Vuln trend chart
+    new Chart(document.getElementById('vulnTrendChart'), {
+      type: 'line',
+      data: {
+        labels: VULN_TREND.labels,
+        datasets: [
+          { label:'Critical', data:VULN_TREND.critical, borderColor:'#EF4444', backgroundColor:'rgba(239,68,68,0.1)', fill:true, tension:0.3 },
+          { label:'High', data:VULN_TREND.high, borderColor:'#F97316', backgroundColor:'rgba(249,115,22,0.1)', fill:true, tension:0.3 },
+          { label:'Medium', data:VULN_TREND.medium, borderColor:'#EAB308', backgroundColor:'rgba(234,179,8,0.05)', fill:true, tension:0.3 },
+          { label:'Low', data:VULN_TREND.low, borderColor:'#22C55E', backgroundColor:'rgba(34,197,94,0.05)', fill:true, tension:0.3 }
+        ]
+      },
+      options: {
+        responsive:true,
+        plugins: { legend: { position:'bottom', labels: { color:'#9CA3AF', font:{family:'Inter',size:11} } } },
+        scales: {
+          x: { ticks:{color:'#6B7280'}, grid:{color:'#1E1E2E'} },
+          y: { beginAtZero:true, ticks:{color:'#6B7280'}, grid:{color:'#1E1E2E'} }
+        }
+      }
+    });
+
+    // Category chart
+    new Chart(document.getElementById('categoryChart'), {
+      type: 'bar',
+      data: {
+        labels: CATEGORIES.map(c => c.name),
+        datasets: [{ data: CATEGORIES.map(c => c.count), backgroundColor: CATEGORIES.map(c => c.color), borderRadius:4 }]
+      },
+      options: {
+        indexAxis:'y', responsive:true,
+        plugins: { legend:{display:false} },
+        scales: {
+          x: { beginAtZero:true, ticks:{color:'#6B7280'}, grid:{color:'#1E1E2E'} },
+          y: { ticks:{color:'#9CA3AF', font:{family:'Inter',size:11}}, grid:{display:false} }
+        }
+      }
+    });
+
+    // Pipeline cards
+    const pipeEl = document.getElementById('pipelineCards');
+    PIPELINES.forEach(p => {
+      pipeEl.innerHTML += `<div class="bg-void border border-panel-border rounded-lg p-4">
+        <div class="flex items-center justify-between mb-2">
+          <p class="font-medium text-white text-sm">${p.name}</p>
+          <span class="${p.color} text-xs font-medium">${p.status}</span>
+        </div>
+        <p class="text-xs text-gray-500">Last run: ${p.lastRun}</p>
+        <p class="text-xs text-gray-500 mt-1">Findings: <span class="text-gray-300 font-medium">${p.findings}</span> <span class="text-gray-500">(${p.trend})</span></p>
+      </div>`;
+    });
+
+    // Training cards
+    const trainEl = document.getElementById('trainingCards');
+    TRAINING.forEach(t => {
+      const barColor = t.pct >= 80 ? 'bg-green-500' : t.pct >= 60 ? 'bg-yellow-500' : 'bg-red-500';
+      trainEl.innerHTML += `<div class="bg-void border border-panel-border rounded-lg p-4">
+        <p class="text-sm font-medium text-gray-300">${t.name}</p>
+        <p class="text-xs text-gray-500 mt-1">${t.completed}/${t.total} engineers</p>
+        <div class="bg-gray-800 rounded-full h-2 mt-2 overflow-hidden">
+          <div class="${barColor} h-2 rounded-full" style="width:${t.pct}%"></div>
+        </div>
+        <p class="text-xs text-gray-500 mt-1 text-right">${t.pct}%</p>
+      </div>`;
+    });
+  </script>
+</body>
+</html>

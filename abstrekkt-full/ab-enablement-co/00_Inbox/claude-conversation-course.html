@@ -1,0 +1,1536 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Claude Chat — Field Course</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=IBM+Plex+Mono:wght@400;500&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0a0a0c;
+    --surface: #111114;
+    --surface2: #18181d;
+    --border: #2a2a35;
+    --border-light: #3a3a48;
+    --text: #e8e8ec;
+    --muted: #7a7a90;
+    --accent: #f0a500;
+    --accent2: #5b8fff;
+    --accent3: #3dd68c;
+    --danger: #ff5757;
+    --tag-bg: #1e1e28;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    font-size: 16px;
+  }
+
+  /* ── LAYOUT ── */
+  .shell {
+    display: grid;
+    grid-template-columns: 260px 1fr;
+    min-height: 100vh;
+  }
+
+  /* ── SIDEBAR ── */
+  nav {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    padding: 32px 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .nav-logo {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 13px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--accent);
+    padding: 0 24px 28px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 20px;
+  }
+
+  .nav-section-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding: 8px 24px 6px;
+    margin-top: 8px;
+  }
+
+  nav a {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 24px;
+    text-decoration: none;
+    color: var(--muted);
+    font-size: 14px;
+    font-weight: 400;
+    transition: color 0.15s, background 0.15s;
+    border-left: 2px solid transparent;
+    margin-right: 0;
+  }
+
+  nav a:hover { color: var(--text); background: var(--surface2); }
+  nav a.active { color: var(--accent); border-left-color: var(--accent); background: rgba(240,165,0,0.06); }
+
+  .nav-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--border-light);
+    flex-shrink: 0;
+  }
+  nav a.active .nav-dot { background: var(--accent); }
+
+  /* ── MAIN ── */
+  main { max-width: 860px; padding: 64px 56px; }
+
+  /* ── HERO ── */
+  .hero {
+    margin-bottom: 72px;
+    padding-bottom: 48px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .hero-eyebrow {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 16px;
+  }
+
+  .hero h1 {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: clamp(32px, 4vw, 52px);
+    line-height: 1.05;
+    color: #fff;
+    margin-bottom: 20px;
+  }
+
+  .hero-sub {
+    font-size: 18px;
+    color: var(--muted);
+    font-weight: 300;
+    max-width: 560px;
+    line-height: 1.7;
+  }
+
+  .module-pills {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 28px;
+  }
+
+  .pill {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    padding: 5px 12px;
+    border-radius: 3px;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    letter-spacing: 0.06em;
+  }
+
+  .pill.accent { border-color: var(--accent); color: var(--accent); background: rgba(240,165,0,0.06); }
+  .pill.blue { border-color: var(--accent2); color: var(--accent2); background: rgba(91,143,255,0.06); }
+  .pill.green { border-color: var(--accent3); color: var(--accent3); background: rgba(61,214,140,0.06); }
+
+  /* ── MODULES ── */
+  .module { margin-bottom: 88px; }
+
+  .module-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 20px;
+    margin-bottom: 36px;
+  }
+
+  .module-num {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    color: var(--accent);
+    background: rgba(240,165,0,0.1);
+    border: 1px solid rgba(240,165,0,0.2);
+    padding: 6px 10px;
+    border-radius: 4px;
+    white-space: nowrap;
+    margin-top: 4px;
+  }
+
+  .module-num.blue {
+    color: var(--accent2);
+    background: rgba(91,143,255,0.1);
+    border-color: rgba(91,143,255,0.2);
+  }
+
+  .module-num.green {
+    color: var(--accent3);
+    background: rgba(61,214,140,0.1);
+    border-color: rgba(61,214,140,0.2);
+  }
+
+  .module-num.red {
+    color: #ff8c57;
+    background: rgba(255,140,87,0.1);
+    border-color: rgba(255,140,87,0.2);
+  }
+
+  .module-title {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 28px;
+    color: #fff;
+    line-height: 1.1;
+  }
+
+  .module-desc {
+    color: var(--muted);
+    font-size: 15px;
+    margin-top: 6px;
+    font-weight: 300;
+  }
+
+  /* ── SECTION ── */
+  .section { margin-bottom: 44px; }
+
+  h3 {
+    font-family: 'Syne', sans-serif;
+    font-weight: 600;
+    font-size: 18px;
+    color: var(--text);
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  h3::before {
+    content: '';
+    display: block;
+    width: 3px;
+    height: 18px;
+    background: var(--accent);
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+
+  p { color: var(--muted); font-size: 15px; line-height: 1.75; margin-bottom: 12px; }
+  p strong { color: var(--text); font-weight: 500; }
+
+  /* ── GUI MOCKUP ── */
+  .gui-frame {
+    background: #16161e;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    margin: 20px 0 28px;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.5);
+  }
+
+  .gui-bar {
+    background: #0d0d12;
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .gui-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+  }
+  .gui-dot.r { background: #ff5f56; }
+  .gui-dot.y { background: #ffbd2e; }
+  .gui-dot.g { background: #27c93f; }
+
+  .gui-url {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    margin-left: 8px;
+  }
+
+  .gui-body {
+    display: grid;
+    grid-template-columns: 200px 1fr;
+    min-height: 280px;
+  }
+
+  .gui-sidebar {
+    background: #0f0f15;
+    border-right: 1px solid var(--border);
+    padding: 16px 12px;
+  }
+
+  .gui-new-chat {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--text);
+    background: var(--surface2);
+    border: 1px solid var(--border-light);
+    border-radius: 6px;
+    padding: 7px 10px;
+    margin-bottom: 16px;
+    cursor: pointer;
+  }
+
+  .gui-new-chat .plus {
+    font-size: 16px;
+    color: var(--muted);
+    line-height: 1;
+  }
+
+  .gui-history-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+    padding: 0 4px;
+    margin-bottom: 8px;
+  }
+
+  .gui-chat-item {
+    font-size: 12px;
+    color: var(--muted);
+    padding: 6px 8px;
+    border-radius: 4px;
+    margin-bottom: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .gui-chat-item.active {
+    background: var(--surface2);
+    color: var(--text);
+  }
+
+  .gui-main {
+    display: flex;
+    flex-direction: column;
+    padding: 20px;
+  }
+
+  .gui-model-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 20px;
+  }
+
+  .gui-model-badge {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    background: var(--tag-bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 3px 10px;
+    border-radius: 20px;
+  }
+
+  .gui-chat-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .gui-bubble {
+    max-width: 78%;
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 12px;
+    line-height: 1.55;
+  }
+
+  .gui-bubble.user {
+    background: #1e2035;
+    border: 1px solid #2a2d50;
+    color: var(--text);
+    align-self: flex-end;
+  }
+
+  .gui-bubble.claude {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    align-self: flex-start;
+  }
+
+  .gui-input-area {
+    margin-top: 16px;
+    background: var(--surface2);
+    border: 1px solid var(--border-light);
+    border-radius: 8px;
+    padding: 10px 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .gui-input-text {
+    flex: 1;
+    font-size: 12px;
+    color: var(--muted);
+    font-family: 'DM Sans', sans-serif;
+  }
+
+  .gui-send-btn {
+    width: 26px; height: 26px;
+    background: var(--accent);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #000;
+    font-size: 12px;
+    flex-shrink: 0;
+  }
+
+  /* ── CALLOUT ── */
+  .callout {
+    border-radius: 6px;
+    padding: 14px 18px;
+    margin: 16px 0;
+    font-size: 14px;
+    line-height: 1.65;
+    display: flex;
+    gap: 12px;
+  }
+
+  .callout-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+
+  .callout.info {
+    background: rgba(91,143,255,0.08);
+    border: 1px solid rgba(91,143,255,0.2);
+    color: #a0b8ff;
+  }
+
+  .callout.warn {
+    background: rgba(240,165,0,0.08);
+    border: 1px solid rgba(240,165,0,0.25);
+    color: #f0c060;
+  }
+
+  .callout.tip {
+    background: rgba(61,214,140,0.08);
+    border: 1px solid rgba(61,214,140,0.2);
+    color: #7dd9b0;
+  }
+
+  .callout.bad {
+    background: rgba(255,87,87,0.08);
+    border: 1px solid rgba(255,87,87,0.2);
+    color: #ff9999;
+  }
+
+  /* ── STEPS ── */
+  .steps { margin: 16px 0; }
+
+  .step {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 20px;
+    position: relative;
+  }
+
+  .step::before {
+    content: '';
+    position: absolute;
+    left: 15px;
+    top: 36px;
+    bottom: -20px;
+    width: 1px;
+    background: var(--border);
+  }
+
+  .step:last-child::before { display: none; }
+
+  .step-num {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--surface2);
+    border: 1px solid var(--border-light);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    z-index: 1;
+  }
+
+  .step-content { padding-top: 5px; }
+  .step-title { font-weight: 500; color: var(--text); font-size: 14px; margin-bottom: 4px; }
+  .step-desc { font-size: 13px; color: var(--muted); line-height: 1.6; }
+
+  /* ── KBD ── */
+  kbd {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    background: var(--surface2);
+    border: 1px solid var(--border-light);
+    border-bottom-width: 2px;
+    padding: 2px 7px;
+    border-radius: 4px;
+    color: var(--text);
+    white-space: nowrap;
+  }
+
+  /* ── COMPARE TABLE ── */
+  .compare {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0;
+    font-size: 13px;
+  }
+
+  .compare th {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+    padding: 8px 14px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .compare td {
+    padding: 10px 14px;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+
+  .compare tr:last-child td { border-bottom: none; }
+  .compare td:first-child { color: var(--text); font-weight: 500; }
+
+  .tag {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    padding: 2px 7px;
+    border-radius: 3px;
+    display: inline-block;
+  }
+
+  .tag.do { background: rgba(61,214,140,0.15); color: var(--accent3); }
+  .tag.dont { background: rgba(255,87,87,0.15); color: var(--danger); }
+  .tag.depends { background: rgba(240,165,0,0.15); color: var(--accent); }
+
+  /* ── BRANCH DIAGRAM ── */
+  .branch-diagram {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 24px;
+    margin: 20px 0;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+  }
+
+  .branch-line {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    margin-bottom: 4px;
+    color: var(--muted);
+  }
+
+  .bnode {
+    background: var(--surface);
+    border: 1px solid var(--border-light);
+    padding: 5px 10px;
+    border-radius: 4px;
+    font-size: 11px;
+    color: var(--text);
+    white-space: nowrap;
+  }
+
+  .bnode.you { border-color: rgba(91,143,255,0.4); color: #a0b8ff; }
+  .bnode.claude { border-color: rgba(61,214,140,0.4); color: #7dd9b0; }
+  .bnode.branch { border-color: rgba(240,165,0,0.4); color: var(--accent); background: rgba(240,165,0,0.06); }
+
+  .barrow { color: var(--border-light); padding: 0 6px; font-size: 14px; }
+  .bvert { color: var(--border-light); padding: 0 0 0 14px; font-size: 16px; }
+
+  .branch-split {
+    display: flex;
+    gap: 32px;
+    margin-top: 4px;
+    margin-left: 30px;
+  }
+
+  .branch-path {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 12px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--surface);
+  }
+
+  .branch-label {
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+
+  .branch-label.orig { color: var(--accent2); }
+  .branch-label.new { color: var(--accent); }
+
+  /* ── GUI ANNOTATED ── */
+  .gui-annotated {
+    position: relative;
+    background: #16161e;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: visible;
+    margin: 24px 0 40px;
+  }
+
+  .annotation {
+    position: absolute;
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--accent);
+    white-space: nowrap;
+    z-index: 10;
+  }
+
+  .annotation-line {
+    width: 1px;
+    background: var(--accent);
+    opacity: 0.5;
+  }
+
+  .ann-tag {
+    background: rgba(240,165,0,0.12);
+    border: 1px solid rgba(240,165,0,0.3);
+    padding: 3px 8px;
+    border-radius: 3px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    color: var(--accent);
+    white-space: nowrap;
+  }
+
+  /* ── HIGHLIGHT RING ── */
+  .gui-highlight {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  /* ── DECISION TREE ── */
+  .decision-tree {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 24px;
+    margin: 20px 0;
+  }
+
+  .dt-root {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    color: var(--text);
+    margin-bottom: 16px;
+    padding: 8px 12px;
+    background: var(--surface);
+    border: 1px solid var(--border-light);
+    border-radius: 6px;
+    display: inline-block;
+  }
+
+  .dt-row {
+    display: flex;
+    gap: 12px;
+    margin-left: 20px;
+    margin-bottom: 10px;
+    align-items: flex-start;
+  }
+
+  .dt-connector {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--border-light);
+    padding-top: 8px;
+    width: 20px;
+    flex-shrink: 0;
+  }
+
+  .dt-condition {
+    font-size: 13px;
+    color: var(--muted);
+    padding: 6px 10px;
+    border-left: 2px solid var(--border);
+    flex: 1;
+  }
+
+  .dt-action {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    padding: 3px 8px;
+    border-radius: 3px;
+    white-space: nowrap;
+    flex-shrink: 0;
+    margin-top: 4px;
+  }
+
+  .dt-action.branch { background: rgba(240,165,0,0.15); color: var(--accent); }
+  .dt-action.regen { background: rgba(91,143,255,0.15); color: var(--accent2); }
+  .dt-action.follow { background: rgba(61,214,140,0.15); color: var(--accent3); }
+  .dt-action.new { background: rgba(255,87,87,0.15); color: var(--danger); }
+
+  /* ── DIVIDER ── */
+  .divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 56px 0;
+  }
+
+  /* ── FOOTER ── */
+  .course-footer {
+    margin-top: 48px;
+    padding-top: 32px;
+    border-top: 1px solid var(--border);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.06em;
+  }
+
+  /* ── PROGRESS BAR ── */
+  .progress-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: var(--border);
+    z-index: 100;
+  }
+
+  .progress-bar {
+    height: 100%;
+    background: var(--accent);
+    width: 0%;
+    transition: width 0.1s;
+  }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  /* BRANCH INDICATOR MOCKUP */
+  .branch-nav {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 4px 8px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    width: fit-content;
+    margin: 8px 0;
+  }
+
+  .branch-nav .arrow {
+    cursor: pointer;
+    color: var(--text);
+    padding: 0 2px;
+  }
+
+  .branch-nav .count { color: var(--accent); }
+
+  /* EDIT BUTTON MOCKUP */
+  .edit-btn-demo {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: var(--surface2);
+    border: 1px solid var(--border-light);
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 12px;
+    color: var(--muted);
+    font-family: 'IBM Plex Mono', monospace;
+    margin: 4px 0;
+  }
+
+  .edit-btn-demo .icon { font-size: 11px; }
+
+  @media (max-width: 900px) {
+    .shell { grid-template-columns: 1fr; }
+    nav { display: none; }
+    main { padding: 40px 24px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="progress-container"><div class="progress-bar" id="progress"></div></div>
+
+<div class="shell">
+
+<!-- ─── SIDEBAR ─── -->
+<nav>
+  <div class="nav-logo">Claude Field Course</div>
+
+  <div class="nav-section-label">Overview</div>
+  <a href="#intro" class="active"><span class="nav-dot"></span>Introduction</a>
+
+  <div class="nav-section-label">Module 01 — Walk-Up</div>
+  <a href="#m1-interface"><span class="nav-dot"></span>The Interface</a>
+  <a href="#m1-start"><span class="nav-dot"></span>Starting a Chat</a>
+  <a href="#m1-prompt"><span class="nav-dot"></span>First Message</a>
+
+  <div class="nav-section-label">Module 02 — During</div>
+  <a href="#m2-reading"><span class="nav-dot"></span>Reading Responses</a>
+  <a href="#m2-tools"><span class="nav-dot"></span>Mid-Chat Controls</a>
+  <a href="#m2-drift"><span class="nav-dot"></span>Recognizing Drift</a>
+
+  <div class="nav-section-label">Module 03 — Branching</div>
+  <a href="#m3-what"><span class="nav-dot"></span>What Branching Is</a>
+  <a href="#m3-how"><span class="nav-dot"></span>How to Branch</a>
+  <a href="#m3-when"><span class="nav-dot"></span>When to Branch</a>
+
+  <div class="nav-section-label">Module 04 — Resolution</div>
+  <a href="#m4-wrap"><span class="nav-dot"></span>Wrapping Up</a>
+  <a href="#m4-output"><span class="nav-dot"></span>Using Output</a>
+  <a href="#m4-next"><span class="nav-dot"></span>Next Conversation</a>
+
+  <div class="nav-section-label">Reference</div>
+  <a href="#ref-decision"><span class="nav-dot"></span>Decision Map</a>
+</nav>
+
+<!-- ─── MAIN ─── -->
+<main>
+
+  <!-- HERO -->
+  <section id="intro" class="hero">
+    <div class="hero-eyebrow">Claude Field Course · v1</div>
+    <h1>How a Claude conversation actually works</h1>
+    <p class="hero-sub">Walk-up, active conversation, branching, and resolution — with the GUI mechanics at every step.</p>
+    <div class="module-pills">
+      <span class="pill accent">Module 01 — Walk-Up</span>
+      <span class="pill blue">Module 02 — During</span>
+      <span class="pill green">Module 03 — Branching</span>
+      <span class="pill">Module 04 — Resolution</span>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════ -->
+  <!-- MODULE 01 — WALK-UP                        -->
+  <!-- ══════════════════════════════════════════ -->
+  <section class="module" id="m1-interface">
+    <div class="module-header">
+      <div class="module-num">01</div>
+      <div>
+        <div class="module-title">Walk-Up</div>
+        <div class="module-desc">Navigating to Claude and understanding the interface before you type anything.</div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h3>The Interface at a Glance</h3>
+      <p>When you open <strong>claude.ai</strong>, you land on a three-part layout. Knowing what each zone does prevents confusion later — especially when branching introduces multiple parallel thread states.</p>
+
+      <!-- GUI MOCKUP — LABELED -->
+      <div class="gui-frame" style="margin-top:24px;">
+        <div class="gui-bar">
+          <div class="gui-dot r"></div><div class="gui-dot y"></div><div class="gui-dot g"></div>
+          <span class="gui-url">claude.ai</span>
+        </div>
+        <div class="gui-body">
+          <div class="gui-sidebar">
+            <div class="gui-new-chat">
+              <span class="plus">+</span>
+              <span>New chat</span>
+            </div>
+            <div class="gui-history-label">Recents</div>
+            <div class="gui-chat-item active">AgentOS pass 9 notes</div>
+            <div class="gui-chat-item">FlashFusion pricing</div>
+            <div class="gui-chat-item">n8n workflow fix</div>
+            <div class="gui-chat-item">INT triage ticket</div>
+          </div>
+          <div class="gui-main">
+            <div class="gui-model-bar">
+              <div class="gui-model-badge">Claude Sonnet 4.6 ▾</div>
+            </div>
+            <div style="flex:1; display:flex; align-items:center; justify-content:center;">
+              <div style="text-align:center;">
+                <div style="font-family:'Syne',sans-serif; font-size:22px; color:var(--text); margin-bottom:8px;">How can I help you?</div>
+                <div style="font-size:12px; color:var(--muted);">Start typing below</div>
+              </div>
+            </div>
+            <div class="gui-input-area">
+              <span class="gui-input-text">Message Claude…</span>
+              <div class="gui-send-btn">↑</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ZONE CALLOUTS -->
+      <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:14px; margin-top:8px;">
+        <div style="background:var(--surface2); border:1px solid var(--border); border-radius:6px; padding:14px;">
+          <div style="font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--accent); text-transform:uppercase; letter-spacing:0.1em; margin-bottom:6px;">Zone A — Sidebar</div>
+          <div style="font-size:13px; color:var(--muted);">History, new chat button, projects. All past conversations live here. Clicking one resumes it at its last state.</div>
+        </div>
+        <div style="background:var(--surface2); border:1px solid var(--border); border-radius:6px; padding:14px;">
+          <div style="font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--accent2); text-transform:uppercase; letter-spacing:0.1em; margin-bottom:6px;">Zone B — Model Bar</div>
+          <div style="font-size:13px; color:var(--muted);">Model selector dropdown. You can switch models mid-conversation — prior messages stay in context, new model picks up from there.</div>
+        </div>
+        <div style="background:var(--surface2); border:1px solid var(--border); border-radius:6px; padding:14px;">
+          <div style="font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--accent3); text-transform:uppercase; letter-spacing:0.1em; margin-bottom:6px;">Zone C — Input</div>
+          <div style="font-size:13px; color:var(--muted);">Message field. Supports <kbd>Shift+Enter</kbd> for new lines. File attachment button sits to the left. Send with <kbd>Enter</kbd> or the arrow button.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section" id="m1-start">
+      <h3>Starting a New Chat vs. Resuming</h3>
+
+      <div class="callout info">
+        <span class="callout-icon">ℹ</span>
+        <div><strong>Claude has no memory between conversations by default.</strong> If you resume an old chat, Claude has the full context of that thread. If you start a new one, it starts blank — unless you have memory enabled in settings, which stores lightweight summaries across sessions.</div>
+      </div>
+
+      <table class="compare">
+        <tr>
+          <th>Action</th><th>When to Use</th><th>GUI Path</th>
+        </tr>
+        <tr>
+          <td>New Chat</td>
+          <td>Fresh topic, unrelated to past context, or you want clean context</td>
+          <td>Sidebar → <kbd>+ New chat</kbd></td>
+        </tr>
+        <tr>
+          <td>Resume Chat</td>
+          <td>Continuing a build, same project, referencing earlier decisions</td>
+          <td>Sidebar → click conversation title</td>
+        </tr>
+        <tr>
+          <td>Search Past Chats</td>
+          <td>Finding something from a previous session</td>
+          <td>Sidebar → magnifying glass icon</td>
+        </tr>
+      </table>
+    </div>
+
+    <div class="section" id="m1-prompt">
+      <h3>Writing Your First Message</h3>
+      <p>The first message sets the context frame for the entire conversation. Claude infers your role, goal, and tone from it and maintains those assumptions unless corrected.</p>
+
+      <div class="callout tip">
+        <span class="callout-icon">✓</span>
+        <div><strong>Effective first messages include:</strong> what you're trying to accomplish, any relevant constraints, the format you want, and what you <em>don't</em> want. Vague openers get vague responses and cost you a follow-up turn.</div>
+      </div>
+
+      <div class="callout bad">
+        <span class="callout-icon">✗</span>
+        <div><strong>Weak openers:</strong> "Help me with X" with no context, "Can you..." questions that force Claude to guess scope, or pasting a wall of text with no instruction attached.</div>
+      </div>
+
+      <p>You don't need to be perfect — but the first message is cheaper to get right than fixing drift at message 8.</p>
+    </div>
+  </section>
+
+  <hr class="divider">
+
+  <!-- ══════════════════════════════════════════ -->
+  <!-- MODULE 02 — DURING                         -->
+  <!-- ══════════════════════════════════════════ -->
+  <section class="module" id="m2-reading">
+    <div class="module-header">
+      <div class="module-num blue">02</div>
+      <div>
+        <div class="module-title">During the Conversation</div>
+        <div class="module-desc">How to steer an active conversation, use mid-chat controls, and notice when you're losing ground.</div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h3>Reading a Response — What to Look For</h3>
+      <p>Each Claude response has implicit signals you can act on immediately.</p>
+
+      <div class="gui-frame">
+        <div class="gui-bar">
+          <div class="gui-dot r"></div><div class="gui-dot y"></div><div class="gui-dot g"></div>
+          <span class="gui-url">claude.ai — active conversation</span>
+        </div>
+        <div style="padding:20px; display:flex; flex-direction:column; gap:12px;">
+          <div class="gui-bubble user" style="max-width:60%;">Write me a three-step onboarding flow for FlashFusion clients.</div>
+          <div class="gui-bubble claude" style="max-width:80%;">
+            Here's a three-step onboarding flow:<br><br>
+            <strong style="color:var(--text);">1. Discovery Call</strong> — 30 min scope session...<br>
+            <strong style="color:var(--text);">2. Intake Form</strong> — Send Typeform covering...<br>
+            <strong style="color:var(--text);">3. Kickoff</strong> — First working session with...<br><br>
+            <em style="color:var(--border-light); font-size:11px;">Want me to add contract timing or tool setup steps?</em>
+          </div>
+          <div style="display:flex; gap:8px; margin-left:0; margin-top:4px;">
+            <div style="background:var(--surface2); border:1px solid var(--border); border-radius:4px; padding:5px 10px; font-size:11px; font-family:'IBM Plex Mono',monospace; color:var(--muted); cursor:pointer;">⟳ Regenerate</div>
+            <div style="background:var(--surface2); border:1px solid var(--border); border-radius:4px; padding:5px 10px; font-size:11px; font-family:'IBM Plex Mono',monospace; color:var(--muted); cursor:pointer;">📋 Copy</div>
+            <div style="background:var(--surface2); border:1px solid var(--border); border-radius:4px; padding:5px 10px; font-size:11px; font-family:'IBM Plex Mono',monospace; color:var(--muted); cursor:pointer;">👎 Dislike</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:16px;">
+        <div style="background:var(--surface2); border:1px solid var(--border); border-radius:6px; padding:14px;">
+          <div style="font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--accent3); text-transform:uppercase; margin-bottom:8px;">Green signals</div>
+          <ul style="list-style:none; font-size:13px; color:var(--muted); line-height:2;">
+            <li>→ Answered the actual ask</li>
+            <li>→ Matched your tone/format</li>
+            <li>→ No unasked-for caveats</li>
+            <li>→ Followed constraints you set</li>
+          </ul>
+        </div>
+        <div style="background:var(--surface2); border:1px solid var(--border); border-radius:6px; padding:14px;">
+          <div style="font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--danger); text-transform:uppercase; margin-bottom:8px;">Red signals</div>
+          <ul style="list-style:none; font-size:13px; color:var(--muted); line-height:2;">
+            <li>→ Answered a different question</li>
+            <li>→ Forgot a constraint you set</li>
+            <li>→ Way too long / too short</li>
+            <li>→ Made up specifics</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="section" id="m2-tools">
+      <h3>Mid-Chat Controls</h3>
+      <p>These three actions appear below every Claude response. They do different things — knowing which to use saves a wasted turn.</p>
+
+      <!-- CONTROLS TABLE -->
+      <table class="compare">
+        <tr>
+          <th>Control</th><th>What it Does</th><th>Use it When</th>
+        </tr>
+        <tr>
+          <td>⟳ Regenerate</td>
+          <td>Re-runs Claude's response to your exact same last message from the same context</td>
+          <td>Response was bad but your question was right — want a different attempt</td>
+        </tr>
+        <tr>
+          <td>📋 Copy</td>
+          <td>Copies response text to clipboard</td>
+          <td>Taking output somewhere else</td>
+        </tr>
+        <tr>
+          <td>👍 / 👎</td>
+          <td>Sends feedback to Anthropic. Does <em>not</em> affect your current conversation.</td>
+          <td>Reporting quality issues, not fixing your session</td>
+        </tr>
+        <tr>
+          <td>✏ Edit (on <em>your</em> message)</td>
+          <td>Modifies a prior message and re-generates from that point — <strong>this is branching</strong></td>
+          <td>Your question was wrong, or you want to try a different direction</td>
+        </tr>
+      </table>
+
+      <div class="callout warn">
+        <span class="callout-icon">⚠</span>
+        <div><strong>Regenerate ≠ Branch.</strong> Regenerate retries from the same message. Edit creates a fork. If you edit message 4, messages 5–N on the original path are preserved — you can navigate back to them. Regenerate replaces the response permanently.</div>
+      </div>
+    </div>
+
+    <div class="section" id="m2-drift">
+      <h3>Recognizing Drift</h3>
+      <p>Context drift is when Claude's responses start diverging from your original intent — usually because a long conversation has diluted the original constraints, or because a correction in message 6 introduced a conflicting assumption.</p>
+
+      <div style="background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:20px; margin-top:16px;">
+        <div style="font-family:'IBM Plex Mono',monospace; font-size:10px; text-transform:uppercase; letter-spacing:0.1em; color:var(--muted); margin-bottom:14px;">Drift Indicators</div>
+        <div class="step">
+          <div class="step-num">!</div>
+          <div class="step-content">
+            <div class="step-title">Claude forgets earlier constraints</div>
+            <div class="step-desc">You said "no bullet points" in message 2. By message 10 they're back. The instruction is still in context but got deprioritized.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">!</div>
+          <div class="step-content">
+            <div class="step-title">Responses get generically correct but context-wrong</div>
+            <div class="step-desc">Answers are technically fine but no longer specific to your setup, stack, or use case. Claude is pattern-matching on the latest messages, not anchoring on the original brief.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">!</div>
+          <div class="step-content">
+            <div class="step-title">Tone or format shifts</div>
+            <div class="step-desc">Started professional, now it's casual. Or the length has doubled. These are signs the context anchor has loosened.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="callout tip" style="margin-top:16px;">
+        <span class="callout-icon">✓</span>
+        <div><strong>Fix drift in-thread</strong> with a reset message: <em>"Ignore format drift — revert to [original constraint]. Continue from where we were."</em> If it's severe, go back and branch from the last clean message.</div>
+      </div>
+    </div>
+  </section>
+
+  <hr class="divider">
+
+  <!-- ══════════════════════════════════════════ -->
+  <!-- MODULE 03 — BRANCHING                      -->
+  <!-- ══════════════════════════════════════════ -->
+  <section class="module" id="m3-what">
+    <div class="module-header">
+      <div class="module-num green">03</div>
+      <div>
+        <div class="module-title">Branching</div>
+        <div class="module-desc">What it is, how to trigger it in the GUI, and when it's the right call versus a cheaper option.</div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h3>What Branching Is</h3>
+      <p>Branching forks the conversation at any prior message. The original path is preserved. The new path diverges from that point. You can navigate between them.</p>
+
+      <!-- BRANCH DIAGRAM -->
+      <div class="branch-diagram" id="m3-how">
+        <div style="font-size:10px; text-transform:uppercase; letter-spacing:0.1em; color:var(--muted); margin-bottom:16px;">Conversation Structure After a Branch</div>
+
+        <div class="branch-line" style="margin-bottom:8px;">
+          <span class="bnode you">You: msg 1</span>
+          <span class="barrow">→</span>
+          <span class="bnode claude">Claude: resp 1</span>
+          <span class="barrow">→</span>
+          <span class="bnode you">You: msg 2</span>
+          <span class="barrow">→</span>
+          <span class="bnode claude">Claude: resp 2</span>
+          <span class="barrow">→</span>
+          <span class="bnode you branch">You: msg 3 ✏</span>
+          <span style="font-size:10px; color:var(--accent); padding-left:8px;">← EDIT HERE</span>
+        </div>
+
+        <div class="branch-split">
+          <div class="branch-path">
+            <div class="branch-label orig">Branch A — Original</div>
+            <div class="branch-line">
+              <span class="bnode" style="opacity:0.5;">You: msg 3 (old)</span>
+            </div>
+            <div class="branch-line">
+              <span class="bnode" style="opacity:0.5;">Claude: resp 3</span>
+            </div>
+            <div class="branch-line">
+              <span class="bnode" style="opacity:0.5;">… continues</span>
+            </div>
+          </div>
+          <div class="branch-path" style="border-color:rgba(240,165,0,0.3);">
+            <div class="branch-label new">Branch B — New (active)</div>
+            <div class="branch-line">
+              <span class="bnode branch">You: msg 3 (edited)</span>
+            </div>
+            <div class="branch-line">
+              <span class="bnode claude">Claude: resp 3 (new)</span>
+            </div>
+            <div class="branch-line">
+              <span class="bnode" style="color:var(--muted);">… new direction</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <p>Both paths exist. You navigate with arrow indicators that appear near the edited message. Nothing is lost.</p>
+    </div>
+
+    <div class="section">
+      <h3>How to Branch — Step by Step</h3>
+
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-content">
+            <div class="step-title">Hover over one of your messages</div>
+            <div class="step-desc">As you hover, a small icon row appears above or beside the message bubble. You'll see edit, copy, and sometimes a thumbs down.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-content">
+            <div class="step-title">Click the pencil / edit icon</div>
+            <div class="step-desc">
+              <div class="edit-btn-demo"><span class="icon">✏</span> Edit message</div>
+              The message text becomes editable inline. The rest of the thread below it goes semi-transparent — it will be replaced when you submit.
+            </div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-content">
+            <div class="step-title">Modify the message (or not) and send</div>
+            <div class="step-desc">You can make a tiny change or rewrite it completely. Hit <kbd>Enter</kbd> or the send button. Claude generates a fresh response from that point on.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">4</div>
+          <div class="step-content">
+            <div class="step-title">Navigate between branches</div>
+            <div class="step-desc">
+              Arrow indicators appear beside your edited message:
+              <div class="branch-nav" style="margin-top:8px;">
+                <span class="arrow">‹</span>
+                <span class="count">2 / 2</span>
+                <span class="arrow">›</span>
+              </div>
+              Click the arrows to switch between Branch A (original) and Branch B (new). The thread below updates to reflect whichever branch is active.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- GUI showing branch nav in context -->
+      <div class="gui-frame">
+        <div class="gui-bar">
+          <div class="gui-dot r"></div><div class="gui-dot y"></div><div class="gui-dot g"></div>
+          <span class="gui-url">claude.ai — branched conversation</span>
+        </div>
+        <div style="padding:20px; display:flex; flex-direction:column; gap:10px;">
+          <div class="gui-bubble user" style="max-width:65%;">Write a 3-step onboarding flow for FlashFusion</div>
+          <div class="gui-bubble claude" style="max-width:80%; font-size:11px;">1. Discovery Call — ... <br>2. Intake Form — ...<br>3. Kickoff — ...</div>
+
+          <!-- EDITED MESSAGE WITH BRANCH NAV -->
+          <div style="align-self:flex-end; max-width:65%;">
+            <div class="gui-bubble user" style="outline:1.5px solid var(--accent); outline-offset:2px; position:relative;">
+              Write a 3-step flow — but skip the intake form, make step 2 a tool audit instead
+              <div style="position:absolute; top:-22px; right:0; display:flex; gap:4px; background:var(--surface); border:1px solid var(--border); border-radius:4px; padding:3px 6px;">
+                <span style="font-size:10px; color:var(--muted); font-family:'IBM Plex Mono',monospace;">✏ edited</span>
+              </div>
+            </div>
+            <div class="branch-nav" style="margin-left:auto; margin-top:4px;">
+              <span class="arrow">‹</span>
+              <span class="count">2 / 2</span>
+              <span class="arrow">›</span>
+            </div>
+          </div>
+
+          <div class="gui-bubble claude" style="max-width:80%; font-size:11px;">1. Discovery Call — ...<br>2. Tool Audit — current stack, integration points...<br>3. Kickoff — ...</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section" id="m3-when">
+      <h3>When to Branch vs. Other Options</h3>
+
+      <table class="compare">
+        <tr>
+          <th>Situation</th><th>Best Move</th><th>Why</th>
+        </tr>
+        <tr>
+          <td>Wrong assumption in your message 3, conversation went off track</td>
+          <td><span class="tag do">BRANCH</span></td>
+          <td>Correcting mid-stream is cleaner than re-explaining in a new message and fighting accumulated context</td>
+        </tr>
+        <tr>
+          <td>You want to try prompt A vs prompt B and compare</td>
+          <td><span class="tag do">BRANCH</span></td>
+          <td>Only way to run parallel paths from the same anchor point</td>
+        </tr>
+        <tr>
+          <td>Good conversation state, want to explore a risky direction</td>
+          <td><span class="tag do">BRANCH</span></td>
+          <td>Preserves the clean state; don't corrupt the main thread</td>
+        </tr>
+        <tr>
+          <td>Claude gave a bad response but your question was correct</td>
+          <td><span class="tag regen">REGENERATE</span></td>
+          <td>Cheaper — retry from same message, don't need a new path</td>
+        </tr>
+        <tr>
+          <td>Conversation is fine, just adding context or asking a follow-up</td>
+          <td><span class="tag follow">FOLLOW-UP</span></td>
+          <td>No fork needed; just continue the thread</td>
+        </tr>
+        <tr>
+          <td>Conversation is fundamentally broken or topic is unrelated</td>
+          <td><span class="tag new">NEW CHAT</span></td>
+          <td>Clean context is cheaper than navigating a broken thread</td>
+        </tr>
+        <tr>
+          <td>Minor drift — Claude forgot a formatting rule</td>
+          <td><span class="tag follow">FOLLOW-UP</span></td>
+          <td>A correction message fixes it; branching is overkill</td>
+        </tr>
+      </table>
+
+      <div class="callout info">
+        <span class="callout-icon">ℹ</span>
+        <div><strong>The signal for branching:</strong> you find yourself thinking <em>"I wish I had said X instead of Y back there."</em> That's exactly the problem it solves. Any other situation — use a cheaper tool.</div>
+      </div>
+    </div>
+  </section>
+
+  <hr class="divider">
+
+  <!-- ══════════════════════════════════════════ -->
+  <!-- MODULE 04 — RESOLUTION                     -->
+  <!-- ══════════════════════════════════════════ -->
+  <section class="module" id="m4-wrap">
+    <div class="module-header">
+      <div class="module-num red">04</div>
+      <div>
+        <div class="module-title">Resolution</div>
+        <div class="module-desc">Wrapping up a conversation, extracting output, and deciding what comes next.</div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h3>Wrapping Up a Conversation</h3>
+      <p>Conversations don't have a formal close state in Claude — you just stop. But there are intentional wrap-up moves that save time later.</p>
+
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-content">
+            <div class="step-title">Request a summary if the thread is long</div>
+            <div class="step-desc">Ask Claude: <em>"Summarize the decisions made in this conversation and the current state of the output."</em> Paste that into your next session if you're continuing work. This fights the cold-start cost.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-content">
+            <div class="step-title">Copy outputs before closing</div>
+            <div class="step-desc">Use the <kbd>Copy</kbd> button on each response you need. Claude's history persists on claude.ai, but don't assume it's a reliable external store — copy to Notion, a doc, or wherever the output lives.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-content">
+            <div class="step-title">Decide if you're done or continuing</div>
+            <div class="step-desc">If the work continues, bookmark mentally where you left off. The conversation title in the sidebar defaults to the first message — rename it (click the title) to something meaningful so you can find it later.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section" id="m4-output">
+      <h3>Using Your Output</h3>
+
+      <!-- GUI: copy/export options -->
+      <div class="gui-frame">
+        <div class="gui-bar">
+          <div class="gui-dot r"></div><div class="gui-dot y"></div><div class="gui-dot g"></div>
+          <span class="gui-url">claude.ai — end of conversation</span>
+        </div>
+        <div style="padding:20px; display:flex; flex-direction:column; gap:12px;">
+          <div class="gui-bubble claude" style="max-width:90%; font-size:11px; line-height:1.7;">
+            Here's the final FlashFusion onboarding flow with tool audit included...<br><br>
+            <strong style="color:var(--text);">Step 1:</strong> Discovery Call — 30 min...<br>
+            <strong style="color:var(--text);">Step 2:</strong> Tool Audit — current stack review...<br>
+            <strong style="color:var(--text);">Step 3:</strong> Kickoff — first working session...
+          </div>
+          <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            <div style="background:var(--surface2); border:1px solid var(--border); border-radius:4px; padding:6px 12px; font-size:11px; font-family:'IBM Plex Mono',monospace; color:var(--text); cursor:pointer;">📋 Copy response</div>
+            <div style="background:var(--surface2); border:1px solid var(--border); border-radius:4px; padding:6px 12px; font-size:11px; font-family:'IBM Plex Mono',monospace; color:var(--muted); cursor:pointer;">↗ Share link</div>
+            <div style="background:var(--surface2); border:1px solid var(--border); border-radius:4px; padding:6px 12px; font-size:11px; font-family:'IBM Plex Mono',monospace; color:var(--muted); cursor:pointer;">👍 Good response</div>
+          </div>
+          <div style="margin-top:8px; padding:12px; background:var(--surface2); border:1px solid var(--border); border-radius:6px;">
+            <div style="font-family:'IBM Plex Mono',monospace; font-size:10px; text-transform:uppercase; letter-spacing:0.1em; color:var(--muted); margin-bottom:8px;">Conversation options</div>
+            <div style="display:flex; gap:10px; flex-wrap:wrap;">
+              <div style="font-size:12px; color:var(--muted); cursor:pointer;">📝 Rename conversation</div>
+              <div style="font-size:12px; color:var(--muted); cursor:pointer;">🗑 Delete</div>
+              <div style="font-size:12px; color:var(--muted); cursor:pointer;">+ Continue in new chat</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <table class="compare" style="margin-top:16px;">
+        <tr>
+          <th>Output Type</th><th>Best Destination</th>
+        </tr>
+        <tr>
+          <td>Code / scripts</td>
+          <td>Copy → paste directly into your editor. If it was a file, Claude may have offered a download.</td>
+        </tr>
+        <tr>
+          <td>Written content</td>
+          <td>Copy → Notion, Google Docs, or wherever the deliverable lives.</td>
+        </tr>
+        <tr>
+          <td>Decisions / plans</td>
+          <td>Ask for a summary, copy that to your PKM (Mem, Notion, etc.). Don't leave it in chat history only.</td>
+        </tr>
+        <tr>
+          <td>Ongoing build context</td>
+          <td>Ask Claude: "What state are we in and what's the next step?" Copy that as your re-entry prompt for next session.</td>
+        </tr>
+      </table>
+    </div>
+
+    <div class="section" id="m4-next">
+      <h3>Deciding What Comes Next</h3>
+      <p>The conversation ended — now what?</p>
+
+      <div class="decision-tree">
+        <div style="font-family:'IBM Plex Mono',monospace; font-size:10px; text-transform:uppercase; letter-spacing:0.1em; color:var(--muted); margin-bottom:16px;">Post-Conversation Decision Map</div>
+
+        <div class="dt-row">
+          <div class="dt-connector">├─</div>
+          <div class="dt-condition">Continuing the same work in a new session</div>
+          <div class="dt-action follow">Resume same chat</div>
+        </div>
+        <div class="dt-row">
+          <div class="dt-connector">├─</div>
+          <div class="dt-condition">Different topic but same project context needed</div>
+          <div class="dt-action follow">Resume same chat or paste summary in new</div>
+        </div>
+        <div class="dt-row">
+          <div class="dt-connector">├─</div>
+          <div class="dt-condition">Completely unrelated new topic</div>
+          <div class="dt-action new">New chat</div>
+        </div>
+        <div class="dt-row">
+          <div class="dt-connector">├─</div>
+          <div class="dt-condition">This branch was exploratory; good path is in original</div>
+          <div class="dt-action branch">Navigate back via branch arrows</div>
+        </div>
+        <div class="dt-row">
+          <div class="dt-connector">└─</div>
+          <div class="dt-condition">Want to try a different approach to the whole thing</div>
+          <div class="dt-action new">New chat with revised first message</div>
+        </div>
+      </div>
+
+      <div class="callout warn">
+        <span class="callout-icon">⚠</span>
+        <div><strong>Don't hoard context in a single long conversation.</strong> After ~30 messages on complex topics, response quality tends to drift. Summarize, start fresh, and paste the summary as a context block at the top of the new chat.</div>
+      </div>
+    </div>
+  </section>
+
+  <hr class="divider">
+
+  <!-- ══════════════════════════════════════════ -->
+  <!-- REFERENCE — DECISION MAP                   -->
+  <!-- ══════════════════════════════════════════ -->
+  <section class="module" id="ref-decision">
+    <div class="module-header">
+      <div class="module-num" style="color:var(--muted); background:var(--surface2); border-color:var(--border);">REF</div>
+      <div>
+        <div class="module-title">Quick Decision Map</div>
+        <div class="module-desc">The full flowchart condensed — what to use at each point in a conversation.</div>
+      </div>
+    </div>
+
+    <table class="compare">
+      <tr>
+        <th>Moment</th><th>Question to Ask</th><th>Move</th>
+      </tr>
+      <tr>
+        <td>Before starting</td>
+        <td>Does this need prior context from another chat?</td>
+        <td>Resume old chat OR start new + paste summary</td>
+      </tr>
+      <tr>
+        <td>Response is wrong</td>
+        <td>Is my question the problem, or Claude's answer?</td>
+        <td>Question wrong → <span class="tag do">Branch</span> &nbsp; Answer wrong → <span class="tag regen">Regen</span></td>
+      </tr>
+      <tr>
+        <td>Conversation drifted</td>
+        <td>Is drift recoverable with a correction message?</td>
+        <td>Minor → Follow-up correction &nbsp; Major → Branch from last clean point</td>
+      </tr>
+      <tr>
+        <td>Want to try two approaches</td>
+        <td>Do both need the same prior context?</td>
+        <td>Yes → <span class="tag do">Branch</span> &nbsp; No → Two new chats</td>
+      </tr>
+      <tr>
+        <td>End of session</td>
+        <td>Will I need this context again?</td>
+        <td>Yes → Copy summary &nbsp; No → Close</td>
+      </tr>
+      <tr>
+        <td>Long conversation (20+ turns)</td>
+        <td>Is quality degrading?</td>
+        <td>Ask for summary → New chat → Paste summary as context block</td>
+      </tr>
+    </table>
+
+    <div class="course-footer">
+      <div>Claude Field Course · Module 01-04 · claude.ai</div>
+      <div style="margin-top:6px; color:var(--border-light);">Walk-Up → During → Branching → Resolution</div>
+    </div>
+  </section>
+
+</main>
+</div>
+
+<script>
+// Progress bar
+window.addEventListener('scroll', () => {
+  const scrollTop = document.documentElement.scrollTop;
+  const scrollHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+  const progress = (scrollTop / scrollHeight) * 100;
+  document.getElementById('progress').style.width = progress + '%';
+});
+
+// Active nav link on scroll
+const sections = document.querySelectorAll('[id]');
+const navLinks = document.querySelectorAll('nav a');
+
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      navLinks.forEach(link => {
+        link.classList.remove('active');
+        if (link.getAttribute('href') === '#' + entry.target.id) {
+          link.classList.add('active');
+        }
+      });
+    }
+  });
+}, { threshold: 0.3, rootMargin: '-10% 0px -60% 0px' });
+
+sections.forEach(s => observer.observe(s));
+</script>
+
+</body>
+</html>

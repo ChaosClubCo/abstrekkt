@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Notes from the Midnight Stack — A Working Manifesto</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,SOFT,WONK@9..144,300..900,0..100,0..1&family=Crimson+Pro:ital,wght@0,200..900;1,200..900&family=JetBrains+Mono:wght@300;400&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --ink: #0d0c0a;
+    --ink-deep: #080705;
+    --paper: #ede4d3;
+    --paper-dim: #b8ad9a;
+    --paper-faint: #6b6557;
+    --brass: #c69559;
+    --brass-deep: #8a6238;
+    --oxblood: #7a3838;
+    --rule: #2a2722;
+    --measure: 36rem;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--ink);
+    color: var(--paper);
+    font-family: 'Crimson Pro', Georgia, serif;
+    font-weight: 380;
+    font-size: 19px;
+    line-height: 1.65;
+    min-height: 100vh;
+    position: relative;
+    overflow-x: hidden;
+  }
+
+  /* paper grain overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 1;
+    background-image:
+      radial-gradient(circle at 20% 30%, rgba(198, 149, 89, 0.04) 0%, transparent 40%),
+      radial-gradient(circle at 80% 70%, rgba(122, 56, 56, 0.03) 0%, transparent 50%);
+    mix-blend-mode: screen;
+  }
+
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 2;
+    opacity: 0.35;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.15 0 0 0 0 0.13 0 0 0 0 0.1 0 0 0 0.4 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  .stage {
+    position: relative;
+    z-index: 3;
+    max-width: var(--measure);
+    margin: 0 auto;
+    padding: 6rem 1.5rem 8rem;
+  }
+
+  /* hairline rule running down the page */
+  .stage::before {
+    content: '';
+    position: absolute;
+    top: 6rem;
+    bottom: 8rem;
+    left: 0.4rem;
+    width: 1px;
+    background: linear-gradient(to bottom, transparent, var(--rule) 8%, var(--rule) 92%, transparent);
+  }
+
+  @media (min-width: 768px) {
+    .stage::before { left: -2rem; }
+  }
+
+  /* ============ MASTHEAD ============ */
+  .masthead {
+    text-align: center;
+    margin-bottom: 5rem;
+    animation: rise 1.2s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  }
+
+  .kicker {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    font-weight: 400;
+    letter-spacing: 0.32em;
+    text-transform: uppercase;
+    color: var(--brass);
+    margin-bottom: 2.5rem;
+    display: inline-block;
+    padding-bottom: 0.4rem;
+    border-bottom: 1px solid var(--brass-deep);
+  }
+
+  .title {
+    font-family: 'Fraunces', serif;
+    font-variation-settings: 'opsz' 144, 'SOFT' 50, 'WONK' 1;
+    font-weight: 340;
+    font-style: italic;
+    font-size: clamp(2.4rem, 6.5vw, 4.2rem);
+    line-height: 1.05;
+    color: var(--paper);
+    letter-spacing: -0.015em;
+    margin-bottom: 1rem;
+  }
+
+  .title em {
+    font-style: italic;
+    color: var(--brass);
+    font-variation-settings: 'opsz' 144, 'SOFT' 100, 'WONK' 1;
+  }
+
+  .subtitle {
+    font-family: 'Crimson Pro', serif;
+    font-style: italic;
+    font-weight: 300;
+    font-size: 1.15rem;
+    color: var(--paper-dim);
+    max-width: 28rem;
+    margin: 1.5rem auto 0;
+    line-height: 1.5;
+  }
+
+  .byline {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--paper-faint);
+    margin-top: 3rem;
+  }
+
+  .byline span { color: var(--brass-deep); margin: 0 0.6rem; }
+
+  /* ============ PREAMBLE ============ */
+  .preamble {
+    margin: 5rem 0;
+    padding: 2.5rem 0;
+    border-top: 1px solid var(--rule);
+    border-bottom: 1px solid var(--rule);
+    animation: rise 1.4s cubic-bezier(0.2, 0.8, 0.2, 1) 0.2s both;
+  }
+
+  .preamble-mark {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--brass);
+    text-align: center;
+    margin-bottom: 1.5rem;
+    display: block;
+  }
+
+  .preamble p {
+    font-style: italic;
+    color: var(--paper);
+    font-size: 1.1rem;
+    line-height: 1.7;
+  }
+
+  .dropcap::first-letter {
+    font-family: 'Fraunces', serif;
+    font-variation-settings: 'opsz' 144, 'WONK' 1;
+    font-weight: 400;
+    font-style: normal;
+    font-size: 4.5rem;
+    float: left;
+    line-height: 0.85;
+    margin: 0.4rem 0.5rem 0 0;
+    color: var(--brass);
+  }
+
+  /* ============ TENETS ============ */
+  .tenets {
+    margin: 4rem 0;
+  }
+
+  .tenet {
+    margin-bottom: 4rem;
+    opacity: 0;
+    animation: rise 1s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  }
+
+  .tenet:nth-child(1) { animation-delay: 0.4s; }
+  .tenet:nth-child(2) { animation-delay: 0.55s; }
+  .tenet:nth-child(3) { animation-delay: 0.7s; }
+  .tenet:nth-child(4) { animation-delay: 0.85s; }
+  .tenet:nth-child(5) { animation-delay: 1s; }
+  .tenet:nth-child(6) { animation-delay: 1.15s; }
+  .tenet:nth-child(7) { animation-delay: 1.3s; }
+  .tenet:nth-child(8) { animation-delay: 1.45s; }
+
+  .tenet-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.3em;
+    color: var(--brass-deep);
+    margin-bottom: 0.75rem;
+    display: block;
+  }
+
+  .tenet-title {
+    font-family: 'Fraunces', serif;
+    font-variation-settings: 'opsz' 72, 'SOFT' 30, 'WONK' 1;
+    font-weight: 380;
+    font-size: 1.7rem;
+    line-height: 1.15;
+    color: var(--paper);
+    margin-bottom: 1rem;
+    letter-spacing: -0.01em;
+  }
+
+  .tenet-title em {
+    font-style: italic;
+    color: var(--brass);
+    font-variation-settings: 'opsz' 72, 'SOFT' 100, 'WONK' 1;
+  }
+
+  .tenet-body {
+    color: var(--paper-dim);
+    font-size: 1.05rem;
+    line-height: 1.7;
+  }
+
+  .tenet-body strong {
+    color: var(--paper);
+    font-weight: 500;
+  }
+
+  /* ============ CODA ============ */
+  .coda {
+    margin-top: 6rem;
+    padding-top: 3rem;
+    border-top: 1px solid var(--rule);
+    text-align: center;
+    animation: rise 1.4s cubic-bezier(0.2, 0.8, 0.2, 1) 1.6s both;
+  }
+
+  .coda-mark {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--brass);
+    margin-bottom: 1.5rem;
+    display: block;
+  }
+
+  .coda p {
+    font-family: 'Fraunces', serif;
+    font-variation-settings: 'opsz' 24, 'SOFT' 50';
+    font-style: italic;
+    font-weight: 340;
+    font-size: 1.25rem;
+    line-height: 1.55;
+    color: var(--paper);
+    max-width: 32rem;
+    margin: 0 auto;
+  }
+
+  .signoff {
+    margin-top: 3rem;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--brass);
+  }
+
+  .signoff::before { content: '— '; }
+
+  /* ============ ANIMATION ============ */
+  @keyframes rise {
+    from { opacity: 0; transform: translateY(1rem); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ============ INTERACTIVE: hover lift on tenets ============ */
+  .tenet {
+    transition: transform 0.4s ease;
+    cursor: default;
+  }
+
+  .tenet:hover .tenet-num {
+    color: var(--brass);
+    transition: color 0.3s;
+  }
+
+  /* ============ FOCUS / READ MODE ============ */
+  .toolbar {
+    position: fixed;
+    top: 1.5rem;
+    right: 1.5rem;
+    z-index: 10;
+    display: flex;
+    gap: 0.6rem;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+  }
+
+  .toolbar button {
+    background: rgba(13, 12, 10, 0.7);
+    backdrop-filter: blur(8px);
+    border: 1px solid var(--rule);
+    color: var(--paper-dim);
+    padding: 0.5rem 0.8rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: inherit;
+    font-size: inherit;
+    letter-spacing: inherit;
+    text-transform: inherit;
+  }
+
+  .toolbar button:hover {
+    color: var(--brass);
+    border-color: var(--brass-deep);
+  }
+
+  .toolbar button.active {
+    color: var(--ink);
+    background: var(--brass);
+    border-color: var(--brass);
+  }
+
+  /* focus mode dims everything except hovered tenet */
+  body.focus .tenet { opacity: 0.25; transition: opacity 0.4s; }
+  body.focus .tenet:hover { opacity: 1; }
+
+  /* ============ MOBILE ============ */
+  @media (max-width: 600px) {
+    .stage { padding: 4rem 1.25rem 5rem; }
+    .title { font-size: 2.4rem; }
+    .tenet-title { font-size: 1.45rem; }
+    .toolbar { top: 0.75rem; right: 0.75rem; }
+  }
+</style>
+</head>
+<body>
+
+<div class="toolbar">
+  <button id="focusBtn">Focus</button>
+  <button id="printBtn">Print</button>
+</div>
+
+<main class="stage">
+
+  <!-- ============ MASTHEAD ============ -->
+  <header class="masthead">
+    <span class="kicker">A Working Manifesto · v0.1</span>
+    <h1 class="title">Notes from the<br /><em>Midnight Stack</em></h1>
+    <p class="subtitle">For builders who came up through the back of the house — and never stopped reading the room.</p>
+    <div class="byline">Kyle Rosebrook <span>·</span> The Reading Room <span>·</span> Lincolnshire, IL</div>
+  </header>
+
+  <!-- ============ PREAMBLE ============ -->
+  <section class="preamble">
+    <span class="preamble-mark">¶ Preamble</span>
+    <p class="dropcap">I learned operations behind a bar. I learned systems on a service desk. I'm learning architecture in the margins of someone else's calendar. The work is the same: read the room, hold the line, ship the round, write it down so the next person doesn't have to relearn it at 2 a.m. This is what I believe about how to build now.</p>
+  </section>
+
+  <!-- ============ TENETS ============ -->
+  <section class="tenets">
+
+    <article class="tenet">
+      <span class="tenet-num">Tenet 01</span>
+      <h2 class="tenet-title">Spec before code. <em>Story before spec.</em></h2>
+      <p class="tenet-body">Every system starts as a sentence about a person. If you can't write the sentence, you don't have the spec. If you don't have the spec, the code is just <strong>guesses with confidence</strong> — and confidence without citation is a tell.</p>
+    </article>
+
+    <article class="tenet">
+      <span class="tenet-num">Tenet 02</span>
+      <h2 class="tenet-title">The room you're in is the <em>room you build for.</em></h2>
+      <p class="tenet-body">I sat at the helpdesk before I touched the orchestration platform. That order isn't a detour; it's the curriculum. <strong>Front-line work is the highest-resolution dataset</strong> on what humans actually need from the thing you are about to ship.</p>
+    </article>
+
+    <article class="tenet">
+      <span class="tenet-num">Tenet 03</span>
+      <h2 class="tenet-title">Adversarial <em>by default.</em></h2>
+      <p class="tenet-body">A sycophant is a security hole. Build the redteam into the room. Make the critic louder than the cheerleader. <strong>Praise without pushback is just noise wearing a costume</strong> — and three agreements in a row should set off an alarm.</p>
+    </article>
+
+    <article class="tenet">
+      <span class="tenet-num">Tenet 04</span>
+      <h2 class="tenet-title">Maintainability is a <em>love letter to your future self.</em></h2>
+      <p class="tenet-body">Cleverness expires. Performance is negotiable. The thing that survives is whatever a tired person can read at midnight and not curse you for. <strong>Optimize for that person.</strong> They are you, and they are coming.</p>
+    </article>
+
+    <article class="tenet">
+      <span class="tenet-num">Tenet 05</span>
+      <h2 class="tenet-title">Every artifact ships <em>with its receipts.</em></h2>
+      <p class="tenet-body">If you can't separate what you <em>know</em> from what you <em>generated</em>, you don't have either. Label your sources. Flag your assumptions. <strong>Name your gaps before someone else names them for you.</strong></p>
+    </article>
+
+    <article class="tenet">
+      <span class="tenet-num">Tenet 06</span>
+      <h2 class="tenet-title">Songs are scaffolding. <em>So are tickets. So are commits.</em></h2>
+      <p class="tenet-body">The shape underneath everything is the same: a thing that holds, a thing that breaks, a thing that holds again. Memoir, monorepo, mid-shift incident — <strong>all of it has bones.</strong> Learn to feel for them and the work stops feeling like separate work.</p>
+    </article>
+
+    <article class="tenet">
+      <span class="tenet-num">Tenet 07</span>
+      <h2 class="tenet-title">The most powerful person in the system is <em>closest to the edge.</em></h2>
+      <p class="tenet-body">The L1 sees what the architects miss. The bartender sees what the GM misses. The user sees what the PM misses. <strong>Build for the person who is one error message away from giving up</strong> — because that person is the entire system, briefly visible.</p>
+    </article>
+
+    <article class="tenet">
+      <span class="tenet-num">Tenet 08</span>
+      <h2 class="tenet-title">Build in the dark. <em>Ship in the light.</em></h2>
+      <p class="tenet-body">The reading room at midnight is where the work gets honest. The morning is where it gets accountable. <strong>You need both rooms.</strong> Confuse them and you lose them both.</p>
+    </article>
+
+  </section>
+
+  <!-- ============ CODA ============ -->
+  <section class="coda">
+    <span class="coda-mark">Coda</span>
+    <p>None of this is theory. It's just what I noticed while doing the work. If it's wrong, I want to know first. If it's right, I want it cheaper, faster, and more available to the next person who comes up through a service window with their own notebook.</p>
+    <div class="signoff">Draft v0.1 · open to revision</div>
+  </section>
+
+</main>
+
+<script>
+  // Focus mode toggle
+  const focusBtn = document.getElementById('focusBtn');
+  focusBtn.addEventListener('click', () => {
+    document.body.classList.toggle('focus');
+    focusBtn.classList.toggle('active');
+  });
+
+  // Print
+  document.getElementById('printBtn').addEventListener('click', () => window.print());
+</script>
+
+</body>
+</html>

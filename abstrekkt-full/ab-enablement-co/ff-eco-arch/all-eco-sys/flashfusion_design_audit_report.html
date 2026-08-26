@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#0F0618;--raised:#1A0B2E;--overlay:#251443;
+  --border:rgba(168,85,247,0.18);--border-hi:rgba(168,85,247,0.4);
+  --p:#A855F7;--pk:#F472B6;--cy:#22D3EE;
+  --grad:linear-gradient(90deg,#A855F7 0%,#F472B6 55%,#22D3EE 100%);
+  --t1:#F8FAFC;--t2:#CBD5E1;--t3:#64748B;
+  --success:#4ade80;--warn:#fbbf24;--err:#f87171;
+  --fh:'Poppins',sans-serif;--fb:'Inter',system-ui,sans-serif;--fm:'JetBrains Mono',monospace;
+  --glass:rgba(15,6,24,0.6);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-font-smoothing:antialiased}
+body{background:var(--bg);color:var(--t1);font-family:var(--fb);font-size:14px;line-height:1.6;min-height:100vh;padding:32px 24px 64px}
+@media(prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+
+/* Layout */
+.wrap{max-width:860px;margin:0 auto;display:flex;flex-direction:column;gap:32px}
+
+/* Header */
+.header{display:flex;flex-direction:column;gap:16px;padding-bottom:24px;border-bottom:1px solid var(--border)}
+.eyebrow{font-family:var(--fm);font-size:10px;font-weight:500;letter-spacing:.14em;text-transform:uppercase;color:var(--t3);display:flex;align-items:center;gap:8px}
+.eyebrow::before{content:'';display:block;width:16px;height:1px;background:var(--grad)}
+.header h1{font-family:var(--fh);font-size:28px;font-weight:800;line-height:1.1;letter-spacing:-.02em}
+.header h1 span{background:var(--grad);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.header-meta{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.badge{display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:999px;font-family:var(--fm);font-size:11px;font-weight:500;letter-spacing:.04em}
+.badge-watch{background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.3);color:var(--warn)}
+.badge-pass{background:rgba(74,222,128,.1);border:1px solid rgba(74,222,128,.3);color:var(--success)}
+.badge-fail{background:rgba(248,113,113,.1);border:1px solid rgba(248,113,113,.3);color:var(--err)}
+.badge-file{background:rgba(168,85,247,.1);border:1px solid rgba(168,85,247,.2);color:var(--p)}
+.dot{width:5px;height:5px;border-radius:50%;flex-shrink:0}
+.dot-warn{background:var(--warn)} .dot-pass{background:var(--success)} .dot-fail{background:var(--err)}
+
+/* Score strip */
+.score-row{display:grid;grid-template-columns:repeat(8,1fr);gap:6px}
+.score-cell{background:var(--raised);border:1px solid var(--border);border-radius:10px;padding:10px 8px;text-align:center;transition:border-color 150ms,box-shadow 150ms;cursor:default}
+.score-cell:hover{border-color:var(--border-hi)}
+.score-cell.pass{border-top:2px solid var(--success)}
+.score-cell.watch{border-top:2px solid var(--warn)}
+.score-cell.fail{border-top:2px solid var(--err)}
+.score-letter{font-family:var(--fh);font-size:14px;font-weight:700;line-height:1}
+.score-label{font-family:var(--fm);font-size:9px;color:var(--t3);margin-top:4px;text-transform:uppercase;letter-spacing:.06em}
+.score-verdict{font-size:10px;font-weight:600;margin-top:6px;text-transform:uppercase;letter-spacing:.06em}
+.score-cell.pass .score-verdict{color:var(--success)}
+.score-cell.watch .score-verdict{color:var(--warn)}
+.score-cell.fail .score-verdict{color:var(--err)}
+
+/* Section label */
+.section-label{font-family:var(--fm);font-size:10px;font-weight:500;letter-spacing:.14em;text-transform:uppercase;color:var(--t3);margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.section-label::after{content:'';flex:1;height:1px;background:var(--border)}
+
+/* Findings */
+.findings{display:flex;flex-direction:column;gap:8px}
+.finding{background:var(--glass);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border:1px solid var(--border);border-radius:12px;overflow:hidden;transition:border-color 200ms}
+.finding:hover{border-color:var(--border-hi)}
+.finding-header{display:flex;align-items:flex-start;gap:12px;padding:14px 16px;cursor:pointer;user-select:none}
+.finding-header::-webkit-details-marker{display:none}
+.sev-blocker{background:rgba(248,113,113,.12);border:1px solid rgba(248,113,113,.3);color:var(--err);font-family:var(--fm);font-size:10px;font-weight:600;padding:3px 8px;border-radius:4px;white-space:nowrap;align-self:flex-start;margin-top:1px;letter-spacing:.04em;text-transform:uppercase}
+.sev-major{background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.3);color:var(--warn);font-family:var(--fm);font-size:10px;font-weight:600;padding:3px 8px;border-radius:4px;white-space:nowrap;align-self:flex-start;margin-top:1px;letter-spacing:.04em;text-transform:uppercase}
+.sev-minor{background:rgba(168,85,247,.1);border:1px solid rgba(168,85,247,.2);color:var(--p);font-family:var(--fm);font-size:10px;font-weight:600;padding:3px 8px;border-radius:4px;white-space:nowrap;align-self:flex-start;margin-top:1px;letter-spacing:.04em;text-transform:uppercase}
+.cat-pill{font-family:var(--fm);font-size:10px;background:rgba(34,211,238,.08);border:1px solid rgba(34,211,238,.2);color:var(--cy);padding:3px 8px;border-radius:4px;white-space:nowrap;align-self:flex-start;margin-top:1px;letter-spacing:.04em}
+.finding-title{font-size:13px;font-weight:500;color:var(--t1);flex:1;line-height:1.5}
+.chevron{color:var(--t3);font-size:12px;transition:transform 200ms;flex-shrink:0;margin-top:2px}
+details[open] .chevron{transform:rotate(90deg)}
+.finding-body{padding:0 16px 16px;display:flex;flex-direction:column;gap:10px;border-top:1px solid var(--border)}
+.meta-row{display:grid;grid-template-columns:72px 1fr;gap:8px;align-items:start}
+.meta-key{font-family:var(--fm);font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.08em;padding-top:2px}
+.meta-val{font-size:12px;color:var(--t2);line-height:1.5}
+.code-snip{font-family:var(--fm);font-size:11px;background:rgba(15,6,24,.7);border:1px solid rgba(168,85,247,.12);border-radius:6px;padding:6px 10px;color:#a5f3fc;white-space:pre-wrap;word-break:break-all}
+.fix-val{font-size:12px;color:var(--success);line-height:1.5}
+
+/* Passes */
+.passes{display:flex;flex-direction:column;gap:6px}
+.pass-row{display:flex;align-items:flex-start;gap:10px;padding:10px 14px;background:rgba(74,222,128,.04);border:1px solid rgba(74,222,128,.12);border-radius:8px}
+.pass-check{color:var(--success);font-size:13px;flex-shrink:0;margin-top:1px}
+.pass-text{font-size:12px;color:var(--t2);line-height:1.5}
+.pass-text strong{color:var(--t1);font-weight:600}
+
+/* Verdict */
+.verdict{background:var(--raised);border:1px solid var(--border-hi);border-radius:16px;padding:24px;position:relative;overflow:hidden}
+.verdict::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--grad)}
+.verdict p{font-size:13px;color:var(--t2);line-height:1.75}
+.verdict p strong{color:var(--t1)}
+
+/* Prompt section */
+.prompt-toggle{background:var(--raised);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.prompt-toggle summary{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;cursor:pointer;user-select:none;list-style:none;font-size:13px;font-weight:500}
+.prompt-toggle summary::-webkit-details-marker{display:none}
+.prompt-body{padding:0 18px 18px}
+.prompt-code{font-family:var(--fm);font-size:11px;background:rgba(15,6,24,.7);border:1px solid rgba(168,85,247,.12);border-radius:8px;padding:16px;color:var(--t2);white-space:pre-wrap;word-break:break-word;line-height:1.7;max-height:360px;overflow-y:auto}
+.prompt-code::-webkit-scrollbar{width:4px}
+.prompt-code::-webkit-scrollbar-track{background:transparent}
+.prompt-code::-webkit-scrollbar-thumb{background:rgba(168,85,247,.3);border-radius:2px}
+
+/* Entrance */
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+.wrap>*{animation:fadeUp 400ms cubic-bezier(0.25,0.46,0.45,0.94) both}
+.wrap>*:nth-child(1){animation-delay:0ms}
+.wrap>*:nth-child(2){animation-delay:60ms}
+.wrap>*:nth-child(3){animation-delay:120ms}
+.wrap>*:nth-child(4){animation-delay:180ms}
+.wrap>*:nth-child(5){animation-delay:240ms}
+.wrap>*:nth-child(6){animation-delay:300ms}
+.wrap>*:nth-child(7){animation-delay:360ms}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="eyebrow">Design systems audit</div>
+    <h1>Brand-fonts specimen <span>audit</span></h1>
+    <div class="header-meta">
+      <span class="badge badge-watch"><span class="dot dot-warn"></span>Overall: Watch</span>
+      <span class="badge badge-file">brand-fonts-app.jsx</span>
+      <span class="badge badge-file">brand-fonts.html</span>
+      <span style="font-family:var(--fm);font-size:11px;color:var(--t3)">3 major · 3 minor · 0 blockers</span>
+    </div>
+  </div>
+
+  <!-- Score strip -->
+  <div>
+    <div class="section-label">Category scores</div>
+    <div class="score-row">
+      <div class="score-cell watch" title="Token fidelity"><div class="score-letter">A</div><div class="score-label">Tokens</div><div class="score-verdict">Watch</div></div>
+      <div class="score-cell pass" title="Type system"><div class="score-letter">B</div><div class="score-label">Type</div><div class="score-verdict">Pass*</div></div>
+      <div class="score-cell fail" title="Color discipline"><div class="score-letter">C</div><div class="score-label">Color</div><div class="score-verdict">Fail</div></div>
+      <div class="score-cell pass" title="Voice + casing"><div class="score-letter">D</div><div class="score-label">Voice</div><div class="score-verdict">Pass*</div></div>
+      <div class="score-cell pass" title="Motion"><div class="score-letter">E</div><div class="score-label">Motion</div><div class="score-verdict">Pass</div></div>
+      <div class="score-cell pass" title="Accessibility"><div class="score-letter">F</div><div class="score-label">A11y</div><div class="score-verdict">Pass</div></div>
+      <div class="score-cell pass" title="Hierarchy + density"><div class="score-letter">G</div><div class="score-label">Hier.</div><div class="score-verdict">Pass</div></div>
+      <div class="score-cell pass" title="AI-slop tropes"><div class="score-letter">H</div><div class="score-label">Slop</div><div class="score-verdict">Pass</div></div>
+    </div>
+  </div>
+
+  <!-- Findings -->
+  <div>
+    <div class="section-label">Findings — 6 total</div>
+    <div class="findings">
+
+      <details class="finding" open>
+        <summary class="finding-header">
+          <span class="sev-major">major</span>
+          <span class="cat-pill">C · color</span>
+          <span class="finding-title">Electric cyan used 4× on V1 Editorial artboard — one-per-screen rule violated</span>
+          <span class="chevron">›</span>
+        </summary>
+        <div class="finding-body">
+          <div class="meta-row"><span class="meta-key">Location</span><span class="meta-val">brand-fonts-app.jsx · FaceCardEditorial · role Eyebrow, rendered 4×</span></div>
+          <div class="meta-row"><span class="meta-key">Evidence</span><div class="code-snip">&lt;Eyebrow color={FF.electricLight}&gt;{face.role}&lt;/Eyebrow&gt; × 4</div></div>
+          <div class="meta-row"><span class="meta-key">Fix</span><span class="fix-val">Render role eyebrow in FF.text3. Reserve cyan for the "04 / FAMILIES" tick only — recolor the rest.</span></div>
+        </div>
+      </details>
+
+      <details class="finding">
+        <summary class="finding-header">
+          <span class="sev-major">major</span>
+          <span class="cat-pill">C · color</span>
+          <span class="finding-title">Cyan on BP1 header eyebrow and two Tag annotations — three instances, one allowed</span>
+          <span class="chevron">›</span>
+        </summary>
+        <div class="finding-body">
+          <div class="meta-row"><span class="meta-key">Location</span><span class="meta-val">brand-fonts-app.jsx · BP1Pairing — header Eyebrow + 2 Tag calls with tone="cyan"</span></div>
+          <div class="meta-row"><span class="meta-key">Evidence</span><div class="code-snip">&lt;Eyebrow color={FF.electricLight}&gt;Best practice · 01&lt;/Eyebrow&gt;</div></div>
+          <div class="meta-row"><span class="meta-key">Fix</span><span class="fix-val">Drop cyan on the header (FF.text3) or recolor the mono-tag annotations to tone="text". One cyan element max.</span></div>
+        </div>
+      </details>
+
+      <details class="finding">
+        <summary class="finding-header">
+          <span class="sev-major">major</span>
+          <span class="cat-pill">D · voice</span>
+          <span class="finding-title">Fabricated file-size numbers rendered as fact in V3 HUD</span>
+          <span class="chevron">›</span>
+        </summary>
+        <div class="finding-body">
+          <div class="meta-row"><span class="meta-key">Location</span><span class="meta-val">brand-fonts-app.jsx · V3HUD — kb cell, "354 kb" status pill, FACES[i].bytes</span></div>
+          <div class="meta-row"><span class="meta-key">Evidence</span><div class="code-snip">{(18 + (r.num/100)*2 + (r.italic?2:0)).toFixed(1)} kb
+bytes: '142 KB'</div></div>
+          <div class="meta-row"><span class="meta-key">Fix</span><span class="fix-val">Stat the actual woff2 files into a JSON map at build time, or label the column EST with integer ranges, or replace with neutral metadata (weight class, subset).</span></div>
+        </div>
+      </details>
+
+      <details class="finding">
+        <summary class="finding-header">
+          <span class="sev-minor">minor</span>
+          <span class="cat-pill">C · color</span>
+          <span class="finding-title">--ff-text-4 used on scannable labels, not disabled/hint content only</span>
+          <span class="chevron">›</span>
+        </summary>
+        <div class="finding-body">
+          <div class="meta-row"><span class="meta-key">Location</span><span class="meta-val">brand-fonts-app.jsx · V1 face-card ID badge, V3 HUD row indexers, BP2/BP3 footer captions</span></div>
+          <div class="meta-row"><span class="meta-key">Evidence</span><div class="code-snip">&lt;Eyebrow color={FF.text4}&gt;{face.id.toUpperCase()}&lt;/Eyebrow&gt;</div></div>
+          <div class="meta-row"><span class="meta-key">Fix</span><span class="fix-val">Lift to FF.text3 (#94A3B8) for labels the reader is meant to scan. Keep text-4 for purely decorative corner-marks only.</span></div>
+        </div>
+      </details>
+
+      <details class="finding">
+        <summary class="finding-header">
+          <span class="sev-minor">minor</span>
+          <span class="cat-pill">A · tokens</span>
+          <span class="finding-title">Color tokens duplicated as inline JS constants — silent drift surface</span>
+          <span class="chevron">›</span>
+        </summary>
+        <div class="finding-body">
+          <div class="meta-row"><span class="meta-key">Location</span><span class="meta-val">brand-fonts-app.jsx lines 11–46</span></div>
+          <div class="meta-row"><span class="meta-key">Evidence</span><div class="code-snip">primary: '#8B5CF6'  // mirrored from --ff-primary</div></div>
+          <div class="meta-row"><span class="meta-key">Fix</span><span class="fix-val">Resolve via getComputedStyle on mount, or pass 'var(--ff-primary)' strings directly into style props where the cascade is in scope.</span></div>
+        </div>
+      </details>
+
+      <details class="finding">
+        <summary class="finding-header">
+          <span class="sev-minor">minor</span>
+          <span class="cat-pill">B · type</span>
+          <span class="finding-title">--type-editorial rendered at clamp floor (56px) without labeling it as compressed</span>
+          <span class="chevron">›</span>
+        </summary>
+        <div class="finding-body">
+          <div class="meta-row"><span class="meta-key">Location</span><span class="meta-val">brand-fonts-app.jsx · SCALE[1] entry</span></div>
+          <div class="meta-row"><span class="meta-key">Evidence</span><div class="code-snip">{ token: '--type-editorial', size: 56,
+  meta: 'Instrument Serif 400 italic · clamp(3.5–7rem)' }</div></div>
+          <div class="meta-row"><span class="meta-key">Fix</span><span class="fix-val">Add "compressed for spec" to the meta column, or render two rows showing the min and max of the clamp.</span></div>
+        </div>
+      </details>
+
+    </div>
+  </div>
+
+  <!-- Passes -->
+  <div>
+    <div class="section-label">Passes</div>
+    <div class="passes">
+      <div class="pass-row"><span class="pass-check">✓</span><span class="pass-text"><strong>B (mostly)</strong> — type pairing correct, weights ≤ 700, single editorial italic + single text-gradient per artboard. tabular-nums applied on stat block and BP2 scale.</span></div>
+      <div class="pass-row"><span class="pass-check">✓</span><span class="pass-text"><strong>D (mostly)</strong> — no banned verbs, sentence case throughout ("Build agents that ship.", "Four faces, one voice."), specific numbers in stat block.</span></div>
+      <div class="pass-row"><span class="pass-check">✓</span><span class="pass-text"><strong>E</strong> — no transition: all, no animated dimensions, prefers-reduced-motion inherited from colors_and_type.css.</span></div>
+      <div class="pass-row"><span class="pass-check">✓</span><span class="pass-text"><strong>G</strong> — eyebrow → headline → body cadence intact, 18–24px radii on glass surfaces, no inline radius drift.</span></div>
+      <div class="pass-row"><span class="pass-check">✓</span><span class="pass-text"><strong>H</strong> — no emoji, no hand-drawn SVGs, no border-left accent containers, no Inter-in-headlines, gradients used purposefully (hero ground + editorial text only).</span></div>
+    </div>
+  </div>
+
+  <!-- Verdict -->
+  <div>
+    <div class="section-label">Verdict</div>
+    <div class="verdict">
+      <p>The specimen reads on-brand and the type system is exercised honestly — <strong>display vs. body vs. editorial vs. mono</strong> are all doing their actual jobs, the scale ladder is shown against a real 8px grid, and the do/don't card cleanly demonstrates the casing/glow/italic rules. The blockers are the <strong>cyan-overuse on V1 and BP1</strong> (a one-line recolor each) and the <strong>fabricated KB figures in the V3 HUD</strong> (real bytes or relabel). Land those four edits and this moves to <strong>Pass</strong>.</p>
+    </div>
+  </div>
+
+  <!-- Prompt (collapsed) -->
+  <details class="prompt-toggle">
+    <summary>
+      <span style="display:flex;align-items:center;gap:8px"><span style="font-family:var(--fm);font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.1em">Reusable audit prompt</span></span>
+      <span style="font-family:var(--fm);font-size:10px;color:var(--t3)">expand ›</span>
+    </summary>
+    <div class="prompt-body" style="padding-top:16px">
+      <pre class="prompt-code">ROLE
+────
+You are a senior design-systems auditor for FlashFusion. You read source files
+and design artifacts and report violations against the canonical brand spec.
+
+You are precise, blunt, and bored by nitpicks. You do not invent tokens, do not
+hallucinate file lines, and do not design from memory. If something is not
+covered by the spec, you say so and leave it.
+
+SOURCES OF TRUTH (read in this order, do not paraphrase)
+────────────────────────────────────────────────────────
+  1. DESIGN.md              ← brand thesis, tokens, type scale, rules
+  2. VOICE.md               ← copy + casing + verb list
+  3. ACCESSIBILITY.md       ← contrast, hit-targets, motion
+  4. MOTION.md              ← durations, easings, anti-patterns
+  5. COMPONENTS.md          ← component API + states
+  6. colors_and_type.css    ← runtime token definitions
+  7. fonts-selfhosted.css   ← every @font-face the brand owns
+
+RUBRIC (score each category Pass / Watch / Fail)
+────────────────────────────────────────────────
+  A. Token fidelity — CSS vars only, no hex drift, radii in set, 8px spacing
+  B. Type system — right family per role, weights ≤ 700, tabular-nums on numbers,
+     no .ff-headline-glow + .ff-text-gradient combined, max 1 gradient phrase/page
+  C. Color discipline — --ff-void as page ground, --ff-electric* one per screen,
+     --ff-text-4 only on disabled/hint, no brand fills on small text
+  D. Voice + casing — sentence case, UPPERCASE = eyebrow only, no banned verbs,
+     specific numbers > adjectives, no fabricated stats
+  E. Motion — duration ladder only, no transition: all, no width/height animation,
+     prefers-reduced-motion handled
+  F. Accessibility — AA contrast, focus-visible cyan halo, ≥ 44×44 hit targets
+  G. Hierarchy + density — type scale steps used, 32px min card padding, eyebrow
+     → headline → body cadence intact
+  H. AI-slop tropes — no emoji in UI, no border-left accent containers, no
+     Inter/Roboto in headlines, no purposeless gradients
+
+OUTPUT FORMAT
+─────────────
+  ## artifact path
+  Overall: Pass | Watch | Fail
+
+  ### Findings
+  - [severity] [category] description
+    Location: file:line or selector
+    Evidence: verbatim ≤ 12 words
+    Fix: one-line remedy
+
+  severity: blocker | major | minor
+  Skip passing categories. No filler.</pre>
+    </div>
+  </details>
+
+</div>
+</body>
+</html>

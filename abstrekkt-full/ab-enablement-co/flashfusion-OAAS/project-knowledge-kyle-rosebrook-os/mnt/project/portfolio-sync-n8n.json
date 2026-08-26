@@ -1,0 +1,225 @@
+{
+  "name": "Portfolio Command Center — Live Sync",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "portfolio-sync",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "id": "node-webhook",
+      "name": "Portfolio Sync Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [200, 340],
+      "webhookId": "portfolio-sync"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ─────────────────────────────────────────────\n// STEP 1 — PARSE & VALIDATE INCOMING PAYLOAD\n// ─────────────────────────────────────────────\n// Expected body: { projects: [...], githubToken: 'ghp_xxx', meta: {...} }\n\nconst raw = $input.first().json;\n// n8n puts POST body under .body when webhook receives JSON\nconst body = raw.body || raw;\n\nconst projects = Array.isArray(body?.projects) ? body.projects : [];\nconst githubToken = typeof body?.githubToken === 'string' ? body.githubToken.trim() : '';\nconst requestedAt = body?.meta?.requestedAt || new Date().toISOString();\n\nif (!projects.length) {\n  return [{\n    json: {\n      _valid: false,\n      error: 'No projects array in request body',\n      success: false,\n      summary: { total: 0, avgHealth: 0, totalMonthlyCost: 0, needsMigration: 0 },\n      enrichedProjects: []\n    }\n  }];\n}\n\nreturn [{\n  json: {\n    _valid: true,\n    projects,\n    githubToken,\n    requestedAt,\n    projectCount: projects.length\n  }\n}];"
+      },
+      "id": "node-parse",
+      "name": "Parse Input",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [420, 340]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "check-valid",
+              "leftValue": "={{ $json._valid }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "node-valid-check",
+      "name": "Valid Input",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [640, 340]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ─────────────────────────────────────────────────────────────────\n// STEP 2 — GITHUB ENRICHMENT + HEALTH CALCULATION\n// ─────────────────────────────────────────────────────────────────\n// For each project with a GitHub repo URL, we:\n//   1. Fetch repo metadata (stars, forks, open issues, language)\n//   2. Fetch last commit date + message\n//   3. Update lastActivity if commit is more recent\n// Then calculate health scores and aggregate summary stats.\n// ─────────────────────────────────────────────────────────────────\n\nconst { projects, githubToken, requestedAt } = $json;\n\n// ── Health Calculation (mirrors frontend logic exactly) ──────────\nconst calcHealth = (project, overrideActivity) => {\n  const activity = overrideActivity || project.lastActivity;\n  const days = activity\n    ? Math.floor((Date.now() - new Date(activity)) / 86400000)\n    : 999;\n\n  let s = 100;\n  if (days > 180)      s -= 40;\n  else if (days > 90)  s -= 25;\n  else if (days > 30)  s -= 10;\n\n  s -= ((project.techDebt    || 3) - 1) * 8;\n  if (project.status === 'Blocked')                          s -= 20;\n  if (project.status === 'Archived' || project.status === 'Sunset') s -= 30;\n  s += ((project.businessValue || 3) - 3) * 5;\n\n  const auditPassed = Object.values(project.auditChecks || {}).filter(Boolean).length;\n  s += auditPassed * 2;\n\n  return Math.max(0, Math.min(100, Math.round(s)));\n};\n\n// ── GitHub Enrichment ────────────────────────────────────────────\nconst enrichedProjects = [];\nlet githubEnrichedCount = 0;\nconst errors = [];\n\nfor (const project of projects) {\n  let githubData = project.githubData || null;\n  let updatedActivity = project.lastActivity;\n\n  if (project.repo && project.repo.includes('github.com') && githubToken) {\n    const match = project.repo.match(/github\\.com\\/([^\\/]+)\\/([^\\/]+)/);\n    if (match) {\n      const owner   = match[1];\n      const repoRaw = match[2];\n      const repo    = repoRaw.replace('.git', '').split('?')[0];\n\n      const headers = {\n        'Authorization': `token ${githubToken}`,\n        'Accept':        'application/vnd.github.v3+json',\n        'User-Agent':    'Portfolio-Command-Center/1.0'\n      };\n\n      try {\n        // Throttle: 300ms between GitHub calls to respect rate limits\n        await new Promise(r => setTimeout(r, 300));\n\n        const [repoRes, commitsRes] = await Promise.all([\n          fetch(`https://api.github.com/repos/${owner}/${repo}`,                   { headers }),\n          fetch(`https://api.github.com/repos/${owner}/${repo}/commits?per_page=1`, { headers })\n        ]);\n\n        if (repoRes.ok) {\n          const repoData    = await repoRes.json();\n          const commitsData = commitsRes.ok ? await commitsRes.json() : [];\n\n          const lastCommitObj = Array.isArray(commitsData) && commitsData[0]\n            ? commitsData[0] : null;\n          const lastCommit    = lastCommitObj?.commit?.committer?.date || null;\n          const lastCommitMsg = lastCommitObj?.commit?.message?.split('\\n')[0] || null;\n\n          githubData = {\n            stars:         repoData.stargazers_count  || 0,\n            forks:         repoData.forks_count       || 0,\n            openIssues:    repoData.open_issues_count || 0,\n            lastCommit,\n            lastCommitMsg,\n            language:      repoData.language          || null,\n            size:          repoData.size              || 0,\n            defaultBranch: repoData.default_branch    || 'main',\n            private:       repoData.private           || false,\n            updatedAt:     repoData.updated_at        || null\n          };\n\n          // Update activity from commit if more recent than stored value\n          if (lastCommit) {\n            const commitDay = lastCommit.split('T')[0];\n            if (!updatedActivity || commitDay > updatedActivity) {\n              updatedActivity = commitDay;\n            }\n          }\n\n          githubEnrichedCount++;\n        } else {\n          const errBody = await repoRes.text();\n          errors.push({ project: project.name, status: repoRes.status, detail: errBody.slice(0, 100) });\n        }\n      } catch (err) {\n        // Network or fetch error — keep existing data, don't abort\n        errors.push({ project: project.name, error: err.message });\n      }\n    }\n  }\n\n  enrichedProjects.push({\n    id:           project.id,\n    githubData,\n    lastActivity: updatedActivity\n  });\n}\n\n// ── Build Enrichment Map ─────────────────────────────────────────\nconst enrichMap = Object.fromEntries(\n  enrichedProjects.map(e => [e.id, e])\n);\n\n// ── Calculate Health for All Projects ───────────────────────────\nconst healthScores = projects.map(p => {\n  const enriched          = enrichMap[p.id];\n  const effectiveActivity = enriched?.lastActivity || p.lastActivity;\n  return calcHealth(p, effectiveActivity);\n});\n\nconst avgHealth = healthScores.length\n  ? Math.round(healthScores.reduce((a, b) => a + b, 0) / healthScores.length)\n  : 0;\n\n// ── Identify Critical Projects (for optional Slack alert) ────────\nconst criticalProjects = projects\n  .map((p, i) => ({ ...p, health: healthScores[i] }))\n  .filter(p => p.health < 40 || p.status === 'Blocked')\n  .map(p => ({ id: p.id, name: p.name, health: p.health, status: p.status, platform: p.platform }));\n\n// ── Build Summary ────────────────────────────────────────────────\nconst summary = {\n  total:             projects.length,\n  avgHealth,\n  totalMonthlyCost:  projects.reduce((s, p) => s + (p.monthlyCost || 0), 0),\n  needsMigration:    projects.filter(p => p.platform === 'Base44' || p.platform === 'Bolt').length,\n  activeCount:       projects.filter(p => p.status === 'Active').length,\n  blockedCount:      projects.filter(p => p.status === 'Blocked').length,\n  unhealthyCount:    healthScores.filter(h => h < 40).length,\n  githubEnriched:    githubEnrichedCount,\n  enrichErrors:      errors.length\n};\n\nreturn [{\n  json: {\n    success:         true,\n    summary,\n    enrichedProjects,\n    criticalProjects,\n    errors:          errors.length ? errors : undefined,\n    processedAt:     new Date().toISOString(),\n    requestedAt\n  }\n}];"
+      },
+      "id": "node-enrich",
+      "name": "Enrich and Calculate",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [860, 260]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "check-critical",
+              "leftValue": "={{ $json.summary.unhealthyCount + $json.summary.blockedCount }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "node-critical-check",
+      "name": "Critical Issues",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1080, 260]
+    },
+    {
+      "parameters": {
+        "channel": "#ops-alerts",
+        "text": "=:warning: *Portfolio Health Alert* — {{ new Date().toLocaleDateString() }}\n\n*Summary:* {{ $json.summary.total }} projects · avg health {{ $json.summary.avgHealth }}\n*Blocked:* {{ $json.summary.blockedCount }} · *Unhealthy:* {{ $json.summary.unhealthyCount }}\n\n*Critical Projects:*\n{{ $json.criticalProjects.map(p => `• ${p.name} — health ${p.health} (${p.status})`).join('\\n') }}\n\n_Run the Portfolio Command Center to see full details._",
+        "otherOptions": {
+          "mrkdwn": true
+        }
+      },
+      "id": "node-slack",
+      "name": "Slack Alert",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [1300, 160],
+      "disabled": true,
+      "notes": "SETUP REQUIRED: Add your Slack credential in n8n Credentials → Slack OAuth2. Then enable this node and set your channel. Runs only when unhealthy or blocked projects are detected.",
+      "credentials": {
+        "slackApi": {
+          "id": "REPLACE_WITH_YOUR_SLACK_CREDENTIAL_ID",
+          "name": "Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              }
+            ]
+          }
+        }
+      },
+      "id": "node-respond-ok",
+      "name": "Respond Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1300, 360]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ success: false, error: $json.error || 'Invalid request', summary: $json.summary || { total: 0, avgHealth: 0, totalMonthlyCost: 0, needsMigration: 0 }, enrichedProjects: [] }) }}",
+        "options": {
+          "responseCode": 400,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              }
+            ]
+          }
+        }
+      },
+      "id": "node-respond-err",
+      "name": "Respond Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [860, 460]
+    }
+  ],
+  "connections": {
+    "Portfolio Sync Webhook": {
+      "main": [
+        [{ "node": "Parse Input", "type": "main", "index": 0 }]
+      ]
+    },
+    "Parse Input": {
+      "main": [
+        [{ "node": "Valid Input", "type": "main", "index": 0 }]
+      ]
+    },
+    "Valid Input": {
+      "main": [
+        [{ "node": "Enrich and Calculate", "type": "main", "index": 0 }],
+        [{ "node": "Respond Error", "type": "main", "index": 0 }]
+      ]
+    },
+    "Enrich and Calculate": {
+      "main": [
+        [{ "node": "Critical Issues", "type": "main", "index": 0 }]
+      ]
+    },
+    "Critical Issues": {
+      "main": [
+        [{ "node": "Slack Alert", "type": "main", "index": 0 }],
+        [{ "node": "Respond Success", "type": "main", "index": 0 }]
+      ]
+    },
+    "Slack Alert": {
+      "main": [
+        [{ "node": "Respond Success", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": ""
+  },
+  "staticData": {},
+  "tags": [
+    {
+      "name": "portfolio",
+      "createdAt": "2026-03-24T00:00:00.000Z",
+      "updatedAt": "2026-03-24T00:00:00.000Z"
+    }
+  ],
+  "versionId": "1.0.0",
+  "meta": {
+    "instanceId": "portfolio-command-center"
+  }
+}

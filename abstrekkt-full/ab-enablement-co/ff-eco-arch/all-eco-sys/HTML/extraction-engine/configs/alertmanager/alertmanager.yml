@@ -1,0 +1,67 @@
+# [G] alertmanager/alertmanager.yml
+# Assumption: Slack is primary notification channel
+# NEEDS_HUMAN_DECISION: Replace SLACK_WEBHOOK_URL with real endpoint via .env
+# NEEDS_HUMAN_DECISION: Define pagerduty/email receivers for P0 escalation
+
+global:
+  resolve_timeout: 5m
+  # NEEDS_HUMAN_DECISION: set smtp_smarthost and credentials for email fallback
+  # smtp_smarthost: 'smtp.example.com:587'
+  # smtp_from: 'alerts@example.com'
+
+route:
+  group_by: ['alertname', 'service', 'severity']
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
+  receiver: 'slack-default'
+
+  routes:
+    # P0 — critical, page immediately, repeat every 1h
+    - match:
+        severity: critical
+      receiver: 'slack-critical'
+      repeat_interval: 1h
+      continue: true
+
+    # P1 — warning, notify team, repeat every 4h
+    - match:
+        severity: warning
+      receiver: 'slack-default'
+      repeat_interval: 4h
+
+    # Watchdog — dead man's snitch, must fire continuously
+    - match:
+        alertname: Watchdog
+      receiver: 'watchdog'
+      repeat_interval: 1m
+
+receivers:
+  - name: 'slack-default'
+    slack_configs:
+      - api_url: '${SLACK_WEBHOOK_URL}'
+        channel: '#alerts'
+        title: '{{ template "slack.default.title" . }}'
+        text: '{{ template "slack.default.text" . }}'
+        send_resolved: true
+
+  - name: 'slack-critical'
+    slack_configs:
+      - api_url: '${SLACK_WEBHOOK_URL}'
+        channel: '#alerts-critical'
+        title: '🚨 CRITICAL: {{ .GroupLabels.alertname }}'
+        text: '{{ range .Alerts }}*{{ .Annotations.summary }}*\n{{ .Annotations.description }}\n{{ end }}'
+        send_resolved: true
+
+  - name: 'watchdog'
+    webhook_configs:
+      # NEEDS_HUMAN_DECISION: Replace with dead man's snitch URL (e.g. healthchecks.io)
+      - url: '${WATCHDOG_WEBHOOK_URL}'
+
+inhibit_rules:
+  # Suppress warning if critical fires for same service
+  - source_match:
+      severity: critical
+    target_match:
+      severity: warning
+    equal: ['alertname', 'service']

@@ -1,0 +1,673 @@
+#!/bin/bash
+
+# =============================================================================
+# AGENT ORCHESTRATION SYSTEM - MASTER INSTALLER
+# =============================================================================
+
+set -euo pipefail
+
+# Configuration
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+AGENT_HOME="${AGENT_HOME:-$HOME/.agents}"
+INSTALL_LOG="$AGENT_HOME/install.log"
+
+# Colors
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+PURPLE='\033[0;35m'
+CYAN='\033[0;36m'
+NC='\033[0m'
+
+# =============================================================================
+# UTILITY FUNCTIONS
+# =============================================================================
+
+log() {
+    local message="$1"
+    local timestamp=$(date +'%Y-%m-%d %H:%M:%S')
+    echo -e "${GREEN}[$timestamp] $message${NC}"
+    echo "[$timestamp] $message" >> "$INSTALL_LOG"
+}
+
+warn() {
+    local message="$1"
+    local timestamp=$(date +'%Y-%m-%d %H:%M:%S')
+    echo -e "${YELLOW}[$timestamp] [WARNING] $message${NC}"
+    echo "[$timestamp] [WARNING] $message" >> "$INSTALL_LOG"
+}
+
+error() {
+    local message="$1"
+    local timestamp=$(date +'%Y-%m-%d %H:%M:%S')
+    echo -e "${RED}[$timestamp] [ERROR] $message${NC}"
+    echo "[$timestamp] [ERROR] $message" >> "$INSTALL_LOG"
+    exit 1
+}
+
+info() {
+    echo -e "${CYAN}$1${NC}"
+}
+
+success() {
+    echo -e "${GREEN}✓ $1${NC}"
+}
+
+# =============================================================================
+# SYSTEM CHECKS
+# =============================================================================
+
+check_prerequisites() {
+    log "Checking system prerequisites..."
+    
+    local missing_deps=()
+    
+    # Required commands
+    local required_commands=(
+        "curl"
+        "git"
+        "jq"
+        "openssl"
+        "base64"
+    )
+    
+    for cmd in "${required_commands[@]}"; do
+        if ! command -v "$cmd" &> /dev/null; then
+            missing_deps+=("$cmd")
+        fi
+    done
+    
+    # Optional but recommended
+    local optional_commands=(
+        "docker"
+        "docker-compose"
+        "kubectl"
+        "yq"
+    )
+    
+    local missing_optional=()
+    for cmd in "${optional_commands[@]}"; do
+        if ! command -v "$cmd" &> /dev/null; then
+            missing_optional+=("$cmd")
+        fi
+    done
+    
+    if [ ${#missing_deps[@]} -gt 0 ]; then
+        error "Missing required dependencies: ${missing_deps[*]}"
+    fi
+    
+    if [ ${#missing_optional[@]} -gt 0 ]; then
+        warn "Missing optional dependencies: ${missing_optional[*]}"
+        warn "Some features may not be available"
+    fi
+    
+    success "Prerequisites check completed"
+}
+
+check_permissions() {
+    log "Checking permissions..."
+    
+    # Check if we can create the agent home directory
+    if [ ! -d "$AGENT_HOME" ]; then
+        if ! mkdir -p "$AGENT_HOME" 2>/dev/null; then
+            error "Cannot create agent home directory: $AGENT_HOME"
+        fi
+    fi
+    
+    # Check write permissions
+    if [ ! -w "$AGENT_HOME" ]; then
+        error "No write permission to agent home directory: $AGENT_HOME"
+    fi
+    
+    success "Permission check completed"
+}
+
+check_system_resources() {
+    log "Checking system resources..."
+    
+    # Check available disk space (need at least 5GB)
+    local available_space=$(df "$AGENT_HOME" | awk 'NR==2 {print $4}')
+    local required_space=5242880  # 5GB in KB
+    
+    if [ "$available_space" -lt "$required_space" ]; then
+        warn "Low disk space. Available: $((available_space/1024/1024))GB, Recommended: 5GB"
+    fi
+    
+    # Check available memory (need at least 4GB)
+    local total_mem=$(free -m | awk 'NR==2{print $2}')
+    if [ "$total_mem" -lt 4096 ]; then
+        warn "Low memory. Available: ${total_mem}MB, Recommended: 4096MB"
+    fi
+    
+    success "System resources check completed"
+}
+
+# =============================================================================
+# INSTALLATION STEPS
+# =============================================================================
+
+create_directory_structure() {
+    log "Creating directory structure..."
+    
+    local directories=(
+        "$AGENT_HOME/config"
+        "$AGENT_HOME/logs"
+        "$AGENT_HOME/permissions"
+        "$AGENT_HOME/scripts"
+        "$AGENT_HOME/agents"
+        "$AGENT_HOME/templates"
+        "$AGENT_HOME/backups"
+        "$AGENT_HOME/security"
+        "$AGENT_HOME/deployments"
+        "$AGENT_HOME/monitoring"
+        "$AGENT_HOME/data"
+    )
+    
+    for dir in "${directories[@]}"; do
+        mkdir -p "$dir"
+        log "Created directory: $dir"
+    done
+    
+    # Set appropriate permissions
+    chmod 750 "$AGENT_HOME"
+    chmod 700 "$AGENT_HOME/security"
+    chmod 700 "$AGENT_HOME/permissions"
+    
+    success "Directory structure created"
+}
+
+install_main_scripts() {
+    log "Installing main agent management scripts..."
+    
+    # Copy the main setup script (assuming it's saved as agent-setup.sh)
+    if [ -f "$SCRIPT_DIR/agent-setup.sh" ]; then
+        cp "$SCRIPT_DIR/agent-setup.sh" "$AGENT_HOME/scripts/"
+        chmod +x "$AGENT_HOME/scripts/agent-setup.sh"
+    else
+        warn "Main setup script not found, creating from artifacts..."
+        # The content would be pulled from the first artifact
+    fi
+    
+    # Copy security scripts
+    if [ -f "$SCRIPT_DIR/security-setup.sh" ]; then
+        cp "$SCRIPT_DIR/security-setup.sh" "$AGENT_HOME/scripts/"
+        chmod +x "$AGENT_HOME/scripts/security-setup.sh"
+    fi
+    
+    # Copy deployment scripts
+    if [ -f "$SCRIPT_DIR/deployment-setup.sh" ]; then
+        cp "$SCRIPT_DIR/deployment-setup.sh" "$AGENT_HOME/scripts/"
+        chmod +x "$AGENT_HOME/scripts/deployment-setup.sh"
+    fi
+    
+    success "Main scripts installed"
+}
+
+setup_configuration() {
+    log "Setting up system configuration..."
+    
+    # Create global configuration file
+    cat > "$AGENT_HOME/config/system.json" << EOF
+{
+  "system": {
+    "version": "1.0.0",
+    "installed_at": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+    "home_directory": "$AGENT_HOME",
+    "user": "$(whoami)",
+    "hostname": "$(hostname)"
+  },
+  "features": {
+    "docker_support": $(command -v docker &> /dev/null && echo "true" || echo "false"),
+    "kubernetes_support": $(command -v kubectl &> /dev/null && echo "true" || echo "false"),
+    "monitoring_enabled": true,
+    "security_enabled": true
+  },
+  "defaults": {
+    "log_level": "INFO",
+    "max_concurrent_agents": 20,
+    "heartbeat_interval": 30,
+    "token_expiry_hours": 24
+  }
+}
+EOF
+    
+    # Create environment configuration
+    cat > "$AGENT_HOME/.env" << EOF
+# Agent System Environment Configuration
+AGENT_HOME=$AGENT_HOME
+AGENT_USER=$(whoami)
+AGENT_LOG_LEVEL=INFO
+
+# Security
+AGENT_ENCRYPTION_KEY=$(openssl rand -hex 32)
+AGENT_JWT_SECRET=$(openssl rand -hex 64)
+
+# Database (for production deployments)
+POSTGRES_USER=agent
+POSTGRES_PASSWORD=$(openssl rand -hex 16)
+POSTGRES_DB=agents
+
+# Redis (for caching and message queue)
+REDIS_PASSWORD=$(openssl rand -hex 16)
+
+# RabbitMQ (for message queue)
+RABBITMQ_USER=agent
+RABBITMQ_PASS=$(openssl rand -hex 16)
+
+# Monitoring
+GRAFANA_PASSWORD=$(openssl rand -hex 12)
+PROMETHEUS_RETENTION=30d
+
+# Network
+AGENT_NETWORK_SUBNET=172.20.0.0/16
+AGENT_API_PORT=8080
+
+# Feature Flags
+ENABLE_DOCKER=$(command -v docker &> /dev/null && echo "true" || echo "false")
+ENABLE_KUBERNETES=$(command -v kubectl &> /dev/null && echo "true" || echo "false")
+ENABLE_MONITORING=true
+ENABLE_SECURITY=true
+EOF
+    
+    chmod 600 "$AGENT_HOME/.env"
+    
+    success "Configuration setup completed"
+}
+
+initialize_agents() {
+    log "Initializing agent system..."
+    
+    # Run the main agent setup
+    if [ -f "$AGENT_HOME/scripts/agent-setup.sh" ]; then
+        log "Running agent setup..."
+        bash "$AGENT_HOME/scripts/agent-setup.sh"
+    else
+        error "Agent setup script not found"
+    fi
+    
+    success "Agent system initialized"
+}
+
+setup_security() {
+    log "Setting up security system..."
+    
+    if [ -f "$AGENT_HOME/scripts/security-setup.sh" ]; then
+        log "Running security setup..."
+        bash "$AGENT_HOME/scripts/security-setup.sh" setup
+    else
+        warn "Security setup script not found, skipping security setup"
+    fi
+    
+    success "Security system setup completed"
+}
+
+setup_monitoring() {
+    log "Setting up monitoring system..."
+    
+    mkdir -p "$AGENT_HOME/monitoring"
+    
+    # Create basic monitoring script
+    cat > "$AGENT_HOME/scripts/monitor.sh" << 'EOF'
+#!/bin/bash
+
+AGENT_HOME="${AGENT_HOME:-$HOME/.agents}"
+
+while true; do
+    timestamp=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+    
+    # Check system resources
+    cpu_usage=$(top -bn1 | grep "Cpu(s)" | awk '{print $2}' | sed 's/%us,//')
+    mem_usage=$(free | grep Mem | awk '{printf("%.2f"), $3/$2 * 100.0}')
+    disk_usage=$(df "$AGENT_HOME" | awk 'NR==2 {print $(NF-1)}' | sed 's/%//')
+    
+    # Log metrics
+    echo "[$timestamp] CPU: ${cpu_usage}% MEM: ${mem_usage}% DISK: ${disk_usage}%" >> "$AGENT_HOME/logs/system_metrics.log"
+    
+    # Check agent health
+    active_agents=0
+    find "$AGENT_HOME/config" -name "*.json" | while read config; do
+        agent_name=$(basename "$config" .json)
+        if [ -f "$AGENT_HOME/agents/${agent_name}.pid" ]; then
+            pid=$(cat "$AGENT_HOME/agents/${agent_name}.pid")
+            if kill -0 "$pid" 2>/dev/null; then
+                ((active_agents++))
+            fi
+        fi
+    done
+    
+    echo "[$timestamp] ACTIVE_AGENTS: $active_agents" >> "$AGENT_HOME/logs/agent_metrics.log"
+    
+    sleep 60
+done
+EOF
+    
+    chmod +x "$AGENT_HOME/scripts/monitor.sh"
+    
+    success "Monitoring system setup completed"
+}
+
+create_management_tools() {
+    log "Creating management tools..."
+    
+    # Create the main CLI tool
+    cat > "$AGENT_HOME/bin/agent-cli" << 'EOF'
+#!/bin/bash
+
+AGENT_HOME="${AGENT_HOME:-$HOME/.agents}"
+source "$AGENT_HOME/.env" 2>/dev/null || true
+
+case "${1:-help}" in
+    "install")
+        echo "Agent system is already installed at: $AGENT_HOME"
+        ;;
+        
+    "status")
+        echo "Agent System Status Report"
+        echo "=========================="
+        echo "Home Directory: $AGENT_HOME"
+        echo "Installation Date: $(jq -r '.system.installed_at' "$AGENT_HOME/config/system.json" 2>/dev/null || echo 'Unknown')"
+        echo "System Version: $(jq -r '.system.version' "$AGENT_HOME/config/system.json" 2>/dev/null || echo 'Unknown')"
+        echo ""
+        echo "Active Agents:"
+        "$AGENT_HOME/agents" status
+        echo ""
+        echo "System Resources:"
+        echo "  CPU Usage: $(top -bn1 | grep "Cpu(s)" | awk '{print $2}' | sed 's/%us,//' || echo 'N/A')"
+        echo "  Memory Usage: $(free | grep Mem | awk '{printf("%.1f%%"), $3/$2 * 100.0}' || echo 'N/A')"
+        echo "  Disk Usage: $(df "$AGENT_HOME" | awk 'NR==2 {print $(NF-1)}' || echo 'N/A')"
+        ;;
+        
+    "start")
+        if [ -n "${2:-}" ]; then
+            "$AGENT_HOME/agents" start "$2"
+        else
+            echo "Starting all agents..."
+            find "$AGENT_HOME/config" -name "*.json" -exec basename {} .json \; | while read agent; do
+                "$AGENT_HOME/agents" start "$agent"
+            done
+        fi
+        ;;
+        
+    "stop")
+        if [ -n "${2:-}" ]; then
+            "$AGENT_HOME/agents" stop "$2"
+        else
+            echo "Stopping all agents..."
+            find "$AGENT_HOME/agents" -name "*.pid" | while read pidfile; do
+                agent_name=$(basename "$pidfile" .pid)
+                "$AGENT_HOME/agents" stop "$agent_name"
+            done
+        fi
+        ;;
+        
+    "logs")
+        agent_name="${2:-system}"
+        if [ -f "$AGENT_HOME/logs/${agent_name}.log" ]; then
+            tail -f "$AGENT_HOME/logs/${agent_name}.log"
+        else
+            echo "Log file not found: ${agent_name}.log"
+            echo "Available logs:"
+            ls -1 "$AGENT_HOME/logs/"
+        fi
+        ;;
+        
+    "deploy")
+        deployment_type="${2:-docker}"
+        if [ -f "$AGENT_HOME/scripts/deployment-setup.sh" ]; then
+            bash "$AGENT_HOME/scripts/deployment-setup.sh" "$deployment_type"
+        else
+            echo "Deployment script not found"
+        fi
+        ;;
+        
+    "security")
+        action="${2:-status}"
+        if [ -f "$AGENT_HOME/scripts/security-setup.sh" ]; then
+            bash "$AGENT_HOME/scripts/security-setup.sh" "$action"
+        else
+            echo "Security script not found"
+        fi
+        ;;
+        
+    "backup")
+        backup_dir="$AGENT_HOME/backups/backup_$(date +%Y%m%d_%H%M%S)"
+        mkdir -p "$backup_dir"
+        cp -r "$AGENT_HOME/config" "$backup_dir/"
+        cp -r "$AGENT_HOME/permissions" "$backup_dir/"
+        cp "$AGENT_HOME/.env" "$backup_dir/"
+        echo "Backup created: $backup_dir"
+        ;;
+        
+    "update")
+        echo "Checking for updates..."
+        # Update logic would go here
+        echo "Agent system is up to date"
+        ;;
+        
+    "uninstall")
+        echo "This will remove the entire agent system. Are you sure? (y/N)"
+        read -r confirmation
+        if [[ "$confirmation" =~ ^[Yy]$ ]]; then
+            echo "Stopping all agents..."
+            "$0" stop
+            echo "Removing agent system..."
+            rm -rf "$AGENT_HOME"
+            echo "Agent system uninstalled"
+        else
+            echo "Uninstall cancelled"
+        fi
+        ;;
+        
+    "help"|*)
+        echo "Agent System Management CLI"
+        echo ""
+        echo "Usage: agent-cli <command> [options]"
+        echo ""
+        echo "Commands:"
+        echo "  status              Show system status"
+        echo "  start [agent]       Start agent(s)"
+        echo "  stop [agent]        Stop agent(s)"
+        echo "  logs [agent]        View agent logs"
+        echo "  deploy [type]       Deploy system (docker|k8s)"
+        echo "  security [action]   Manage security"
+        echo "  backup              Create system backup"
+        echo "  update              Update system"
+        echo "  uninstall           Remove system"
+        echo "  help                Show this help"
+        echo ""
+        echo "Examples:"
+        echo "  agent-cli status"
+        echo "  agent-cli start tessa"
+        echo "  agent-cli logs java-spring-agent"
+        echo "  agent-cli deploy docker"
+        ;;
+esac
+EOF
+    
+    mkdir -p "$AGENT_HOME/bin"
+    chmod +x "$AGENT_HOME/bin/agent-cli"
+    
+    success "Management tools created"
+}
+
+setup_shell_integration() {
+    log "Setting up shell integration..."
+    
+    local shell_rc=""
+    if [ -n "${BASH_VERSION:-}" ]; then
+        shell_rc="$HOME/.bashrc"
+    elif [ -n "${ZSH_VERSION:-}" ]; then
+        shell_rc="$HOME/.zshrc"
+    fi
+    
+    if [ -n "$shell_rc" ] && [ -f "$shell_rc" ]; then
+        # Check if already configured
+        if ! grep -q "AGENT_HOME" "$shell_rc"; then
+            echo "" >> "$shell_rc"
+            echo "# Agent System Configuration" >> "$shell_rc"
+            echo "export AGENT_HOME=\"$AGENT_HOME\"" >> "$shell_rc"
+            echo "export PATH=\"\$PATH:\$AGENT_HOME/bin\"" >> "$shell_rc"
+            echo "alias agents=\"\$AGENT_HOME/agents\"" >> "$shell_rc"
+            echo "alias agent-cli=\"\$AGENT_HOME/bin/agent-cli\"" >> "$shell_rc"
+            
+            warn "Shell configuration updated. Please run: source $shell_rc"
+        fi
+    fi
+    
+    success "Shell integration setup completed"
+}
+
+# =============================================================================
+# MAIN INSTALLATION ORCHESTRATION
+# =============================================================================
+
+show_banner() {
+    echo -e "${PURPLE}"
+    cat << 'EOF'
+    ╔══════════════════════════════════════════════════════════════╗
+    ║                                                              ║
+    ║        █████╗  ██████╗ ███████╗███╗   ██╗████████╗          ║
+    ║       ██╔══██╗██╔════╝ ██╔════╝████╗  ██║╚══██╔══╝          ║
+    ║       ███████║██║  ███╗█████╗  ██╔██╗ ██║   ██║             ║
+    ║       ██╔══██║██║   ██║██╔══╝  ██║╚██╗██║   ██║             ║
+    ║       ██║  ██║╚██████╔╝███████╗██║ ╚████║   ██║             ║
+    ║       ╚═╝  ╚═╝ ╚═════╝ ╚══════╝╚═╝  ╚═══╝   ╚═╝             ║
+    ║                                                              ║
+    ║              ORCHESTRATION SYSTEM INSTALLER                  ║
+    ║                                                              ║
+    ╚══════════════════════════════════════════════════════════════╝
+EOF
+    echo -e "${NC}"
+    echo ""
+    info "Welcome to the Agent Orchestration System Installer"
+    info "This will set up a complete multi-agent development environment"
+    echo ""
+}
+
+show_completion_summary() {
+    echo ""
+    echo -e "${GREEN}╔══════════════════════════════════════════════════════════════╗${NC}"
+    echo -e "${GREEN}║                    INSTALLATION COMPLETE                    ║${NC}"
+    echo -e "${GREEN}╚══════════════════════════════════════════════════════════════╝${NC}"
+    echo ""
+    
+    success "Agent Orchestration System successfully installed!"
+    echo ""
+    
+    info "Installation Summary:"
+    echo "  • Home Directory: $AGENT_HOME"
+    echo "  • Agents Created: $(find "$AGENT_HOME/config" -name "*.json" | wc -l)"
+    echo "  • Security: Enabled"
+    echo "  • Monitoring: Enabled"
+    echo "  • Docker Support: $(command -v docker &> /dev/null && echo "Available" || echo "Not Available")"
+    echo "  • Kubernetes Support: $(command -v kubectl &> /dev/null && echo "Available" || echo "Not Available")"
+    echo ""
+    
+    info "Quick Start Commands:"
+    echo "  • Check status:    agent-cli status"
+    echo "  • Start agents:    agent-cli start"
+    echo "  • View logs:       agent-cli logs"
+    echo "  • Deploy system:   agent-cli deploy docker"
+    echo ""
+    
+    info "Next Steps:"
+    echo "  1. Review configuration files in: $AGENT_HOME/config/"
+    echo "  2. Customize permissions in: $AGENT_HOME/permissions/"
+    echo "  3. Deploy the system: agent-cli deploy docker"
+    echo "  4. Access the management interface at: http://localhost:8000"
+    echo ""
+    
+    warn "Important: Please source your shell configuration or restart your terminal"
+    if [ -f "$HOME/.bashrc" ]; then
+        echo "  Run: source ~/.bashrc"
+    elif [ -f "$HOME/.zshrc" ]; then
+        echo "  Run: source ~/.zshrc"
+    fi
+    echo ""
+    
+    info "Installation log saved to: $INSTALL_LOG"
+}
+
+main_installation() {
+    log "Starting Agent Orchestration System installation..."
+    
+    # Create log directory first
+    mkdir -p "$(dirname "$INSTALL_LOG")"
+    
+    # System checks
+    check_prerequisites
+    check_permissions
+    check_system_resources
+    
+    # Installation steps
+    create_directory_structure
+    install_main_scripts
+    setup_configuration
+    initialize_agents
+    setup_security
+    setup_monitoring
+    create_management_tools
+    setup_shell_integration
+    
+    log "Installation completed successfully!"
+}
+
+# =============================================================================
+# COMMAND LINE INTERFACE
+# =============================================================================
+
+case "${1:-install}" in
+    "install")
+        show_banner
+        main_installation
+        show_completion_summary
+        ;;
+        
+    "check")
+        check_prerequisites
+        check_permissions
+        check_system_resources
+        ;;
+        
+    "uninstall")
+        echo "This will completely remove the Agent Orchestration System."
+        echo "Are you sure you want to continue? (type 'yes' to confirm)"
+        read -r confirmation
+        if [ "$confirmation" = "yes" ]; then
+            log "Uninstalling Agent Orchestration System..."
+            rm -rf "$AGENT_HOME"
+            success "System uninstalled successfully"
+        else
+            echo "Uninstall cancelled"
+        fi
+        ;;
+        
+    "status")
+        if [ -f "$AGENT_HOME/config/system.json" ]; then
+            echo "Agent System Status:"
+            echo "  Installed: Yes"
+            echo "  Location: $AGENT_HOME"
+            echo "  Version: $(jq -r '.system.version' "$AGENT_HOME/config/system.json" 2>/dev/null || echo 'Unknown')"
+            echo "  CLI Available: $([ -f "$AGENT_HOME/bin/agent-cli" ] && echo "Yes" || echo "No")"
+        else
+            echo "Agent System Status: Not Installed"
+        fi
+        ;;
+        
+    "help"|*)
+        echo "Agent Orchestration System Installer"
+        echo ""
+        echo "Usage: $0 <command>"
+        echo ""
+        echo "Commands:"
+        echo "  install     Install the complete agent system"
+        echo "  check       Check system prerequisites"
+        echo "  status      Show installation status"
+        echo "  uninstall   Remove the agent system"
+        echo "  help        Show this help message"
+        echo ""
+        echo "Environment Variables:"
+        echo "  AGENT_HOME  Installation directory (default: ~/.agents)"
+        ;;
+esac

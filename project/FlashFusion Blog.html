@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Blog, FlashFusion</title>
+<meta name="description" content="Field notes on AI enablement: building champions inside your organization, and the judgment layer that decides whether AI actually pays off.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Inter:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg0:#0B0B14; --bg1:#131320; --bg2:#1a1a2e;
+    --border0:rgba(168,85,247,0.15); --border1:rgba(168,85,247,0.35);
+    --violet:#A855F7; --magenta:#EC4899; --cyan:#22D3EE;
+    --gradient:linear-gradient(135deg,#A855F7 0%,#EC4899 60%,#22D3EE 100%);
+    --text-primary:#F0EDE8; --text-secondary:#9090A0; --text-tertiary:#55556A;
+    --font-head:'Poppins',sans-serif; --font-body:'Inter',sans-serif; --font-mono:'JetBrains Mono',monospace;
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{background:var(--bg0);color:var(--text-primary);font-family:var(--font-body);font-size:1rem;line-height:1.7;min-height:100vh;-webkit-font-smoothing:antialiased}
+  body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+    background:
+      radial-gradient(ellipse 60% 40% at 12% 0%,rgba(168,85,247,0.12) 0%,transparent 55%),
+      radial-gradient(ellipse 50% 45% at 90% 12%,rgba(34,211,238,0.07) 0%,transparent 50%),
+      radial-gradient(ellipse 55% 40% at 50% 100%,rgba(236,72,153,0.06) 0%,transparent 55%);}
+  .wrap{position:relative;z-index:1;max-width:960px;margin:0 auto;padding:0 24px 110px}
+  a{color:inherit;text-decoration:none}
+
+  /* masthead */
+  .masthead{display:flex;align-items:center;justify-content:space-between;padding:26px 0 22px;border-bottom:1px solid var(--border0);margin-bottom:64px}
+  .brand{font-family:var(--font-head);font-size:19px;font-weight:700;letter-spacing:-0.02em;background:var(--gradient);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+  .masthead-nav{display:flex;gap:24px;align-items:center}
+  .masthead-nav a{font-size:13px;color:var(--text-secondary);transition:color .15s}
+  .masthead-nav a:hover,.masthead-nav a.active{color:var(--text-primary)}
+  .masthead-nav a.cta{font-family:var(--font-mono);font-size:11px;letter-spacing:.04em;color:var(--violet);border:1px solid var(--border1);border-radius:99px;padding:7px 14px}
+  .masthead-nav a.cta:hover{background:rgba(168,85,247,0.12);color:var(--text-primary)}
+
+  /* hero */
+  .hero{margin-bottom:72px}
+  .hero .kicker{font-family:var(--font-mono);font-size:12px;letter-spacing:.22em;text-transform:uppercase;color:var(--violet);margin-bottom:20px}
+  .hero h1{font-family:var(--font-head);font-weight:700;font-size:clamp(2.3rem,6vw,3.4rem);line-height:1.08;letter-spacing:-0.03em;max-width:14ch;margin-bottom:22px}
+  .hero p{font-size:1.18rem;color:var(--text-secondary);max-width:56ch;line-height:1.6}
+
+  /* featured */
+  .featured{display:block;position:relative;border:1px solid var(--border0);border-radius:16px;overflow:hidden;background:linear-gradient(180deg,rgba(255,255,255,0.025),rgba(255,255,255,0));padding:40px;margin-bottom:80px;transition:border-color .2s,transform .2s}
+  .featured::before{content:'';position:absolute;inset:0;border-radius:16px;padding:1px;background:var(--gradient);-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;opacity:0;transition:opacity .25s;pointer-events:none}
+  .featured:hover{transform:translateY(-3px)}
+  .featured:hover::before{opacity:.6}
+  .featured .flag{font-family:var(--font-mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--cyan);margin-bottom:18px;display:inline-flex;align-items:center;gap:8px}
+  .featured .flag::before{content:'';width:7px;height:7px;border-radius:50%;background:var(--cyan);box-shadow:0 0 10px var(--cyan)}
+  .featured h2{font-family:var(--font-head);font-weight:700;font-size:clamp(1.7rem,3.5vw,2.3rem);line-height:1.15;letter-spacing:-0.025em;margin-bottom:16px;max-width:20ch}
+  .featured .deck{font-size:1.1rem;color:var(--text-secondary);line-height:1.6;max-width:60ch;margin-bottom:24px}
+  .featured .meta{font-family:var(--font-mono);font-size:11.5px;letter-spacing:.04em;color:var(--text-tertiary);display:flex;gap:18px;flex-wrap:wrap}
+
+  /* series section */
+  .series{margin-bottom:78px}
+  .series-head{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;flex-wrap:wrap;padding-bottom:22px;margin-bottom:8px;border-bottom:1px solid var(--border0)}
+  .series-head .label{font-family:var(--font-mono);font-size:12px;letter-spacing:.16em;text-transform:uppercase;background:var(--gradient);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:12px}
+  .series-head h3{font-family:var(--font-head);font-weight:600;font-size:clamp(1.5rem,3vw,2rem);letter-spacing:-0.02em;line-height:1.1}
+  .series-head .blurb{font-size:0.98rem;color:var(--text-secondary);max-width:40ch;text-align:right;line-height:1.55}
+  @media(max-width:640px){.series-head .blurb{text-align:left}}
+
+  .post{display:grid;grid-template-columns:64px 1fr auto;gap:8px 26px;align-items:start;padding:28px 12px;margin:0 -12px;border-bottom:1px solid var(--border0);transition:background .18s}
+  .post:hover{background:rgba(168,85,247,0.05)}
+  .post .num{grid-row:1/3;font-family:var(--font-head);font-weight:700;font-size:1.7rem;line-height:1;padding-top:4px;color:var(--text-tertiary);transition:color .2s}
+  .post:hover .num{background:var(--gradient);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent}
+  .post .pt{font-family:var(--font-head);font-weight:600;font-size:1.32rem;line-height:1.25;letter-spacing:-0.015em;margin-bottom:7px}
+  .post:hover .pt{color:#fff}
+  .post .pd{font-size:1rem;color:var(--text-secondary);line-height:1.55;max-width:64ch}
+  .post .pm{grid-row:1/3;font-family:var(--font-mono);font-size:11px;letter-spacing:.04em;color:var(--text-tertiary);text-align:right;white-space:nowrap;padding-top:8px}
+  @media(max-width:680px){
+    .post{grid-template-columns:44px 1fr;gap:6px 16px}
+    .post .num{font-size:1.3rem}
+    .post .pm{grid-row:auto;grid-column:2;text-align:left;padding-top:6px}
+  }
+
+  /* footer */
+  footer{border-top:1px solid var(--border0);padding-top:40px;display:flex;justify-content:space-between;align-items:flex-end;gap:24px;flex-wrap:wrap}
+  footer .fbrand{font-family:var(--font-head);font-size:17px;font-weight:700;background:var(--gradient);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:8px}
+  footer p{font-size:0.92rem;color:var(--text-secondary);max-width:36ch}
+  footer .flinks{display:flex;flex-direction:column;gap:8px;font-family:var(--font-mono);font-size:11px;letter-spacing:.06em;color:var(--text-tertiary);text-align:right}
+  footer .flinks a{color:var(--text-secondary)}
+  footer .flinks a:hover{color:var(--violet)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="masthead">
+    <a class="brand" href="FlashFusion Blog.html">FlashFusion</a>
+    <nav class="masthead-nav">
+      <a href="https://flashfusion.co">Home</a>
+      <a class="active" href="FlashFusion Blog.html">Blog</a>
+      <a href="FlashFusion Services.html">Services</a>
+      <a class="cta" href="https://audit.flashfusion.co">Get Assessed</a>
+    </nav>
+  </header>
+
+  <section class="hero">
+    <div class="kicker">Field Notes · AI Enablement</div>
+    <h1>Adoption is a people problem wearing a technology costume.</h1>
+    <p>Two running series on what actually makes AI pay off inside an organization, building the person who owns the workflow, and the judgment layer that decides whether speed is worth anything at all.</p>
+  </section>
+
+  <a class="featured" href="FlashFusion - How Do You Know.html">
+    <span class="flag">Latest</span>
+    <h2>How Do You Know When You've Earned It?</h2>
+    <p class="deck">Not credentials. Not the tools you're running. Not how long you've been in the industry. Three observable behaviors tell you whether the judgment is actually there.</p>
+    <div class="meta"><span>Jan 2027</span><span>If You've Earned the Judgment · 05</span><span>4 min read</span></div>
+  </a>
+
+  <section class="series">
+    <div class="series-head">
+      <div>
+        <div class="label">The Champion Method · 5 posts</div>
+        <h3>Build the person, not the tool stack</h3>
+      </div>
+      <p class="blurb">Most AI implementations don't fail on tooling. They fail because nobody owns the workflow. This is how you find and build that person.</p>
+    </div>
+
+    <a class="post" href="FlashFusion - What a Champion Is.html">
+      <span class="num">01</span>
+      <div>
+        <div class="pt">What a Champion Is (and Isn't)</div>
+        <div class="pd">Most AI implementations don't fail because you chose the wrong tools. They fail because you never chose who owns them.</div>
+      </div>
+      <span class="pm">Sep 2026 · 5 min</span>
+    </a>
+    <a class="post" href="FlashFusion - Reading AI Readiness.html">
+      <span class="num">02</span>
+      <div>
+        <div class="pt">Reading Your Organization's AI Readiness</div>
+        <div class="pd">The gap between "we use AI" and "AI works for us" is almost never a technology problem. It's a diagnostic one. Here's how to read it.</div>
+      </div>
+      <span class="pm">Sep 2026 · 5 min</span>
+    </a>
+    <a class="post" href="FlashFusion - Training for Transfer.html">
+      <span class="num">03</span>
+      <div>
+        <div class="pt">Training for Transfer, Not Compliance</div>
+        <div class="pd">Most AI training produces compliant users. The champion model produces something different, and the difference shows up at 90 days, not 90 minutes.</div>
+      </div>
+      <span class="pm">Oct 2026 · 5 min</span>
+    </a>
+    <a class="post" href="FlashFusion - The Exit.html">
+      <span class="num">04</span>
+      <div>
+        <div class="pt">The Exit: Why Firing Yourself Is the Product</div>
+        <div class="pd">Most consultants are rewarded for your dependency. The champion model is rewarded for your independence. That structural difference is why it works.</div>
+      </div>
+      <span class="pm">Oct 2026 · 4 min</span>
+    </a>
+    <a class="post" href="FlashFusion - What a Champion Builds in 90 Days.html">
+      <span class="num">05</span>
+      <div>
+        <div class="pt">What a Champion Actually Builds in 90 Days</div>
+        <div class="pd">Two verticals, real estate and custom furniture. Neither started with structured AI use. Here's what 90 days actually produced, and the one signal that tells you the engagement worked.</div>
+      </div>
+      <span class="pm">Nov 2026 · 5 min</span>
+    </a>
+  </section>
+
+  <section class="series">
+    <div class="series-head">
+      <div>
+        <div class="label">If You've Earned the Judgment · 5 posts</div>
+        <h3>Speed is a multiplier. Judgment is the input.</h3>
+      </div>
+      <p class="blurb">AI made everyone faster. Faster at what is the question that decides whether the investment returns anything. Five posts on the layer underneath the speed.</p>
+    </div>
+
+    <a class="post" href="FlashFusion - The Speed Layer Runs on Top.html">
+      <span class="num">01</span>
+      <div>
+        <div class="pt">The Speed Layer Runs on Top</div>
+        <div class="pd">AI made you faster. The question nobody's asking: faster at what? Getting the order of speed and judgment wrong is expensive.</div>
+      </div>
+      <span class="pm">Nov 2026 · 5 min</span>
+    </a>
+    <a class="post" href="FlashFusion - The Ratio Inverts.html">
+      <span class="num">02</span>
+      <div>
+        <div class="pt">The Ratio Inverts</div>
+        <div class="pd">Your job used to be producing the output. The machine does that now. Your job is what happens next, and most people haven't practiced it.</div>
+      </div>
+      <span class="pm">Nov 2026 · 5 min</span>
+    </a>
+    <a class="post" href="FlashFusion - Use It as a Pressure-Tester.html">
+      <span class="num">03</span>
+      <div>
+        <div class="pt">Use It as a Pressure-Tester, Not a Word Processor</div>
+        <div class="pd">The organizations extracting real value aren't producing things faster. They're finding out what's wrong with what they were going to do anyway.</div>
+      </div>
+      <span class="pm">Dec 2026 · 5 min</span>
+    </a>
+    <a class="post" href="FlashFusion - The Context Moat.html">
+      <span class="num">04</span>
+      <div>
+        <div class="pt">The Context Moat</div>
+        <div class="pd">AI knows everything published. It knows nothing about why your organization does things the way it does. That gap is your advantage, if you've built it.</div>
+      </div>
+      <span class="pm">Dec 2026 · 5 min</span>
+    </a>
+    <a class="post" href="FlashFusion - How Do You Know.html">
+      <span class="num">05</span>
+      <div>
+        <div class="pt">How Do You Know When You've Earned It?</div>
+        <div class="pd">The question isn't whether you've used AI long enough. Three observable signals tell you whether the judgment is actually there.</div>
+      </div>
+      <span class="pm">Jan 2027 · 4 min</span>
+    </a>
+  </section>
+
+  <footer>
+    <div>
+      <div class="fbrand">FlashFusion</div>
+      <p>AI enablement that builds owners, not dependents. Audits, consulting, and a skills library for organizations adopting AI on purpose.</p>
+    </div>
+    <div class="flinks">
+      <a href="https://flashfusion.co">flashfusion.co</a>
+      <a href="https://audit.flashfusion.co">Take the AI Readiness Assessment</a>
+      <a href="FlashFusion Services.html">Services &amp; Pricing</a>
+      <a href="Abstrekkt Home.html">An Abstrekkt property</a>
+    </div>
+  </footer>
+
+</div>
+</body>
+</html>

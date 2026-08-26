@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Merch & Image Editor - FlashFusion</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #0a0e27 0%, #1a1a2e 100%);
+      color: #e5e7eb;
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+
+    /* Header */
+    .header {
+      text-align: center;
+      margin-bottom: 48px;
+      padding: 32px 0;
+    }
+
+    .header-title {
+      font-size: 36px;
+      font-weight: 800;
+      background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 8px;
+    }
+
+    /* Step Indicator */
+    .step-indicator {
+      display: flex;
+      justify-content: center;
+      gap: 16px;
+      margin-bottom: 48px;
+    }
+
+    .step {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .step-number {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.1);
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 14px;
+      transition: all 0.3s;
+    }
+
+    .step.active .step-number {
+      background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+      border-color: #3b82f6;
+    }
+
+    .step-label {
+      font-size: 14px;
+      color: #9ca3af;
+      font-weight: 600;
+    }
+
+    .step.active .step-label {
+      color: white;
+    }
+
+    .step-arrow {
+      color: #6b7280;
+      font-size: 20px;
+    }
+
+    /* Category Tabs */
+    .category-tabs {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 32px;
+      overflow-x: auto;
+      padding-bottom: 8px;
+    }
+
+    .category-tab {
+      padding: 12px 24px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 999px;
+      color: #9ca3af;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+
+    .category-tab:hover {
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .category-tab.active {
+      background: linear-gradient(135deg, #a855f7 0%, #8b5cf6 100%);
+      color: white;
+      border-color: #a855f7;
+    }
+
+    /* Product Grid */
+    .product-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 12px;
+      margin-bottom: 32px;
+    }
+
+    .product-card {
+      background: rgba(30, 41, 59, 0.6);
+      border: 2px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      padding: 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .product-card:hover {
+      background: rgba(30, 41, 59, 0.8);
+      transform: translateY(-2px);
+    }
+
+    .product-card.selected {
+      border-color: #3b82f6;
+      background: rgba(59, 130, 246, 0.1);
+      box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
+    }
+
+    .product-name {
+      font-size: 14px;
+      font-weight: 600;
+      color: white;
+    }
+
+    .create-new-card {
+      background: rgba(255, 255, 255, 0.03);
+      border: 2px dashed rgba(255, 255, 255, 0.2);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .create-new-card:hover {
+      border-color: #3b82f6;
+      background: rgba(59, 130, 246, 0.05);
+    }
+
+    .create-icon {
+      font-size: 32px;
+      opacity: 0.5;
+    }
+
+    /* Action Buttons */
+    .action-buttons {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 32px;
+    }
+
+    .action-btn {
+      padding: 16px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.05);
+      color: white;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .action-btn:hover {
+      background: rgba(255, 255, 255, 0.08);
+      transform: translateY(-2px);
+    }
+
+    .action-btn.primary {
+      background: linear-gradient(135deg, #92400e 0%, #78350f 100%);
+      border-color: #92400e;
+    }
+
+    .action-btn.primary:hover {
+      box-shadow: 0 8px 24px rgba(146, 64, 14, 0.4);
+    }
+
+    .action-btn.secondary {
+      background: rgba(71, 85, 105, 0.6);
+    }
+
+    /* Form Section */
+    .form-section {
+      background: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 16px;
+      padding: 32px;
+      margin-bottom: 32px;
+    }
+
+    .form-label {
+      font-size: 16px;
+      font-weight: 700;
+      color: white;
+      margin-bottom: 12px;
+      display: block;
+    }
+
+    .form-textarea {
+      width: 100%;
+      background: rgba(30, 41, 59, 0.8);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 12px;
+      padding: 16px;
+      color: white;
+      font-size: 15px;
+      font-family: inherit;
+      resize: vertical;
+      min-height: 120px;
+    }
+
+    .form-textarea::placeholder {
+      color: #6b7280;
+    }
+
+    /* Brand Kit Section */
+    .brand-kit {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      margin-bottom: 24px;
+    }
+
+    .brand-kit-info {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .brand-kit-icon {
+      font-size: 24px;
+    }
+
+    .brand-kit-text {
+      font-size: 15px;
+      font-weight: 600;
+      color: white;
+    }
+
+    .brand-kit-toggle {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .toggle-label {
+      font-size: 14px;
+      color: #9ca3af;
+    }
+
+    .toggle-switch {
+      width: 48px;
+      height: 26px;
+      background: rgba(107, 114, 128, 0.5);
+      border-radius: 999px;
+      position: relative;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+
+    .toggle-switch.active {
+      background: #3b82f6;
+    }
+
+    .toggle-slider {
+      width: 22px;
+      height: 22px;
+      background: white;
+      border-radius: 50%;
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      transition: transform 0.3s;
+    }
+
+    .toggle-switch.active .toggle-slider {
+      transform: translateX(22px);
+    }
+
+    .info-icon {
+      color: #3b82f6;
+      cursor: pointer;
+      font-size: 18px;
+    }
+
+    /* Generation Actions */
+    .generation-actions {
+      display: flex;
+      gap: 16px;
+      margin-top: 32px;
+    }
+
+    .generate-btn {
+      flex: 1;
+      padding: 20px;
+      background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+      border: none;
+      border-radius: 12px;
+      color: white;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.3s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+    }
+
+    .generate-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 32px rgba(59, 130, 246, 0.4);
+    }
+
+    .reset-btn {
+      padding: 20px 32px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 12px;
+      color: white;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .reset-btn:hover {
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    @media (max-width: 768px) {
+      .header-title {
+        font-size: 28px;
+      }
+
+      .step-indicator {
+        overflow-x: auto;
+        justify-content: flex-start;
+        padding-bottom: 8px;
+      }
+
+      .product-grid {
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      }
+
+      .generation-actions {
+        flex-direction: column;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <div class="header">
+      <h1 class="header-title">AI Merch & Image Editor</h1>
+    </div>
+
+    <!-- Step Indicator -->
+    <div class="step-indicator">
+      <div class="step active">
+        <div class="step-number">1</div>
+        <div class="step-label">Upload</div>
+      </div>
+      <div class="step-arrow">→</div>
+      <div class="step active">
+        <div class="step-number">2</div>
+        <div class="step-label">Describe</div>
+      </div>
+      <div class="step-arrow">→</div>
+      <div class="step active">
+        <div class="step-number">3</div>
+        <div class="step-label">Choose Products</div>
+      </div>
+    </div>
+
+    <!-- Category Tabs -->
+    <div class="category-tabs">
+      <div class="category-tab">All</div>
+      <div class="category-tab">Apparel</div>
+      <div class="category-tab">Accessories</div>
+      <div class="category-tab">Home & Decor</div>
+      <div class="category-tab">Drinkware</div>
+      <div class="category-tab active">Stationery & Print</div>
+      <div class="category-tab">Digital & Entertainment</div>
+      <div class="category-tab">Packaging</div>
+    </div>
+
+    <!-- Product Grid -->
+    <div class="product-grid">
+      <div class="product-card selected">
+        <div class="product-name">T-Shirt</div>
+      </div>
+      <div class="product-card">
+        <div class="product-name">T-Shirt (Hanging)</div>
+      </div>
+      <div class="product-card">
+        <div class="product-name">Vintage Tee</div>
+      </div>
+      <div class="product-card">
+        <div class="product-name">Vintage Tee (Urban)</div>
+      </div>
+      <div class="product-card">
+        <div class="product-name">Athletic Tee</div>
+      </div>
+      <div class="product-card">
+        <div class="product-name">V-Neck Tee (Lifestyle)</div>
+      </div>
+      <div class="product-card">
+        <div class="product-name">Tie-Dye Tee</div>
+      </div>
+      <div class="product-card">
+        <div class="product-name">Long-Sleeve Tee</div>
+      </div>
+      <div class="product-card">
+        <div class="product-name">Hoodie</div>
+      </div>
+      <div class="product-card">
+        <div class="product-name">Tank Top (Model)</div>
+      </div>
+      <div class="product-card">
+        <div class="product-name">Baby Onesie</div>
+      </div>
+      <div class="product-card">
+        <div class="product-name">Sweatshirt (Lifestyle)</div>
+      </div>
+      <div class="product-card create-new-card">
+        <div class="create-icon">⊕</div>
+        <div class="product-name">Create New</div>
+      </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="action-buttons">
+      <button class="action-btn secondary">
+        📦 Starter Pack
+      </button>
+      <button class="action-btn secondary">
+        🔮 Smart Suggest
+      </button>
+      <button class="action-btn primary">
+        📰 Fetch Latest News
+      </button>
+      <button class="action-btn secondary">
+        🎨 Generate Mockups
+      </button>
+    </div>
+
+    <!-- Custom Prompt -->
+    <div class="form-section">
+      <label class="form-label">Custom Prompt</label>
+      <textarea 
+        class="form-textarea" 
+        placeholder="e.g., place this design on a tote bag made of canvas"
+      ></textarea>
+    </div>
+
+    <!-- Brand Kit -->
+    <div class="brand-kit">
+      <div class="brand-kit-info">
+        <div class="brand-kit-icon">🎨</div>
+        <div class="brand-kit-text">Brand Kit</div>
+      </div>
+      <div class="brand-kit-toggle">
+        <span class="toggle-label">Disabled</span>
+        <div class="toggle-switch" onclick="toggleBrandKit(this)">
+          <div class="toggle-slider"></div>
+        </div>
+        <span class="info-icon">ℹ️</span>
+      </div>
+    </div>
+
+    <!-- Negative Prompt -->
+    <div class="form-section">
+      <label class="form-label">Negative Prompt (what to avoid)</label>
+      <textarea 
+        class="form-textarea" 
+        placeholder="e.g., text, logos, blurry, poorly lit, extra limbs"
+      ></textarea>
+    </div>
+
+    <!-- Generation Actions -->
+    <div class="generation-actions">
+      <button class="generate-btn">
+        <span>✨</span>
+        <span>Generate</span>
+      </button>
+      <button class="reset-btn">
+        <span>🔄</span>
+        <span>Reset</span>
+      </button>
+    </div>
+  </div>
+
+  <script>
+    function toggleBrandKit(element) {
+      element.classList.toggle('active');
+      const label = element.previousElementSibling;
+      label.textContent = element.classList.contains('active') ? 'Enabled' : 'Disabled';
+    }
+
+    // Product card selection
+    document.querySelectorAll('.product-card:not(.create-new-card)').forEach(card => {
+      card.addEventListener('click', function() {
+        this.classList.toggle('selected');
+      });
+    });
+
+    // Category tab switching
+    document.querySelectorAll('.category-tab').forEach(tab => {
+      tab.addEventListener('click', function() {
+        document.querySelectorAll('.category-tab').forEach(t => t.classList.remove('active'));
+        this.classList.add('active');
+      });
+    });
+  </script>
+</body>
+</html>

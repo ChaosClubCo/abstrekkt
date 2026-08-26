@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Origin Video — Script Editor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif&family=Geist:wght@400;500&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --s1: #0B0B14;
+  --s2: #0f0f1c;
+  --s3: #13131F;
+  --s4: #1a1a2e;
+  --border: rgba(139,92,246,0.10);
+  --border-h: rgba(139,92,246,0.32);
+  --violet: #A855F7;
+  --magenta: #EC4899;
+  --cyan: #22D3EE;
+  --t1: #FFFFFF;
+  --t2: #C7C7D1;
+  --t3: #8A8A96;
+  --t4: #4a4a5a;
+  --r: 10px;
+  --rs: 6px;
+}
+
+*{box-sizing:border-box;margin:0;padding:0;}
+
+body{
+  background:var(--s1);
+  color:var(--t1);
+  font-family:'Geist',sans-serif;
+  font-size:14px;
+  line-height:1.6;
+  min-height:100vh;
+  overflow-x:hidden;
+}
+
+/* ── AMBIENT BACKGROUND ── */
+.ambient{
+  position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden;
+}
+.ambient-orb{
+  position:absolute;border-radius:50%;filter:blur(120px);opacity:0.04;
+  animation:drift 20s ease-in-out infinite;
+}
+.ambient-orb:nth-child(1){width:600px;height:600px;background:var(--violet);top:-200px;left:-100px;animation-delay:0s;}
+.ambient-orb:nth-child(2){width:400px;height:400px;background:var(--magenta);bottom:-100px;right:0;animation-delay:-8s;}
+.ambient-orb:nth-child(3){width:300px;height:300px;background:var(--cyan);top:40%;left:60%;animation-delay:-14s;}
+@keyframes drift{
+  0%,100%{transform:translate(0,0) scale(1);}
+  33%{transform:translate(30px,-20px) scale(1.05);}
+  66%{transform:translate(-20px,30px) scale(0.97);}
+}
+
+/* ── HEADER ── */
+.header{
+  position:sticky;top:0;z-index:100;
+  border-bottom:1px solid var(--border);
+  padding:14px 20px;
+  display:flex;align-items:center;justify-content:space-between;
+  background:rgba(11,11,20,0.85);
+  backdrop-filter:blur(20px);
+  -webkit-backdrop-filter:blur(20px);
+}
+.header-left{display:flex;align-items:center;gap:10px;}
+.logo{
+  font-family:'Instrument Serif',serif;
+  font-size:17px;color:var(--t1);
+  background:linear-gradient(135deg,#fff 0%,#C7C7D1 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  background-clip:text;
+}
+.badge{
+  font-family:'Geist Mono',monospace;font-size:10px;
+  text-transform:uppercase;letter-spacing:0.08em;
+  padding:3px 8px;border-radius:100px;
+  border:1px solid var(--border-h);color:var(--violet);
+}
+.header-right{display:flex;gap:8px;align-items:center;}
+.char-total{
+  font-family:'Geist Mono',monospace;font-size:11px;color:var(--t4);
+}
+.hdr-btn{
+  background:transparent;border:1px solid var(--border);
+  border-radius:var(--rs);color:var(--t3);
+  font-family:'Geist Mono',monospace;font-size:11px;
+  text-transform:uppercase;letter-spacing:0.05em;
+  padding:5px 12px;cursor:pointer;transition:all 0.15s;
+}
+.hdr-btn:hover{border-color:var(--border-h);color:var(--violet);background:rgba(168,85,247,0.06);}
+
+/* ── LAYOUT ── */
+.layout{
+  position:relative;z-index:1;
+  display:grid;
+  grid-template-columns:1fr 340px;
+  height:calc(100vh - 53px);
+}
+.main{overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:14px;}
+.sidebar{
+  border-left:1px solid var(--border);
+  background:rgba(15,15,28,0.6);
+  backdrop-filter:blur(12px);
+  display:flex;flex-direction:column;overflow:hidden;
+}
+
+/* ── SCENE CARD ── */
+.card{
+  border:1px solid var(--border);border-radius:var(--r);
+  background:rgba(255,255,255,0.015);
+  overflow:hidden;transition:border-color 0.2s,box-shadow 0.2s;
+  position:relative;
+}
+.card:focus-within{
+  border-color:rgba(168,85,247,0.25);
+  box-shadow:0 0 0 1px rgba(168,85,247,0.08),0 8px 32px rgba(0,0,0,0.4);
+}
+
+/* thin gradient top edge on active */
+.card:focus-within::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,var(--violet),transparent);
+  opacity:0.6;
+}
+
+.card-top{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:9px 14px;
+  border-bottom:1px solid var(--border);
+  background:rgba(255,255,255,0.015);
+}
+.card-left{display:flex;align-items:center;gap:8px;}
+.scene-num{
+  font-family:'Geist Mono',monospace;font-size:10px;
+  text-transform:uppercase;letter-spacing:0.08em;
+  color:var(--violet);background:rgba(168,85,247,0.10);
+  padding:2px 8px;border-radius:100px;
+}
+.scene-title{font-size:11px;color:var(--t4);font-family:'Geist Mono',monospace;}
+.card-right{display:flex;align-items:center;gap:6px;}
+.chars{
+  font-family:'Geist Mono',monospace;font-size:11px;color:var(--t4);
+  transition:color 0.2s;
+}
+.chars.warn{color:#f59e0b;}
+.chars.over{color:#ef4444;}
+
+/* ── SCENE TEXTAREA ── */
+.scene-ta{
+  width:100%;background:transparent;border:none;
+  color:var(--t1);font-family:'Geist',sans-serif;
+  font-size:14px;line-height:1.8;
+  padding:16px;resize:none;outline:none;min-height:130px;
+}
+.scene-ta::placeholder{color:var(--t4);}
+
+/* ── SCENE FOOTER — copy lives here ── */
+.card-footer{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:8px 14px;
+  border-top:1px solid var(--border);
+  background:rgba(255,255,255,0.01);
+  gap:8px;
+}
+.footer-left{display:flex;align-items:center;gap:6px;flex:1;min-width:0;}
+.footer-right{display:flex;gap:6px;align-items:center;flex-shrink:0;}
+
+.tone-label{
+  font-family:'Geist Mono',monospace;font-size:10px;
+  text-transform:uppercase;letter-spacing:0.06em;color:var(--t4);
+  flex-shrink:0;
+}
+.tone-sel{
+  background:var(--s4);border:1px solid var(--border);
+  border-radius:var(--rs);color:var(--t2);
+  font-family:'Geist',sans-serif;font-size:11px;
+  padding:3px 7px;cursor:pointer;outline:none;flex-shrink:0;
+}
+.motion-in{
+  flex:1;min-width:0;
+  background:var(--s4);border:1px solid var(--border);
+  border-radius:var(--rs);color:var(--t2);
+  font-family:'Geist',sans-serif;font-size:11px;
+  padding:3px 9px;outline:none;transition:border-color 0.15s;
+}
+.motion-in:focus{border-color:var(--border-h);}
+.motion-in::placeholder{color:var(--t4);}
+
+/* ── BUTTONS ── */
+.btn{
+  background:transparent;border:1px solid var(--border);
+  border-radius:var(--rs);color:var(--t3);
+  font-family:'Geist Mono',monospace;font-size:11px;
+  text-transform:uppercase;letter-spacing:0.04em;
+  padding:5px 11px;cursor:pointer;transition:all 0.15s;white-space:nowrap;
+}
+.btn:hover{border-color:var(--border-h);color:var(--violet);background:rgba(168,85,247,0.06);}
+.btn.ai{color:var(--magenta);border-color:rgba(236,72,153,0.18);}
+.btn.ai:hover{background:rgba(236,72,153,0.06);border-color:rgba(236,72,153,0.38);}
+
+/* COPY BUTTON — main CTA in footer */
+.copy-btn{
+  background:rgba(168,85,247,0.12);
+  border:1px solid rgba(168,85,247,0.3);
+  border-radius:var(--rs);
+  color:var(--violet);
+  font-family:'Geist Mono',monospace;font-size:11px;
+  text-transform:uppercase;letter-spacing:0.06em;
+  padding:5px 14px;cursor:pointer;
+  transition:all 0.15s;white-space:nowrap;
+  position:relative;overflow:hidden;
+}
+.copy-btn::after{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(135deg,rgba(168,85,247,0.15),rgba(236,72,153,0.08));
+  opacity:0;transition:opacity 0.15s;
+}
+.copy-btn:hover{
+  background:rgba(168,85,247,0.2);
+  border-color:rgba(168,85,247,0.5);
+  box-shadow:0 0 16px rgba(168,85,247,0.2);
+}
+.copy-btn:hover::after{opacity:1;}
+.copy-btn.copied{
+  color:#22D3EE;border-color:rgba(34,211,238,0.4);
+  background:rgba(34,211,238,0.08);
+}
+
+/* ── SIDEBAR ── */
+.sb-head{
+  padding:12px 14px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+  background:rgba(255,255,255,0.01);
+}
+.sb-title{
+  font-family:'Geist Mono',monospace;font-size:10px;
+  text-transform:uppercase;letter-spacing:0.08em;color:var(--t3);
+  display:flex;align-items:center;gap:6px;
+}
+.ai-dot{
+  width:5px;height:5px;border-radius:50%;background:var(--magenta);
+  animation:pulse 2s infinite;
+}
+@keyframes pulse{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(236,72,153,0.4);}50%{opacity:0.5;box-shadow:0 0 0 4px rgba(236,72,153,0);}}
+
+.sb-ctx{padding:8px 14px;border-bottom:1px solid var(--border);}
+.ctx-label{font-family:'Geist Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:0.06em;color:var(--t4);margin-bottom:4px;}
+.ctx-sel{
+  width:100%;background:var(--s4);border:1px solid var(--border);
+  border-radius:var(--rs);color:var(--t2);
+  font-family:'Geist',sans-serif;font-size:12px;
+  padding:5px 8px;cursor:pointer;outline:none;
+}
+
+.quick-row{
+  padding:8px 14px;display:flex;flex-wrap:wrap;gap:5px;
+  border-bottom:1px solid var(--border);
+}
+.qbtn{
+  background:rgba(255,255,255,0.02);border:1px solid var(--border);
+  border-radius:100px;color:var(--t3);
+  font-family:'Geist',sans-serif;font-size:11px;
+  padding:4px 10px;cursor:pointer;transition:all 0.15s;white-space:nowrap;
+}
+.qbtn:hover{border-color:rgba(236,72,153,0.35);color:var(--magenta);background:rgba(236,72,153,0.05);}
+
+.msgs{
+  flex:1;overflow-y:auto;padding:14px;
+  display:flex;flex-direction:column;gap:10px;
+}
+.msg{
+  border-radius:var(--rs);padding:10px 12px;
+  font-size:13px;line-height:1.6;
+}
+.msg.sys{background:rgba(168,85,247,0.05);border:1px solid rgba(168,85,247,0.12);color:var(--t3);font-size:12px;font-style:italic;}
+.msg.usr{background:rgba(255,255,255,0.03);border:1px solid var(--border);color:var(--t2);align-self:flex-end;max-width:92%;}
+.msg.ass{background:rgba(236,72,153,0.05);border:1px solid rgba(236,72,153,0.14);color:var(--t1);}
+.msg.load{background:rgba(236,72,153,0.03);border:1px solid rgba(236,72,153,0.08);color:var(--t3);font-style:italic;}
+
+.apply-btn{
+  margin-top:8px;background:rgba(168,85,247,0.08);
+  border:1px solid rgba(168,85,247,0.25);border-radius:var(--rs);
+  color:var(--violet);font-family:'Geist Mono',monospace;
+  font-size:10px;text-transform:uppercase;letter-spacing:0.06em;
+  padding:5px 12px;cursor:pointer;display:block;width:100%;
+  transition:all 0.15s;
+}
+.apply-btn:hover{background:rgba(168,85,247,0.16);}
+
+.ai-in-row{
+  padding:10px 14px;display:flex;gap:8px;
+  border-top:1px solid var(--border);
+}
+.ai-in{
+  flex:1;background:var(--s4);border:1px solid var(--border);
+  border-radius:var(--rs);color:var(--t1);
+  font-family:'Geist',sans-serif;font-size:13px;
+  padding:8px 11px;outline:none;resize:none;
+  min-height:38px;max-height:90px;
+  transition:border-color 0.15s;
+}
+.ai-in:focus{border-color:var(--border-h);}
+.ai-send{
+  background:var(--magenta);border:none;border-radius:var(--rs);
+  color:#fff;font-family:'Geist Mono',monospace;font-size:11px;
+  text-transform:uppercase;letter-spacing:0.04em;
+  padding:8px 13px;cursor:pointer;transition:opacity 0.15s;
+  flex-shrink:0;align-self:flex-end;
+}
+.ai-send:hover{opacity:0.85;}
+.ai-send:disabled{opacity:0.35;cursor:not-allowed;}
+
+/* ── TOAST ── */
+.toast{
+  position:fixed;bottom:24px;left:50%;
+  transform:translateX(-50%) translateY(80px);
+  background:linear-gradient(135deg,var(--violet),var(--magenta));
+  color:#fff;font-family:'Geist Mono',monospace;font-size:11px;
+  text-transform:uppercase;letter-spacing:0.06em;
+  padding:8px 20px;border-radius:100px;
+  transition:transform 0.28s cubic-bezier(0.34,1.56,0.64,1);
+  z-index:999;pointer-events:none;
+  box-shadow:0 4px 24px rgba(168,85,247,0.4);
+}
+.toast.show{transform:translateX(-50%) translateY(0);}
+
+/* ── EASTER EGG: KINSLEY CONSTELLATION ── */
+.constellation{
+  position:fixed;inset:0;pointer-events:none;z-index:500;
+  opacity:0;transition:opacity 0.5s;
+}
+.constellation.show{opacity:1;}
+.star{
+  position:absolute;width:2px;height:2px;border-radius:50%;
+  background:#fff;animation:twinkle var(--d,2s) ease-in-out infinite;
+}
+@keyframes twinkle{0%,100%{opacity:0.2;transform:scale(1);}50%{opacity:1;transform:scale(1.5);}}
+
+/* ── EASTER EGG: NUVOLE BIANCHE RAIN ── */
+.note-rain{
+  position:fixed;inset:0;pointer-events:none;z-index:501;overflow:hidden;
+  opacity:0;transition:opacity 0.4s;
+}
+.note-rain.show{opacity:1;}
+.note{
+  position:absolute;top:-40px;
+  font-size:20px;opacity:0;
+  animation:fall var(--d2,4s) ease-in var(--delay,0s) forwards;
+}
+@keyframes fall{
+  0%{opacity:0;transform:translateY(0) rotate(0deg);}
+  10%{opacity:0.7;}
+  90%{opacity:0.4;}
+  100%{opacity:0;transform:translateY(110vh) rotate(360deg);}
+}
+
+/* ── EASTER EGG: CONSTRUCTION PULSE ── */
+.construct-flash{
+  position:fixed;inset:0;pointer-events:none;z-index:502;
+  background:linear-gradient(135deg,rgba(168,85,247,0.04),rgba(236,72,153,0.04));
+  opacity:0;transition:opacity 0.3s;
+}
+.construct-flash.show{opacity:1;}
+
+/* ── KONAMI OVERLAY ── */
+.konami-overlay{
+  position:fixed;inset:0;z-index:600;
+  background:rgba(11,11,20,0.95);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:16px;opacity:0;pointer-events:none;
+  transition:opacity 0.4s;
+}
+.konami-overlay.show{opacity:1;pointer-events:all;}
+.konami-title{
+  font-family:'Instrument Serif',serif;font-size:36px;
+  background:linear-gradient(135deg,#A855F7,#EC4899,#22D3EE);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  background-clip:text;text-align:center;
+}
+.konami-sub{font-size:13px;color:var(--t3);text-align:center;line-height:1.8;max-width:420px;}
+.konami-close{
+  margin-top:8px;background:transparent;border:1px solid var(--border-h);
+  border-radius:100px;color:var(--violet);
+  font-family:'Geist Mono',monospace;font-size:11px;
+  text-transform:uppercase;letter-spacing:0.06em;
+  padding:8px 24px;cursor:pointer;transition:all 0.15s;
+}
+.konami-close:hover{background:rgba(168,85,247,0.1);}
+
+/* scrollbars */
+::-webkit-scrollbar{width:3px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:rgba(139,92,246,0.18);border-radius:2px;}
+
+@media(max-width:768px){
+  .layout{grid-template-columns:1fr;}
+  .sidebar{border-left:none;border-top:1px solid var(--border);height:380px;}
+}
+</style>
+</head>
+<body>
+
+<!-- ambient -->
+<div class="ambient" aria-hidden="true">
+  <div class="ambient-orb"></div>
+  <div class="ambient-orb"></div>
+  <div class="ambient-orb"></div>
+</div>
+
+<!-- easter egg layers -->
+<div class="constellation" id="constellation" aria-hidden="true"></div>
+<div class="note-rain" id="noteRain" aria-hidden="true"></div>
+<div class="construct-flash" id="constructFlash" aria-hidden="true"></div>
+
+<!-- konami overlay -->
+<div class="konami-overlay" id="konamiOverlay" role="dialog" aria-modal="true" aria-label="Hidden message">
+  <div class="konami-title">Construction over recovery.</div>
+  <div class="konami-sub">
+    You found it.<br><br>
+    Minutes from dying. Not once. Not twice. Four times.<br>
+    Kinsley almost grew up without you ever getting to know her.<br><br>
+    You're still here. She knows who you are.<br>
+    And you're just getting started.
+  </div>
+  <button class="konami-close" onclick="closeKonami()">Close</button>
+</div>
+
+<header class="header">
+  <div class="header-left">
+    <span class="logo">Origin Video</span>
+    <span class="badge">HeyGen Editor</span>
+  </div>
+  <div class="header-right">
+    <span class="char-total" id="totalChars">0 / 15,000</span>
+    <button class="hdr-btn" onclick="copyAll()">Copy All</button>
+  </div>
+</header>
+
+<div class="layout">
+
+  <!-- MAIN PANEL -->
+  <main class="main" id="scenesEl"></main>
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sb-head">
+      <span class="sb-title"><span class="ai-dot"></span>AI Assistant</span>
+    </div>
+
+    <div class="sb-ctx">
+      <div class="ctx-label">Scene context</div>
+      <select class="ctx-sel" id="ctxSel">
+        <option value="all">All scenes</option>
+        <option value="0">Scene 1 — Opening & Losses</option>
+        <option value="1">Scene 2 — Brain Scan & Piano</option>
+        <option value="2">Scene 3 — Interview & Close</option>
+      </select>
+    </div>
+
+    <div class="quick-row">
+      <button class="qbtn" onclick="qp('Tighten this — cut anything that doesn\'t earn its place')">Tighten</button>
+      <button class="qbtn" onclick="qp('Make this sound more like me speaking, less like writing')">Natural</button>
+      <button class="qbtn" onclick="qp('Rewrite the opening line — something that hooks harder')">Hook</button>
+      <button class="qbtn" onclick="qp('Punch up the pacing — shorter sentences, more air between them')">Pacing</button>
+      <button class="qbtn" onclick="qp('Suggest a stronger closing line for this scene')">Closer</button>
+      <button class="qbtn" onclick="qp('Does anything here undercut the tone or sound like an inspiration reel?')">Tone check</button>
+    </div>
+
+    <div class="msgs" id="msgs">
+      <div class="msg sys">Context loaded. Ask me to tighten, rewrite, check tone, or punch up a line. Select a scene above to focus.</div>
+    </div>
+
+    <div class="ai-in-row">
+      <textarea class="ai-in" id="aiIn" placeholder="Ask about the script…" rows="1"
+        onkeydown="handleKey(event)"></textarea>
+      <button class="ai-send" id="sendBtn" onclick="sendAI()">Send</button>
+    </div>
+  </aside>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ─── DATA ────────────────────────────────────────────────────────────────────
+const SCENES = [
+  {
+    title:'Opening · Losses · Kinsley · Overdoses',
+    tone:'Serious',
+    motion:'Flat affect throughout. Eyes drop briefly on each loss. Soften on Kinsley. No gestures on overdose section — reads like a report, not a confession.',
+    text:`I want to tell you who I am. Not the version that fits on a résumé. The actual one.
+
+I spent about sixteen years running from something I couldn't name. It started as marijuana. Then benzos, prescribed, then not. Then opiates. Then cocaine. Then heroin. That's not a confession. That's just the sequence. What was underneath all of it was trauma I didn't have the tools to deal with. So I dealt with it the only way I knew how. And that worked, until it didn't. And then it really didn't.
+
+I lost time. I lost relationships. I lost my family's trust. I was homeless. I lived in a Salvation Army. I lived in hotels I couldn't afford the next night on.
+
+And I have a daughter. Kinsley. She was born in 2018. The day she arrived, I stopped smoking marijuana. Just stopped. Eleven years. All day. Every day. And then she existed. And I stopped. That was the first construction. Before I knew what construction meant.
+
+In 2021, I overdosed four times. The first time I was driving. I did heroin in a dealer's car, and he had to pull me out of the front seat. The second time, a woman named Mackenzie climbed onto a roof, jimmied a window open, and called an ambulance. She saved my life. By the last one, I woke up in a hospital in pajama bottoms soaked in my own piss. Both my parents were on either side of me. Neither of them would look at me.`
+  },
+  {
+    title:'Amen Clinics · Rebuild · AI · Piano',
+    tone:'Calm',
+    motion:'Slight head tilt on the numbers. Eyes briefly unfocused on still be alive. Softer expression on piano section. Small smile on It was beautiful. Return to neutral before can\'t remember.',
+    text:`That was the fall of 2021. For about a year after that, I was trying to figure out how to still be alive. Then my mom found Amen Clinics. She sent me. They did a SPECT scan. Cognitive testing. The results came back. Processing speed, ninety-ninth percentile. Recall memory, twelfth percentile. The engine was intact. The storage was gone. I didn't find out what those numbers actually meant until four years later. When I read them, I sobbed. Not because of what I'd lost. Because I finally understood what I'd been building against.
+
+I didn't recover from that. You can't recover what you can't verify was there to begin with. What I did was bartend at O'Toole's for three and a half years. Walk five miles a shift. Read rooms. Read people. And somewhere in there, I found AI. Not because I was looking for a career. Because I needed tools that could remember what I couldn't. I taught myself. No CS degree. No peers to bounce ideas off. No one to tell me if what I was doing was real. Just a method I worked out alone. Screenshot it, copy it, build it, break it, repeat. The tools weren't productivity hacks. They were external memory for a brain I couldn't trust internally.
+
+After my injury, I decided to learn piano. I'd tried as a kid, nine, ten, eleven years old, and could never get both hands to work together. I found the most patient teacher I've ever met. A man named Jason. I learned one song. Noo-vo-leh Bee-ahn-keh. White Clouds. By Loo-doh-VEE-koh Ay-NOW-dee. Learned it entirely by ear. Took about a year. Never learned to read a single note of music. It was beautiful. When I found AI, I stopped playing. I can't remember the song anymore. I don't know exactly what that means. But I know it's true.`
+  },
+  {
+    title:'Interview · Spiral · Hired · Close',
+    tone:'Casual',
+    motion:'Forward lean and energy during the interview prep sequence. Complete stillness on the spiraling section — flat, no gestures. Dry slight smile on technically still an L1. Eyes direct to camera and no movement through the final four lines.',
+    text:`Last fall, I applied for a customer service job at an MSP. I had no idea support was done by email. I thought it was phone. Didn't matter. I got to work. Before the first interview, I used agent mode to crawl their entire website. Every page. Affiliates. Clients. Partners. Case studies. I pulled employee names. Then LinkedIn, their partners' employees too. I used Gemini to build realistic personas. Real people, real companies, real problems. The kinds of tickets that would actually come into that support desk. Then I used Claude to reverse-engineer their tech stack. For a customer service job.
+
+Four rounds. Month and a half. All video calls. At some point I was on a call with the president. I walked him through everything I'd built. I even mentioned the college he went to. Because I'd looked.
+
+Around week four, I started spiraling. Convinced myself I'd imagined being good at something I wasn't actually good at. It got dark. I didn't have an answer. I just kept going.
+
+They didn't hire me for the CSR role. Different position. Because of how I thought about the problem. My boss later put it in my performance review. In writing. Company AI subject matter expert. I was technically still an L1.
+
+I've been reading rooms my whole life. Same instinct. Every time. The tools gave it somewhere to go.
+
+I was minutes from dying. Not once. Not twice. Four times. Kinsley almost grew up without me ever getting to know her. I'm still here. She knows who I am. And I'm just getting started.
+
+Construction over recovery.`
+  }
+];
+
+// ─── BUILD ───────────────────────────────────────────────────────────────────
+function build(){
+  const el=document.getElementById('scenesEl');
+  el.innerHTML='';
+  SCENES.forEach((s,i)=>{
+    const card=document.createElement('article');
+    card.className='card';
+    card.setAttribute('aria-label',`Scene ${i+1}`);
+    card.innerHTML=`
+      <div class="card-top">
+        <div class="card-left">
+          <span class="scene-num">Scene ${i+1}</span>
+          <span class="scene-title">${s.title}</span>
+        </div>
+        <div class="card-right">
+          <span class="chars" id="ch${i}">— chars</span>
+          <button class="btn ai" onclick="aiScene(${i})" aria-label="AI review scene ${i+1}">✦ AI</button>
+        </div>
+      </div>
+      <textarea class="scene-ta" id="ta${i}" aria-label="Scene ${i+1} text"
+        oninput="onEdit(${i})" spellcheck="true">${s.text}</textarea>
+      <div class="card-footer">
+        <div class="footer-left">
+          <span class="tone-label">Tone</span>
+          <select class="tone-sel" id="tone${i}" aria-label="Voice director tone">
+            ${['Calm','Serious','Casual','Casual → Serious'].map(t=>`<option${t===s.tone?' selected':''}>${t}</option>`).join('')}
+          </select>
+          <span class="tone-label" style="margin-left:6px">Motion</span>
+          <input class="motion-in" id="mo${i}" value="${s.motion.replace(/"/g,'&quot;')}"
+            placeholder="Gesture / expression prompt…" aria-label="Motion prompt"/>
+        </div>
+        <div class="footer-right">
+          <button class="copy-btn" id="cpbtn${i}" onclick="copyScene(${i})"
+            aria-label="Copy scene ${i+1} to clipboard">Copy Scene ${i+1}</button>
+        </div>
+      </div>`;
+    el.appendChild(card);
+    syncChars(i);
+  });
+  autoResizeAll();
+  updateTotal();
+}
+
+function onEdit(i){syncChars(i);autoResize(i);updateTotal();}
+
+function syncChars(i){
+  const ta=document.getElementById(`ta${i}`);
+  const ch=document.getElementById(`ch${i}`);
+  const n=ta.value.length;
+  ch.textContent=`${n.toLocaleString()} / 5,000`;
+  ch.className='chars'+(n>5000?' over':n>4000?' warn':'');
+}
+
+function updateTotal(){
+  let t=0;
+  SCENES.forEach((_,i)=>{const ta=document.getElementById(`ta${i}`);if(ta)t+=ta.value.length;});
+  document.getElementById('totalChars').textContent=`${t.toLocaleString()} / 15,000`;
+}
+
+function autoResize(i){
+  const ta=document.getElementById(`ta${i}`);
+  ta.style.height='auto';
+  ta.style.height=Math.max(130,ta.scrollHeight)+'px';
+}
+function autoResizeAll(){SCENES.forEach((_,i)=>autoResize(i));}
+
+// ─── COPY ────────────────────────────────────────────────────────────────────
+function copyScene(i){
+  const text=document.getElementById(`ta${i}`).value;
+  const btn=document.getElementById(`cpbtn${i}`);
+  navigator.clipboard.writeText(text).then(()=>{
+    btn.textContent='✓ Copied';
+    btn.classList.add('copied');
+    showToast(`Scene ${i+1} copied`);
+    setTimeout(()=>{btn.textContent=`Copy Scene ${i+1}`;btn.classList.remove('copied');},2200);
+  });
+}
+
+function copyAll(){
+  let out='';
+  SCENES.forEach((_,i)=>{
+    const ta=document.getElementById(`ta${i}`);
+    const tone=document.getElementById(`tone${i}`).value;
+    out+=`--- SCENE ${i+1} [Voice Director: ${tone}] ---\n${ta.value}\n\n`;
+  });
+  navigator.clipboard.writeText(out).then(()=>showToast('All 3 scenes copied'));
+}
+
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  clearTimeout(t._t);
+  t._t=setTimeout(()=>t.classList.remove('show'),2200);
+}
+
+// ─── AI ──────────────────────────────────────────────────────────────────────
+const SYS=`You are a script editor working on Kyle Rosebrook's personal brand origin video for FlashFusion.
+
+Kyle's story:
+- ~16 years of substance abuse from unresolved trauma. Four overdoses in 2021. Nearly died multiple times.
+- Brain SPECT scan: processing speed 99th percentile, recall memory 12th percentile. Built AI tools as external memory.
+- Daughter Kinsley born 2018 — quit marijuana same day she arrived. Almost grew up without him.
+- Woman named Mackenzie saved his life by climbing onto a roof and calling an ambulance.
+- Bartended at O'Toole's 3.5 years. QC specialist. Self-taught AI with no CS degree.
+- Hired at MSP for a role he didn't apply for. Built a full intel tool on the company before his first interview — crawled website, built Gemini personas, reverse-engineered tech stack.
+- Made it to video call with the president, mentioned the college he went to. Because he'd looked.
+- Became company AI SME in writing. Still technically L1.
+- Learned piano post-injury — one song (Nuvole Bianche by Einaudi), by ear, took a year. Can't remember it now.
+- Sign-off: "Construction over recovery." — the core thesis.
+
+Voice rules:
+- Direct, flat on the hard stuff, no performance
+- Short sentences for delivery — commas = short pause, periods = longer
+- NEVER use the word "recovery" — construction is the frame
+- No uplift language, no inspiration-reel energy
+- Don't soften the hard parts
+- Suggest clean rewrite blocks the user can apply directly`;
+
+let history=[];
+
+async function callAI(msg){
+  history.push({role:'user',content:msg});
+  const res=await fetch('https://api.anthropic.com/v1/messages',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1000,system:SYS,messages:history})
+  });
+  const d=await res.json();
+  const txt=d.content?.find(b=>b.type==='text')?.text||'No response.';
+  history.push({role:'assistant',content:txt});
+  return txt;
+}
+
+function addMsg(role,text,si){
+  const c=document.getElementById('msgs');
+  const d=document.createElement('div');
+  d.className=`msg ${role}`;
+  d.textContent=text;
+  if(role==='ass'&&si!==undefined){
+    const ab=document.createElement('button');
+    ab.className='apply-btn';
+    ab.textContent=`↑ Apply to Scene ${si+1}`;
+    ab.onclick=()=>{
+      const ta=document.getElementById(`ta${si}`);
+      ta.value=text;onEdit(si);
+      showToast(`Applied to Scene ${si+1}`);
+    };
+    d.appendChild(ab);
+  }
+  c.appendChild(d);
+  c.scrollTop=c.scrollHeight;
+  return d;
+}
+
+async function sendAI(){
+  const inp=document.getElementById('aiIn');
+  const btn=document.getElementById('sendBtn');
+  const msg=inp.value.trim();if(!msg)return;
+  const ctx=document.getElementById('ctxSel').value;
+  let full=msg;
+  if(ctx==='all'){
+    let all='';
+    SCENES.forEach((_,i)=>{const ta=document.getElementById(`ta${i}`);all+=`\n\nSCENE ${i+1}:\n${ta.value}`;});
+    full=`${msg}\n\nCurrent script:${all}`;
+  } else {
+    const i=parseInt(ctx);
+    const ta=document.getElementById(`ta${i}`);
+    full=`${msg}\n\nScene ${i+1} current text:\n${ta.value}`;
+  }
+  inp.value='';btn.disabled=true;
+  addMsg('usr',msg);
+  const load=addMsg('load','✦ thinking…');
+  try{
+    const reply=await callAI(full);
+    load.remove();
+    const si=ctx!=='all'?parseInt(ctx):undefined;
+    addMsg('ass',reply,si);
+  }catch(e){
+    load.remove();
+    addMsg('ass','API error — check connection.');
+  }
+  btn.disabled=false;inp.focus();
+}
+
+function aiScene(i){
+  document.getElementById('ctxSel').value=String(i);
+  document.getElementById('aiIn').value=`Review Scene ${i+1}. What's the strongest line and what's the weakest? One specific improvement.`;
+  document.getElementById('aiIn').focus();
+}
+function qp(p){document.getElementById('aiIn').value=p;document.getElementById('aiIn').focus();}
+function handleKey(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendAI();}}
+
+// ─── EASTER EGGS ─────────────────────────────────────────────────────────────
+
+// 1. KINSLEY CONSTELLATION
+// Triple-click on any "Kinsley" text in a textarea triggers star field
+let kinsleyClicks=0,kinsleyTimer=null;
+document.addEventListener('dblclick',e=>{
+  const sel=window.getSelection()?.toString()||'';
+  if(sel.toLowerCase().includes('kinsley')){
+    kinsleyClicks++;
+    clearTimeout(kinsleyTimer);
+    kinsleyTimer=setTimeout(()=>kinsleyClicks=0,600);
+    if(kinsleyClicks>=2){
+      kinsleyClicks=0;
+      triggerConstellation();
+    }
+  }
+});
+
+function triggerConstellation(){
+  const el=document.getElementById('constellation');
+  el.innerHTML='';
+  for(let i=0;i<80;i++){
+    const s=document.createElement('div');
+    s.className='star';
+    s.style.cssText=`left:${Math.random()*100}%;top:${Math.random()*100}%;--d:${1.5+Math.random()*3}s;animation-delay:${Math.random()*2}s;opacity:${0.3+Math.random()*0.7}`;
+    el.appendChild(s);
+  }
+  el.classList.add('show');
+  showToast('✦ For Kinsley');
+  setTimeout(()=>el.classList.remove('show'),5000);
+}
+
+// 2. NUVOLE BIANCHE — type "nuvole" anywhere, musical notes rain down
+let typeBuffer='';
+document.addEventListener('keypress',e=>{
+  typeBuffer=(typeBuffer+e.key).slice(-6).toLowerCase();
+  if(typeBuffer==='nuvole'){triggerNotes();typeBuffer='';}
+});
+
+function triggerNotes(){
+  const el=document.getElementById('noteRain');
+  el.innerHTML='';
+  const notes=['♩','♪','♫','♬','𝅗𝅥','𝅘𝅥𝅮'];
+  for(let i=0;i<24;i++){
+    const n=document.createElement('div');
+    n.className='note';
+    n.textContent=notes[Math.floor(Math.random()*notes.length)];
+    n.style.cssText=`left:${Math.random()*100}%;--d2:${3+Math.random()*4}s;--delay:${Math.random()*2}s;color:${['#A855F7','#EC4899','#22D3EE','#fff'][Math.floor(Math.random()*4)]};font-size:${14+Math.random()*20}px`;
+    el.appendChild(n);
+  }
+  el.classList.add('show');
+  showToast('Noo-vo-leh Bee-ahn-keh ♪');
+  setTimeout(()=>{el.classList.remove('show');el.innerHTML='';},6000);
+}
+
+// 3. CONSTRUCTION PULSE — type "construction" to trigger gradient flash
+let cBuffer='';
+document.addEventListener('keypress',e=>{
+  cBuffer=(cBuffer+e.key).slice(-12).toLowerCase();
+  if(cBuffer==='construction'){
+    const el=document.getElementById('constructFlash');
+    el.classList.add('show');
+    showToast('Construction over recovery.');
+    setTimeout(()=>el.classList.remove('show'),1800);
+    cBuffer='';
+  }
+});
+
+// 4. KONAMI CODE — up up down down left right left right b a
+const KONAMI=[38,38,40,40,37,39,37,39,66,65];
+let ki=0;
+document.addEventListener('keydown',e=>{
+  if(e.keyCode===KONAMI[ki]){ki++;if(ki===KONAMI.length){ki=0;openKonami();}}
+  else{ki=0;}
+});
+function openKonami(){
+  document.getElementById('konamiOverlay').classList.add('show');
+}
+function closeKonami(){
+  document.getElementById('konamiOverlay').classList.remove('show');
+}
+
+// 5. LOGO CLICK — click logo 5x fast to see all easter egg hints
+let logoClicks=0,logoTimer=null;
+document.querySelector('.logo').addEventListener('click',()=>{
+  logoClicks++;
+  clearTimeout(logoTimer);
+  logoTimer=setTimeout(()=>logoClicks=0,800);
+  if(logoClicks>=5){
+    logoClicks=0;
+    addMsg('sys',`Hidden: ↑↑↓↓←→←→BA · double-click "Kinsley" · type "nuvole" · type "construction"`);
+  }
+});
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+build();
+</script>
+</body>
+</html>

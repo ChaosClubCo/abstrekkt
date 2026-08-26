@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prompt Engineering Is a Diagnosis Problem, FlashFusion</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..700&family=Literata:opsz,wght@7..72,400..600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0907;
+    --surface: #1c1b1d;
+    --surface-2: #201f21;
+    --border: #2a2a2c;
+    --purple: #c4935a;
+    --text: #d4c5ab;
+    --text-dim: #9c8f78;
+    --text-bright: #f2efe9;
+    --green: #c4935a;
+    --red: #ffb4ab;
+    --orange: #d8b07a;
+    --code-bg: #131315;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Literata', Georgia, serif;
+    line-height: 1.7;
+    -webkit-font-smoothing: antialiased;
+  }
+  .container { max-width: 720px; margin: 0 auto; padding: 3rem 1.5rem 6rem; }
+  .meta {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--purple);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 1rem;
+  }
+  h1 {
+    font-family: 'Fraunces', Georgia, serif;
+    font-size: clamp(2rem, 5vw, 3rem);
+    color: var(--text-bright);
+    line-height: 1.15;
+    margin-bottom: 0.5rem;
+  }
+  .subtitle {
+    font-size: 1.1rem;
+    color: var(--text-dim);
+    margin-bottom: 2.5rem;
+    line-height: 1.5;
+  }
+  h2 {
+    font-family: 'Fraunces', Georgia, serif;
+    font-size: 1.5rem;
+    color: var(--text-bright);
+    margin: 2.5rem 0 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border);
+  }
+  p { margin-bottom: 1.25rem; }
+  strong { color: var(--text-bright); }
+  code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.85em;
+    background: var(--surface);
+    padding: 0.15em 0.4em;
+    border-radius: 3px;
+    color: var(--purple);
+  }
+
+  .callout {
+    background: var(--surface);
+    border-left: 3px solid var(--purple);
+    padding: 1.25rem 1.5rem;
+    margin: 1.5rem 0;
+    border-radius: 0 6px 6px 0;
+    font-size: 0.95rem;
+  }
+  .callout.key { border-left-color: var(--orange); }
+  .callout-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 0.5rem;
+    color: var(--purple);
+  }
+  .callout.key .callout-label { color: var(--orange); }
+
+  .comparison {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin: 1.5rem 0;
+  }
+  @media (max-width: 600px) { .comparison { grid-template-columns: 1fr; } }
+  .comparison-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 1.25rem;
+  }
+  .comparison-card h4 {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 0.75rem;
+  }
+  .comparison-card.before h4 { color: var(--red); }
+  .comparison-card.after h4 { color: var(--green); }
+  .comparison-card p {
+    font-size: 0.88rem;
+    margin-bottom: 0.5rem;
+    color: var(--text-dim);
+  }
+
+  .footer-section {
+    margin-top: 3rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--border);
+  }
+  .footer-section h4 {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 0.75rem;
+  }
+  .footer-section p {
+    font-size: 0.85rem;
+    color: var(--text-dim);
+    margin-bottom: 0.5rem;
+  }
+  .tag {
+    display: inline-block;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.65rem;
+    padding: 0.2em 0.5em;
+    border-radius: 3px;
+    margin-right: 0.25rem;
+  }
+  .tag-generated { background: rgba(196,147,90,0.15); color: var(--purple); }
+
+.ks-nav{position:sticky;top:0;z-index:9000;display:flex;justify-content:space-between;align-items:center;gap:1.25rem;padding:13px clamp(20px,5vw,48px);background:rgba(10,9,7,.92);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid rgba(196,147,90,.18);font-family:'JetBrains Mono',ui-monospace,monospace;line-height:1}
+.ks-nav .ks-brand{font-family:'Fraunces','EB Garamond',Georgia,serif;font-size:15px;font-weight:500;color:#f2efe9;letter-spacing:.01em;text-decoration:none;white-space:nowrap}
+.ks-nav .ks-brand em{font-style:italic;color:#c4935a}
+.ks-nav .ks-links{display:flex;gap:18px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+.ks-nav .ks-links a{font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:#a09888;text-decoration:none;transition:color .2s,border-color .2s,background .2s}
+.ks-nav .ks-links a:hover{color:#c4935a}
+.ks-nav .ks-links a.is-active{color:#c4935a}
+.ks-nav .ks-links a.ks-ext{color:#9c8f78;border:1px solid rgba(196,147,90,.28);padding:6px 11px}
+.ks-nav .ks-links a.ks-ext:hover{color:#0a0907;background:#c4935a;border-color:#c4935a}
+body > nav:not(.ks-nav){display:none!important}
+.sticky-mobile-cta{display:none!important}
+@media(max-width:640px){.ks-nav{flex-wrap:wrap;gap:.5rem}.ks-nav .ks-links{gap:11px}.ks-nav .ks-links a{font-size:9px;letter-spacing:.12em}.ks-nav .ks-brand{font-size:13px}}
+</style>
+</head>
+<body>
+<nav class="ks-nav">
+  <a class="ks-brand" href="Kyle Rosebrook Home.html">Abstrekkt&nbsp;<em>Journal</em></a>
+  <div class="ks-links">
+    <a href="Kyle Rosebrook Home.html">Home</a>
+    <a href="Kyle Rosebrook About.html">About</a>
+    <a class="is-active" href="Kyle Rosebrook Home.html#writing">Writing</a>
+    <a href="Sedona - The Meditation Pivot.html">Sedona</a>
+    <a href="LLC Formation Kit.html">Toolkit</a>
+    <a class="ks-ext" href="Abstrekkt Home.html">Abstrekkt&nbsp;↗</a>
+  </div>
+</nav>
+<div class="container">
+
+<div class="meta">FlashFusion · Essay</div>
+
+<h1>Prompt Engineering Is a Diagnosis Problem</h1>
+<p class="subtitle">Four viral guides teach you prompt syntax. None of them teach you the skill that actually matters: figuring out what's wrong with the output you already got.</p>
+
+<p>I've been watching the prompt engineering content cycle for over a year now. Every month, a new infographic drops: "The Five-Part Framework," "Ten Techniques to Master Claude," "The Anatomy of a Perfect Prompt." They get tens of thousands of impressions. They're bookmarked by people who will never use them.</p>
+
+<p>The problem isn't that they're wrong. Most of them are technically correct. XML tags help. Specificity helps. Examples help. Role instructions help. Negative constraints help. All true.</p>
+
+<p>The problem is <strong>they teach you how to write the prescription without teaching you how to read the patient.</strong></p>
+
+<h2>The Syntax vs. Diagnosis Gap</h2>
+
+<p>Here's what prompt engineering guides actually teach: given a blank input, how do you structure your instructions to get a good output? Role, context, task, format, constraints. Specificity over vagueness. Negative examples alongside positive ones.</p>
+
+<p>Here's what they don't teach: <strong>you already sent a prompt. Claude gave you something. It's not quite right. Now what?</strong></p>
+
+<p>That "now what" is where 90% of real prompt engineering happens. Not in the blank-page moment, but in the read-and-adjust loop. And the skill required for that loop isn't syntax, it's diagnosis.</p>
+
+<div class="callout key">
+<div class="callout-label">The real skill</div>
+Prompt engineering is pattern recognition applied to AI output. You're reading the response, identifying <em>what category of wrong</em> it is, and adjusting the input based on that diagnosis. This is the same skill as debugging code, diagnosing a network issue, or reading a room as a bartender. The domain changes. The diagnostic instinct doesn't.
+</div>
+
+<h2>The Five Failure Modes Nobody Talks About</h2>
+
+<p>When Claude gives you bad output, it's almost always one of five problems. The guides don't categorize these because they're focused on input, not output. But if you can identify which failure mode you're looking at, the fix is usually obvious.</p>
+
+<p><strong>1. Tone mismatch.</strong> The content is correct but sounds like a different person wrote it. Claude defaulted to formal when you needed conversational, or academic when you needed direct. Fix: add voice examples, not more instructions. One paragraph of "sound like this" outperforms ten lines of "be casual and direct."</p>
+
+<p><strong>2. Scope drift.</strong> Claude answered a bigger or smaller question than you asked. You wanted the top three risks; you got a comprehensive risk framework. Fix: word count constraints and explicit scope boundaries. "Exactly three. No more than 200 words total. Stop after the third."</p>
+
+<p><strong>3. Hallucinated confidence.</strong> Claude presented uncertain information with the same conviction as verified facts. No hedging, no caveats, no "I'm not sure about this." Fix: add an explicit uncertainty instruction. "If you're not confident about a claim, say so. Prefix uncertain statements with 'I believe' or 'This may be.'"</p>
+
+<p><strong>4. Structure over substance.</strong> Claude gave you beautiful formatting with thin content. Headers, subheaders, bullet points, and each bullet is one generic sentence. Fix: ban formatting. "Write this as prose paragraphs. No headers, no bullets, no lists." Force substance by removing the scaffolding it hides behind.</p>
+
+<p><strong>5. Sycophantic agreement.</strong> Claude agreed with your premise when it should have pushed back. You said "this approach is best" and Claude said "absolutely, here's why it's great." Fix: add an adversarial instruction. "Before agreeing, identify the strongest counterargument. If you agree three times in a row, flag the streak."</p>
+
+<h2>Diagnosis in Practice</h2>
+
+<p>Here's what the read-and-adjust loop actually looks like:</p>
+
+<div class="comparison">
+<div class="comparison-card before">
+<h4>What the guides teach</h4>
+<p>1. Write a detailed prompt with role, context, task, format, constraints</p>
+<p>2. Send it</p>
+<p>3. Get output</p>
+<p>4. If bad, "be more specific"</p>
+</div>
+<div class="comparison-card after">
+<h4>What actually works</h4>
+<p>1. Send a rough prompt</p>
+<p>2. Read the output critically</p>
+<p>3. Identify the failure mode (tone? scope? confidence? structure? agreement?)</p>
+<p>4. Apply the targeted fix for that failure mode</p>
+<p>5. Re-send and re-diagnose</p>
+</div>
+</div>
+
+<p>The difference: the guide approach treats every bad output the same way, "be more specific." The diagnostic approach treats each failure mode differently because they have different root causes. Tone mismatches don't get fixed by adding constraints. Scope drift doesn't get fixed by adding examples.</p>
+
+<h2>Why "Clone Yourself" Guides Miss the Point</h2>
+
+<p>One of the images that inspired this post is a guide on "cloning yourself inside Claude", feeding it your writing samples, preferences, and decision patterns until the output sounds 98% like you.</p>
+
+<p>It's a useful technique. But it treats the symptom (Claude doesn't sound like me) without addressing the skill (how do I know when it doesn't sound like me, and which specific dimension is off?). You can feed Claude fifty pages of your writing and still get output that's wrong in ways you can't articulate, because you never learned to diagnose the gap between "sounds like me" and "sounds like Claude impersonating me."</p>
+
+<p>The cloning approach works better when you can already diagnose output quality. Without that diagnostic instinct, you're feeding reference material into a system and hoping. With it, you're feeding reference material, reading the output, identifying where the imitation breaks down (sentence rhythm? vocabulary? paragraph structure? reasoning patterns?), and giving Claude targeted feedback on the specific failure.</p>
+
+<h2>The Bottom Line</h2>
+
+<p>The prompt engineering guides are fine. Use the frameworks, add structure, include examples. But the skill that compounds, the one that makes you measurably better every week, isn't in any of them.</p>
+
+<p>It's the ability to read AI output the way you read any system: looking for the specific thing that's broken, categorizing it, and applying the targeted fix. That's not prompt engineering. That's diagnosis. And it transfers to every tool, every model, every version upgrade.</p>
+
+<p>The prompt is the artifact. The thinking is the skill.</p>
+
+<div class="footer-section">
+<h4>Claims</h4>
+<p><span class="tag tag-generated">[GENERATED]</span> Five failure mode taxonomy, derived from personal observation, not a formal study. Other practitioners may categorize differently.</p>
+<p><span class="tag tag-generated">[GENERATED]</span> "90% of real prompt engineering happens in the read-and-adjust loop", experiential estimate, not measured.</p>
+</div>
+
+<div class="footer-section">
+<h4>Gaps</h4>
+<p>• Doesn't address image/multimodal prompting, all observations are text-to-text.</p>
+<p>• "Diagnosis" framing may not resonate with non-technical readers who haven't debugged systems before.</p>
+<p>• No mention of system prompts, project instructions, or persistent context, all observations assume single-turn or short-conversation prompting.</p>
+</div>
+
+</div>
+</body>
+</html>

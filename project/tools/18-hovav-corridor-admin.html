@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HOVAV — Corridor Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400..700;1,400..700&family=Literata:opsz,wght@7..72,300..600&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0c;
+    --surface: #131315;
+    --surface2: #1c1b1d;
+    --border: rgba(255,255,255,.08);
+    --border-active: rgba(255,191,0,.5);
+    --text: #e5e1e4;
+    --muted: #9c8f78;
+    --accent: #e0a800;
+    --virtue: #ffe2ab;
+    --villain: #ffb4ab;
+    --mono: 'JetBrains Mono', ui-monospace, monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: var(--mono); font-size: 13px; min-height: 100vh; }
+
+  /* LAYOUT */
+  .shell { display: grid; grid-template-columns: 260px 1fr; grid-template-rows: 48px 1fr; height: 100vh; }
+  .topbar { grid-column: 1/-1; display: flex; align-items: center; padding: 0 20px; border-bottom: 1px solid var(--border); gap: 12px; }
+  .topbar-title { font-size: 11px; letter-spacing: .16em; color: var(--muted); text-transform: uppercase; }
+  .topbar-title span { color: var(--text); }
+  .topbar-badge { margin-left: auto; font-size: 9px; letter-spacing: .1em; color: var(--muted); border: 1px solid var(--border); padding: 2px 8px; }
+
+  /* SIDEBAR */
+  .sidebar { border-right: 1px solid var(--border); overflow-y: auto; }
+  .sidebar-section { padding: 12px 14px 6px; font-size: 9px; letter-spacing: .14em; color: var(--muted); text-transform: uppercase; border-bottom: 1px solid var(--border); }
+  .moment-row { padding: 10px 14px; border-bottom: 1px solid var(--border); cursor: pointer; transition: background .15s; display: flex; align-items: center; gap: 8px; }
+  .moment-row:hover { background: var(--surface); }
+  .moment-row.active { background: var(--surface2); border-left: 2px solid var(--accent); }
+  .moment-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .dot-published { background: #7fa88a; }
+  .dot-draft { background: var(--muted); }
+  .moment-label { font-size: 11px; color: var(--text); line-height: 1.3; }
+  .moment-date { font-size: 9px; color: var(--muted); }
+  .add-btn { margin: 12px 14px; width: calc(100% - 28px); padding: 8px; background: transparent; border: 1px dashed rgba(255,191,0,.4); color: var(--accent); font-family: var(--mono); font-size: 10px; letter-spacing: .1em; cursor: pointer; text-transform: uppercase; transition: all .2s; }
+  .add-btn:hover { background: rgba(255,191,0,.08); border-color: var(--accent); }
+
+  /* MAIN */
+  .main { overflow-y: auto; padding: 24px; display: flex; flex-direction: column; gap: 20px; }
+
+  /* FORM CARD */
+  .card { background: var(--surface); border: 1px solid var(--border); padding: 18px; }
+  .card-header { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+  .card-title { font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+  .card-title span { color: var(--text); }
+  .side-tag { font-size: 9px; letter-spacing: .12em; padding: 2px 8px; border: 1px solid; text-transform: uppercase; }
+  .tag-virtue { color: var(--virtue); border-color: rgba(255,226,171,.3); background: rgba(255,226,171,.06); }
+  .tag-villain { color: var(--villain); border-color: rgba(255,180,171,.3); background: rgba(255,180,171,.06); }
+
+  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+  .field-full { margin-bottom: 12px; }
+  .field label { display: block; font-size: 9px; letter-spacing: .1em; color: var(--muted); text-transform: uppercase; margin-bottom: 5px; }
+  .field input, .field textarea, .field select {
+    width: 100%; background: var(--bg); border: 1px solid var(--border); color: var(--text);
+    font-family: var(--mono); font-size: 12px; padding: 7px 10px; outline: none; transition: border-color .2s; resize: vertical;
+  }
+  .field input:focus, .field textarea:focus, .field select:focus { border-color: var(--border-active); }
+  .field textarea { min-height: 64px; }
+
+  /* MEDIA STATUS */
+  .media-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  .media-cell { border: 1px solid var(--border); padding: 10px; text-align: center; }
+  .media-cell .label { font-size: 9px; letter-spacing: .1em; color: var(--muted); text-transform: uppercase; margin-bottom: 6px; }
+  .status-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 5px; }
+  .s-done { background: #7fa88a; }
+  .s-pending { background: var(--villain); }
+  .s-none { background: var(--muted); }
+  .media-status { font-size: 10px; display: flex; align-items: center; justify-content: center; }
+  .media-upload { margin-top: 6px; font-size: 9px; color: var(--accent); cursor: pointer; }
+
+  /* AI PARSER */
+  .ai-box { background: var(--bg); border: 1px dashed rgba(255,191,0,.28); padding: 14px; }
+  .ai-box label { font-size: 9px; letter-spacing: .1em; color: var(--muted); text-transform: uppercase; display: block; margin-bottom: 8px; }
+  .ai-box textarea { width: 100%; background: transparent; border: none; color: var(--text); font-family: var(--mono); font-size: 12px; line-height: 1.6; outline: none; resize: vertical; min-height: 72px; }
+  .ai-parse-btn { margin-top: 8px; padding: 7px 16px; background: rgba(255,191,0,.14); border: 1px solid rgba(255,191,0,.4); color: var(--accent); font-family: var(--mono); font-size: 10px; letter-spacing: .1em; cursor: pointer; text-transform: uppercase; transition: all .2s; }
+  .ai-parse-btn:hover { background: rgba(255,191,0,.28); }
+  .ai-parse-btn.loading { color: var(--muted); cursor: default; animation: pulse 1.2s ease-in-out infinite; }
+  @keyframes pulse { 0%,100%{opacity:.4} 50%{opacity:1} }
+
+  /* POSITION */
+  .position-track { position: relative; height: 36px; background: var(--bg); border: 1px solid var(--border); margin-top: 8px; }
+  .position-label { position: absolute; top: 50%; transform: translateY(-50%); font-size: 9px; color: var(--muted); letter-spacing: .08em; }
+  .position-label.left { left: 8px; }
+  .position-label.right { right: 8px; }
+  .position-marker { position: absolute; top: 4px; bottom: 4px; width: 2px; background: var(--accent); cursor: ew-resize; transition: left .1s; }
+  .position-marker::after { content: ''; position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); width: 10px; height: 10px; border-radius: 50%; background: var(--accent); }
+
+  /* TAGS */
+  .tag-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+  .tag { font-size: 9px; padding: 3px 8px; background: rgba(255,255,255,.04); border: 1px solid var(--border); color: var(--muted); cursor: pointer; }
+  .tag.active { background: rgba(255,191,0,.12); border-color: rgba(255,191,0,.4); color: var(--text); }
+  .tag-add { background: transparent; border: 1px dashed var(--border); color: var(--muted); font-size: 10px; padding: 3px 7px; cursor: pointer; }
+
+  /* BOTTOM BAR */
+  .bottom-bar { display: flex; gap: 10px; align-items: center; padding-top: 4px; }
+  .btn { padding: 8px 18px; font-family: var(--mono); font-size: 10px; letter-spacing: .1em; text-transform: uppercase; cursor: pointer; transition: all .2s; border: 1px solid; }
+  .btn-primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .btn-primary:hover { background: #c89a00; }
+  .btn-ghost { background: transparent; border-color: var(--border); color: var(--muted); }
+  .btn-ghost:hover { border-color: rgba(255,255,255,.28); color: var(--text); }
+  .btn-danger { background: transparent; border-color: rgba(255,180,171,.3); color: var(--villain); margin-left: auto; }
+  .btn-danger:hover { background: rgba(255,180,171,.08); }
+  .save-indicator { font-size: 9px; color: var(--muted); letter-spacing: .08em; }
+
+  /* PREVIEW STRIP */
+  .preview-strip { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .preview-pane { aspect-ratio: 16/10; background: var(--bg); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; }
+  .preview-pane canvas { width: 100%; height: 100%; }
+  .preview-label { position: absolute; bottom: 6px; left: 8px; font-size: 9px; letter-spacing: .1em; text-transform: uppercase; }
+  .preview-label.virtue { color: var(--virtue); }
+  .preview-label.villain { color: var(--villain); }
+
+  /* AUDIO ROW */
+  .audio-row { display: flex; gap: 10px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border); }
+  .audio-row:last-child { border-bottom: none; }
+  .audio-name { flex: 1; font-size: 11px; }
+  .audio-meta { font-size: 9px; color: var(--muted); }
+  .audio-play { width: 28px; height: 28px; border: 1px solid var(--border); background: transparent; color: var(--text); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 12px; }
+  .audio-play:hover { border-color: rgba(255,255,255,.4); }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: rgba(255,255,255,.1); }
+
+  /* ── Abstrekkt rebrand ── machine layer = blueprint blue, microfilm grain ── */
+  .btn-primary, .mode-btn[aria-pressed="true"], .skip-link { color: #2a1d00 !important; }
+  .ai-box { border-color: rgba(169,199,255,.34) !important; }
+  .ai-box label { color: #a9c7ff !important; }
+  .msg-ai { background: rgba(2,107,210,.10) !important; border-color: rgba(169,199,255,.30) !important; }
+  .msg-ai .who { color: #a9c7ff !important; }
+  .suggestion:hover { border-color: #a9c7ff !important; color: #a9c7ff !important; }
+  .ai-parse-btn { color: #a9c7ff !important; border-color: rgba(169,199,255,.4) !important; background: rgba(2,107,210,.12) !important; }
+  .ai-parse-btn:hover { background: rgba(2,107,210,.22) !important; }
+  .m-label, .moment-label { font-family: 'EB Garamond', Georgia, serif !important; font-size: 16px !important; font-weight: 500 !important; letter-spacing: 0 !important; }
+  .brand strong, .topbar-title span { font-family: 'EB Garamond', Georgia, serif !important; }
+  body::after { content:''; position:fixed; inset:0; pointer-events:none; z-index:9998; opacity:.05;
+    background-image:url('data:image/svg+xml,%3Csvg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"%3E%3Cfilter id="n"%3E%3CfeTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="3" stitchTiles="stitch"/%3E%3C/filter%3E%3Crect width="100%25" height="100%25" filter="url(%23n)"/%3E%3C/svg%3E'); }
+</style>
+</head>
+<body>
+<div class="shell">
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div class="topbar-title">HOVAV &nbsp;/&nbsp; <span>Corridor Admin</span></div>
+    <div class="topbar-badge">v1.0.0</div>
+  </div>
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sidebar-section">Moments &nbsp;(9)</div>
+    <div id="moment-list"></div>
+    <button class="add-btn" onclick="openNew()">+ Add Moment</button>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main" id="main-panel">
+    <!-- injected by JS -->
+  </div>
+</div>
+
+<script>
+/* ── In-prototype Claude bridge: route api.anthropic.com calls through window.claude.complete ── */
+(function(){
+  const orig = window.fetch ? window.fetch.bind(window) : null;
+  window.fetch = async function(url, opts){
+    if (typeof url === 'string' && url.includes('api.anthropic.com')) {
+      let body = {};
+      try { body = JSON.parse(opts && opts.body); } catch(e){}
+      const messages = (body.messages || []).slice();
+      if (body.system) {
+        if (messages.length && messages[0].role === 'user') {
+          messages[0] = { role:'user', content: body.system + '\n\n' + messages[0].content };
+        } else {
+          messages.unshift({ role:'user', content: body.system });
+        }
+      }
+      try {
+        const text = await window.claude.complete({ messages });
+        return { ok:true, json: async () => ({ content:[{ type:'text', text }] }) };
+      } catch(e){
+        return { ok:false, json: async () => ({ content:[{ type:'text', text:'' }] }) };
+      }
+    }
+    return orig ? orig(url, opts) : Promise.reject(new Error('no fetch'));
+  };
+})();
+const MOMENTS = [
+  { id:'parking-lot-2009', label:'The Parking Lot', date:'2009', status:'published', tags:['formation','midwest','work'],
+    virtue:{cap:'First real job. Chain link. Fluorescent loading dock. Cigarette I didn\'t want.',env:'harsh industrial midwest, flat gray sky, sodium light'},
+    villain:{cap:'Performing belonging. Watching everyone else like I was studying for a test.',room:'dimly lit, one chair facing wrong direction'},
+    position:-80, media:{virtueImg:true,villainImg:false,virtueVideo:true,villainVideo:false,virtueAudio:false,villainAudio:false}},
+  { id:'shelter-2010', label:'The Shelter', date:'2010', status:'published', tags:['shelter','formation','schopp','rupture'],
+    virtue:{cap:'4am. Less than an inch of snow. Mandatory.',env:'pre-dawn institutional parking lot, sodium vapor, chain link'},
+    villain:{cap:'Counting days. Not approximately. Exactly. Some men around me had stopped.',room:'fluorescent, cots in rows, bible on the pillow'},
+    position:-60, media:{virtueImg:true,villainImg:true,virtueVideo:true,villainVideo:true,virtueAudio:false,villainAudio:true}},
+  { id:'back-bar-2014', label:'The Back Bar', date:'2014', status:'published', tags:['otooleys','bartending','hollow'],
+    virtue:{cap:'Six deep, both rails. I knew every face before they ordered.',env:'warm amber, motion blur, packed'},
+    villain:{cap:'Most alive I\'d felt in years. Completely hollow underneath it.',room:'bar bottles casting color, nothing reflected in the mirror'},
+    position:-30, media:{virtueImg:true,villainImg:true,virtueVideo:true,villainVideo:true,virtueAudio:false,villainAudio:false}},
+  { id:'card-table-2015', label:'The Card Table', date:'2015', status:'published', tags:['origin','building','bear'],
+    virtue:{cap:'Built Bear\'s website on a folding table. Googled everything. Finished it.',env:'single lamp, rented room, screen glow'},
+    villain:{cap:'I didn\'t know that was how it started. I just knew I had to finish it.',room:'open room, tools on floor, one lamp, no furniture yet'},
+    position:-20, media:{virtueImg:true,villainImg:false,virtueVideo:true,villainVideo:false,virtueAudio:true,villainAudio:false}},
+  { id:'sedona-2016', label:'Sedona', date:'2016', status:'published', tags:['sedona','bear','quiet','construction'],
+    virtue:{cap:'Red rock formations. Bear\'s assignments through a ticket system I built. The desert does something to the noise.',env:'red rock, warm desert light, open sky'},
+    villain:{cap:'First time in years something quieted. Didn\'t trust it. Stayed in it anyway.',room:'sparse, warm single lamp, open door to outside'},
+    position:-10, media:{virtueImg:true,villainImg:false,virtueVideo:false,villainVideo:false,virtueAudio:true,villainAudio:false}},
+  { id:'right-now', label:'Right Now', date:'2026', status:'published', tags:['present','building','emergence'],
+    virtue:{cap:'Same window. Different everything.',env:'clear morning, open, unresolved'},
+    villain:{cap:'Building something. Not sure what yet. That\'s fine.',room:'tools on floor, no furniture yet, one lamp'},
+    position:0, media:{virtueImg:true,villainImg:true,virtueVideo:false,villainVideo:false,virtueAudio:false,villainAudio:false}},
+  { id:'office-2023', label:'The Office', date:'2023', status:'published', tags:['intinc','construction','language'],
+    virtue:{cap:'Learning a language nobody taught me.',env:'fluorescent overhead, corporate neutral, daylight through blinds'},
+    villain:{cap:'Quietly building a second floor nobody could see yet.',room:'blueprint sketches taped to wall, low desk lamp'},
+    position:20, media:{virtueImg:true,villainImg:true,virtueVideo:false,villainVideo:false,virtueAudio:false,villainAudio:false}},
+  { id:'drive-home', label:'The Drive Home', date:'ongoing', status:'published', tags:['planning','alone','thinking'],
+    virtue:{cap:'Empty highway. The only thinking time I had.',env:'wet road, headlights, late, no other cars'},
+    villain:{cap:'Every plan I ever made happened in this car.',room:'dashboard glow only, dark interior, wide open'},
+    position:40, media:{virtueImg:true,villainImg:true,virtueVideo:true,villainVideo:false,virtueAudio:true,villainAudio:false}},
+];
+
+let active = 1;
+
+function renderSidebar() {
+  const list = document.getElementById('moment-list');
+  list.innerHTML = MOMENTS.map((m, i) => `
+    <div class="moment-row ${i===active?'active':''}" onclick="setActive(${i})">
+      <div class="moment-dot ${m.status==='published'?'dot-published':'dot-draft'}"></div>
+      <div>
+        <div class="moment-label">${m.label}</div>
+        <div class="moment-date">${m.date}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function setActive(i) {
+  active = i;
+  renderSidebar();
+  renderMain();
+}
+
+function mediaIcon(done) {
+  return done
+    ? `<span class="status-dot s-done"></span>done`
+    : `<span class="status-dot s-none"></span>none`;
+}
+
+function renderMain() {
+  const m = MOMENTS[active];
+  document.getElementById('main-panel').innerHTML = `
+    <!-- AI PARSER -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">AI Memory Parser</div>
+      </div>
+      <div class="ai-box">
+        <label>Describe the memory in plain text — AI populates all fields</label>
+        <textarea id="ai-input" placeholder="e.g. I was at the shelter in 2010. They made us do religious services to eat. I met my best friend Schopp there. 4am snow shoveling for less than an inch..."></textarea>
+        <button class="ai-parse-btn" id="parse-btn" onclick="parseMemory()">↯ Parse with AI</button>
+      </div>
+    </div>
+
+    <!-- META -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Moment — <span>${m.label}</span></div>
+        <span style="margin-left:auto;font-size:9px;padding:2px 8px;border:1px solid ${m.status==='published'?'rgba(58,184,106,.4)':'rgba(106,98,128,.4)'};color:${m.status==='published'?'#7fa88a':'var(--muted)'};">${m.status.toUpperCase()}</span>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>Label</label><input value="${m.label}"></div>
+        <div class="field"><label>Date / Period</label><input value="${m.date}"></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>Chapter Thread</label>
+          <select>
+            <option>rupture</option><option>formation</option><option>construction</option><option>emergence</option><option>parallel</option>
+          </select>
+        </div>
+        <div class="field"><label>Corridor Position</label><input type="number" value="${m.position}"></div>
+      </div>
+      <div class="field full"><label>Tags</label>
+        <div class="tag-row">
+          ${m.tags.map(t=>`<div class="tag active">${t}</div>`).join('')}
+          <div class="tag tag-add">+ add</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- VIRTUE -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Virtue Side</div>
+        <span class="side-tag tag-virtue">↗ outward</span>
+      </div>
+      <div class="field field-full"><label>Caption (first person, present tense, under 45s spoken)</label>
+        <textarea>${m.virtue.cap}</textarea>
+      </div>
+      <div class="field field-full"><label>Environment Description (for image/video generation)</label>
+        <textarea>${m.virtue.env}</textarea>
+      </div>
+    </div>
+
+    <!-- VILLAIN -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Villain Side</div>
+        <span class="side-tag tag-villain">↙ inward</span>
+      </div>
+      <div class="field field-full"><label>Caption (first person, present tense, under 45s spoken)</label>
+        <textarea>${m.villain.cap}</textarea>
+      </div>
+      <div class="field field-full"><label>Room Description (emotional state as physical space)</label>
+        <textarea>${m.villain.room}</textarea>
+      </div>
+    </div>
+
+    <!-- MEDIA STATUS -->
+    <div class="card">
+      <div class="card-header"><div class="card-title">Media Production Status</div></div>
+      <div class="media-grid">
+        <div class="media-cell">
+          <div class="label">Virtue Image</div>
+          <div class="media-status">${mediaIcon(m.media.virtueImg)}</div>
+          <div class="media-upload">${m.media.virtueImg?'replace':'generate'}</div>
+        </div>
+        <div class="media-cell">
+          <div class="label">Villain Image</div>
+          <div class="media-status">${mediaIcon(m.media.villainImg)}</div>
+          <div class="media-upload">${m.media.villainImg?'replace':'generate'}</div>
+        </div>
+        <div class="media-cell">
+          <div class="label">Virtue Video</div>
+          <div class="media-status">${mediaIcon(m.media.virtueVideo)}</div>
+          <div class="media-upload">${m.media.virtueVideo?'view':'generate'}</div>
+        </div>
+        <div class="media-cell">
+          <div class="label">Villain Video</div>
+          <div class="media-status">${mediaIcon(m.media.villainVideo)}</div>
+          <div class="media-upload">${m.media.villainVideo?'view':'generate'}</div>
+        </div>
+        <div class="media-cell">
+          <div class="label">Virtue Audio</div>
+          <div class="media-status">${mediaIcon(m.media.virtueAudio)}</div>
+          <div class="media-upload">${m.media.virtueAudio?'play':'generate'}</div>
+        </div>
+        <div class="media-cell">
+          <div class="label">Villain Audio</div>
+          <div class="media-status">${mediaIcon(m.media.villainAudio)}</div>
+          <div class="media-upload">${m.media.villainAudio?'play':'generate'}</div>
+        </div>
+        <div class="media-cell">
+          <div class="label">AI Kyle Virtue</div>
+          <div class="media-status"><span class="status-dot s-pending"></span>queued</div>
+          <div class="media-upload">record script</div>
+        </div>
+        <div class="media-cell">
+          <div class="label">AI Kyle Villain</div>
+          <div class="media-status"><span class="status-dot s-pending"></span>queued</div>
+          <div class="media-upload">record script</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- BOTTOM BAR -->
+    <div class="bottom-bar">
+      <button class="btn btn-ghost">Save Draft</button>
+      <button class="btn btn-primary" onclick="showSaved()">Publish to Corridor</button>
+      <span class="save-indicator" id="save-indicator"></span>
+      <button class="btn btn-danger">Delete Moment</button>
+    </div>
+  `;
+}
+
+function showSaved() {
+  const el = document.getElementById('save-indicator');
+  el.textContent = '✓ published';
+  el.style.color = '#7fa88a';
+  setTimeout(() => { el.textContent = ''; }, 2400);
+}
+
+async function parseMemory() {
+  const input = document.getElementById('ai-input').value.trim();
+  if (!input) return;
+  const btn = document.getElementById('parse-btn');
+  btn.textContent = '↻ parsing...';
+  btn.classList.add('loading');
+  btn.disabled = true;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        system: `You are a memory parser for "Halls of Villains and Virtues", an interactive memoir experience. Given a raw memory description, extract structured data.
+
+Return ONLY a JSON object with this exact structure, no markdown, no preamble:
+{
+  "label": "Short evocative name, 2-4 words + year",
+  "date": "Year or period",
+  "tags": ["tag1","tag2","tag3"],
+  "chapter_thread": "rupture|formation|construction|emergence|parallel",
+  "virtue": {
+    "cap": "Caption under 40 words, first person, present tense, no epiphanies",
+    "env": "Environment description for image generation, comma separated descriptors"
+  },
+  "villain": {
+    "cap": "Caption under 40 words, first person, present tense, no resolution",
+    "room": "Room description as emotional state — light, objects, door, emptiness"
+  }
+}`,
+        messages: [{ role: 'user', content: input }]
+      })
+    });
+    const data = await res.json();
+    const text = data.content?.find(b => b.type === 'text')?.text || '{}';
+    const parsed = JSON.parse(text.replace(/```json|```/g,'').trim());
+
+    // Populate fields
+    const fields = document.querySelectorAll('.field input, .field textarea');
+    const fieldMap = {
+      'Label': parsed.label,
+      'Date / Period': parsed.date,
+      'Caption (first person, present tense, under 45s spoken)': null,
+      'Environment Description (for image/video generation)': parsed.virtue?.env,
+      'Room Description (emotional state as physical space)': parsed.villain?.room,
+    };
+
+    document.querySelectorAll('.field').forEach(f => {
+      const label = f.querySelector('label')?.textContent;
+      const input = f.querySelector('input, textarea');
+      if (!input) return;
+      if (label === 'Label') input.value = parsed.label || '';
+      if (label === 'Date / Period') input.value = parsed.date || '';
+    });
+
+    // Set captions by side
+    const captions = document.querySelectorAll('textarea');
+    captions.forEach(ta => {
+      const prev = ta.closest('.card')?.querySelector('.side-tag');
+      if (!prev) return;
+      if (prev.classList.contains('tag-virtue')) ta.value = parsed.virtue?.cap || ta.value;
+      if (prev.classList.contains('tag-villain')) ta.value = parsed.villain?.cap || ta.value;
+    });
+
+    btn.textContent = '✓ parsed';
+    btn.style.color = '#7fa88a';
+    setTimeout(() => {
+      btn.textContent = '↯ Parse with AI';
+      btn.style.color = '';
+      btn.classList.remove('loading');
+      btn.disabled = false;
+    }, 2000);
+  } catch (e) {
+    btn.textContent = '✗ error — retry';
+    btn.classList.remove('loading');
+    btn.disabled = false;
+    setTimeout(() => btn.textContent = '↯ Parse with AI', 2500);
+  }
+}
+
+function openNew() {
+  MOMENTS.push({
+    id: 'new-' + Date.now(), label: 'New Moment', date: '', status: 'draft', tags: [],
+    virtue: { cap: '', env: '' }, villain: { cap: '', room: '' }, position: 0,
+    media: { virtueImg:false,villainImg:false,virtueVideo:false,villainVideo:false,virtueAudio:false,villainAudio:false }
+  });
+  setActive(MOMENTS.length - 1);
+}
+
+// Init
+renderSidebar();
+renderMain();
+</script>
+</body>
+</html>

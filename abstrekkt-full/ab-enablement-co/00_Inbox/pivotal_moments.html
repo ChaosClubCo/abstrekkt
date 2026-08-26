@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Pivotal Moments v11 — Abstrekkt / Kyle Rosebrook</title>
+<meta name="description" content="Pivotal decisions across Kyle Rosebrook's Oct 2025–Jun 2026 arc. Internal map.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,400;1,9..144,600&family=Crimson+Pro:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+/* ╔══════════════════════════════════════════╗
+   ║  ABSTREKKT DESIGN TOKENS — edit to theme ║
+   ╚══════════════════════════════════════════╝ */
+:root{
+  --bg:#111008; --bg2:#1a1a1d; --sf:#222220; --sf2:#2a2a2e; --sf3:#323230;
+  --bd:#33322f; --bd2:#47463f; --bd3:#5a5950;
+  --t:#e9e4da; --t2:#9a948a; --t3:#5f5a52; --t4:#38342c;
+  --brass:#C8A86A; --brass2:#8a7448; --brass3:#3a2e12; --brass-glow:rgba(200,168,106,.1);
+  --p:#c8a0f0; --pd:#1e1030; --pb:#2a1848;
+  --tc:#7ab8d4; --tcd:#0c1e2c; --tcb:#102838;
+  --s:#C8A86A;  --sd:#241a06; --sb:#30220a;
+  --k:#c87878;  --kd:#241010; --kb:#301818;
+  --x:#78afc8;  --xd:#0c1c28; --xb:#102230;
+  --src-c-bg:#0e1820; --src-c-t:#5a90b8;
+  --src-d-bg:#181408; --src-d-t:#907840;
+  --src-p-bg:#121408; --src-p-t:#788040;
+  --ff-display:'Fraunces',Georgia,serif;
+  --ff-body:'Crimson Pro',Georgia,serif;
+  --ff-mono:'JetBrains Mono','Courier New',monospace;
+  --dur-f:130ms; --dur-m:240ms; --dur-s:380ms;
+  --ease:cubic-bezier(.16,1,.3,1);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+body{font-family:var(--ff-mono);background:var(--bg);color:var(--t);min-height:100vh;
+  -webkit-font-smoothing:antialiased;position:relative;overflow-x:hidden}
+/* Reading Room at Midnight — atmospheric gradient */
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:radial-gradient(ellipse 80% 45% at 50% -8%,var(--brass-glow),transparent 55%),
+    radial-gradient(ellipse 35% 25% at 8% 85%,rgba(120,95,40,.04),transparent 65%)}
+/* Grain overlay — very quiet */
+body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.06;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.88' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+
+/* ── A11y ── */
+.skip{position:absolute;top:-9em;left:1rem;z-index:9999;
+  background:var(--brass);color:var(--bg);padding:.5rem 1rem;border-radius:2px;
+  font-family:var(--ff-mono);font-size:.75rem;font-weight:700;text-decoration:none;
+  transition:top var(--dur-f)}
+.skip:focus{top:1rem;outline:3px solid var(--t);outline-offset:2px}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;
+  clip:rect(0,0,0,0);white-space:nowrap;border:0}
+:focus-visible{outline:2px solid var(--brass);outline-offset:2px;border-radius:2px}
+button{cursor:pointer;font-family:inherit;border:none;background:none}
+a{color:inherit}
+
+/* ── Header ── */
+.hdr{position:relative;z-index:10;padding:1.25rem 1.5rem 1rem;
+  border-bottom:1px solid var(--bd);
+  background:rgba(17,16,8,.93);backdrop-filter:blur(8px);
+  display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:.5rem}
+.hdr-brand h1{font-family:var(--ff-display);font-size:.875rem;font-weight:600;font-style:italic;
+  letter-spacing:.01em;color:var(--brass);line-height:1.3}
+.hdr-brand p{font-family:var(--ff-mono);font-size:.5rem;color:var(--t3);margin-top:.25rem;letter-spacing:.04em}
+.hdr-count{font-family:var(--ff-mono);font-size:.5625rem;color:var(--t3);text-align:right;align-self:flex-end}
+.hdr-count strong{color:var(--brass)}
+
+/* ── Stats ── */
+.stats{position:relative;z-index:10;display:flex;border-bottom:1px solid var(--bd);overflow-x:auto;scrollbar-width:none}
+.stats::-webkit-scrollbar{display:none}
+.stat{flex:1;min-width:60px;padding:.5rem .75rem;border-right:1px solid var(--bd);
+  display:flex;flex-direction:column;align-items:center;gap:2px}
+.stat:last-child{border-right:none}
+.sn{font-family:var(--ff-display);font-size:1.25rem;font-weight:700;font-style:italic;line-height:1}
+.sl{font-family:var(--ff-mono);font-size:.375rem;color:var(--t3);text-transform:uppercase;letter-spacing:.12em}
+.sn.all{color:var(--brass)}.sn.personal{color:var(--p)}.sn.technical{color:var(--tc)}
+.sn.synthesis{color:var(--s)}.sn.kill{color:var(--k)}.sn.tension{color:var(--x)}
+
+/* ── Controls ── */
+.ctrl{position:sticky;top:0;z-index:20;background:rgba(17,16,8,.94);backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--bd);padding:.625rem 1.5rem;display:flex;flex-direction:column;gap:.375rem}
+.ctrl-row{display:flex;gap:.25rem;align-items:center;flex-wrap:wrap}
+.ctrl-lbl{font-family:var(--ff-mono);font-size:.4375rem;color:var(--t3);
+  text-transform:uppercase;letter-spacing:.12em;white-space:nowrap;min-width:2.25rem}
+
+.f-btn{font-family:var(--ff-mono);font-size:.4375rem;font-weight:700;letter-spacing:.08em;
+  text-transform:uppercase;padding:.375rem .625rem;min-height:2rem;min-width:2.5rem;
+  border-radius:2px;border:1px solid var(--bd2);background:var(--sf);color:var(--t3);
+  transition:all var(--dur-f);white-space:nowrap;display:inline-flex;align-items:center;justify-content:center}
+.f-btn:hover{background:var(--sf2);color:var(--t2);border-color:var(--bd3)}
+.f-btn[aria-checked=true][data-f=all]{background:var(--brass3);border-color:var(--brass);color:var(--brass)}
+.f-btn[aria-checked=true][data-f=personal]{background:var(--pb);border-color:var(--p);color:var(--p)}
+.f-btn[aria-checked=true][data-f=technical]{background:var(--tcb);border-color:var(--tc);color:var(--tc)}
+.f-btn[aria-checked=true][data-f=synthesis]{background:var(--sb);border-color:var(--s);color:var(--s)}
+.f-btn[aria-checked=true][data-f=kill]{background:var(--kb);border-color:var(--k);color:var(--k)}
+.f-btn[aria-checked=true][data-f=tension]{background:var(--xb);border-color:var(--x);color:var(--x)}
+/* source filter active states */
+.f-btn[aria-checked=true][data-sf=all]{background:var(--brass3);border-color:var(--brass);color:var(--brass)}
+.f-btn[aria-checked=true][data-sf=chat]{background:var(--src-c-bg);border-color:var(--src-c-t);color:var(--src-c-t)}
+.f-btn[aria-checked=true][data-sf=project]{background:var(--src-p-bg);border-color:var(--src-p-t);color:var(--src-p-t)}
+.f-btn[aria-checked=true][data-sf=drive]{background:var(--src-d-bg);border-color:var(--src-d-t);color:var(--src-d-t)}
+
+.v-tab{font-family:var(--ff-mono);font-size:.4375rem;font-weight:700;letter-spacing:.08em;
+  text-transform:uppercase;padding:.375rem .625rem;min-height:2rem;
+  border-radius:2px;border:1px solid var(--bd2);background:var(--sf);color:var(--t3);
+  transition:all var(--dur-f);display:inline-flex;align-items:center}
+.v-tab:hover{background:var(--sf2);color:var(--t2)}
+.v-tab[aria-selected=true]{background:var(--sf2);border-color:var(--brass);color:var(--brass)}
+
+.srch{position:relative;display:flex;align-items:center;margin-left:auto}
+.srch-icon{position:absolute;left:.5rem;font-size:.5625rem;color:var(--t3);pointer-events:none;user-select:none}
+.srch-in{font-family:var(--ff-mono);font-size:.5rem;background:var(--sf);border:1px solid var(--bd2);
+  color:var(--t);padding:.375rem .625rem .375rem 1.5rem;border-radius:2px;
+  min-height:2rem;width:clamp(110px,20vw,190px);transition:border-color var(--dur-f),background var(--dur-f)}
+.srch-in::placeholder{color:var(--t3)}
+.srch-in:focus{outline:none;border-color:var(--brass);background:var(--sf2);
+  box-shadow:0 0 0 2px rgba(200,168,106,.15)}
+.srch-x{position:absolute;right:.375rem;color:var(--t3);padding:.125rem .25rem;
+  line-height:1;display:none;background:none;border:none;min-height:1.5rem;min-width:1.5rem;
+  font-size:.875rem;align-items:center;justify-content:center}
+.srch-x.on{display:flex}
+.srch-x:hover{color:var(--brass)}
+.ctrl-sep{width:1px;height:.875rem;background:var(--bd2);margin:0 .25rem;flex-shrink:0}
+.rc{font-family:var(--ff-mono);font-size:.4375rem;color:var(--t3)}
+.rc strong{color:var(--brass)}
+
+/* ── Main ── */
+.main{position:relative;z-index:5;padding:0 1.5rem 5rem}
+[role=tabpanel]{outline:none}
+[role=tabpanel]:focus-visible{outline:2px solid var(--brass)}
+
+.phase-sec{margin-bottom:.5rem}
+.phase-hdr{display:flex;align-items:center;gap:.75rem;padding:1.75rem 0 .75rem}
+.phase-line{flex:1;height:1px;background:var(--bd)}
+.phase-lbl{font-family:var(--ff-display);font-size:.875rem;font-weight:600;font-style:italic;
+  color:var(--t3);white-space:nowrap}
+.phase-new{font-family:var(--ff-mono);font-size:.375rem;color:var(--brass);margin-left:.375rem}
+.cg{display:grid;grid-template-columns:repeat(auto-fill,minmax(272px,1fr));gap:.5rem}
+
+/* ── Card ── */
+.card{background:var(--sf);border:1px solid var(--bd);border-radius:2px;
+  padding:.875rem 1rem;text-align:left;width:100%;
+  transition:border-color var(--dur-f),background var(--dur-f),transform var(--dur-f);
+  position:relative;overflow:hidden}
+.card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+.card[data-c=personal]::before{background:linear-gradient(90deg,var(--p),#a080e0)}
+.card[data-c=technical]::before{background:linear-gradient(90deg,var(--tc),#5a98b8)}
+.card[data-c=synthesis]::before{background:linear-gradient(90deg,var(--brass),#d49040)}
+.card[data-c=kill]::before{background:linear-gradient(90deg,var(--k),#a05050)}
+.card[data-c=tension]::before{background:linear-gradient(90deg,var(--x),#5890b0)}
+.card:hover{border-color:var(--bd2);background:var(--sf2);transform:translateY(-1px)}
+.card[aria-expanded=true]{background:var(--sf2);border-color:var(--bd3)}
+.card.is-new::after{content:'NEW';position:absolute;top:.5rem;right:.5rem;
+  font-family:var(--ff-mono);font-size:.3125rem;font-weight:700;letter-spacing:.14em;
+  color:var(--brass);background:var(--brass3);border:1px solid var(--brass2);border-radius:2px;padding:1px 4px}
+
+.card-meta{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.375rem;gap:.25rem}
+.cat{font-family:var(--ff-mono);font-size:.3125rem;font-weight:700;letter-spacing:.12em;
+  text-transform:uppercase;padding:2px 5px;border-radius:2px;flex-shrink:0}
+.cat.personal{background:var(--pd);color:var(--p)}
+.cat.technical{background:var(--tcd);color:var(--tc)}
+.cat.synthesis{background:var(--sd);color:var(--s)}
+.cat.kill{background:var(--kd);color:var(--k)}
+.cat.tension{background:var(--xd);color:var(--x)}
+.cdate{font-family:var(--ff-mono);font-size:.4375rem;color:var(--t3)}
+.src{font-family:var(--ff-mono);font-size:.3125rem;padding:1px 4px;border-radius:2px;display:inline-block}
+.src.chat{background:var(--src-c-bg);color:var(--src-c-t)}
+.src.drive{background:var(--src-d-bg);color:var(--src-d-t)}
+.src.project{background:var(--src-p-bg);color:var(--src-p-t)}
+/* Fraunces for card titles */
+.ctit{font-family:var(--ff-display);font-size:.75rem;font-weight:600;color:var(--t);
+  line-height:1.35;margin-bottom:.3125rem}
+.cexp{display:inline-block;font-size:.4375rem;color:var(--t3);margin-left:.25rem;
+  transition:transform var(--dur-m) var(--ease);vertical-align:middle;font-family:var(--ff-mono)}
+.card[aria-expanded=true] .cexp{transform:rotate(180deg)}
+.csig{font-family:var(--ff-mono);font-size:.5rem;color:var(--t3);font-style:italic;line-height:1.45}
+
+/* Expand/collapse via CSS grid trick */
+.cdet{display:grid;grid-template-rows:0fr;transition:grid-template-rows var(--dur-s) var(--ease)}
+.card[aria-expanded=true] .cdet{grid-template-rows:1fr}
+.cdet-inner{overflow:hidden}
+.cdet-body{padding-top:.75rem;margin-top:.75rem;border-top:1px solid var(--bd)}
+/* Crimson Pro for expanded prose */
+.cq{font-family:var(--ff-body);font-size:.9375rem;font-style:italic;color:var(--t2);
+  line-height:1.6;padding:.5rem .75rem;background:var(--bg);
+  border-left:2px solid var(--brass2);border-radius:0 2px 2px 0;margin-bottom:.5rem}
+.cq strong{color:var(--t);font-style:normal}
+.cw{font-family:var(--ff-body);font-size:.9375rem;color:var(--t2);line-height:1.65;margin-bottom:.5rem}
+.cem{display:grid;grid-template-columns:1fr 1fr;gap:.3125rem;margin-bottom:.5rem}
+.em-item{background:var(--bg);border:1px solid var(--bd);border-radius:2px;padding:.375rem .5rem}
+.em-l{font-family:var(--ff-mono);font-size:.3125rem;text-transform:uppercase;
+  letter-spacing:.1em;color:var(--t3);margin-bottom:.125rem}
+.em-v{font-family:var(--ff-mono);font-size:.5rem;color:var(--t2);line-height:1.4}
+.clinks{display:flex;flex-wrap:wrap;gap:.25rem}
+.clink{display:inline-flex;align-items:center;gap:.1875rem;font-family:var(--ff-mono);font-size:.4375rem;
+  border:1px solid var(--bd);border-radius:2px;padding:.125rem .375rem;
+  text-decoration:none;transition:color var(--dur-f),border-color var(--dur-f);
+  min-height:1.5rem;background:transparent}
+.clink.is-chat{color:#4a80aa;border-color:#1a2838}.clink.is-chat:hover{color:var(--tc);border-color:var(--tc)}
+.clink.is-drive{color:#807040;border-color:#201c08}.clink.is-drive:hover{color:var(--brass);border-color:var(--brass)}
+.clink.is-file{color:#607048;border-color:#181c08}.clink.is-file:hover{color:#90c060}
+
+/* ── Grid View ── */
+.gv{display:grid;grid-template-columns:repeat(4,1fr);gap:.5rem;padding-top:1rem}
+.gc{background:var(--sf);border:1px solid var(--bd);border-radius:2px;
+  padding:.75rem .875rem;text-align:left;width:100%;
+  transition:border-color var(--dur-f),background var(--dur-f);position:relative;overflow:hidden}
+.gc::before{content:'';position:absolute;left:0;top:0;bottom:0;width:2px}
+.gc[data-c=personal]::before{background:var(--p)}.gc[data-c=technical]::before{background:var(--tc)}
+.gc[data-c=synthesis]::before{background:var(--s)}.gc[data-c=kill]::before{background:var(--k)}
+.gc[data-c=tension]::before{background:var(--x)}
+.gc:hover{border-color:var(--bd2);background:var(--sf2)}
+.gc.is-new{border-color:var(--brass3)}
+.gn{font-family:var(--ff-display);font-size:1.875rem;font-weight:700;font-style:italic;
+  opacity:.05;position:absolute;right:.375rem;top:.1875rem;line-height:1;user-select:none}
+.gnew{position:absolute;top:.4375rem;right:.4375rem;
+  font-family:var(--ff-mono);font-size:.3125rem;font-weight:700;letter-spacing:.12em;
+  color:var(--brass);background:var(--brass3);border:1px solid var(--brass2);border-radius:2px;padding:1px 3px}
+.gcat{font-family:var(--ff-mono);font-size:.3125rem;font-weight:700;letter-spacing:.12em;
+  text-transform:uppercase;padding:2px 5px;border-radius:2px;display:inline-block;margin-bottom:.375rem}
+.gdate{font-family:var(--ff-mono);font-size:.4375rem;color:var(--t3);margin-bottom:.1875rem}
+.gtit{font-family:var(--ff-display);font-size:.6875rem;font-weight:600;font-style:italic;
+  color:var(--t);line-height:1.3;margin-bottom:.1875rem}
+.gsig{font-family:var(--ff-mono);font-size:.4375rem;color:var(--t3);font-style:italic;line-height:1.3}
+
+/* ── Columns View ── */
+.cv{display:grid;grid-template-columns:repeat(5,1fr);gap:.75rem;padding-top:1rem}
+.col-hdr{font-family:var(--ff-display);font-size:.75rem;font-weight:600;font-style:italic;
+  padding:.375rem 0 .5rem;border-bottom:2px solid;margin-bottom:.5rem}
+.col-hdr.personal{color:var(--p);border-color:var(--p)}.col-hdr.technical{color:var(--tc);border-color:var(--tc)}
+.col-hdr.synthesis{color:var(--s);border-color:var(--s)}.col-hdr.kill{color:var(--k);border-color:var(--k)}
+.col-hdr.tension{color:var(--x);border-color:var(--x)}
+.cc{background:var(--sf);border:1px solid var(--bd);border-radius:2px;
+  padding:.5rem .625rem;margin-bottom:.375rem;text-align:left;width:100%;
+  transition:border-color var(--dur-f),background var(--dur-f);position:relative}
+.cc:hover{background:var(--sf2);border-color:var(--bd2)}
+.cc.is-new::after{content:'✦';font-size:.375rem;color:var(--brass);position:absolute;top:.3125rem;right:.5rem}
+.ccdate{font-family:var(--ff-mono);font-size:.375rem;color:var(--t3);margin-bottom:.125rem}
+.cctit{font-family:var(--ff-display);font-size:.5625rem;font-weight:600;font-style:italic;
+  color:var(--t2);line-height:1.3;margin-bottom:.125rem}
+.ccsig{font-family:var(--ff-mono);font-size:.4375rem;color:var(--t3);font-style:italic;line-height:1.3}
+
+.empty{grid-column:1/-1;text-align:center;padding:3rem 1rem;
+  font-family:var(--ff-body);font-size:1.125rem;font-style:italic;color:var(--t3)}
+.hi{display:none!important}
+
+/* ── Responsive ── */
+@media(max-width:1280px){.gv{grid-template-columns:repeat(3,1fr)}.cv{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:960px){.gv{grid-template-columns:repeat(2,1fr)}.cv{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:768px){
+  .hdr,.ctrl,.main{padding-left:1rem;padding-right:1rem}
+  .cg{grid-template-columns:1fr}
+  .gv{grid-template-columns:1fr 1fr}
+  .f-btn,.v-tab{min-height:2.25rem;padding:.5rem .625rem}
+}
+@media(max-width:540px){
+  .gv,.cv{grid-template-columns:1fr}
+  .f-btn,.v-tab{min-height:2.5rem}
+  .srch-in{width:110px}
+}
+@media(max-width:380px){
+  .hdr,.ctrl,.main{padding-left:.75rem;padding-right:.75rem}
+  .ctrl-row{gap:.1875rem}
+}
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}
+  html{scroll-behavior:auto}.cdet{transition:none}
+  body::before,body::after{display:none}
+}
+@media(prefers-contrast:high){
+  :root{--bg:#000;--sf:#0a0a08;--bd:#666;--bd2:#999;--t:#fff;--t2:#ddd;--t3:#aaa}
+}
+@media print{
+  .skip,.ctrl{display:none!important}
+  body{background:#fff;color:#000}
+  .ctit,.gtit,.cctit,.phase-lbl,.col-hdr,.hdr-brand h1{font-family:Georgia,serif}
+  .card{border:1px solid #ccc;page-break-inside:avoid}
+  .cdet{grid-template-rows:1fr!important}
+  body::before,body::after{display:none}
+}
+</style>
+</head>
+<body>
+
+<a class="skip" href="#main">Skip to moments</a>
+
+<header class="hdr" role="banner">
+  <div class="hdr-brand">
+    <h1>Pivotal Moments · Abstrekkt / Kyle Rosebrook · v11</h1>
+    <p>Oct 2025 → Jun 2026 &nbsp;·&nbsp; Chat · Drive · Project Files · Memory</p>
+  </div>
+  <p class="hdr-count" id="hdrCount" aria-label="Version delta">—</p>
+</header>
+
+<dl class="stats" aria-label="Moment counts by category">
+  <div class="stat"><dt class="sl">Total</dt><dd class="sn all" id="st-all">—</dd></div>
+  <div class="stat"><dt class="sl">Personal</dt><dd class="sn personal" id="st-personal">—</dd></div>
+  <div class="stat"><dt class="sl">Technical</dt><dd class="sn technical" id="st-technical">—</dd></div>
+  <div class="stat"><dt class="sl">Synthesis</dt><dd class="sn synthesis" id="st-synthesis">—</dd></div>
+  <div class="stat"><dt class="sl">Kill / Cut</dt><dd class="sn kill" id="st-kill">—</dd></div>
+  <div class="stat"><dt class="sl">Tension</dt><dd class="sn tension" id="st-tension">—</dd></div>
+</dl>
+
+<nav class="ctrl" aria-label="Filter and view controls">
+  <div class="ctrl-row">
+    <span class="ctrl-lbl" id="flbl">Filter</span>
+    <div class="ctrl-row" role="radiogroup" aria-labelledby="flbl" id="fgrp" style="gap:.25rem">
+      <button class="f-btn" role="radio" aria-checked="true"  data-f="all" id="fAll">All</button>
+      <button class="f-btn" role="radio" aria-checked="false" data-f="personal">Personal</button>
+      <button class="f-btn" role="radio" aria-checked="false" data-f="technical">Technical</button>
+      <button class="f-btn" role="radio" aria-checked="false" data-f="synthesis">Synthesis</button>
+      <button class="f-btn" role="radio" aria-checked="false" data-f="kill">Kill / Cut</button>
+      <button class="f-btn" role="radio" aria-checked="false" data-f="tension">Tension</button>
+    </div>
+    <span class="ctrl-sep" aria-hidden="true"></span>
+    <span class="rc" id="rc" aria-live="polite" aria-atomic="true">—</span>
+  </div>
+  <div class="ctrl-row">
+    <span class="ctrl-lbl" id="sflbl">Source</span>
+    <div class="ctrl-row" role="radiogroup" aria-labelledby="sflbl" id="sfgrp" style="gap:.25rem">
+      <button class="f-btn" role="radio" aria-checked="true"  data-sf="all" id="sfAll">All</button>
+      <button class="f-btn" role="radio" aria-checked="false" data-sf="chat">Chat</button>
+      <button class="f-btn" role="radio" aria-checked="false" data-sf="project">Project</button>
+      <button class="f-btn" role="radio" aria-checked="false" data-sf="drive">Drive</button>
+    </div>
+  </div>
+  <div class="ctrl-row">
+    <span class="ctrl-lbl" id="vlbl">View</span>
+    <div class="ctrl-row" role="tablist" aria-labelledby="vlbl" style="gap:.25rem">
+      <button class="v-tab" role="tab" id="tab-t" aria-selected="true"  aria-controls="panel-t">Timeline</button>
+      <button class="v-tab" role="tab" id="tab-g" aria-selected="false" aria-controls="panel-g">Grid</button>
+      <button class="v-tab" role="tab" id="tab-c" aria-selected="false" aria-controls="panel-c">Columns</button>
+    </div>
+    <div class="srch" style="margin-left:auto">
+      <span class="srch-icon" aria-hidden="true">/</span>
+      <label for="srchIn" class="sr-only">Search moments</label>
+      <input id="srchIn" class="srch-in" type="search" placeholder="Search…"
+        autocomplete="off" spellcheck="false"
+        aria-label="Search moments — press / to focus, Escape to clear">
+      <button class="srch-x" id="srchX" aria-label="Clear search">×</button>
+    </div>
+  </div>
+</nav>
+
+<div id="status" role="status" aria-live="polite" aria-atomic="true" class="sr-only"></div>
+
+<main id="main" class="main" tabindex="-1">
+  <div role="tabpanel" id="panel-t" aria-labelledby="tab-t" tabindex="0"></div>
+  <div role="tabpanel" id="panel-g" aria-labelledby="tab-g" tabindex="0" hidden></div>
+  <div role="tabpanel" id="panel-c" aria-labelledby="tab-c" tabindex="0" hidden></div>
+</main>
+
+<script>
+/* ════════════════════════════════════════════════════
+   DATA — add a moment by appending to M[] below.
+   Required: n, c, d, src, phase, T, S
+   Optional: N (NEW), q (quote), w (detail),
+             em ([{l,v}]), lk (url), lkt (link text)
+   c:    personal|technical|synthesis|kill|tension
+   src:  chat|project|drive
+   phase:0=Oct'25  1=Nov-Dec'25  2=Jan'26  3=Feb'26
+         4=Mar'26  5=Jun'26
+   ════════════════════════════════════════════════════ */
+
+const PHASES=[
+  {l:'Foundation · Oct 2025'},
+  {l:'Pre-Arc · Nov – Dec 2025'},
+  {l:'Build I · Jan 2026'},
+  {l:'Build II · Feb 2026'},
+  {l:'Crystallization · Mar 2026'},
+  {l:'Public Emergence · Jun 2026'},
+];
+
+const CAT={personal:'Personal',technical:'Technical',synthesis:'Synthesis',kill:'Kill/Cut',tension:'Tension'};
+const SRC={chat:'Chat',project:'Project',drive:'Drive'};
+const COL_CATS=['personal','technical','synthesis','kill','tension'];
+/* category + new counts derived from M[] at runtime — see COUNTS below */
+
+const M=[
+/* ── Phase 0: Foundation Oct 2025 ── */
+{n:1,c:'technical',d:'Oct 20',N:false,src:'chat',phase:0,T:'Smart Content Assistant v2.1 — First Build, 12 Templates, 8 Reality Filters',S:'Origin artifact. Reality filters coined before they had a name.',q:'8 reality filters: <strong>hallucination mitigation, brand voice consistency, platform algorithm awareness, SEO volatility shield, sensitive topic scanner, accessibility validator, copyright scanner, content safety.</strong>',w:'Zero deps beyond React + Lucide. The deliverable pattern that becomes the meta-prompt system months later.',lk:'https://claude.ai/chat/54a4946e-6561-459b-be84-903ed417d26a',lkt:'Chat'},
+{n:2,c:'synthesis',d:'Oct 20',N:false,src:'chat',phase:0,T:'Preflight Validation Research — 60% of Errors Preventable, Proven',S:'100% success with checks. 57% without. p=0.03.',q:'<strong>Has preflight: 100% success. No preflight: 57%, 14% fail.</strong> p=0.03 Fisher\'s exact. Three-layer defense model traces from here.',lk:'https://claude.ai/chat/2af7197e-8087-4226-84f4-577a680f2c52',lkt:'Chat'},
+{n:3,c:'synthesis',d:'Oct 26',N:false,src:'project',phase:0,T:'Prompt Engineering Audit — 47→23, Evidence Over Anecdote',S:'The intellectual foundation. Evidence > anecdote.',q:'<strong>\'47% better with persona\' has no primary source.</strong> Corrected. Temperature control not user-accessible in ChatGPT standard interface.'},
+{n:4,c:'technical',d:'Oct 26',N:false,src:'project',phase:0,T:'Anti-Slop v2.0 — 20 Findings Resolved, 6 Hard-Stop Gates',S:'724→836 lines. Formal system behind "mediocre → rebuild."',q:'Primary quality test: <strong>\'Could any AI using default settings produce this?\' → Yes = redesign.</strong> Gates 1–2 hard stops.'},
+/* ── Phase 1: Pre-Arc Nov-Dec 2025 ── */
+{n:5,c:'technical',d:'Nov 3',N:false,src:'chat',phase:1,T:'INT Smart Triage Security Audit — First Formal AppSec Review',S:'75/100 MODERATE. localStorage crash + RLS gaps.',q:'🟡 MODERATE (75/100). <strong>Critical: localStorage crash (ThemeContext.tsx). RLS gap on triage-report edge function.</strong>',lk:'https://claude.ai/chat/a257175f-755f-425b-8396-4f47fbdb8a14',lkt:'Chat'},
+{n:6,c:'technical',d:'Nov 19',N:false,src:'chat',phase:1,T:'SCA v2.2 Security Hardening — Dual-LLM Pattern, 99%+ Injection Defense',S:'OWASP + STRIDE + Zod. 7-10 file deliverable standard locked.',q:'<strong>Dual LLM: quarantined (no tool access) extracts first. Privileged never sees raw input.</strong> Self-critique in every delivery.',lk:'https://claude.ai/chat/574eb863-c6b7-4766-a9a5-3b061159ebf1',lkt:'Chat'},
+{n:7,c:'technical',d:'Nov 19',N:false,src:'chat',phase:1,T:'SCA Codebase Refactor — Evidence-Based Stack, Two-Tier Testing',S:'Next.js 14. Zustand over Context. Vitest 5×.',q:'<strong>Context (≤3 slices) → Zustand (4–15) → Redux (>15).</strong> Microsoft Research: high coverage alone permits 20–40% of bugs.',lk:'https://claude.ai/chat/9d7af5bd-b0f1-47bc-95e2-bdfc27338f87',lkt:'Chat'},
+{n:8,c:'technical',d:'Dec 13',N:false,src:'chat',phase:1,T:'Platform Explorer v6.0 — First Production AI Advisory Tool',S:'10+ platforms. INT dept recs baked in.',q:'<strong>Legal→Claude, Engineering→Claude+GitHub, Marketing→ChatGPT, InfoSec→Claude+Gemini.</strong>',lk:'https://claude.ai/chat/4b4e8ab8-2b36-46f8-9db2-21f6105f5f55',lkt:'Chat'},
+{n:9,c:'synthesis',d:'Dec 12',N:false,src:'chat',phase:1,T:'Founder OS → Production Platform',S:'9-database system. ZMSC gates.',q:'<strong>13 major sections and 8 interconnected Notion databases.</strong>',lk:'https://claude.ai/chat/f4b8a0fb-49d0-466a-95c0-a584342a7f29',lkt:'Chat'},
+{n:10,c:'kill',d:'Dec 13',N:false,src:'chat',phase:1,T:'400+ Repos. Not 15.',S:'The assumption blew up. Strategy rebuilt.',q:'<strong>53 \'consolidated\' repos — mostly placeholders, only 4 real projects.</strong>',lk:'https://claude.ai/chat/b797ebef-a4d7-4253-b323-5ca400efe1bc',lkt:'Chat'},
+{n:11,c:'technical',d:'Dec 21',N:false,src:'chat',phase:1,T:'System Genesis — This README Was Born Here',S:'System for building systems.',q:'Universal blueprint extraction prompt + <strong>unified architecture across his entire company.</strong>',lk:'https://claude.ai/chat/8573ea5a-3e72-4b70-952a-a0b936de6c6b',lkt:'Chat'},
+{n:12,c:'technical',d:'Dec 29',N:false,src:'chat',phase:1,T:'MONOTURBO Named + TessaFusion Designated as IP',S:'A name gave it gravity. A designation gave the frameworks a moat.',q:'<strong>MONOTURBO: every other project becomes an apps/ folder inside MONOTURBO.</strong>',lk:'https://claude.ai/chat/3f15344d-b7c4-4ff6-af9f-baeaa815eed4',lkt:'Chat'},
+/* ── Phase 2: Build I Jan 2026 ── */
+{n:13,c:'technical',d:'Jan 10',N:false,src:'chat',phase:2,T:'saas_core v2.6.0 — Template Becomes Real Infrastructure',S:'SKIP LOCKED, watchdog, quarantine lanes.',q:'33KB ZIP: <strong>SKIP LOCKED, idempotent webhooks, stale-lock watchdog, quarantine lanes, correlation IDs.</strong>',lk:'https://claude.ai/chat/2f3be8f7-ace4-46af-b6c6-97c69dac5d02',lkt:'Chat'},
+{n:14,c:'synthesis',d:'Jan 17',N:false,src:'chat',phase:2,T:'34 Projects. Frameworks Named as Competitive Moat.',S:'Not productivity tools — unfair advantages.',q:'<strong>Unfair advantages: AI orchestration expertise, production infrastructure, proprietary R-I-S-E, F-L-O-W, R-O-S-E frameworks.</strong>',lk:'https://claude.ai/chat/60038682-23a7-45a6-a90f-7190fbbbac42',lkt:'Chat'},
+{n:15,c:'synthesis',d:'Jan 16',N:false,src:'chat',phase:2,T:'INT AI Adoption — 3-Phase Framework, AI Council',S:'5→50→75 users. Governance before scale.',q:'<strong>\'Contains client name? → COPILOT. Complex reasoning? → CLAUDE. Current news? → PERPLEXITY.\'</strong>',lk:'https://claude.ai/chat/728dc086-6bf9-4b38-8b36-497227c328c5',lkt:'Chat'},
+/* ── Phase 3: Build II Feb 2026 ── */
+{n:16,c:'technical',d:'Feb 5',N:false,src:'chat',phase:3,T:'Claude in Chrome — Security Plan, PR Review Automation',S:'23.6%→11.2% injection reduction. Two-lane automation model.',q:'Injection reduced from <strong>23.6% → 11.2%</strong>. Allowlist: github.com, base44.com, notion.so, vercel.com, supabase.com.',em:[{l:'Two-lane model',v:'Manual (watched, can intervene) vs. Automated (scheduled, unattended)'},{l:'Security perimeter',v:'Domain allowlist = RLS for browser automation'}],lk:'https://claude.ai/chat/bb6b3d86-c7d7-4aba-843c-488a2e9ce9e5',lkt:'Chat'},
+{n:17,c:'technical',d:'Feb 5',N:false,src:'chat',phase:3,T:'Credentials Exposure — P0 Security Incident, 100+ Live Keys',S:'"Security override denied." P0→P3 rotation guide.',q:'🚨 P0 SECURITY INCIDENT — STOP 🚨 <strong>Hundreds of live production credentials completely compromised. Security override denied.</strong>',w:'100+ credentials: OpenAI, Anthropic, Stripe, AWS root, GitHub, Supabase, Vercel + 90 more. P0 in 15 minutes, P3 in 2 hours.',lk:'https://claude.ai/chat/82a4df9a-789a-4e12-87f3-a7e8ec539282',lkt:'Chat'},
+{n:18,c:'technical',d:'Feb 5',N:false,src:'chat',phase:3,T:'EmeraldDrift P0 — 11,000% Over Capacity',S:'7 marketplace integrations. Compound architecture failures.',q:'<strong>11,000% above capacity. P0 catastrophic.</strong> 5 context-engineered audit prompts.',lk:'https://claude.ai/chat/f947542e-7071-47b6-8850-3f71509b7142',lkt:'Chat'},
+{n:19,c:'synthesis',d:'Feb 5',N:false,src:'chat',phase:3,T:'FlashFusion MVP Scope Locked — "Describe Brand → 2 Min → $X"',S:'Generate → Preview → Purchase. Publish is future.',q:'Collapses <strong>\'hire designer → 2 weeks → $500\' into \'describe brand → 2 minutes → $X.\'</strong>',lk:'https://claude.ai/chat/b6d50473-a79b-4b06-9158-3f098bc1bc0b',lkt:'Chat'},
+{n:20,c:'technical',d:'Feb 5',N:false,src:'chat',phase:3,T:'FlashFusion Dev Onboarding Package — New Developer Monday',S:'10 ADRs, 6 skills, 6 diagrams, 7 MCPs.',q:'<strong>ADR-002: Supabase+Firebase coexistence. ADR-008: tRPC over REST. ADR-009: n8n over Zapier ($0 vs $20–50/mo).</strong>',lk:'https://claude.ai/chat/9dd1e18b-596e-49c2-9d5c-ddb60d42de03',lkt:'Chat'},
+{n:21,c:'kill',d:'Feb 5',N:false,src:'chat',phase:3,T:'"Probably Shelve it." — AI Prompt Galaxy Killed',S:'Good recon. No differentiation. Three words saved weeks.',q:'"Solid reconnaissance, but solving for \'clone an existing marketplace\' without a clear <strong>why</strong>."',lk:'https://claude.ai/chat/2002affd-c136-4766-935f-8a165dac9df4',lkt:'Chat'},
+{n:22,c:'technical',d:'Feb 5',N:false,src:'chat',phase:3,T:'Continuum — "Ship it." Same Day as the Kill.',S:'18-section PRD. One word. Framework in both directions.',q:'Kyle decisively responded <strong>"ship it."</strong>',lk:'https://claude.ai/chat/a055e66c-43d0-4524-9437-06b756981efe',lkt:'Chat'},
+{n:23,c:'technical',d:'Feb 5',N:false,src:'chat',phase:3,T:'Vibecode v2.6.0 — Ops Maturity as Baseline',S:'13 alerts. 6-phase drills. 5 SLOs.',q:'<strong>Monthly drill script, 13 production alerts, 9 deployment quality gates, SLO tracking for 5 key metrics.</strong>',lk:'https://claude.ai/chat/f7498f44-9748-499a-8bd0-b377a99fd894',lkt:'Chat'},
+{n:24,c:'synthesis',d:'Feb 13',N:false,src:'chat',phase:3,T:'SCA → Customization Service Reference Implementation',S:'"You\'re not building a Jasper competitor." Data engine + moat.',q:'You\'re <strong>not</strong> building a Jasper competitor. You\'re building: a <strong>reference implementation</strong>, a <strong>data engine</strong>, and a <strong>defensible moat</strong> via M365 integration + customer data.',em:[{l:'The pivot',v:'Competitor → Reference implementation for Customization Service'},{l:'The moat',v:'M365 special permissions + data loops + audit trail'}],lk:'https://claude.ai/chat/691df19f-f725-42eb-81b2-a684d27d9c95',lkt:'Chat'},
+{n:25,c:'synthesis',d:'Feb 14',N:false,src:'chat',phase:3,T:'28 Frameworks + 410 Prompts → ONE Intelligent Meta-Prompt Router',S:'"You picked the smarter option." Static doesn\'t scale.',q:'Instead of 410 static prompts, one <strong>intelligent routing system</strong>: clarifiers → right frameworks → Intinc-contextualized output → paste into Notion AI.',em:[{l:'The insight',v:'410 static = finite + brittle. 1 router = infinite + adaptive.'},{l:'28 frameworks',v:'R-I-S-E, F-L-O-W, R-O-S-E + 25 others, all dynamically routable'}],lk:'https://claude.ai/chat/1f2444e7-2ff9-4208-ac63-b5afb87e62ce',lkt:'Chat'},
+{n:26,c:'personal',d:'Feb 10–11',N:false,src:'chat',phase:3,T:'AI SME Assessment — "No" Verdict, 30-60-90 Roadmap',S:'Board-level skeptic. Accountability without authority = career risk.',q:'Genuine AI fluency lacks <strong>institutional authority, formal decision rights, risk accountability, measurable business impact.</strong> Verdict: No.',lk:'https://claude.ai/chat/76141cf4-f80d-4921-b8e6-cdf3ede2237a',lkt:'Chat'},
+{n:27,c:'synthesis',d:'Feb 10',N:false,src:'chat',phase:3,T:'AI Conference — Dave + Kyle Together, EPB Market Validation Brief',S:'"Cheaper than 3 months of customer research."',q:'Together: <strong>"INT Inc is serious about enterprise Claude governance. We\'re building the OS for it."</strong>',em:[{l:'Kyle\'s lane',v:'Technical sessions, agent orchestration, integration scouting'},{l:'Dave\'s lane',v:'Enterprise buyers, partnership discovery, business model validation'}],lk:'https://claude.ai/chat/e2078648-596b-41c2-8623-0341d5d1c746',lkt:'Chat'},
+{n:28,c:'synthesis',d:'Feb 11',N:false,src:'chat',phase:3,T:'Unfair Advantages Reframe — Enterprise Architecture, Not Consumer Mobile',S:'"Stop. You\'re building the wrong thing entirely."',q:'<strong>You\'re not a consumer app founder. You\'re a B2B AI infrastructure founder who understands creators.</strong>',lk:'https://claude.ai/chat/f91f7c1c-b618-45e4-bba0-5c3831375dd5',lkt:'Chat'},
+{n:29,c:'synthesis',d:'Feb 11',N:false,src:'chat',phase:3,T:'Replit Global Mobile Buildathon — $10K Grand Prize',S:'5,200+ attendees. Feb 13 deadline. Shaped Infinity Heroes.',q:'Grand prize: <strong>$10,000 cash + iPhone 17 Pro Max + Replit HQ visit.</strong>',lk:'https://claude.ai/chat/75502996-dd06-4b88-be57-b39528bd5e5f',lkt:'Chat'},
+{n:30,c:'technical',d:'Feb 16',N:false,src:'chat',phase:3,T:'Infinity Heroes Rebuilt — Gemini 3 Pro + TTS + PWA',S:'React 19 + TypeScript + Vite. 3 story modes.',q:'<strong>7 TTS voices, Web Audio API soundscapes. Classic + Mad Libs + Sleep modes.</strong>',lk:'https://claude.ai/chat/a4785b5f-f4aa-4a2f-a092-239015a4ce40',lkt:'Chat'},
+{n:31,c:'technical',d:'Feb 16',N:false,src:'chat',phase:3,T:'Condukt / Creativable — White-Label Rebrand Thesis',S:'"Orchestrate Everything." German SaaS repositioned.',q:'<strong>60+ routes, 12 domains, 5 phases, 29-week plan.</strong>',lk:'https://claude.ai/chat/df33c546-9b2e-4b95-8298-91f667b7448c',lkt:'Chat'},
+{n:32,c:'synthesis',d:'Feb 21',N:false,src:'chat',phase:3,T:'HumanX Context Extractor — Rich vs. Missing Content Mapped',S:'Universal extraction pattern. 8-file output. Honest gap map.',q:'<strong>RICH: multi-tenant isolation, EPB architecture, compliance mapping. MISSING: HumanX specifics, vendor matrix, Gemini API patterns.</strong>',em:[{l:'The method',v:'8 extraction files + manifest. Rich vs. Missing as explicit output.'},{l:'Assessment plan',v:'QR → questions → Claude JSON → Gemini diagram → audio → CTA'}],lk:'https://claude.ai/chat/48914d44-f403-409a-8c54-b8dc9cfcfbef',lkt:'Chat'},
+{n:33,c:'synthesis',d:'Feb 21',N:false,src:'chat',phase:3,T:'HumanX AIaaS Presentation — INT as "AI General Contractor"',S:'Gartner 40%+ stat. Three hero offers.',q:'<strong>Copilot Governance ($15–30K) · SecOps ($20–45K) · Automation Sprint ($15–25K). All 6–8 weeks.</strong>',lk:'https://claude.ai/chat/bd279009-22bc-42d1-b4d4-63a957f40911',lkt:'Chat'},
+{n:34,c:'synthesis',d:'Feb 17–20',N:false,src:'chat',phase:3,T:'InVelo Full Package — Every Leadership Objection Answered',S:'10 battle cards. Financial model. ZIP.',q:'$18K per 6–8 week. <strong>80% add-ons (zero CAC). 20% new logos.</strong>',lk:'https://claude.ai/chat/1f86284d-b3b8-43d7-99a6-3aa4afbe429b',lkt:'Chat'},
+{n:35,c:'synthesis',d:'Feb 22',N:false,src:'chat',phase:3,T:'InVelo HumanX Strategy — 16-File Package, SolutionBridge Mar 6',S:'Shadow AI narrative. Free ticket + 8 pre-scheduled 1:1s.',q:'<strong>\'38% of employees share sensitive data through unapproved AI tools.\'</strong> Free $3,995 ticket + 8 VP-level 1:1s.',lk:'https://claude.ai/chat/ed5ce433-4a19-41b9-820c-a94b5e92f31a',lkt:'Chat'},
+{n:36,c:'synthesis',d:'Feb 20',N:false,src:'chat',phase:3,T:'Claude Code Security — CrowdStrike −7.56%',S:'Reasoning-based SAST. AppSec disruption signal.',q:'<strong>Multi-hop: unauthenticated webhook → format_payload() → shell execution.</strong> Reasoning-based, not rule-based.',lk:'https://claude.ai/chat/0a1c9b9a-4cb7-4d93-97a0-8d01e46e9a91',lkt:'Chat'},
+{n:37,c:'kill',d:'Feb 21',N:false,src:'chat',phase:3,T:'Data Venue Reframe — "We\'re Not Building a Vault"',S:'Product → consulting framework. $50–100K liability avoided.',q:'<strong>"Vendors LOVE that positioning — it means you bring them deals."</strong>',lk:'https://claude.ai/chat/45676d46-0b9a-486e-a108-22f8d74c51eb',lkt:'Chat'},
+/* ── Phase 4: Crystallization Mar 2026 ── */
+{n:66,c:'kill',d:'Feb 2026',N:true,src:'project',phase:3,
+ T:'Flash-n-Frame Shelved — Technically Excellent, Commercially Blocked',
+ S:'529 tests. Full CI/CD. Supabase auth. Cannot monetize as designed. Everything working, commercially blocked.',
+ q:'<strong>Pre-seed targeting $250K–$500K raise. A technically complete intelligent model router with 529 tests, Cloudflare Workers, Supabase auth — everything working, commercially blocked. Pivot: redirect all energy into FlashFusion as a proper enterprise platform, not a standalone SaaS router.</strong>',
+ w:'Flash-n-Frame was a multi-model routing engine built with production-grade rigor: React 19, Express 5, Cloudflare Hyperdrive, Playwright E2E. The product worked. The monetization path didn\'t exist. Technically Ahead, Commercially Blocked is now a named recurring pattern.',
+ em:[{l:'Technical state',v:'529+ unit tests · Playwright E2E · Supabase RLS + Auth migration · CF Hyperdrive · Full CI/CD'},{l:'The pattern',v:'"Technical quality consistently outruns business model clarity" — first named instance'}]},
+{n:67,c:'personal',d:'Mar 9',N:true,src:'project',phase:4,
+ T:'Memoir Initiated — First Excavation Sessions, Governing Question Locked',
+ S:'MyBook / MyBook2. "How does a person rebuild agency not through recovery, but through construction of what never existed?"',
+ q:'<strong>"How does a person whose mind has been broken — by choice, by injury, by circumstance — rebuild agency not through recovery of what was lost, but through construction of what never existed?"</strong>',
+ w:'First excavation sessions Mar 9, 2026. Storyteller Pro archaeological mining: 5 scene seeds extracted including age oscillation (19 vs 21), "relief is the most addictive feeling of all." Voice DNA v2 built — 6-tab interactive guide, browser-persistent, exportable as AI system prompt.'},
+{n:68,c:'personal',d:'Mar 2026',N:true,src:'project',phase:4,
+ T:'Primary Reader Confirmed — The Memoir Becomes a Letter, Not a Testimony',
+ S:'Reframes from recovery testimony to a letter to his daughter. The frame changes everything.',
+ q:'<strong>"Primary reader confirmed — the book reframes from recovery testimony to a letter to his daughter. This changes everything."</strong> The book is "here\'s what daddy built so you would have a father." There was no \'what he was\' worth returning to — only what got constructed.',
+ w:'The letter frame becomes load-bearing architecture, not sentimentality. Every chapter must pass one test: would his daughter, grown, understand what it cost to build the person who shows up every Friday? Friday pickup, Sunday return — the memoir is one way to be present in the other 75%.'},
+/* ── Phase 4: Crystallization Mar 2026 (original) ── */
+{n:38,c:'kill',d:'Mar 2',N:false,src:'chat',phase:4,T:'Claude Cowork — "Don\'t Use It." Formal DNR',S:'Family photos deleted. VM instability.',q:'<strong>Files gone through the terminal (not the trash). One character between "clean up" and "wipe everything."</strong>',em:[{l:'Risk 1 (VM)',v:'VM bricking after sleep/crash. Level 1–3 recovery required.'},{l:'Risk 2 (Data)',v:'Agentic deletion errors. Cleanup = permanent removal. Irreversible.'}],lk:'https://claude.ai/chat/f768e9df-c0a0-4bef-baba-f494ffd7d92a',lkt:'Chat'},
+{n:39,c:'technical',d:'Mar 6',N:false,src:'chat',phase:4,T:'Beta Tester Army — Multi-Agent Template, Context Capsule Pattern',S:'5 personas. 6 flows. 7-dimension rubric.',q:'<strong>5 personas: Skeptical Enterprise Architect, Vibe Coder Who Broke Prod, Security-First DevOps Lead, New Renaissance Developer, Budget-Conscious CTO.</strong>',w:'Context capsule pattern: complete session state as JSX artifact — all decisions, open threads transferred between Claude sessions without context loss.',em:[{l:'The pattern',v:'Context capsule JSX = zero-prompt session handoff'},{l:'7-dim rubric',v:'Context Integrity 20% · HITL 18% · Blast Radius 17% · Observability 15% · Security 15% · Cost 8% · Goal 7%'}],lk:'https://claude.ai/chat/ac5b8adf-5f63-44f6-9c1b-258753a708df',lkt:'Chat'},
+{n:40,c:'technical',d:'Mar 14',N:false,src:'chat',phase:4,T:'MONOTURBO ROI — $46K Annual Benefit, 3.7-Month Payback',S:'Infrastructure project becomes a business investment.',q:'<strong>$46,260 annual benefit against $41,000 investment, 3.7-month payback.</strong>',lk:'https://claude.ai/chat/381d00f5-c745-4f23-bdf6-20d9cf6c6c12',lkt:'Chat'},
+{n:41,c:'personal',d:'Mar 14',N:false,src:'chat',phase:4,T:'"Mediocre" → "So Mediocre" → Rebuild from First Principles',S:'Terse rejection = start over, not iterate.',q:'<strong>Experience Thesis: material, temperature, density, and a single memorable element before any code.</strong>',lk:'https://claude.ai/chat/0f53cd08-73d1-41e1-a290-23523fdaad99',lkt:'Chat'},
+{n:42,c:'technical',d:'Mar 14',N:false,src:'chat',phase:4,T:'Expo EXPO_PUBLIC_ Fix — 22 Errors, 1 Root Cause',S:'Client exposure requires prefix + full rebuild.',q:'<strong>EXPO_PUBLIC_</strong> prefix required. Silently ignored. Full `expo start --clear` — hot reload won\'t pick up compile-time changes.',lk:'https://claude.ai/chat/c8bd31c6-65b8-450a-a43c-3c92d213acb7',lkt:'Chat'},
+{n:43,c:'synthesis',d:'Mar 17',N:false,src:'chat',phase:4,T:'Meta-Prompt Generator v1.0 — The Blueprint Factory',S:'Input: description → 7–10 fully-populated files. No placeholders.',q:'<strong>NEVER output placeholders or TODOs. Blueprint Factory — not just how to build one chair, but how to set up the entire furniture factory.</strong>',lk:'https://claude.ai/chat/be36344e-b06b-4406-8514-ad6450037dad',lkt:'Chat'},
+{n:44,c:'technical',d:'Mar 21',N:false,src:'chat',phase:4,T:'Vibecode v1.1.0 — Multi-Stack. Not Just Vercel.',S:'Firebase + AWS + Docker. Distributable platform.',q:'<strong>Standalone executables: Linux 45MB, macOS 50MB, Windows 37MB.</strong>',lk:'https://claude.ai/chat/eb90a8bd-1a50-49c4-bd62-b38288713978',lkt:'Chat'},
+{n:45,c:'technical',d:'Mar 9',N:false,src:'chat',phase:4,T:'EPB Compliance Audit Update — 85%, 21 Gaps, EU AI Act Aug 2026',S:'NIST AI RMF 2.0. Score down because bar moved, not regression.',q:'<strong>85% (down 2 pts — new framework requirements, not regressions). 21 gaps. EU AI Act high-risk: Aug 2026. ISO 42001: Q3 2026.</strong>',em:[{l:'Platform',v:'81,700+ lines · 94% coverage · $920K · Phases 7–11 complete'},{l:'Key dates',v:'GPAI obligations: Aug 2025 · High-risk AI: Aug 2026 · ISO 42001: Q3 2026'}],lk:'https://claude.ai/chat/c0e7bef1-d997-498e-87ac-465932187398',lkt:'Chat'},
+{n:46,c:'technical',d:'Mar 9',N:false,src:'chat',phase:4,T:'Ops Autopilot for SMB — 81-File Product Delivery Kit',S:'$49/$149/$500+/mo. Zero-knowledge secrets. Per-customer n8n.',q:'<strong>Zero-knowledge secrets. Per-customer isolated n8n Docker. HMAC-SHA256 audit logs. 30%/50%/54% margins.</strong>',em:[{l:'Architecture',v:'Teams → n8n (per-customer Docker) → Intinc → Supabase RLS'},{l:'Security',v:'Zero-knowledge secrets · HMAC-SHA256 logs · HITL gates'}],lk:'https://claude.ai/chat/f228d519-1b29-4673-a7f4-3f5ec0c0c025',lkt:'Chat'},
+{n:47,c:'technical',d:'Mar 10',N:false,src:'chat',phase:4,T:'INT Org Chart — 12 Depts, All 4 Lenses, SPOF Documented',S:'78 roles. Kyle = SPOF across DEPT-05/06/07. Staff Eng #2 Q3 2026.',q:'<strong>⚠️ SPOF across DEPT-05, DEPT-06, DEPT-07. Staff Engineer #2 hire Q3 2026, 90-day KT as onboarding condition.</strong>',lk:'https://claude.ai/chat/e1af2fd7-1a88-4ce2-a564-31291ddbd66b',lkt:'Chat'},
+{n:48,c:'technical',d:'Mar 10',N:false,src:'chat',phase:4,T:'Claude Plugin Ecosystem — 10 Plugins, 106 Files, 7 Roles',S:'RLS Validator · Incident Responder · Compliance Auditor.',q:'<strong>10 scaffolded plugins, 3-edition DOCX, 7 role-specific configs, RBAC matrix, 3 dashboards. 106 files, 119KB.</strong>',lk:'https://claude.ai/chat/e1af2fd7-1a88-4ce2-a564-31291ddbd66b',lkt:'Chat'},
+{n:49,c:'technical',d:'Mar 2026',N:false,src:'project',phase:4,T:'Lyra Observability Stack — PRD Becomes Infrastructure',S:'Prometheus + Grafana + Loki + Tempo + OTel. Live.',q:'<strong>Prometheus 2.48.0 + Grafana 10.2.2 + Loki 2.9.3 + Tempo 2.3.1 + OTel Collector 0.91.0 + Alertmanager 0.26.0.</strong>'},
+{n:50,c:'synthesis',d:'Mar 9',N:false,src:'chat',phase:4,T:'Portfolio Alignment Audit — What Exists vs. What\'s Claimed',S:'Simulator ≠ exist. Dave meeting = #1 unresolved blocker.',q:'<strong>Cross-Functional Simulator: does not appear in any conversation, project file, or memory entry.</strong>',lk:'https://claude.ai/chat/4bdc845c-b7c1-44e2-9be4-2dc0e30787e2',lkt:'Chat'},
+{n:51,c:'tension',d:'Current',N:false,src:'project',phase:4,T:'Cursor Prompt Chain — "15 Years Experience" Still in Play',S:'Active project, role-based prompting. Contra current ruling.',q:'"You are a Senior Solution Architect with 15 years of experience…"',w:'Memory: "Role-based prompting is obsolete." The 8-phase sequential chain is sound. Only persona frames contradict current principles.'},
+{n:52,c:'personal',d:'Mar 25',N:false,src:'drive',phase:4,T:'⚡ "Human-Led. AI-Accelerated. NOT AI-generated."',S:'The identity statement that settles the internal debate.',q:'<strong>Human-Led. AI-Accelerated. NOT AI-generated.</strong>',lk:'https://docs.google.com/document/d/11qjw9UcmwVQ4lpD4FarkDoeA4Q3oXHg2wy5_IX41Y0o/edit',lkt:'Google Doc'},
+{n:53,c:'personal',d:'Mar 25',N:false,src:'drive',phase:4,T:'Memoir Thesis — Construction over Recovery: The Material Became the Toolkit',S:'"Not subtraction — transformation." Construction, not recovery.',q:'Skills built under pressure — pattern recognition, systems thinking, risk tolerance — <strong>were the exact cognitive toolkit of an effective technologist.</strong> Not recovered. Constructed from non-standard materials.',lk:'https://docs.google.com/document/d/11qjw9UcmwVQ4lpD4FarkDoeA4Q3oXHg2wy5_IX41Y0o/edit',lkt:'Google Doc'},
+{n:54,c:'synthesis',d:'Mar 25',N:false,src:'drive',phase:4,T:'"The Model War is Over. Now it\'s the Deployment War."',S:'Moves the moat from model choice to infrastructure.',q:'"We stop building chat-wrappers and start building <strong>agentic primitives.</strong>"',lk:'https://docs.google.com/document/d/1qDWGjpreOfTd_ilqf0yLQhgOCLqdl-9bvI26BEERnb4/edit',lkt:'Google Doc'},
+{n:55,c:'synthesis',d:'Mar 25',N:false,src:'drive',phase:4,T:'Agentic Frontier — AI as Sovereign Economic Participant',S:'Moltbook + MCP + FlashFusion into one worldview.',q:'"Agents no longer merely assist — they <strong>discover, negotiate, and execute</strong> within a machine-to-machine ecosystem."',lk:'https://docs.google.com/document/d/1TB2h7EdV8hnth-i_aO8rxtIHHvriaxmjOTwPv67tAcQ/edit',lkt:'Google Doc'},
+/* ── Phase 5: Public Emergence Jun 2026 ── */
+{n:56,c:'kill',d:'Jun 2026',N:true,src:'chat',phase:5,
+ T:'Abstrekkt LLC Born — Parent Company Formation, ChaosClubCo Fully Retired',
+ S:'ChaosClubCo preserved byte-identical in /03-history/. Forward copy: clean.',
+ q:'<strong>ChaosClubCo stays preserved byte-identical in a history folder because history matters. The forward products lane becomes the new Abstrekkt Products arc. The retired name does not travel forward.</strong>',
+ w:'Emerald #34d399 applied as interim accent pending final brand identity. LLC = parent holding company. FlashFusion, Load-Bearing, Memoir, Products all lane underneath. Brand name dead; work lives.',
+ em:[{l:'The ruling',v:'ChaosClubCo: preserved in /03-history/ only. Never in forward planning or external copy.'},{l:'New structure',v:'Abstrekkt (parent) → FlashFusion + Products + Load-Bearing + Memoir'}],
+ lk:'https://claude.ai/chat/20f9133f-62bc-4830-880b-77735a7fdeb9',lkt:'Chat: Arc rebuild'},
+{n:57,c:'technical',d:'Jun 2026',N:true,src:'chat',phase:5,
+ T:'47-Artifact Contamination Scan — ChaosClubCo in 12 Files, Co-founder Myth Mapped',
+ S:'4 critical findings. Lafu = client, not co-founder. Art absent from all 47 artifacts.',
+ q:'<strong>Retired ChaosClubCo brand in 12 files, Lafu incorrectly framed as co-founder in multiple artifacts, active client Art absent from all 47 artifacts, day-job employer named in 33 files.</strong>',
+ w:'The scan forced every artifact to reconcile against ground truth. Lafu framing corrected: client/contact (cstmprnt ERP, Joe decides), never co-founder. Art became the template for Champion Model representation.',
+ em:[{l:'4 critical findings',v:'Brand contamination (12) · Co-founder myth · Art absent (47) · Employer named (33)'},{l:'Scope',v:'47 JSX artifacts audited, 6 rebuilt, 2 patched, 3 brand-fixed'}],
+ lk:'https://claude.ai/chat/20f9133f-62bc-4830-880b-77735a7fdeb9',lkt:'Chat: Arc rebuild'},
+{n:58,c:'synthesis',d:'Jun 20',N:true,src:'chat',phase:5,
+ T:'Abstrekkt Brand Identity v0.1 — Navy + Brass + Blueprint Diamond',
+ S:'First token sheet. Six AI images analyzed. Diamond motif + Fraunces locked.',
+ q:'<strong>Navy bg #10141F–#14192B, card #232328, brass #C8A86A, Fraunces display, JetBrains Mono labels. Diamond/blueprint motif as primary mark. "Clarity isn\'t simple. It\'s constructed."</strong>',
+ w:'No finalized Abstrekkt token sheet existed before this session. Brass values (#C8A86A, #8B7548) already in Load-Bearing/Reading Room — consistent pick confirmed.',
+ em:[{l:'Resolved',v:'Navy bg · Brass #C8A86A · Fraunces display · JetBrains Mono labels · Diamond mark'},{l:'Open',v:'Exact flat navy value · Body font for artifact runtime · Production SVG for diamond motif'}],
+ lk:'https://claude.ai/chat/60b04ae0-aac3-41f4-96ee-f410af905a11',lkt:'Chat: Brand identity session'},
+{n:59,c:'synthesis',d:'Jun 2026',N:true,src:'chat',phase:5,
+ T:'"Clarity is Constructed." — Tagline + Reading Room CTA Locked',
+ S:'"Clarity is constructed." · "Enter the Reading Room." · Sound design spec written.',
+ q:'<strong>Three decisions locked: one-liner ("Clarity is constructed."), CTA ("Enter the Reading Room"), sound design spec: silent landing hero / full ambient cinematic audio for YouTube + social derivatives.</strong>',
+ w:'Production rule: no text overlays, no B-roll of other people, no success clips. Sparse. Hands, papers, diagram emerging. Audience: operators, executives, students, educators — three tiers routed through one door.',
+ lk:'https://claude.ai/chat/919806c5-6200-40eb-9d40-4e09c287351f',lkt:'Chat: Reading Room brand rebuild'},
+{n:60,c:'synthesis',d:'Jun 2026',N:true,src:'chat',phase:5,
+ T:'Construction over Recovery — Cross-Cutting Thesis, 4 Domains',
+ S:'Memoir. Agent harness. Production runbooks. Diagnostic instinct. One thesis.',
+ q:'<strong>"Construction over Recovery" thesis appearing identically in memoir writing, agent harness design, and production runbook models. The through-line: building infrastructure before having permission to need it.</strong>',
+ w:'7 intellectual moments surfaced and captured: Construction over Recovery (cross-domain), Supervision Tax, KB automation = FF Zero-Admin structural identity, MSP-to-MIP positioning moat, diagnostic instinct narrative reframe, adversarial review as institutionalized practice, tools as external cognitive scaffolding. Keystone essay written.',
+ lk:'https://claude.ai/chat/15e4491e-0cab-4c97-b527-7f9b114c29cd',lkt:'Chat: Brilliant moments mapped'},
+{n:61,c:'synthesis',d:'Jun 2026',N:true,src:'chat',phase:5,
+ T:'The Supervision Tax — Named Mechanism',
+ S:'"AI output grows faster than human verification capacity." Structural, not ethical.',
+ q:'<strong>"The Supervision Tax: the mechanism explaining why AI output grows faster than human verification capacity."</strong> Not a values argument. A structural constraint with engineering consequences.',
+ w:'Retroactively explains the HITL design decisions, 7-dimension rubric weights, blast-radius scoring, and the "human-led" identity statement. A phrase that earns its keep by giving shape to dozens of prior architectural choices.',
+ lk:'https://claude.ai/chat/15e4491e-0cab-4c97-b527-7f9b114c29cd',lkt:'Chat: Brilliant moments'},
+{n:62,c:'personal',d:'Jun 2026',N:true,src:'chat',phase:5,
+ T:'"Building in the Shadows" → "Building in Public" — The Declaration',
+ S:'Not building in the shadows anymore. Origin video Act 1 found.',
+ q:'<strong>"Not building in the shadows anymore." The June 6 manifesto IS the origin video Act 1 Kyle had been stuck on.</strong>',
+ w:'HOVAV\'s nine-moment corridor is the parallel-timelines structure already prototyped as software. Call-and-response is the native formal mechanic across both songs and HOVAV. Four cross-project connections assembled that Kyle had not assembled himself.',
+ lk:'https://claude.ai/chat/6ae25d99-9b31-458e-9b74-da6da1957d94',lkt:'Chat: Writing weaknesses session'},
+{n:63,c:'synthesis',d:'Jun 22',N:true,src:'drive',phase:5,
+ T:'FlashFusion Playbook — 3 Hard Gates Before Any Signature',
+ S:'LLC + E&O + CCA-F. Confirmed in Drive, created June 22 2026.',
+ q:'<strong>FlashFusion Playbook explicitly gates paid contracts on LLC formation, E&O insurance, and CCA-F certification. All three must clear before any signature.</strong>',
+ em:[{l:'Gate 1',v:'IL LLC formation ($150, ilsos.gov, 5–10 business days)'},{l:'Gates 2+3',v:'E&O with affirmative-AI rider (standard Tech E&O: absolute AI exclusions since Jan 2026) · CCA-F July 20'}],
+ lk:'https://claude.ai/chat/d450fc6a-d069-4a4c-83a6-2e771e0147ae',lkt:'Chat: Launch video / outreach'},
+{n:64,c:'synthesis',d:'Jun 2026',N:true,src:'chat',phase:5,
+ T:'INTeract — "Disguised B2B SaaS with Intinc as Live Proof of Concept"',
+ S:'Day-job = POC environment. Internal automation = battle-tested product feature.',
+ q:'<strong>INTeract reframed as a disguised B2B SaaS with Intinc as a live proof of concept.</strong> Not just an internal tool — a product development environment with a built-in reference customer.',
+ w:'The reframe shifts the IP question and pitch story simultaneously. Kyle = customer zero and sales rep. Intinc = named case study candidate if lane separation holds.',
+ lk:'https://claude.ai/chat/3e46c0f2-c7cc-4eb3-be91-9071abbeb5a1',lkt:'Chat: Project focus evolution'},
+{n:65,c:'kill',d:'Jun 2026',N:true,src:'chat',phase:5,
+ T:'Enterprise AI Blog Voice — Killed. "AI Doesn\'t Make You Good. It Makes You Faster."',
+ S:'"Vocabulary was insider AI-speak throughout." Full series rebuilt for non-tech professional.',
+ q:'<strong>"AI Doesn\'t Make You Good. It Makes You Faster." Four of five original titles were abstractions. Full series rebuilt from scratch for a skilled person excellent at their job who has barely touched AI tools.</strong>',
+ w:'Banned words: moat, ratio, input-output, adversarial, failure modes, speed layer, leverage-as-verb. The lesson: the content was right, the reader assumption was wrong.',
+ lk:'https://claude.ai/chat/9908211c-2391-4897-ac10-6df322a79351',lkt:'Chat: Blog series rebuild'},
+];
+
+/* ══════════════ DERIVED COUNTS — single source of truth = M[] ══════════════ */
+const COUNTS=(()=>{
+  const byCat={personal:0,technical:0,synthesis:0,kill:0,tension:0};
+  const newByPhase={};
+  let total=0,nNew=0;
+  M.forEach(m=>{
+    total++;
+    byCat[m.c]=(byCat[m.c]||0)+1;
+    if(m.N){nNew++;newByPhase[m.phase]=(newByPhase[m.phase]||0)+1;}
+  });
+  return {total,nNew,prior:total-nNew,byCat,newByPhase};
+})();
+
+function paintStaticCounts(){
+  const set=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v;};
+  set('st-all',COUNTS.total);
+  COL_CATS.forEach(c=>set('st-'+c,COUNTS.byCat[c]||0));
+  set('fAll','All '+COUNTS.total);
+  set('sfAll','All '+COUNTS.total);
+  const hc=document.getElementById('hdrCount');
+  if(hc) hc.innerHTML=`${COUNTS.prior} prior &nbsp;+&nbsp; <strong>${COUNTS.nNew} new</strong> &nbsp;=&nbsp; ${COUNTS.total} total`;
+}
+
+/* ══════════════ HELPERS ══════════════ */
+const catBadge=c=>`<span class="cat ${c}" aria-label="Category: ${CAT[c]||c}">${CAT[c]||c}</span>`;
+const srcBadge=s=>`<span class="src ${s}">${SRC[s]||s}</span>`;
+const linkHtml=m=>{
+  if(!m.lk) return '';
+  const cls=m.src==='drive'?'is-drive':'is-chat';
+  return `<a class="clink ${cls}" href="${m.lk}" target="_blank" rel="noopener"
+    aria-label="Opens source: ${m.lkt||'link'} in new tab">↗ ${m.lkt||'Link'}</a>`;
+};
+
+/* ══════════════ TIMELINE ══════════════ */
+function renderTimeline(moments){
+  const p=document.getElementById('panel-t');
+  if(!moments.length){p.innerHTML='<p class="empty">No moments match your filters.</p>';return;}
+  const byPhase={};
+  moments.forEach(m=>{(byPhase[m.phase]||(byPhase[m.phase]=[])).push(m);});
+  let html='';
+  Object.keys(byPhase).sort((a,b)=>a-b).forEach(pi=>{
+    const ph=PHASES[pi]||{l:'Phase '+pi,nx:''};
+    html+=`<section class="phase-sec" aria-labelledby="ph${pi}">
+      <div class="phase-hdr">
+        <div class="phase-line" aria-hidden="true"></div>
+        <h2 class="phase-lbl" id="ph${pi}">${ph.l}${COUNTS.newByPhase[pi]?`<span class="phase-new">+${COUNTS.newByPhase[pi]} new</span>`:''}</h2>
+        <div class="phase-line" aria-hidden="true"></div>
+      </div>
+      <ul class="cg" role="list" aria-label="${ph.l} moments">`;
+    byPhase[pi].forEach(m=>{html+=`<li>${buildCard(m)}</li>`;});
+    html+=`</ul></section>`;
+  });
+  p.innerHTML=html;
+  p.querySelectorAll('.card').forEach(el=>{
+    el.addEventListener('click',()=>toggleCard(el));
+    el.addEventListener('keydown',e=>{
+      if(e.key==='Enter'||e.key===' '){e.preventDefault();toggleCard(el);}
+      if(e.key==='Escape'){collapseCard(el);}
+    });
+  });
+}
+
+function buildCard(m){
+  const did=`det-${m.n}`,tid=`tit-${m.n}`;
+  const has=m.q||m.w||(m.em&&m.em.length)||m.lk;
+  let det='';
+  if(has){
+    let inner='';
+    if(m.q) inner+=`<blockquote class="cq">${m.q}</blockquote>`;
+    if(m.w) inner+=`<p class="cw">${m.w}</p>`;
+    if(m.em&&m.em.length){
+      inner+='<div class="cem">';
+      m.em.forEach(e=>{inner+=`<div class="em-item"><div class="em-l">${e.l}</div><div class="em-v">${e.v}</div></div>`;});
+      inner+='</div>';
+    }
+    if(m.lk) inner+=`<div class="clinks">${linkHtml(m)}</div>`;
+    det=`<div class="cdet" id="${did}" role="region" aria-labelledby="${tid}"><div class="cdet-inner"><div class="cdet-body">${inner}</div></div></div>`;
+  }
+  return `<div class="card${m.N?' is-new':''}" data-c="${m.c}" tabindex="0"
+    ${has?`aria-expanded="false" aria-controls="${did}"`:''}
+    aria-label="${m.T}"
+  ><div class="card-meta">${catBadge(m.c)}<span class="cdate">${m.d} · ${srcBadge(m.src)}</span></div>
+  <h3 class="ctit" id="${tid}">${m.T}${has?`<span class="cexp" aria-hidden="true">▾</span>`:''}</h3>
+  <p class="csig">${m.S}</p>${det}</div>`;
+}
+
+function toggleCard(el){
+  const open=el.getAttribute('aria-expanded')==='true';
+  document.querySelectorAll('.card[aria-expanded=true]').forEach(c=>{if(c!==el)collapseCard(c);});
+  el.setAttribute('aria-expanded',open?'false':'true');
+}
+function collapseCard(el){el.setAttribute('aria-expanded','false');}
+
+/* ══════════════ GRID ══════════════ */
+function renderGrid(moments){
+  const p=document.getElementById('panel-g');
+  if(!moments.length){p.innerHTML='<p class="empty">No moments match your filters.</p>';return;}
+  let html='<ul class="gv" role="list">';
+  moments.forEach(m=>{
+    html+=`<li><button class="gc${m.N?' is-new':''}" data-c="${m.c}"
+      ${m.lk?`onclick="window.open('${m.lk}','_blank','noopener')"`:''} 
+      aria-label="${m.T}${m.lk?' — opens source':''}"
+    ><span class="gn" aria-hidden="true">${String(m.n).padStart(2,'0')}</span>
+    ${m.N?'<span class="gnew" aria-label="New moment">NEW</span>':''}
+    <span class="gcat cat ${m.c}">${CAT[m.c]||m.c}</span>
+    <div class="gdate">${m.d} · ${srcBadge(m.src)}</div>
+    <div class="gtit">${m.T}</div>
+    <div class="gsig">${m.S}</div></button></li>`;
+  });
+  html+='</ul>';p.innerHTML=html;
+}
+
+/* ══════════════ COLUMNS ══════════════ */
+function renderColumns(moments){
+  const p=document.getElementById('panel-c');
+  let html='<div class="cv">';
+  COL_CATS.forEach(cat=>{
+    const items=moments.filter(m=>m.c===cat);
+    html+=`<section aria-labelledby="colhdr-${cat}">
+      <h2 class="col-hdr ${cat}" id="colhdr-${cat}">${CAT[cat]} (${COUNTS.byCat[cat]||0})</h2>`;
+    if(!items.length){html+='<p style="font-family:var(--ff-body);font-size:.9rem;font-style:italic;color:var(--t3);padding:.5rem 0">None visible</p>';}
+    else items.forEach(m=>{
+      html+=`<button class="cc${m.N?' is-new':''}" data-c="${m.c}"
+        ${m.lk?`onclick="window.open('${m.lk}','_blank','noopener')"`:''} 
+        aria-label="${m.T}${m.lk?' — opens source':''}"
+      ><div class="ccdate">${m.d} · ${srcBadge(m.src)}</div>
+      <div class="cctit">${m.T}</div>
+      <div class="ccsig">${m.S}</div></button>`;
+    });
+    html+=`</section>`;
+  });
+  html+='</div>';p.innerHTML=html;
+}
+
+/* ══════════════ STATE ══════════════ */
+let curF='all',curV='t',curS='',curSrc='all';
+function visible(){
+  let r=M;
+  if(curF!=='all') r=r.filter(m=>m.c===curF);
+  if(curSrc!=='all') r=r.filter(m=>m.src===curSrc);
+  if(curS){const t=curS.toLowerCase();r=r.filter(m=>m.T.toLowerCase().includes(t)||m.S.toLowerCase().includes(t));}
+  return r;
+}
+function update(){
+  const v=visible();
+  document.getElementById('rc').innerHTML=`<strong>${v.length}</strong> shown`;
+  const fl=curF==='all'?'all categories':CAT[curF]||curF;
+  const sl=curSrc==='all'?'':' from '+(SRC[curSrc]||curSrc);
+  document.getElementById('status').textContent=`Showing ${v.length} moments${curF!=='all'?' in '+fl:''}${sl}${curS?' matching "'+curS+'"':''}.`;
+  if(curV==='t') renderTimeline(v);
+  else if(curV==='g') renderGrid(v);
+  else renderColumns(v);
+}
+
+/* ── Category filter ── */
+const fbtns=[...document.querySelectorAll('#fgrp .f-btn')];
+fbtns.forEach((btn,i)=>{
+  btn.addEventListener('click',()=>{
+    curF=btn.dataset.f;
+    fbtns.forEach(b=>b.setAttribute('aria-checked',String(b.dataset.f===curF)));
+    update();
+  });
+  btn.addEventListener('keydown',e=>{
+    if(e.key==='ArrowRight'||e.key==='ArrowDown'){e.preventDefault();fbtns[(i+1)%fbtns.length].focus();}
+    if(e.key==='ArrowLeft'||e.key==='ArrowUp'){e.preventDefault();fbtns[(i-1+fbtns.length)%fbtns.length].focus();}
+  });
+});
+
+/* ── Source filter ── */
+const sfbtns=[...document.querySelectorAll('#sfgrp .f-btn')];
+sfbtns.forEach((btn,i)=>{
+  btn.addEventListener('click',()=>{
+    curSrc=btn.dataset.sf;
+    sfbtns.forEach(b=>b.setAttribute('aria-checked',String(b.dataset.sf===curSrc)));
+    update();
+  });
+  btn.addEventListener('keydown',e=>{
+    if(e.key==='ArrowRight'||e.key==='ArrowDown'){e.preventDefault();sfbtns[(i+1)%sfbtns.length].focus();}
+    if(e.key==='ArrowLeft'||e.key==='ArrowUp'){e.preventDefault();sfbtns[(i-1+sfbtns.length)%sfbtns.length].focus();}
+  });
+});
+
+/* ── View tabs ── */
+const vtabs=[...document.querySelectorAll('.v-tab')];
+vtabs.forEach((tab,i)=>{
+  const v=tab.id.replace('tab-','');
+  tab.addEventListener('click',()=>setView(v));
+  tab.addEventListener('keydown',e=>{
+    if(e.key==='ArrowRight'){e.preventDefault();const n=vtabs[(i+1)%vtabs.length];n.click();n.focus();}
+    if(e.key==='ArrowLeft'){e.preventDefault();const n=vtabs[(i-1+vtabs.length)%vtabs.length];n.click();n.focus();}
+  });
+});
+function setView(v){
+  curV=v;
+  vtabs.forEach(t=>t.setAttribute('aria-selected',String(t.id===`tab-${v}`)));
+  ['t','g','c'].forEach(k=>{
+    const pan=document.getElementById(`panel-${k}`);
+    k===v?pan.removeAttribute('hidden'):pan.setAttribute('hidden','');
+  });
+  update();
+}
+
+/* ── Search ── */
+const srchIn=document.getElementById('srchIn'),srchX=document.getElementById('srchX');
+let srchT;
+srchIn.addEventListener('input',()=>{
+  clearTimeout(srchT);
+  srchT=setTimeout(()=>{curS=srchIn.value.trim();srchX.classList.toggle('on',curS.length>0);update();},200);
+});
+srchX.addEventListener('click',()=>{srchIn.value='';curS='';srchX.classList.remove('on');srchIn.focus();update();});
+
+/* ── Keyboard shortcuts ── */
+document.addEventListener('keydown',e=>{
+  if(e.key==='/'&&document.activeElement!==srchIn&&document.activeElement.tagName!=='INPUT'){
+    e.preventDefault();srchIn.focus();srchIn.select();return;
+  }
+  if(e.key==='Escape'){
+    if(curS){srchIn.value='';curS='';srchX.classList.remove('on');update();srchIn.focus();}
+    else{const o=document.querySelector('.card[aria-expanded=true]');if(o){collapseCard(o);o.focus();}}
+  }
+});
+
+paintStaticCounts();
+update();
+</script>
+</body>
+</html>

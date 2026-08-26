@@ -1,0 +1,1103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Build Sheets — Systems 05–10</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0F0F10;
+    --surface: #18181B;
+    --surface-2: #1F1F23;
+    --border: #2A2A2D;
+    --border-bright: #3A3A3F;
+    --text: #EDEDED;
+    --text-2: #A1A1AA;
+    --text-3: #71717A;
+    --amber: #F59E0B;
+    --amber-dim: #78540B;
+    --cyan: #22D3EE;
+    --rust: #DC2626;
+    --green: #10B981;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'IBM Plex Sans', system-ui, sans-serif;
+    font-weight: 300;
+    -webkit-font-smoothing: antialiased;
+    line-height: 1.55;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background-image: radial-gradient(rgba(255,255,255,0.012) 1px, transparent 1px);
+    background-size: 3px 3px;
+    z-index: 1;
+  }
+
+  .wrap {
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 48px 32px 96px;
+    position: relative;
+    z-index: 2;
+  }
+
+  /* HEADER */
+  .header {
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 32px;
+    margin-bottom: 48px;
+  }
+
+  .meta-row {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--text-3);
+    margin-bottom: 16px;
+    display: flex;
+    gap: 24px;
+  }
+
+  .meta-row .dot {
+    color: var(--amber);
+    margin-right: 6px;
+  }
+
+  h1 {
+    font-family: 'Instrument Serif', serif;
+    font-weight: 400;
+    font-size: clamp(40px, 6vw, 72px);
+    line-height: 1;
+    letter-spacing: -0.02em;
+    margin-bottom: 16px;
+  }
+
+  h1 em { font-style: italic; color: var(--amber); }
+
+  .subtitle {
+    color: var(--text-2);
+    font-size: 16px;
+    max-width: 700px;
+    line-height: 1.65;
+  }
+
+  /* TOC */
+  .toc {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0;
+    border: 1px solid var(--border);
+    margin-bottom: 64px;
+  }
+
+  .toc-item {
+    padding: 18px 20px;
+    border-right: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    text-decoration: none;
+    color: var(--text);
+    transition: background 0.15s ease;
+    cursor: pointer;
+  }
+
+  .toc-item:nth-child(3n) { border-right: none; }
+  .toc-item:nth-last-child(-n+3) { border-bottom: none; }
+
+  .toc-item:hover { background: var(--surface); }
+  .toc-item:hover .toc-num { color: var(--amber); }
+
+  .toc-num {
+    font-family: 'Instrument Serif', serif;
+    font-style: italic;
+    font-size: 28px;
+    color: var(--text-3);
+    line-height: 1;
+    margin-bottom: 6px;
+    transition: color 0.15s ease;
+  }
+
+  .toc-name {
+    font-family: 'Instrument Serif', serif;
+    font-size: 18px;
+    line-height: 1.2;
+    margin-bottom: 4px;
+  }
+
+  .toc-tag {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--text-3);
+  }
+
+  /* SYSTEM BLOCK */
+  .system {
+    margin-bottom: 80px;
+    scroll-margin-top: 24px;
+  }
+
+  .sys-header {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 28px;
+    align-items: end;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 24px;
+    margin-bottom: 36px;
+  }
+
+  .sys-num-large {
+    font-family: 'Instrument Serif', serif;
+    font-style: italic;
+    font-size: 96px;
+    color: var(--amber);
+    line-height: 0.85;
+    letter-spacing: -0.04em;
+  }
+
+  .sys-titles .sys-name {
+    font-family: 'Instrument Serif', serif;
+    font-size: 38px;
+    line-height: 1.05;
+    letter-spacing: -0.01em;
+    margin-bottom: 8px;
+  }
+
+  .sys-titles .sys-sub {
+    color: var(--text-2);
+    font-size: 14px;
+    max-width: 680px;
+  }
+
+  .sys-pills {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+    flex-wrap: wrap;
+  }
+
+  .pill {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    padding: 4px 9px;
+    border: 1px solid var(--border-bright);
+    color: var(--text-2);
+  }
+
+  /* ITEMS */
+  .items {
+    list-style: none;
+    counter-reset: item;
+  }
+
+  .item {
+    counter-increment: item;
+    padding: 28px 0 28px 80px;
+    border-bottom: 1px dashed var(--border);
+    position: relative;
+  }
+
+  .item:last-child { border-bottom: none; }
+
+  .item::before {
+    content: "5." counter(item, decimal-leading-zero);
+    position: absolute;
+    left: 0;
+    top: 28px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--amber);
+    letter-spacing: 0.06em;
+    font-weight: 500;
+  }
+
+  .system[data-id="6"] .item::before { content: "6." counter(item, decimal-leading-zero); }
+  .system[data-id="7"] .item::before { content: "7." counter(item, decimal-leading-zero); }
+  .system[data-id="8"] .item::before { content: "8." counter(item, decimal-leading-zero); }
+  .system[data-id="9"] .item::before { content: "9." counter(item, decimal-leading-zero); }
+  .system[data-id="10"] .item::before { content: "10." counter(item, decimal-leading-zero); }
+
+  .item-title {
+    font-family: 'Instrument Serif', serif;
+    font-size: 22px;
+    line-height: 1.2;
+    margin-bottom: 8px;
+    color: var(--text);
+  }
+
+  .item-body {
+    color: var(--text-2);
+    font-size: 14.5px;
+    line-height: 1.65;
+  }
+
+  .item-body p + p { margin-top: 10px; }
+
+  .item-body strong { color: var(--text); font-weight: 500; }
+
+  /* CODE BLOCK */
+  .code {
+    background: #0A0A0B;
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--amber);
+    padding: 16px 18px;
+    margin-top: 14px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12.5px;
+    line-height: 1.6;
+    color: #D4D4D4;
+    overflow-x: auto;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  .code .comment { color: var(--text-3); }
+  .code .key { color: var(--cyan); }
+  .code .str { color: var(--green); }
+
+  .code-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    color: var(--text-3);
+    margin-top: 16px;
+    margin-bottom: 6px;
+  }
+
+  /* CALLOUT */
+  .gotcha {
+    margin-top: 14px;
+    padding: 12px 16px;
+    border-left: 3px solid var(--rust);
+    background: rgba(220, 38, 38, 0.05);
+    font-size: 13.5px;
+    color: var(--text);
+  }
+
+  .gotcha::before {
+    content: "GOTCHA · ";
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    color: var(--rust);
+    font-weight: 500;
+  }
+
+  .stack-note {
+    margin-top: 14px;
+    padding: 12px 16px;
+    border-left: 3px solid var(--cyan);
+    background: rgba(34, 211, 238, 0.04);
+    font-size: 13.5px;
+    color: var(--text);
+  }
+
+  .stack-note::before {
+    content: "YOUR STACK · ";
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    color: var(--cyan);
+    font-weight: 500;
+  }
+
+  /* FOOTER */
+  .footer {
+    margin-top: 96px;
+    padding-top: 32px;
+    border-top: 1px solid var(--border);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--text-3);
+    line-height: 1.7;
+  }
+
+  /* MOBILE */
+  @media (max-width: 768px) {
+    .wrap { padding: 32px 18px 64px; }
+    .toc { grid-template-columns: 1fr; }
+    .toc-item { border-right: none; }
+    .toc-item:nth-last-child(-n+3) { border-bottom: 1px solid var(--border); }
+    .toc-item:last-child { border-bottom: none; }
+    .sys-header {
+      grid-template-columns: 1fr;
+      gap: 8px;
+    }
+    .sys-num-large { font-size: 64px; }
+    .sys-titles .sys-name { font-size: 28px; }
+    .item { padding-left: 56px; }
+    .code { font-size: 11.5px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="header">
+  <div class="meta-row">
+    <span><span class="dot">●</span>BUILD SHEETS / SYSTEMS 05–10</span>
+    <span>COMPANION TO THE FIELD GUIDE</span>
+  </div>
+  <h1>Six Systems,<br/><em>Built</em> for Real.</h1>
+  <p class="subtitle">Concrete implementation specs for the operational middle of the comparison — Lane Sprint Focus through Multi-Agent Orchestrator. Each item below is a thing you can do today, not a framework concept. Prompts are real prompts. Workflows reference actual nodes.</p>
+</header>
+
+<nav class="toc">
+  <a class="toc-item" href="#sys-5"><div class="toc-num">05</div><div class="toc-name">Lane Sprint Focus</div><div class="toc-tag">Light AI · Many Parallel</div></a>
+  <a class="toc-item" href="#sys-6"><div class="toc-num">06</div><div class="toc-name">Delegate–Review–Own</div><div class="toc-tag">Heavy AI · One Focused</div></a>
+  <a class="toc-item" href="#sys-7"><div class="toc-num">07</div><div class="toc-name">WSJF Backlog Triage</div><div class="toc-tag">Medium AI · Many Parallel</div></a>
+  <a class="toc-item" href="#sys-8"><div class="toc-num">08</div><div class="toc-name">AI Calendar Time-Blocking</div><div class="toc-tag">Medium AI · One Focused</div></a>
+  <a class="toc-item" href="#sys-9"><div class="toc-num">09</div><div class="toc-name">Bullet Journal + Extract</div><div class="toc-tag">Light AI · Mixed</div></a>
+  <a class="toc-item" href="#sys-10"><div class="toc-num">10</div><div class="toc-name">Multi-Agent Orchestrator</div><div class="toc-tag">Heavy AI · Many Parallel</div></a>
+</nav>
+
+<!-- ========== SYSTEM 5 ========== -->
+<section class="system" id="sys-5" data-id="5">
+  <div class="sys-header">
+    <div class="sys-num-large">05</div>
+    <div class="sys-titles">
+      <div class="sys-name">Lane Sprint Focus</div>
+      <div class="sys-sub">One declared sprint at a time. Everything else accumulates passively. Agent's job is gatekeeper — recognize "not sprint-relevant" and route to the right lane without forcing a context switch.</div>
+      <div class="sys-pills">
+        <span class="pill">LIGHT AI</span>
+        <span class="pill">MANY PARALLEL</span>
+        <span class="pill">LOW COST</span>
+      </div>
+    </div>
+  </div>
+
+  <ol class="items">
+    <li class="item">
+      <div class="item-title">Define the sprint contract before anything else</div>
+      <div class="item-body">
+        <p>One sprint, one outcome, hard boundary. Write it as a single sentence with a verifiable end-state. "Three.js showcase scene 03 deployed to chaosclub.com with Cloudflare proxy live" is a sprint. "Work on the Three.js thing" is not.</p>
+        <div class="code-label">Sprint declaration template</div>
+        <div class="code"><span class="comment"># sprint.yaml — single source of truth</span>
+<span class="key">name:</span> <span class="str">"Three.js Scene 03 — Cloudflare Path A"</span>
+<span class="key">start:</span> <span class="str">2026-04-26</span>
+<span class="key">end:</span> <span class="str">2026-05-10</span>  <span class="comment"># 14 days, hard stop</span>
+<span class="key">done_when:</span> <span class="str">"chaosclub.com/scene-03 returns 200, Worker proxy logs requests, no client-side API key exposed"</span>
+<span class="key">non_goals:</span>
+  - <span class="str">"Scene 04 work"</span>
+  - <span class="str">"Refactoring shared geometry helpers"</span>
+  - <span class="str">"FlashFusion anything"</span></div>
+      </div>
+    </li>
+
+    <li class="item">
+      <div class="item-title">Build the router as the smallest Claude call you can</div>
+      <div class="item-body">
+        <p>The router doesn't need to be smart. It needs to be <strong>fast and decisive</strong>. Single Claude call, four possible outputs.</p>
+        <div class="code-label">Router system prompt</div>
+        <div class="code"><span class="comment">You are a sprint gatekeeper. The active sprint is:</span>
+<span class="comment">{{sprint.name}} — done_when: {{sprint.done_when}}</span>
+
+<span class="comment">For each incoming item, return JSON:</span>
+{
+  <span class="key">"verdict"</span>: <span class="str">"sprint" | "lane:&lt;name&gt;" | "trash" | "decide"</span>,
+  <span class="key">"one_line_why"</span>: <span class="str">"&lt;15 words max&gt;"</span>
+}
+
+<span class="comment">Active lanes: flashfusion, chaosclub, intinc-l1, writing, personal-ops</span>
+<span class="comment">"decide" only if you genuinely can't tell — bias toward routing.</span></div>
+      </div>
+    </li>
+
+    <li class="item">
+      <div class="item-title">Wire the inbox surface to one capture point</div>
+      <div class="item-body">
+        <p>Pick one. Notion DB, a single Things inbox, or a plain markdown file watched by n8n. Multiple inboxes defeat the system because the router can't see what it's not pointed at.</p>
+        <div class="stack-note">For your stack, a single Notion DB called <strong>/inbox</strong> with a status column the router writes to is the lowest-friction path. n8n's Notion node handles it natively.</div>
+      </div>
+    </li>
+
+    <li class="item">
+      <div class="item-title">Run the Friday accountability check on real data</div>
+      <div class="item-body">
+        <p>The agent's most useful weekly output is "did sprint hours actually go to sprint work?" — answered with calendar + commit + PR data, not your memory.</p>
+        <div class="code-label">Friday review prompt (n8n schedule node, Friday 5pm)</div>
+        <div class="code"><span class="comment">Pull and pass to Claude:</span>
+- calendar events 2026-04-26 → today, with durations
+- git commits across {{repos}} in same window
+- inbox routing log: counts by verdict
+
+<span class="comment">Ask:</span>
+"Did this week's deep-work hours move {{sprint.done_when}} closer?
+ Score 0–100. Cite the 3 data points that drove the score.
+ Name the one thing to change Monday."</div>
+      </div>
+    </li>
+
+    <li class="item">
+      <div class="item-title">Track adherence as a single number over time</div>
+      <div class="item-body">
+        <p>Weekly score → simple line chart. The trend matters more than any single week. If three consecutive weeks dip below 60, the sprint declaration was wrong (too vague, too big, or you don't actually want to do it).</p>
+        <div class="gotcha">A perfect adherence score against a fake sprint is worse than a 50% score against a real one. The router is honest only if you are.</div>
+      </div>
+    </li>
+
+    <li class="item">
+      <div class="item-title">End-of-sprint shutdown ritual</div>
+      <div class="item-body">
+        <p>Last day of sprint, agent runs a closing pass: what shipped (matches done_when?), what's open in the lanes (what accumulated?), what's the next sprint candidate (top 3 from accumulators by recency × signal). 30-minute human review, declare next sprint, repeat.</p>
+      </div>
+    </li>
+
+    <li class="item">
+      <div class="item-title">Audit log every routing decision</div>
+      <div class="item-body">
+        <p>Cheap insurance. Every router output goes to an append-only log with timestamp, item text, verdict, one_line_why. When you're 6 weeks in and wondering why X never got worked on, the log tells you whether the router routed it wrong or you ignored it.</p>
+        <div class="stack-note">Append to a Supabase table — your stack already runs Supabase for the drive automation. One more table costs nothing and you get free SQL queries on six months of routing decisions.</div>
+      </div>
+    </li>
+  </ol>
+</section>
+
+<!-- ========== SYSTEM 6 ========== -->
+<section class="system" id="sys-6" data-id="6">
+  <div class="sys-header">
+    <div class="sys-num-large">06</div>
+    <div class="sys-titles">
+      <div class="sys-name">Delegate – Review – Own</div>
+      <div class="sys-sub">Agents do first-pass execution. Humans review for correctness, risk, and alignment. Architecture and outcomes stay human. The 2026 operating model that engineering orgs are actually converging on.</div>
+      <div class="sys-pills">
+        <span class="pill">HEAVY AI</span>
+        <span class="pill">ONE FOCUSED</span>
+        <span class="pill">MED COST</span>
+      </div>
+    </div>
+  </div>
+
+  <ol class="items">
+    <li class="item">
+      <div class="item-title">Spec doc as the only artifact you must hand-author</div>
+      <div class="item-body">
+        <p>Everything downstream is delegable; the spec is not. It's the contract the agent fulfills and the rubric the human reviews against. Treat the spec as the work — the typing was always the easy part.</p>
+        <div class="code-label">Minimum-viable spec template</div>
+        <div class="code"><span class="comment"># SPEC — &lt;feature/component name&gt;</span>
+
+<span class="key">## Context</span>
+What system is this changing? What's the user-visible behavior?
+
+<span class="key">## Requirements</span>
+- Functional: bullet list, testable
+- Non-functional: perf, security, accessibility
+- Out of scope: explicit list (prevents agent scope-creep)
+
+<span class="key">## Interface</span>
+Inputs, outputs, error modes. API shape if applicable.
+
+<span class="key">## Acceptance</span>
+- Tests that must pass
+- Manual checks
+- Rollback plan</div>
+      </div>
+    </li>
+
+    <li class="item">
+      <div class="item-title">First-pass contract — what the agent ships in one go</div>
+      <div class="item-body">
+        <p>Define the artifact bundle the agent produces: code, tests, docs, commit message, brief PR description. If you have to ask for missing pieces after the fact, the contract is too loose.</p>
+        <div class="code-label">First-pass deliverable bundle</div>
+        <div class="code">[ ] Implementation code (matches spec interface)
+[ ] Unit tests (cover spec acceptance items)
+[ ] Updated README / API doc if interface changed
+[ ] Commit message in conventional-commits format
+[ ] PR description: "what changed, why, risk surface"
+[ ] Self-review note: agent's own list of concerns</div>
+      </div>
+    </li>
+
+    <li class="item">
+      <div class="item-title">Run it without intervening — let it finish</div>
+      <div class="item-body">
+        <p>The strongest discipline in this system is <strong>not editing during the run</strong>. Hand-edits while the agent works produce a hybrid artifact nobody can review cleanly. Let the agent ship, then review.</p>
+        <div class="gotcha">If you're tempted to intervene, that's signal the spec was incomplete. Stop, kill the run, fix the spec, restart. Don't patch in flight.</div>
+      </div>
+    </li>
+
+    <li class="item">
+      <div class="item-title">Structured review pass, not vibes</div>
+      <div class="item-body">
+        <p>Same checklist every time. The review is the work; speed comes from repetition, not skipping steps.</p>
+        <div class="code-label">Review checklist</div>
+        <div class="code">CORRECTNESS
+  [ ] Implementation matches spec interface
+  [ ] Tests cover all acceptance items
+  [ ] Tests actually run and pass
+
+SECURITY
+  [ ] No secrets in code or git history
+  [ ] Input validation at trust boundaries
+  [ ] Auth/authz unchanged or correctly modified
+  [ ] No new attack surface unless spec required it
+
+ARCHITECTURE
+  [ ] Fits existing patterns or has explicit deviation note
+  [ ] Doesn't import disallowed deps
+  [ ] No dead code, no commented-out blocks
+
+BLAST RADIUS
+  [ ] What breaks if this PR is wrong?
+  [ ] Is rollback automatic or manual?
+  [ ] Monitoring/alerting in place?</div>
+      </div>
+    </li>
+
+    <li class="item">
+      <div class="item-title">Own the merge — no rubber-stamping</div>
+      <div class="item-body">
+        <p>The signature on the merge button is yours. If you couldn't defend the change in a post-mortem, you don't merge it. Period. This is the line that separates Delegate-Review-Own from "AI generates code and hopes."</p>
+        <div class="stack-note">For Base44 platforms with SOC2 / multi-tenancy concerns, add a second-pair-of-eyes step before merge to main. Even if it's just async — another reviewer, even another Claude session with a fresh context, catches what tunnel vision misses.</div>
+      </div>
+    </li>
+
+    <li class="item">
+      <div class="item-title">Audit trail as a non-negotiable</div>
+      <div class="item-body">
+        <p>Every agent run logs: spec hash, agent version, prompts, tool calls, output bundle, reviewer, merge decision. Six months later when something breaks in prod, you need to be able to reconstruct what was generated and what was reviewed.</p>
+        <div class="code-label">Minimum audit record</div>
+        <div class="code">{
+  <span class="key">"run_id"</span>: <span class="str">"&lt;uuid&gt;"</span>,
+  <span class="key">"timestamp"</span>: <span class="str">"&lt;iso8601&gt;"</span>,
+  <span class="key">"spec_hash"</span>: <span class="str">"&lt;sha256 of spec doc&gt;"</span>,
+  <span class="key">"agent"</span>: { <span class="key">"model"</span>: <span class="str">"..."</span>, <span class="key">"tools"</span>: [...] },
+  <span class="key">"prompts"</span>: [...],
+  <span class="key">"tool_calls"</span>: [...],
+  <span class="key">"output"</span>: { <span class="key">"files_changed"</span>: [...], <span class="key">"tests_run"</span>: [...] },
+  <span class="key">"review"</span>: { <span class="key">"reviewer"</span>: <span class="str">"..."</span>, <span class="key">"checklist"</span>: {...}, <span class="key">"verdict"</span>: <span class="str">"merged|rejected|revised"</span> }
+}</div>
+      </div>
+    </li>
+
+    <li class="item">
+      <div class="item-title">Promote the spec → arch → review pipeline as the team motion</div>
+      <div class="item-body">
+        <p>Once the loop works for you, it scales horizontally. New contributor onboarding becomes "here's how to write a spec, here's the review checklist." Compounds because the spec quality improves with reps and the checklist catches the same five mistakes everyone makes the first time.</p>
+      </div>
+    </li>
+  </ol>
+</section>
+
+<!-- ========== SYSTEM 7 ========== -->
+<section class="system" id="sys-7" data-id="7">
+  <div class="sys-header">
+    <div class="sys-num-large">07</div>
+    <div class="sys-titles">
+      <div class="sys-name">WSJF Backlog Triage</div>
+      <div class="sys-sub">Weighted Shortest Job First scoring on every backlog item. Agent does the math, surfaces the top three weekly. Removes "what should I do next" as a daily decision.</div>
+      <div class="sys-pills">
+        <span class="pill">MEDIUM AI</span>
+        <span class="pill">MANY PARALLEL</span>
+        <span class="pill">MED COST</span>
+      </div>
+    </div>
+  </div>
+
+  <ol class="items">
+    <li class="item">
+      <div class="item-title">Define the rubric before scoring anything</div>
+      <div class="item-body">
+        <p>The rubric IS the strategy. Score on four dimensions, Fibonacci scale (1, 2, 3, 5, 8). The numbers are visible math; the definitions are doing the work.</p>
+        <div class="code-label">WSJF rubric — adjust to your context</div>
+        <div class="code">USER_VALUE     — does this matter to a real user/customer/audience?
+  1: nice-to-have, no one will notice
+  3: improves an active workflow
+  5: removes a recurring pain
+  8: enables a new capability that didn't exist
+
+TIME_CRITICALITY — does waiting cost you?
+  1: no decay, can ship anytime
+  3: opportunity narrows over months
+  5: there's a date in the next 4 weeks
+  8: window closes inside 2 weeks
+
+RISK_REDUCTION  — does this prevent worse outcomes?
+  1: nothing prevented
+  3: reduces a known annoyance
+  5: prevents a likely future problem
+  8: prevents a security/data/reputation incident
+
+JOB_SIZE        — your honest effort estimate
+  1: half a day
+  3: 2–3 days
+  5: a week
+  8: multi-week build
+
+WSJF = (USER_VALUE + TIME_CRITICALITY + RISK_REDUCTION) / JOB_SIZE</div>
+      </div>
+    </li>
+
+    <li class="item">
+      <div class="item-title">Make the backlog one list, source-of-truth</div>
+      <div class="item-body">
+        <p>Linear, Notion DB, or a markdown file in a repo — pick one. Every candidate item lives there. If it's not on the list, it doesn't get scored, and if it doesn't get scored, it doesn't get worked on. This part is unforgiving on purpose.</p>
+        <div class="stack-note">Notion is fine and matches your existing pattern. Add columns: <strong>title, description, value, criticality, risk, size, wsjf, scored_at, status</strong>. Agent writes scores back via the Notion MCP.</div>
+      </div>
+    </li>
+
+    <li class="item">
+      <div class="item-title">Scoring agent prompt — keep it tight</div>
+      <div class="item-body">
+        <p>Pass items in batches of 5–10. Bigger batches drift; smaller wastes context.</p>
+        <div class="code-label">Scoring prompt</div>
+        <div class="code"><span class="comment">You are a backlog scorer using this rubric:</span>
+{{rubric}}
+
+<span class="comment">Current strategic context:</span>
+- Active sprint: {{sprint.name}}
+- Quarter goals: {{okrs}}
+
+<span class="comment">For each item, return JSON:</span>
+{
+  <span class="key">"id"</span>: <span class="str">"..."</span>,
+  <span class="key">"value"</span>: 1|2|3|5|8,
+  <span class="key">"criticality"</span>: 1|2|3|5|8,
+  <span class="key">"risk"</span>: 1|2|3|5|8,
+  <span class="key">"size"</span>: 1|2|3|5|8,
+  <span class="key">"wsjf"</span>: &lt;computed&gt;,
+  <span class="key">"rationale"</span>: <span class="str">"&lt;25 words why these scores&gt;"</span>
+}
+
+<span class="comment">Be ruthless on size — overestimate rather than under.</span></div>
+      </div>
+    </li>
+
+    <li class="item">
+      <div class="item-title">Weekly cron, Sunday night re-scoring</div>
+      <div class="item-body">
+        <p>Run the scorer against the entire backlog every Sunday at 9pm. Fresh scores Monday morning. Re-scoring matters because criticality shifts as deadlines approach and value shifts as priorities clarify.</p>
+        <div class="code-label">n8n schedule</div>
+        <div class="code">Schedule Trigger
+  → Notion: read all backlog items where status=open
+  → Loop: batches of 8
+    → Claude API: score batch
+    → Notion: write scores back
+  → Final step: post top-3 by WSJF to Slack/Discord</div>
+      </div>
+    </li>
+
+    <li class="item">
+      <div class="item-title">Top-3 surfacing, not a giant ranked list</div>
+      <div class="item-body">
+        <p>The agent's deliverable is "this week's top 3 by WSJF, with one-line rationale each." A 40-item ranked spreadsheet is not actionable; three things are. Anything below position 3 stays in the backlog until next week's re-score.</p>
+      </div>
+    </li>
+
+    <li class="item">
+      <div class="item-title">Quarterly rubric review — the agent reviewing you</div>
+      <div class="item-body">
+        <p>Once a quarter, ask: which items did the scorer rank top-3 that you ignored? If the same kind of item keeps scoring high and you keep skipping it, the rubric is wrong. Fix the rubric, not your discipline.</p>
+        <div class="code-label">Quarterly rubric review prompt</div>
+        <div class="code"><span class="comment">Given the last 13 weeks of top-3 outputs and</span>
+<span class="comment">my actual completion log, identify:</span>
+
+1. Items that scored top-3 multiple weeks but never got done. Why?
+2. Items I worked on that never reached top-3. Why?
+3. Suggested rubric adjustments to close the gap.</div>
+      </div>
+    </li>
+
+    <li class="item">
+      <div class="item-title">Tie scoring to your accumulator-platform pattern</div>
+      <div class="item-body">
+        <p>WSJF complements the FlashFusion accumulator model. Things accumulate freely; the scorer decides what becomes top-3 each week. You retain the "low-friction capture" benefit and gain the "ranked exit" benefit.</p>
+        <div class="stack-note">Map this to Path Fitness: anything scoring WSJF &lt; 0.5 for 4 consecutive weeks gets auto-archived. Aligns with your existing 0–100% archive rule and prevents zombie backlog items.</div>
+      </div>
+    </li>
+  </ol>
+</section>
+
+<!-- ========== SYSTEM 8 ========== -->
+<section class="system" id="sys-8" data-id="8">
+  <div class="sys-header">
+    <div class="sys-num-large">08</div>
+    <div class="sys-titles">
+      <div class="sys-name">AI Calendar Time-Blocking</div>
+      <div class="sys-sub">Calendar becomes the source of truth — if it's not blocked, it didn't happen. Agent rebuilds the day around tasks, energy, and shifting meeting reality.</div>
+      <div class="sys-pills">
+        <span class="pill">MEDIUM AI</span>
+        <span class="pill">ONE FOCUSED</span>
+        <span class="pill">LOW COST</span>
+      </div>
+    </div>
+  </div>
+
+  <ol class="items">
+    <li class="item">
+      <div class="item-title">Pick one tool — don't try to roll-your-own first</div>
+      <div class="item-body">
+        <p>Reclaim, Motion, and Sunsama all work. Pick one based on shape: Reclaim is best for habit-block defense, Motion for aggressive auto-scheduling, Sunsama for daily-planning ritual. Use it for 30 days before considering custom.</p>
+        <div class="gotcha">Building this yourself with n8n + Google Calendar API is tempting but the tools have done years of hard work on edge cases. Roll your own only after you know exactly what default they got wrong for you.</div>
+      </div>
+    </li>
+
+    <li class="item">
+      <div class="item-title">Tag every task with time-estimate AND energy-band</div>
+      <div class="item-body">
+        <p>Time alone produces a packed calendar; energy makes it sustainable. Three bands is enough.</p>
+        <div class="code-label">Energy bands</div>
+        <div class="code">DEEP    — high focus, no interrupts. 90–120 min blocks.
+        Examples: Three.js scene work, spec writing, lyric drafting.
+
+SHALLOW — collaborative or moderate focus. 30–60 min.
+        Examples: PR reviews, client comms, documentation passes.
+
+ADMIN   — low cognitive load. 10–25 min batches.
+        Examples: ticket triage, scheduling, expense reports.</div>
+      </div>
+    </li>
+
+    <li class="item">
+      <div class="item-title">Define protected blocks before letting the agent schedule</div>
+      <div class="item-body">
+        <p>Non-negotiable windows. The agent's freedom to rearrange ends here. Without protected blocks, deep-work hours get nibbled away by every "quick" meeting.</p>
+        <div class="code-label">Protection rules</div>
+        <div class="code">Mon–Fri 09:00–11:00  → DEEP only, no meetings
+Tue/Thu 14:00–16:00  → DEEP only (longer-arc work)
+Wed     all day      → no client meetings (creative day)
+Daily   12:00–13:00  → lunch, hard stop
+Daily   17:30+       → no work-blocks, calendar closed</div>
+      </div>
+    </li>
+
+    <li class="item">
+      <div class="item-title">Two-week observation period before judging</div>
+      <div class="item-body">
+        <p>The first two weeks of agent-scheduled days will be wrong. The agent is learning your override patterns — what you reschedule, what you let bump, when you actually start vs. when you said you would. Don't rage-quit on day three.</p>
+      </div>
+    </li>
+
+    <li class="item">
+      <div class="item-title">Track the bumped-task signal</div>
+      <div class="item-body">
+        <p>Tasks that get rescheduled three or more times are telling you something. Either: (a) the time estimate is wrong, (b) the energy band is wrong, or (c) you don't actually want to do it. Three-bump rule means: re-estimate, re-tag, or kill.</p>
+        <div class="code-label">Weekly bump-report prompt</div>
+        <div class="code">List tasks rescheduled 3+ times this week.
+For each: was the issue size, energy, or motivation?
+Recommend action: re-estimate / re-tag / kill / sprint-it.</div>
+      </div>
+    </li>
+
+    <li class="item">
+      <div class="item-title">Calendar-as-truth for retro and accountability</div>
+      <div class="item-body">
+        <p>Once the calendar is the source of truth, retros become easy. "Where did the week go?" answered by the actual blocks, not memory. Pair with the WSJF Friday review (#7 cross-link) — match scheduled-time against top-3 priorities.</p>
+      </div>
+    </li>
+
+    <li class="item">
+      <div class="item-title">Apply specifically to the L1 service-desk problem</div>
+      <div class="item-body">
+        <div class="stack-note">For Intinc: the failure mode is AI/automation work hours getting eaten by ticket churn. Protect Mon/Tue mornings as DEEP for AI work. Let the agent autonomously slot tickets into SHALLOW/ADMIN windows. Two-week trial with explicit before/after metrics on AI-project hours.</div>
+      </div>
+    </li>
+  </ol>
+</section>
+
+<!-- ========== SYSTEM 9 ========== -->
+<section class="system" id="sys-9" data-id="9">
+  <div class="sys-header">
+    <div class="sys-num-large">09</div>
+    <div class="sys-titles">
+      <div class="sys-name">Bullet Journal + Daily Log Extract</div>
+      <div class="sys-sub">Analog or plain-text daily ritual. Morning planning stays human; AI processes the day's log after the fact to extract tasks, decisions, and open loops.</div>
+      <div class="sys-pills">
+        <span class="pill">LIGHT AI</span>
+        <span class="pill">MIXED</span>
+        <span class="pill">LOW COST</span>
+      </div>
+    </div>
+  </div>
+
+  <ol class="items">
+    <li class="item">
+      <div class="item-title">Daily log format — five sections, fixed</div>
+      <div class="item-body">
+        <p>Consistency lets the extractor be reliable. Same headers every day, in the same order. Whether it's pen on paper or a daily .md file, the structure carries the value.</p>
+        <div class="code-label">daily/2026-04-25.md</div>
+        <div class="code"># 2026-04-25
+
+## Intentions
+- Three things I'll move today
+
+## Log
+- HH:MM bullets through the day, free-form
+
+## Decisions
+- Anything I committed to, with one-line reasoning
+
+## Open
+- Questions / loops / things I owe someone
+
+## Reflection
+- One paragraph, end of day. What worked, what didn't.</div>
+      </div>
+    </li>
+
+    <li class="item">
+      <div class="item-title">Capture path — phone photo OR watched folder</div>
+      <div class="item-body">
+        <p>Two paths, same destination. Analog: nightly photo to a designated folder, OCR runs on it. Digital: save .md to a folder n8n watches.</p>
+        <div class="stack-note">Already on iPhone? Use Apple Notes' built-in scanner → Shortcut → save to iCloud folder → n8n watches via cron-poll. Or skip iCloud and write directly to a Supabase storage bucket.</div>
+      </div>
+    </li>
+
+    <li class="item">
+      <div class="item-title">Extraction prompt — strict output schema</div>
+      <div class="item-body">
+        <p>Don't let the agent improvise the structure. JSON output, fixed keys, downstream router writes to your task system.</p>
+        <div class="code-label">Extraction prompt</div>
+        <div class="code"><span class="comment">Read the daily log below. Return ONLY this JSON:</span>
+{
+  <span class="key">"date"</span>: <span class="str">"YYYY-MM-DD"</span>,
+  <span class="key">"actions_taken"</span>: [<span class="comment">past-tense, what got done</span>],
+  <span class="key">"decisions"</span>: [<span class="comment">commitments made, one-line each</span>],
+  <span class="key">"open_loops"</span>: [
+    { <span class="key">"text"</span>: <span class="str">"..."</span>, <span class="key">"owe_to"</span>: <span class="str">"self|name|company"</span>, <span class="key">"due"</span>: <span class="str">"YYYY-MM-DD|null"</span> }
+  ],
+  <span class="key">"questions"</span>: [<span class="comment">things to chase or research</span>],
+  <span class="key">"signals"</span>: [<span class="comment">patterns or themes worth tracking</span>]
+}
+
+<span class="comment">Do NOT invent items not present in the log.</span>
+<span class="comment">If a field has no items, return [].</span></div>
+      </div>
+    </li>
+
+    <li class="item">
+      <div class="item-title">Morning brief — yesterday's open loops + today's calendar</div>
+      <div class="item-body">
+        <p>Before you write today's intentions, the agent serves a single page: yesterday's open_loops, this morning's calendar, any decisions you made yesterday that shape today. Cuts the "where was I?" tax.</p>
+        <div class="code-label">Brief composition</div>
+        <div class="code">Section 1 — Yesterday's open loops (max 5, ordered by due date)
+Section 2 — Today's calendar (next 12 hours)
+Section 3 — Decisions that affect today (max 3)
+Section 4 — One-line nudge: pattern from past 7 days
+
+Total: half a screen. If it grows, prune ruthlessly.</div>
+      </div>
+    </li>
+
+    <li class="item">
+      <div class="item-title">OCR accuracy is the failure mode — design around it</div>
+      <div class="item-body">
+        <div class="gotcha">Bad handwriting wrecks the extraction. Three mitigations: (1) print, don't cursive; (2) use Claude's vision rather than legacy OCR — it handles handwriting better; (3) include the OCR text in the brief output so you can spot misreads at-a-glance.</div>
+      </div>
+    </li>
+
+    <li class="item">
+      <div class="item-title">Weekly pattern surfacing</div>
+      <div class="item-body">
+        <p>Sunday: agent reads the week's seven extractions and answers three questions. Patterns are the second-order value of journaling — invisible day-to-day, obvious when you batch.</p>
+        <div class="code-label">Weekly review prompt</div>
+        <div class="code">Given this week's 7 daily extractions:
+
+1. Which open_loops appeared more than twice without resolution?
+   (These are stuck. Why?)
+
+2. Did any decisions contradict an earlier decision?
+   (You're flip-flopping. Worth surfacing.)
+
+3. What signal/pattern shows up across multiple days?
+   (Repeated theme worth investigating.)</div>
+      </div>
+    </li>
+
+    <li class="item">
+      <div class="item-title">Memoir / lyric track — the analog ritual IS the value</div>
+      <div class="item-body">
+        <div class="stack-note">For the writing/memoir/chaosclub side: the analog ritual stays untouched because that's where the cognitive benefit lives. The agent's only job is making sure the signal doesn't evaporate. Extraction → tagged corpus → fuel for the BASB Express loop (#3) when you're drafting.</div>
+      </div>
+    </li>
+  </ol>
+</section>
+
+<!-- ========== SYSTEM 10 ========== -->
+<section class="system" id="sys-10" data-id="10">
+  <div class="sys-header">
+    <div class="sys-num-large">10</div>
+    <div class="sys-titles">
+      <div class="sys-name">Multi-Agent Orchestrator</div>
+      <div class="sys-sub">Specialist agents per domain. Meta-agent (you, plus a router) decides who picks up what. The system IS the agents — collapses without them.</div>
+      <div class="sys-pills">
+        <span class="pill">HEAVY AI</span>
+        <span class="pill">MANY PARALLEL</span>
+        <span class="pill">HIGH COST</span>
+      </div>
+    </div>
+  </div>
+
+  <ol class="items">
+    <li class="item">
+      <div class="item-title">Map domains ruthlessly — three to five, no more</div>
+      <div class="item-body">
+        <p>Every additional domain adds routing complexity quadratically. Three domains is great, five is the ceiling, six means the orchestrator is laundering chaos. Pick by where you have actual repeated work, not aspirational categories.</p>
+        <div class="code-label">Candidate domain map for your stack</div>
+        <div class="code">research-agent  → web search, corpus retrieval, fact-check
+                  tools: web_search, RAG over /notes, /transcripts
+
+code-agent      → repo work, tests, CI, deploys
+                  tools: github, claude_code, cf_workers, base44_api
+
+ops-agent       → ticket triage, monitoring, alert response
+                  tools: ticketing, supabase, posthog, sentry
+
+content-agent   → drafts, posts, lyrics, newsletter editions
+                  tools: notion, second_brain_search, publishing_apis
+
+(Optional 5th)  → only if a domain genuinely has its own tool surface
+                  AND repeats weekly</div>
+      </div>
+    </li>
+
+    <li class="item">
+      <div class="item-title">Tool surfaces with explicit permissions</div>
+      <div class="item-body">
+        <p>Read-only by default. Writes require either a checkpoint (human approval) or a budget (limited count per run). Never "agent has all the keys" — that's how you wake up to a 3am incident.</p>
+        <div class="code-label">Tool config schema</div>
+        <div class="code">tool: github_create_pr
+  agent: code-agent
+  mode: write
+  guardrails:
+    - target_branch != main
+    - approval_required: true
+    - max_files_changed: 25
+    - blocked_paths: [".github/", "infrastructure/", "secrets/"]
+
+tool: supabase_query
+  agent: ops-agent
+  mode: read
+  guardrails:
+    - timeout_ms: 5000
+    - row_limit: 1000</div>
+      </div>
+    </li>
+
+    <li class="item">
+      <div class="item-title">Audit logging from day one — non-negotiable</div>
+      <div class="item-body">
+        <p>Every tool call, every decision, every output. If you don't have audit logs, you don't have a system, you have a black box that occasionally does the right thing. Worth more than most of the actual code.</p>
+        <div class="code-label">Audit log schema</div>
+        <div class="code">CREATE TABLE agent_audit (
+  id            UUID PRIMARY KEY,
+  ts            TIMESTAMPTZ NOT NULL,
+  agent_name    TEXT NOT NULL,
+  task_id       UUID NOT NULL,           <span class="comment">-- groups related calls</span>
+  tool_called   TEXT,
+  inputs        JSONB,
+  outputs       JSONB,
+  tokens_used   INT,
+  cost_usd      NUMERIC(10, 6),
+  status        TEXT,                     <span class="comment">-- ok | error | blocked</span>
+  reviewed_by   TEXT,                     <span class="comment">-- human if checkpoint</span>
+  decision      TEXT
+);
+
+CREATE INDEX idx_audit_task ON agent_audit (task_id);
+CREATE INDEX idx_audit_ts   ON agent_audit (ts DESC);</div>
+        <div class="stack-note">You already have Supabase running for the drive automation audit trail. Same pattern, new tables. The Orchestrator AI Base44 platform's existing audit infrastructure is reusable here — that's the leverage.</div>
+      </div>
+    </li>
+
+    <li class="item">
+      <div class="item-title">Router agent — keep it dumb on purpose</div>
+      <div class="item-body">
+        <p>The router is the simplest thing that works: a single Claude call with the domain agent descriptions and the incoming request. Smart routers are where complexity hides — start dumb, add intelligence only when measured failures justify it.</p>
+        <div class="code-label">Router prompt</div>
+        <div class="code"><span class="comment">You are a request router. Available agents:</span>
+
+{{agent_descriptions}}
+
+<span class="comment">For the request below, return JSON:</span>
+{
+  <span class="key">"agent"</span>: <span class="str">"&lt;agent_name&gt; | clarify | reject"</span>,
+  <span class="key">"reason"</span>: <span class="str">"&lt;one line&gt;"</span>,
+  <span class="key">"task_brief"</span>: <span class="str">"&lt;cleaned-up version for the agent&gt;"</span>
+}
+
+<span class="comment">"clarify" if the request is genuinely ambiguous.</span>
+<span class="comment">"reject" if it falls outside all agent surfaces.</span>
+<span class="comment">Do not decompose multi-agent tasks here — that's the agents' job.</span></div>
+      </div>
+    </li>
+
+    <li class="item">
+      <div class="item-title">Token budget + circuit breaker per agent</div>
+      <div class="item-body">
+        <p>Every agent has a per-run budget and a daily ceiling. Hit the ceiling, agent stops, you get notified. Cost overruns are the fastest way to learn your routing is wrong — but only if a circuit breaker exists.</p>
+        <div class="code-label">Budget config</div>
+        <div class="code">research-agent: per_run=15K tokens, daily_cap=200K
+code-agent:     per_run=80K tokens, daily_cap=800K
+ops-agent:      per_run=5K  tokens, daily_cap=100K
+content-agent:  per_run=40K tokens, daily_cap=300K
+
+ON breach:
+  - log to audit table with status="budget_exceeded"
+  - notify operator (Slack, Discord, email)
+  - reject further calls until reset or override</div>
+      </div>
+    </li>
+
+    <li class="item">
+      <div class="item-title">Inter-agent communication via the audit table, not direct calls</div>
+      <div class="item-body">
+        <p>Counter-intuitive but important: agents don't call each other directly. They post results to the audit table and the router reads from it. Direct calls produce tangled dependency graphs; mediated communication stays observable and replayable.</p>
+        <div class="gotcha">If two agents need to coordinate tightly enough to require direct calls, you've drawn the domain boundaries wrong. Merge them.</div>
+      </div>
+    </li>
+
+    <li class="item">
+      <div class="item-title">Human checkpoints at strategic points only</div>
+      <div class="item-body">
+        <p>Not every step needs human approval. Define the points where judgment matters: pre-merge, pre-publish, pre-spend-over-threshold, pre-external-comms. Everything else runs autonomously inside its budget. Too many checkpoints kill the leverage.</p>
+        <div class="code-label">Checkpoint policy</div>
+        <div class="code">REQUIRES checkpoint:
+  code-agent    → before merge to main
+  content-agent → before publish to public surface
+  ops-agent     → before any tool with mode=write to prod
+  any agent     → before spend &gt; $5 in a single run
+
+NO checkpoint:
+  any read operation
+  draft creation in private workspace
+  test runs in CI
+  internal logging or summarization</div>
+      </div>
+    </li>
+
+    <li class="item">
+      <div class="item-title">Decide: extend Orchestrator AI or build separate</div>
+      <div class="item-body">
+        <div class="stack-note">The honest fork-in-the-road: your existing Orchestrator AI Base44 platform is hardened for client-facing SOC2 multi-tenant use. Either (a) extend it with a "personal tenant" — same code path, same audit infra, but extra complexity in tenant logic and policy; or (b) build a stripped-down personal version that shares only the audit schema. Option (a) is more leverage if the client-facing platform stays stable; option (b) is faster to ship and lower risk if the platform is still evolving. There's no right answer that's true regardless of platform stability — make the call based on how stable v1 actually is in production.</div>
+      </div>
+    </li>
+  </ol>
+</section>
+
+<footer class="footer">
+  <div>● BUILD SHEETS / SYSTEMS 05–10 / END</div>
+  <div style="margin-top: 6px;">Companion to: The Operating Systems of AI-Augmented Work — Field Guide.</div>
+  <div style="margin-top: 6px; color: var(--text-2);">Pair these with the field guide for context; pair them with each other for a working stack — Lane Sprint Focus + WSJF for prioritization, Delegate-Review-Own for execution, Calendar Time-Blocking for protection, Daily Log Extract for signal recovery, and the Orchestrator only when volume justifies it.</div>
+</footer>
+
+</div>
+</body>
+</html>

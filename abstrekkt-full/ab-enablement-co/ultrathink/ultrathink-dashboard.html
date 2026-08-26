@@ -1,0 +1,1882 @@
+<!DOCTYPE html>
+<!--
+  ULTRATHINK Dashboard — rebuild with child pages + per-section/tab/global MD export.
+  ================================================================================
+  Profile:        INT (void surface, electric violet signal, editorial serif for display)
+  Component:      Multi-tab knowledge-framework dashboard with hash-routed child pages
+                  and Markdown export at section, tab, and global scope.
+  Differentiator: Manuscript-margin IDs (V·01, C·02 monospaced in left gutter) +
+                  persistent live MD preview pane that doubles as the export WYSIWYG.
+                  Editorial serif (Fraunces) for principle titles only.
+  States:         initial, route-success, route-404, hover, focus-visible, visited
+                  (localStorage), copied/downloaded toast.
+  Delivery:       Single-file HTML, no build step.
+
+  Assumptions (made explicit because the source content was bundled / not annotated):
+    - "6 Core Principles" reconstructed as: Think Different, Obsess Over Details,
+      Plan Like Da Vinci, Iterate Relentlessly, Simplify Ruthlessly, Craft Over Speed.
+    - Contract subsections reconstructed as: Security Floor, Response Guarantees,
+      Quality Gates, Gaps & Blindspots.
+    - Grammar tiers preserved as Tier 0–3 from the original.
+    - Reference reconstructed as: Quick Analogies, Before Every Task, R-I-S-E,
+      F-L-O-W, OWASP Checkpoint, I/O Validation.
+    - Each section's "best-practices artifact" is a practitioner checklist designed
+      to drop into a workflow document. Swap copy as needed; data is in DASHBOARD_DATA.
+
+  Smoke test (open browser console, run window.UT.smokeTest()):
+    1. Default route loads → tab="vision", section=null
+    2. Hash → #/contract/security-floor → renders Contract › Security Floor
+    3. Bad hash → #/garbage → 404 view
+    4. exportSection("vision","think-different") → downloads .md
+    5. exportTab("grammar") → downloads tab .md
+    6. exportAll() → downloads combined .md
+-->
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ULTRATHINK · Framework Dashboard</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      /* INT tokens — surfaces */
+      --surface-base:     #0a0a0f;
+      --surface-raised:   #111118;
+      --surface-overlay:  #18181f;
+      --surface-deep:     #07070b;
+
+      /* INT tokens — borders */
+      --border-primary:   #2a2a38;
+      --border-secondary: #1e1e28;
+      --border-faint:     #14141c;
+
+      /* INT tokens — accent (electric violet, used as signal only) */
+      --accent:        hsl(262, 83%, 68%);
+      --accent-dim:    hsl(262, 60%, 45%);
+      --accent-glow:   hsla(262, 83%, 68%, 0.15);
+      --accent-faint:  hsla(262, 83%, 68%, 0.06);
+
+      /* INT tokens — text */
+      --text-primary:   #f0f0f5;
+      --text-secondary: #9898a8;
+      --text-tertiary:  #52525e;
+      --text-quiet:     #3a3a48;
+
+      /* Type families */
+      --font-display: 'Fraunces', 'Iowan Old Style', Georgia, serif;
+      --font-body:    'Inter', system-ui, sans-serif;
+      --font-code:    'IBM Plex Mono', 'Fira Code', monospace;
+
+      /* Type scale */
+      --text-xs:   11px;
+      --text-sm:   13px;
+      --text-base: 14px;
+      --text-md:   16px;
+      --text-lg:   20px;
+      --text-xl:   28px;
+      --text-2xl:  40px;
+      --text-3xl:  56px;
+
+      /* Spacing (8pt grid) */
+      --s-1: 4px; --s-2: 8px; --s-3: 12px; --s-4: 16px;
+      --s-5: 20px; --s-6: 24px; --s-8: 32px; --s-10: 40px;
+      --s-12: 48px; --s-16: 64px; --s-24: 96px;
+
+      /* Radii */
+      --r-sm: 4px; --r-md: 6px; --r-lg: 10px; --r-full: 999px;
+
+      /* Semantic */
+      --ok:   #22c55e;
+      --warn: #f59e0b;
+      --bad:  #ef4444;
+
+      /* Motion */
+      --ease-out-smooth: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+      --ease-out-snap:   cubic-bezier(0.4, 0, 0.2, 1);
+      --dur-fast: 120ms;
+      --dur-base: 200ms;
+      --dur-slow: 360ms;
+
+      /* Layout */
+      --shell-pad-x: var(--s-8);
+      --max-w: 1400px;
+      --margin-rule-w: 56px;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      background: var(--surface-base);
+      color: var(--text-primary);
+      font-family: var(--font-body);
+      font-size: var(--text-base);
+      line-height: 1.55;
+      -webkit-font-smoothing: antialiased;
+      min-height: 100vh;
+      /* atmospheric: subtle radial wash, not a flat solid */
+      background-image:
+        radial-gradient(ellipse 1200px 600px at 20% -10%, rgba(140, 100, 255, 0.06), transparent 60%),
+        radial-gradient(ellipse 800px 400px at 80% 110%, rgba(140, 100, 255, 0.04), transparent 60%);
+    }
+    a { color: inherit; text-decoration: none; }
+    button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+    code, kbd, pre { font-family: var(--font-code); }
+
+    :focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+      border-radius: var(--r-sm);
+    }
+
+    /* ---------- App shell ---------- */
+    .shell {
+      max-width: var(--max-w);
+      margin: 0 auto;
+      padding: var(--s-10) var(--shell-pad-x) var(--s-24);
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--s-6);
+      padding-bottom: var(--s-8);
+      border-bottom: 1px solid var(--border-secondary);
+      margin-bottom: var(--s-10);
+    }
+    .brand {
+      display: flex; align-items: baseline; gap: var(--s-3);
+    }
+    .brand__mark {
+      font-family: var(--font-code);
+      font-size: var(--text-xs);
+      letter-spacing: 0.18em;
+      color: var(--accent);
+      text-transform: uppercase;
+    }
+    .brand__name {
+      font-family: var(--font-display);
+      font-weight: 600;
+      font-size: var(--text-lg);
+      letter-spacing: -0.01em;
+    }
+    .brand__sub {
+      color: var(--text-secondary);
+      font-size: var(--text-sm);
+      margin-left: var(--s-3);
+    }
+
+    .toolbar { display: flex; gap: var(--s-2); align-items: center; }
+    .btn {
+      display: inline-flex; align-items: center; gap: var(--s-2);
+      padding: var(--s-2) var(--s-4);
+      border: 1px solid var(--border-primary);
+      border-radius: var(--r-md);
+      background: var(--surface-raised);
+      color: var(--text-primary);
+      font-size: var(--text-sm);
+      font-weight: 500;
+      transition: border-color var(--dur-fast) var(--ease-out-snap),
+                  background var(--dur-fast) var(--ease-out-snap),
+                  transform var(--dur-fast) var(--ease-out-snap);
+    }
+    .btn:hover { border-color: var(--accent-dim); background: var(--surface-overlay); }
+    .btn:active { transform: translateY(1px); }
+    .btn--accent {
+      border-color: var(--accent-dim);
+      background: var(--accent-faint);
+      color: var(--accent);
+    }
+    .btn--accent:hover { background: var(--accent-glow); border-color: var(--accent); }
+    .btn--ghost { background: transparent; }
+    .btn[aria-pressed="true"] {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: var(--accent-faint);
+    }
+    .btn .ico { width: 14px; height: 14px; flex-shrink: 0; }
+
+    /* ---------- Tab bar ---------- */
+    .tabs {
+      display: flex; gap: 0;
+      border-bottom: 1px solid var(--border-secondary);
+      margin-bottom: var(--s-10);
+      overflow-x: auto;
+    }
+    .tab {
+      display: inline-flex; align-items: baseline; gap: var(--s-3);
+      padding: var(--s-4) var(--s-5);
+      border: 0; background: transparent;
+      color: var(--text-secondary);
+      font-size: var(--text-sm);
+      font-weight: 500;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+      transition: color var(--dur-fast) var(--ease-out-snap),
+                  border-color var(--dur-fast) var(--ease-out-snap);
+      white-space: nowrap;
+    }
+    .tab__id {
+      font-family: var(--font-code);
+      font-size: var(--text-xs);
+      letter-spacing: 0.08em;
+      color: var(--text-tertiary);
+    }
+    .tab:hover { color: var(--text-primary); }
+    .tab[aria-selected="true"] {
+      color: var(--text-primary);
+      border-bottom-color: var(--accent);
+    }
+    .tab[aria-selected="true"] .tab__id { color: var(--accent); }
+
+    /* ---------- Layout: sidebar + content + preview ---------- */
+    .layout {
+      display: grid;
+      grid-template-columns: 220px minmax(0, 1fr) 380px;
+      gap: var(--s-8);
+    }
+    @media (max-width: 1180px) {
+      .layout { grid-template-columns: 200px minmax(0, 1fr); }
+      .preview { display: none; }
+    }
+    @media (max-width: 760px) {
+      .layout { grid-template-columns: 1fr; }
+      .sidebar { order: 2; }
+      :root { --shell-pad-x: var(--s-4); }
+    }
+
+    /* ---------- Sidebar ---------- */
+    .sidebar {
+      position: sticky;
+      top: var(--s-6);
+      align-self: start;
+      max-height: calc(100vh - var(--s-12));
+      overflow-y: auto;
+      padding-right: var(--s-2);
+    }
+    .sidebar__title {
+      font-family: var(--font-code);
+      font-size: var(--text-xs);
+      letter-spacing: 0.14em;
+      color: var(--text-tertiary);
+      text-transform: uppercase;
+      margin: 0 0 var(--s-3);
+      padding-left: var(--s-3);
+    }
+    .nav { display: flex; flex-direction: column; gap: 2px; }
+    .nav__item {
+      display: grid;
+      grid-template-columns: 32px 1fr 8px;
+      align-items: center;
+      gap: var(--s-2);
+      padding: var(--s-2) var(--s-3);
+      border-radius: var(--r-sm);
+      color: var(--text-secondary);
+      font-size: var(--text-sm);
+      transition: background var(--dur-fast) var(--ease-out-snap),
+                  color var(--dur-fast) var(--ease-out-snap);
+      border: 1px solid transparent;
+    }
+    .nav__item:hover { background: var(--surface-raised); color: var(--text-primary); }
+    .nav__item[aria-current="page"] {
+      background: var(--accent-faint);
+      color: var(--text-primary);
+      border-color: var(--accent-dim);
+    }
+    .nav__id {
+      font-family: var(--font-code);
+      font-size: 10px;
+      letter-spacing: 0.06em;
+      color: var(--text-tertiary);
+    }
+    .nav__item[aria-current="page"] .nav__id { color: var(--accent); }
+    .nav__dot {
+      width: 6px; height: 6px; border-radius: var(--r-full);
+      background: var(--text-quiet);
+    }
+    .nav__item.is-visited .nav__dot { background: var(--accent); }
+
+    /* ---------- Content ---------- */
+    .content { min-width: 0; }
+    .breadcrumbs {
+      display: flex; align-items: center; gap: var(--s-2);
+      font-size: var(--text-xs);
+      color: var(--text-tertiary);
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      font-family: var(--font-code);
+      margin-bottom: var(--s-4);
+    }
+    .breadcrumbs a:hover { color: var(--accent); }
+    .breadcrumbs .sep { color: var(--text-quiet); }
+
+    .page-head {
+      position: relative;
+      padding-left: var(--margin-rule-w);
+      margin-bottom: var(--s-8);
+      padding-bottom: var(--s-6);
+      border-bottom: 1px solid var(--border-secondary);
+    }
+    /* Manuscript margin: monospaced section ID set in the gutter */
+    .page-head__id {
+      position: absolute;
+      left: 0;
+      top: 8px;
+      font-family: var(--font-code);
+      font-size: var(--text-xs);
+      letter-spacing: 0.12em;
+      color: var(--accent);
+      writing-mode: vertical-rl;
+      transform: rotate(180deg);
+      padding: var(--s-2) 0;
+      border-left: 1px solid var(--accent-dim);
+    }
+    .page-head__title {
+      font-family: var(--font-display);
+      font-weight: 600;
+      font-size: var(--text-3xl);
+      letter-spacing: -0.02em;
+      line-height: 1.05;
+      margin: 0 0 var(--s-3);
+      color: var(--text-primary);
+    }
+    .page-head__provocation {
+      font-family: var(--font-display);
+      font-style: italic;
+      font-size: var(--text-md);
+      color: var(--text-secondary);
+      max-width: 56ch;
+      margin: 0;
+    }
+
+    /* Section blocks */
+    .block { padding-left: var(--margin-rule-w); margin-bottom: var(--s-10); }
+    .block__label {
+      display: inline-flex; align-items: center; gap: var(--s-2);
+      font-family: var(--font-code);
+      font-size: var(--text-xs);
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--text-tertiary);
+      margin-bottom: var(--s-3);
+    }
+    .block__label::before {
+      content: ""; display: inline-block;
+      width: 24px; height: 1px;
+      background: var(--accent-dim);
+    }
+    .block p { margin: 0 0 var(--s-3); max-width: 64ch; }
+    .block ul { padding-left: var(--s-5); margin: 0 0 var(--s-3); max-width: 64ch; }
+    .block li { margin-bottom: var(--s-2); }
+    .block li::marker { color: var(--accent-dim); }
+
+    .checklist { list-style: none; padding: 0; }
+    .checklist li {
+      position: relative;
+      padding: var(--s-2) 0 var(--s-2) var(--s-6);
+      border-bottom: 1px dashed var(--border-faint);
+    }
+    .checklist li::before {
+      content: "";
+      position: absolute;
+      left: 0; top: 14px;
+      width: 12px; height: 12px;
+      border: 1px solid var(--accent-dim);
+      border-radius: 2px;
+    }
+
+    .related {
+      display: flex; flex-wrap: wrap; gap: var(--s-2);
+    }
+    .related a {
+      display: inline-flex; align-items: center; gap: var(--s-2);
+      padding: var(--s-2) var(--s-3);
+      background: var(--surface-raised);
+      border: 1px solid var(--border-primary);
+      border-radius: var(--r-md);
+      font-size: var(--text-sm);
+      transition: border-color var(--dur-fast) var(--ease-out-snap);
+    }
+    .related a:hover { border-color: var(--accent-dim); color: var(--accent); }
+    .related a .id {
+      font-family: var(--font-code);
+      font-size: 10px;
+      color: var(--text-tertiary);
+    }
+
+    /* Tab overview cards */
+    .overview { padding-left: var(--margin-rule-w); }
+    .overview__intro {
+      font-family: var(--font-display);
+      font-style: italic;
+      font-size: var(--text-md);
+      color: var(--text-secondary);
+      max-width: 56ch;
+      margin: 0 0 var(--s-8);
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: var(--s-4);
+    }
+    .card {
+      display: flex; flex-direction: column; gap: var(--s-3);
+      padding: var(--s-5);
+      background: var(--surface-raised);
+      border: 1px solid var(--border-primary);
+      border-radius: var(--r-md);
+      transition: border-color var(--dur-base) var(--ease-out-snap),
+                  transform var(--dur-base) var(--ease-out-snap);
+      min-height: 160px;
+    }
+    .card:hover {
+      border-color: var(--accent-dim);
+      transform: translateY(-2px);
+    }
+    .card__id {
+      font-family: var(--font-code);
+      font-size: var(--text-xs);
+      letter-spacing: 0.1em;
+      color: var(--text-tertiary);
+    }
+    .card:hover .card__id { color: var(--accent); }
+    .card__title {
+      font-family: var(--font-display);
+      font-weight: 600;
+      font-size: var(--text-lg);
+      letter-spacing: -0.01em;
+      line-height: 1.15;
+      color: var(--text-primary);
+      margin: 0;
+    }
+    .card__desc {
+      font-size: var(--text-sm);
+      color: var(--text-secondary);
+      margin: 0;
+      line-height: 1.5;
+    }
+    .card__foot {
+      margin-top: auto;
+      display: flex; align-items: center; justify-content: space-between;
+      padding-top: var(--s-3);
+      border-top: 1px solid var(--border-secondary);
+      font-size: var(--text-xs);
+      color: var(--text-tertiary);
+    }
+
+    /* ---------- Preview pane ---------- */
+    .preview {
+      position: sticky;
+      top: var(--s-6);
+      align-self: start;
+      max-height: calc(100vh - var(--s-12));
+      display: flex; flex-direction: column;
+      background: var(--surface-deep);
+      border: 1px solid var(--border-primary);
+      border-radius: var(--r-md);
+      overflow: hidden;
+    }
+    .preview__head {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: var(--s-3) var(--s-4);
+      border-bottom: 1px solid var(--border-secondary);
+      background: var(--surface-raised);
+    }
+    .preview__label {
+      display: flex; align-items: center; gap: var(--s-2);
+      font-family: var(--font-code);
+      font-size: var(--text-xs);
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+    }
+    .preview__dot {
+      width: 8px; height: 8px; border-radius: var(--r-full);
+      background: var(--ok);
+      box-shadow: 0 0 8px var(--ok);
+    }
+    .preview__actions { display: flex; gap: var(--s-1); }
+    .preview__body {
+      flex: 1;
+      overflow: auto;
+      padding: var(--s-4);
+      font-family: var(--font-code);
+      font-size: 12px;
+      line-height: 1.6;
+      color: var(--text-secondary);
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .preview__body .h { color: var(--accent); font-weight: 500; }
+    .preview__body .q { color: var(--text-primary); font-style: italic; }
+    .preview__body .b { color: var(--text-tertiary); }
+    .preview__foot {
+      padding: var(--s-3) var(--s-4);
+      border-top: 1px solid var(--border-secondary);
+      display: flex; align-items: center; justify-content: space-between;
+      font-size: var(--text-xs);
+      color: var(--text-tertiary);
+      background: var(--surface-raised);
+    }
+    .preview__count { font-family: var(--font-code); }
+
+    /* ---------- Toast ---------- */
+    .toast-stack {
+      position: fixed;
+      right: var(--s-6);
+      bottom: var(--s-6);
+      display: flex; flex-direction: column-reverse; gap: var(--s-2);
+      z-index: 300;
+      pointer-events: none;
+    }
+    .toast {
+      display: flex; align-items: center; gap: var(--s-3);
+      padding: var(--s-3) var(--s-4);
+      background: var(--surface-overlay);
+      border: 1px solid var(--accent-dim);
+      border-radius: var(--r-md);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+      font-size: var(--text-sm);
+      animation: toast-in var(--dur-base) var(--ease-out-snap);
+      max-width: 360px;
+    }
+    .toast__dot {
+      width: 8px; height: 8px; border-radius: var(--r-full);
+      background: var(--accent);
+      box-shadow: 0 0 8px var(--accent);
+    }
+    @keyframes toast-in {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ---------- 404 ---------- */
+    .err {
+      padding: var(--s-12) var(--margin-rule-w) var(--s-16);
+      text-align: left;
+      border-left: 1px solid var(--bad);
+    }
+    .err__code {
+      font-family: var(--font-code);
+      font-size: var(--text-xs);
+      color: var(--bad);
+      letter-spacing: 0.1em;
+      margin-bottom: var(--s-3);
+    }
+    .err__title {
+      font-family: var(--font-display);
+      font-size: var(--text-2xl);
+      margin: 0 0 var(--s-3);
+    }
+
+    /* Skip-to-content for keyboard users */
+    .skip {
+      position: absolute; left: -9999px;
+      padding: var(--s-2) var(--s-3);
+      background: var(--accent);
+      color: var(--surface-base);
+      font-weight: 600;
+      border-radius: var(--r-sm);
+    }
+    .skip:focus { left: var(--s-4); top: var(--s-4); z-index: 999; }
+
+    .ico { display: inline-block; vertical-align: middle; }
+  </style>
+</head>
+<body>
+  <a href="#main" class="skip">Skip to content</a>
+  <div class="shell">
+    <header class="topbar" role="banner">
+      <div class="brand">
+        <span class="brand__mark">UT · 01</span>
+        <span class="brand__name">ULTRATHINK</span>
+        <span class="brand__sub">Framework dashboard</span>
+      </div>
+      <div class="toolbar" role="toolbar" aria-label="Global actions">
+        <button class="btn" id="btn-export-tab" type="button" aria-label="Export current tab as Markdown">
+          <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Export tab
+        </button>
+        <button class="btn btn--accent" id="btn-export-all" type="button" aria-label="Export entire framework as Markdown">
+          <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          Export all
+        </button>
+      </div>
+    </header>
+
+    <nav class="tabs" id="tabs" role="tablist" aria-label="Framework sections"></nav>
+
+    <main class="layout" id="main">
+      <aside class="sidebar" aria-label="Section navigation">
+        <p class="sidebar__title" id="sidebar-title">Sections</p>
+        <div class="nav" id="nav" role="navigation"></div>
+      </aside>
+
+      <article class="content" id="content" aria-live="polite"></article>
+
+      <aside class="preview" aria-label="Markdown export preview">
+        <div class="preview__head">
+          <span class="preview__label"><span class="preview__dot"></span> Export preview</span>
+          <div class="preview__actions">
+            <button class="btn btn--ghost" id="btn-copy-md" type="button" title="Copy Markdown to clipboard" aria-label="Copy Markdown">
+              <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            </button>
+            <button class="btn btn--ghost" id="btn-download-md" type="button" title="Download .md file" aria-label="Download Markdown">
+              <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            </button>
+          </div>
+        </div>
+        <pre class="preview__body" id="preview-body" aria-label="Markdown source"></pre>
+        <div class="preview__foot">
+          <span id="preview-meta">—</span>
+          <span class="preview__count" id="preview-count">0 lines</span>
+        </div>
+      </aside>
+    </main>
+  </div>
+
+  <div class="toast-stack" id="toast-stack" aria-live="polite" aria-atomic="true"></div>
+
+  <script>
+  /* =====================================================================
+     ULTRATHINK · single-source-of-truth content model.
+     Each section drives both the rendered UI and the exported Markdown.
+     Editing copy here updates the dashboard AND the .md exports.
+     ===================================================================== */
+  const DASHBOARD_DATA = {
+    meta: {
+      title: "ULTRATHINK",
+      tagline: "Security-first. Craft-first. Reality-first.",
+      version: "1.0.0",
+      generated: new Date().toISOString().slice(0, 10)
+    },
+    tabs: [
+      {
+        id: "vision",
+        code: "V",
+        label: "Vision",
+        intro: "Six core principles. Craft over speed. Elegance over pragmatism.",
+        sections: [
+          {
+            id: "think-different",
+            label: "Think Different",
+            provocation: "Default solutions produce default outcomes. Pick a stance before you pick a stack.",
+            tldr: "Resist the first plausible answer. Most engineering work fails not from inability but from defaulting to the obvious shape — the framework everyone uses, the pattern that ships fastest, the abstraction nobody questions.",
+            analogy: "A chef who only cooks recipes from one cookbook makes competent food. A chef who borrows from four cuisines — and knows why each technique exists — makes memorable food.",
+            concrete: "Before reaching for Redux, ask whether the state needs to be global. Before adding a microservice, ask whether the boundary is real or imagined. Before standing up Kafka, ask whether you have more than 10 events per second.",
+            operational: [
+              "Name the default solution first — out loud or in writing.",
+              "List two alternatives, each with one tradeoff and one cost.",
+              "Choose deliberately and write down the reason. Re-read it during code review.",
+              "If a senior reviewer cannot tell why you chose this path, the reasoning is not visible enough."
+            ],
+            antiPatterns: [
+              "Reaching for the most popular framework without naming the second-best option.",
+              "Copying patterns from a previous project that solved a different problem.",
+              "Optimizing for a future that hasn't been requested.",
+              "Treating boilerplate as architecture."
+            ],
+            checklist: [
+              "I can name the default approach for this problem.",
+              "I evaluated at least one non-default alternative.",
+              "The reason for my choice is written somewhere a reviewer will read it.",
+              "I removed at least one inherited assumption from the inherited template.",
+              "If asked 'why this stack', I have an answer that isn't 'because we always have'."
+            ],
+            related: ["vision/simplify-ruthlessly", "vision/plan-like-da-vinci"]
+          },
+          {
+            id: "obsess-over-details",
+            label: "Obsess Over Details",
+            provocation: "Read the codebase like a masterpiece. Understand its soul.",
+            tldr: "Details are the system. The variable name, the order of arguments, the way an error is raised — these compound into either a codebase that teaches or a codebase that resists.",
+            analogy: "A locksmith doesn't just open the door. They listen to the pins. The same lock failure has six different causes; only one matches the sound.",
+            concrete: "Renaming `data` to `parsedInvoiceLines` saves ten minutes for the next reader. Choosing `Result<T, E>` over `T | null` saves a class of bugs. Sorting imports alphabetically saves merge conflicts. None of these are aesthetic.",
+            operational: [
+              "Read the file before changing it. Read the function it calls. Read the test.",
+              "Treat each name, signature, and error message as a load-bearing decision.",
+              "Match the surrounding code's idiom unless you are deliberately replacing it.",
+              "When you spot a ten-second improvement, make it. Compounding starts with the first commit."
+            ],
+            antiPatterns: [
+              "`temp`, `data2`, `helper2` — names that signal the author stopped thinking.",
+              "Try/catch swallowing the error and returning null.",
+              "Mixing camelCase and snake_case in the same module.",
+              "Comments that describe what the code does instead of why."
+            ],
+            checklist: [
+              "Every variable I introduced has a name a stranger could decode.",
+              "Every function returns a result type that distinguishes success from failure.",
+              "Every error message includes context — what was attempted, what failed, what to try next.",
+              "I read the surrounding 50 lines before editing.",
+              "I matched indentation, quote style, and import order to the existing file."
+            ],
+            related: ["vision/simplify-ruthlessly", "contract/quality-gates"]
+          },
+          {
+            id: "plan-like-da-vinci",
+            label: "Plan Like Da Vinci",
+            provocation: "Every function should sing. Every abstraction feel natural.",
+            tldr: "Plan in words and sketches before you plan in code. The cost of a bad plan in pseudocode is minutes. The cost of a bad plan in production is weeks.",
+            analogy: "Da Vinci sketched flying machines for thirty years before any of them flew. He built understanding before he built artifacts.",
+            concrete: "Spec → architecture diagram → pseudocode → tests → implementation. Skipping the first three is what produces 'we'll refactor later' codebases.",
+            operational: [
+              "Write the user-facing API or UI first. If it's awkward to describe, it's awkward to use.",
+              "Diagram the data flow. Name every boundary. List every failure mode.",
+              "Pseudocode the hard parts. If you can't pseudocode it, you can't code it.",
+              "Tests describe the contract. Write them before the implementation when the contract matters."
+            ],
+            antiPatterns: [
+              "Diving into implementation before the data model is stable.",
+              "Architecture diagrams generated after the system already exists.",
+              "Speccing only the happy path.",
+              "Treating 'we'll figure it out as we go' as a methodology."
+            ],
+            checklist: [
+              "I have a one-paragraph spec a non-engineer could read.",
+              "I have a diagram or sketch of system boundaries.",
+              "I have pseudocode for the two hardest functions.",
+              "I have written tests — or at least a test list — before coding.",
+              "I have named at least three failure modes and what happens in each."
+            ],
+            related: ["grammar/tier-2-decisions", "contract/response-guarantees"]
+          },
+          {
+            id: "iterate-relentlessly",
+            label: "Iterate Relentlessly",
+            provocation: "First version exists to be replaced. Plan for the second.",
+            tldr: "Shipping is not the end of the work. The first commit is the worst version of the code that will ever exist; treat it that way.",
+            analogy: "Sculptors do not chisel marble in one pass. They rough out the form, step back, study the light, and remove material until the figure emerges.",
+            concrete: "Write it ugly. Make it work. Read it tomorrow. Refactor in small commits. Each pass should improve one thing — naming, structure, error handling, performance — not all four at once.",
+            operational: [
+              "Get to working before you get to elegant. Ugly code that runs is ahead of beautiful code that doesn't.",
+              "Commit at the smallest unit that compiles and passes tests.",
+              "Schedule a re-read 24 hours later. Most of your improvements will come from that re-read.",
+              "Refactor in single-concern PRs. Mixed PRs hide regressions."
+            ],
+            antiPatterns: [
+              "Holding code locally for a week trying to make it 'right'.",
+              "Refactoring three things in one commit so reviewers can't tell what changed.",
+              "Treating the first design as the final design.",
+              "Skipping the re-read step because 'it works'."
+            ],
+            checklist: [
+              "I shipped a working version within the first day.",
+              "Each commit changes one concern at a time.",
+              "I scheduled and performed a 24-hour re-read.",
+              "Each refactor PR has a one-sentence description that names what improved.",
+              "I deleted code that was wrong instead of leaving it 'for later'."
+            ],
+            related: ["vision/simplify-ruthlessly", "contract/quality-gates"]
+          },
+          {
+            id: "simplify-ruthlessly",
+            label: "Simplify Ruthlessly",
+            provocation: "Remove complexity without losing power. Elegance is earned.",
+            tldr: "Simple is harder than complicated. Complicated takes the first idea and adds. Simple takes ten ideas and subtracts.",
+            analogy: "A bonsai tree is small not because it grew small but because the master spent decades pruning what didn't belong.",
+            concrete: "Three abstractions explaining one operation can usually become one. A flag with three values can usually become a typed enum with named cases. A 200-line function with 40 lines of branching is two functions pretending to be one.",
+            operational: [
+              "After it works, ask: what can I delete and still pass the tests?",
+              "Replace flags with named types. Replace nested conditionals with early returns or polymorphism.",
+              "Inline functions called once. Extract logic only when it has a name.",
+              "Question every interface. If only one implementation exists and one is likely, the interface is theater."
+            ],
+            antiPatterns: [
+              "Premature abstraction — building a generic solution to a problem you have once.",
+              "Configuration that nobody configures.",
+              "Layers added because 'we might need to swap this someday'.",
+              "Names like `Manager`, `Helper`, `Util` that describe nothing."
+            ],
+            checklist: [
+              "I deleted at least one block that wasn't pulling weight.",
+              "Every function name describes what it returns or does, not what category it belongs to.",
+              "No interface exists that has only one implementation and no realistic second.",
+              "The shortest path through the code is the happy path.",
+              "A new contributor could read the entry point and trace one full request without jumping more than three files."
+            ],
+            related: ["vision/obsess-over-details", "vision/iterate-relentlessly"]
+          },
+          {
+            id: "craft-over-speed",
+            label: "Craft Over Speed",
+            provocation: "Slowing down at the right moments is the fastest way through.",
+            tldr: "Speed is the byproduct of doing the right things in the right order. Optimize for the right things and speed appears; optimize for speed and the right things vanish.",
+            analogy: "A surgeon does not move quickly during the cut. They move quickly between cuts. Pace varies by phase.",
+            concrete: "Spend more time on the data model and less time on the UI. Spend more time on the integration test and less time on the unit test for trivial code. Spend more time on naming and less time on documentation that names would have made redundant.",
+            operational: [
+              "Identify the load-bearing decision in the work. Spend disproportionate care there.",
+              "For everything else, default to working-and-shippable.",
+              "Refuse to be fast where speed produces fragile output: schemas, auth, payment, persistence, public APIs.",
+              "Measure throughput in shipped value, not in commits per day."
+            ],
+            antiPatterns: [
+              "Treating velocity charts as a goal instead of a signal.",
+              "Rushing the schema 'because we'll migrate it later'.",
+              "Skipping code review on the 'small change' that broke production.",
+              "Confusing motion with progress."
+            ],
+            checklist: [
+              "I named the load-bearing decision in this work.",
+              "I spent disproportionate time on it relative to the trivial parts.",
+              "I did not rush schemas, auth, persistence, or public APIs.",
+              "My pace varies by phase — slow during decisions, fast during execution.",
+              "What I shipped today actually changed something for a user, internal or external."
+            ],
+            related: ["vision/plan-like-da-vinci", "grammar/tier-2-decisions"]
+          }
+        ]
+      },
+      {
+        id: "contract",
+        code: "C",
+        label: "Contract",
+        intro: "What every response must guarantee. The contract is the floor, not the ceiling.",
+        sections: [
+          {
+            id: "security-floor",
+            label: "Security Floor",
+            provocation: "Security is not a feature. It's the floor everything else is built on.",
+            tldr: "Two non-negotiables: no hallucinations passed off as facts, and no secrets in code that ships to a client.",
+            analogy: "A bridge can be elegant, fast to cross, and beautiful — but if it falls down, none of that mattered. Security is whether the bridge stays up.",
+            concrete: "API keys live in environment variables. Database URLs live in environment variables. Service-role keys never appear in frontend bundles. Unverified claims are labeled as estimates, not asserted as facts.",
+            operational: [
+              "Secrets in env vars. No exceptions, no 'just for development', no fallback constants.",
+              "Frontend code uses publishable / anon keys only. Privileged operations route through a server.",
+              "Every assertion is either sourced (with citation) or labeled as a generated estimate.",
+              "If you don't know, say so. 'I cannot verify this' beats a confident wrong answer."
+            ],
+            antiPatterns: [
+              "Hardcoded API keys in source files committed to a repo.",
+              "Service-role / admin keys imported into client code.",
+              ".env files committed alongside .env.example.",
+              "Confident assertion of unverified facts because uncertainty 'feels weak'."
+            ],
+            checklist: [
+              "Grep the codebase for the strings sk_, service_role, BEGIN, AKIA — all returned zero results in client code.",
+              "Every secret is loaded from process.env / equivalent at runtime.",
+              ".env is in .gitignore; .env.example contains only placeholder values.",
+              "Every numeric claim in shipped output is labeled SOURCED or GENERATED.",
+              "Every uncertainty is named, not papered over."
+            ],
+            related: ["reference/owasp-checkpoint", "contract/quality-gates"]
+          },
+          {
+            id: "response-guarantees",
+            label: "Response Guarantees",
+            provocation: "Five deliverables, every time: Analogy, Plan, Code, Tests, Docs.",
+            tldr: "A complete response to a build request includes all five. Skipping one means the next person has to reconstruct it — and most of the time, nobody does.",
+            analogy: "A meal isn't an entrée alone. It's the appetizer that frames it, the sides that complete it, and the bill that closes the loop. Skip any and the experience feels off.",
+            concrete: "Analogy gives the reader a mental model. Plan shows the architecture and tradeoffs. Code is the executable artifact. Tests prove the contract. Docs make it survivable for a stranger.",
+            operational: [
+              "Analogy: one image or comparison that maps the unfamiliar to the familiar.",
+              "Plan: data flow, boundaries, failure modes, dependency list.",
+              "Code: typed where supported, error handling, no placeholders, no TODOs in shipped output.",
+              "Tests: at least one happy-path and one failure-mode test, with assertions on observable behavior.",
+              "Docs: README or inline — what it does, how to run it, what could break it."
+            ],
+            antiPatterns: [
+              "'Here's the code.' (no plan, no test, no doc)",
+              "Plan without code (delegating implementation back to the requester).",
+              "Code with TODOs labeled 'finished'.",
+              "Tests that assert on internals instead of behavior.",
+              "Docs that paraphrase what the code does instead of why."
+            ],
+            checklist: [
+              "Response opens with a TL;DR or analogy.",
+              "Plan includes data model, boundaries, and at least two failure modes.",
+              "Code has typed signatures, error handling, and zero placeholder strings.",
+              "Tests cover one happy-path and one error-path scenario.",
+              "Docs explain run, config, and known failure conditions."
+            ],
+            related: ["contract/quality-gates", "grammar/tier-3-implementation"]
+          },
+          {
+            id: "quality-gates",
+            label: "Quality Gates",
+            provocation: "If it didn't run, it isn't done. If it didn't pass review, it isn't shipped.",
+            tldr: "Five gates between draft and merged: it compiles, it runs, it passes tests, it passes review, it's been re-read by the author.",
+            analogy: "Customs is not theater. Each checkpoint catches a different category of problem. Skip one and you don't speed up — you just push the failure downstream.",
+            concrete: "Compile catches syntax. Runtime catches integration. Tests catch contract drift. Review catches design and naming. Author re-read catches the obvious thing the author missed in flow.",
+            operational: [
+              "Gate 1: compiles / type-checks. No warnings suppressed silently.",
+              "Gate 2: runs locally with realistic data. Synthetic data masks bugs.",
+              "Gate 3: tests pass — the relevant ones, not just whatever was already there.",
+              "Gate 4: peer or adversarial review. The reviewer should ask 'what could go wrong here'.",
+              "Gate 5: 24-hour author re-read. Eyes that have been away find the obvious flaws."
+            ],
+            antiPatterns: [
+              "`@ts-ignore` / `// eslint-disable` instead of fixing the underlying issue.",
+              "Tests that assert on the implementation, not the behavior.",
+              "'LGTM' reviews on PRs the reviewer didn't read.",
+              "Same-day merges of work the author has been heads-down on for hours."
+            ],
+            checklist: [
+              "Build passes with zero suppressed warnings.",
+              "Code ran locally against realistic data, not just synthetic fixtures.",
+              "Tests pass and at least one new test was added or modified.",
+              "A reviewer left at least one substantive comment.",
+              "I re-read the diff at least 12 hours after writing it."
+            ],
+            related: ["contract/response-guarantees", "vision/iterate-relentlessly"]
+          },
+          {
+            id: "gaps-and-blindspots",
+            label: "Gaps & Blindspots",
+            provocation: "What you didn't consider is what will break you.",
+            tldr: "Every deliverable closes with what wasn't covered: known gaps, things outside scope, things outside visibility. The footer is the most honest part of the document.",
+            analogy: "A pilot's pre-flight checklist ends with 'anything unusual' — not because everything has been listed, but because the discipline of looking for the unlisted is the safety mechanism.",
+            concrete: "GAPS = known unknowns the author hasn't filled in. BLINDSPOTS = things outside the author's expertise or context that should be reviewed by someone else. UNKNOWN-UNKNOWNS = the category itself; you can't enumerate them but naming the category prompts a final scan.",
+            operational: [
+              "Close every substantive deliverable with a footer: GAPS / BLINDSPOTS / UNKNOWN-UNKNOWNS.",
+              "GAPS: list what was scoped out and why. Make scope visible.",
+              "BLINDSPOTS: name domains you didn't have authority over — security review needed, ops review needed, legal review needed.",
+              "UNKNOWN-UNKNOWNS: stay humble. State the category and what would prompt a re-review."
+            ],
+            antiPatterns: [
+              "'Done' deliverables with no acknowledgment of scope edges.",
+              "Hiding incomplete work behind confident framing.",
+              "Treating the footer as ceremonial — copy-pasting the same gaps every time.",
+              "Confusing 'I didn't think of it' with 'it's not relevant'."
+            ],
+            checklist: [
+              "GAPS section names at least one thing scoped out and why.",
+              "BLINDSPOTS section names at least one expert review still owed.",
+              "UNKNOWN-UNKNOWNS section names a re-review trigger.",
+              "Footer is specific to this deliverable, not boilerplate.",
+              "If a reviewer asks 'what could go wrong', the footer already answers."
+            ],
+            related: ["contract/response-guarantees", "reference/before-every-task"]
+          }
+        ]
+      },
+      {
+        id: "grammar",
+        code: "G",
+        label: "Grammar",
+        intro: "Four tiers of structured thinking, from contract to keystrokes.",
+        sections: [
+          {
+            id: "tier-0-contract",
+            label: "Tier 0 — Contract",
+            provocation: "Before pseudocode, before architecture, before names: what does done look like?",
+            tldr: "The contract is the agreement between the work and the world. What inputs does it accept? What outputs does it guarantee? Under what conditions does it fail?",
+            analogy: "A construction contract names the building, the deadline, and the penalties. The blueprint comes after. The contract is what gets enforced.",
+            concrete: "For an API endpoint: request schema, response schema, status codes, rate limits, auth requirements. For a function: parameter types, return type, thrown errors, side effects.",
+            operational: [
+              "Write the contract before the code. One paragraph or one type signature is enough.",
+              "Name observable behavior, not implementation. 'Returns user by ID' not 'queries the user table'.",
+              "Enumerate failure modes: not-found, unauthorized, rate-limited, malformed.",
+              "If you can't write the contract, you don't understand the work yet."
+            ],
+            antiPatterns: [
+              "Starting with implementation and inferring the contract afterward.",
+              "Contracts that describe internal structure instead of external behavior.",
+              "Skipping failure modes because the happy path 'always works'.",
+              "Contracts written as marketing copy."
+            ],
+            checklist: [
+              "Inputs: typed and named.",
+              "Outputs: typed, named, and distinguishing success from failure.",
+              "Failure modes: enumerated with the conditions that produce each.",
+              "Side effects: listed if any (logs, writes, network calls).",
+              "Auth and rate context: explicit if relevant."
+            ],
+            related: ["grammar/tier-1-grammar", "contract/response-guarantees"]
+          },
+          {
+            id: "tier-1-grammar",
+            label: "Tier 1 — Grammar",
+            provocation: "Naming, signatures, and shape come before logic.",
+            tldr: "Grammar is the vocabulary the system uses to describe itself. Get it right and the code documents itself; get it wrong and no amount of comments will save it.",
+            analogy: "In a novel, the difference between 'sprinted' and 'jogged' is a paragraph of context. Same in code: `getUser` and `fetchUserOrThrow` carry different contracts in their names alone.",
+            concrete: "Verbs for actions. Nouns for entities. Booleans named to read like statements (`isActive`, not `active` or `flag`). Result types for operations that fail. Plural names for collections.",
+            operational: [
+              "Verbs first: `parse`, `validate`, `dispatch`, `persist`.",
+              "Booleans state truth: `isExpired`, `hasAccess`, `wasRetried`.",
+              "Errors carry context: `OrderNotFoundError`, not `Error`.",
+              "Types narrow scope: prefer `OrderId` over `string`, `Email` over `string`.",
+              "Collections are plural; singletons are not."
+            ],
+            antiPatterns: [
+              "`data`, `info`, `result`, `temp`, `obj` as names that survive past the first draft.",
+              "Boolean parameters that read backward at the call site (`drawCircle(true, false, true)`).",
+              "Functions named after their category (`UserUtil.process`) instead of their action.",
+              "Mixing tense and voice across a module."
+            ],
+            checklist: [
+              "Every name reads as a sentence at the call site.",
+              "Booleans are predicates (`is`, `has`, `was`, `should`).",
+              "No type is `string` or `any` if a narrower type would carry the meaning.",
+              "Errors carry context in their type name.",
+              "Module names describe domain, not layer ('Billing', not 'Services')."
+            ],
+            related: ["vision/obsess-over-details", "grammar/tier-2-decisions"]
+          },
+          {
+            id: "tier-2-decisions",
+            label: "Tier 2 — Decisions",
+            provocation: "Architecture is a sequence of recorded choices. Record them.",
+            tldr: "When multiple valid approaches exist, name them, list tradeoffs, pick one, justify it. The decision record is more durable than the diagram.",
+            analogy: "A judge's opinion isn't valuable for the verdict. It's valuable for the reasoning future judges can cite or distinguish.",
+            concrete: "ADRs (Architecture Decision Records). Three approaches considered. Tradeoffs along axes that matter — maintainability, performance, security, cost. Decision named, owner named, date named.",
+            operational: [
+              "When choices exist, present A / B / C with tradeoffs, then pick one.",
+              "Justify in terms of priority order: maintainability → correctness → security → observability → scalability → performance → cleverness.",
+              "Record the decision, not just the conclusion.",
+              "Old decisions don't get deleted. They get superseded with a forward link."
+            ],
+            antiPatterns: [
+              "Architecture diagrams without the why.",
+              "Decisions made in chat that nobody can find six months later.",
+              "Choosing the new option because it's new.",
+              "Choosing the old option because it's familiar."
+            ],
+            checklist: [
+              "Decision is named in one sentence.",
+              "At least two alternatives were named and rejected.",
+              "Tradeoffs are listed along the priority axes.",
+              "Decision has an owner and a date.",
+              "Decision is filed where future readers will find it (repo, wiki, notebook)."
+            ],
+            related: ["vision/think-different", "vision/plan-like-da-vinci"]
+          },
+          {
+            id: "tier-3-implementation",
+            label: "Tier 3 — Implementation",
+            provocation: "Now you write the code. The hard work was done in tiers 0–2.",
+            tldr: "Implementation is mechanical when the contract, grammar, and decisions are settled. Most pain in implementation is unfinished work from earlier tiers leaking down.",
+            analogy: "Pouring concrete is fast. The slow work was the survey, the rebar, and the form. Pour without those and you have a slab that doesn't stand.",
+            concrete: "Code that matches the contract. Names that match the grammar. Patterns that match the decisions. Smoke test that proves the path. PR that documents what changed and why.",
+            operational: [
+              "Write the test from the contract before the implementation.",
+              "Write the implementation in small commits, one concern per commit.",
+              "Run the smoke test continuously — not just once at the end.",
+              "Open the PR with a description that links back to the decision and the contract."
+            ],
+            antiPatterns: [
+              "Long-lived branches with hundreds of unrelated changes.",
+              "Implementation that drifts from the contract and updates the contract to match.",
+              "Skipping the smoke test because 'unit tests pass'.",
+              "PR descriptions that say 'fixes the thing' with no context."
+            ],
+            checklist: [
+              "Tests exist before or alongside the implementation.",
+              "Each commit is single-concern.",
+              "Smoke test runs end-to-end with realistic data.",
+              "PR description names the contract, the decision, and the change.",
+              "If the contract changed, the contract document was updated in the same PR."
+            ],
+            related: ["contract/quality-gates", "vision/iterate-relentlessly"]
+          }
+        ]
+      },
+      {
+        id: "reference",
+        code: "R",
+        label: "Reference",
+        intro: "Pocket frameworks, security checkpoints, and analogies for the work in front of you.",
+        sections: [
+          {
+            id: "quick-analogies",
+            label: "Quick Analogies",
+            provocation: "Borrow vocabulary from older disciplines. They've been at it longer.",
+            tldr: "Software borrows from finance, medicine, civil engineering, and athletics because those fields figured out reliability before we did. Use the borrowed words on purpose.",
+            analogy: "Engineers calling code 'tech debt' is a finance analogy that worked. SLOs as 'error budgets' is another. Borrow more.",
+            concrete: "SLOs are budgets. Errors are spend. Rest days are recovery. Security layers are defense in depth. LLM safety is a load-bearing assumption you have to test, not believe.",
+            operational: [
+              "SLOs / error budgets — treat reliability as a budget you spend, not an absolute.",
+              "Rest days — recovery is part of the cycle, not the absence of work.",
+              "Defense in depth — never one layer; always at least two.",
+              "Capacity planning — same as personal energy. You don't max out; you leave headroom.",
+              "Pre-mortem — assume the project failed; explain why."
+            ],
+            antiPatterns: [
+              "Importing a metaphor without importing its discipline (calling something 'agile' without a feedback loop).",
+              "Treating analogies as decoration instead of infrastructure.",
+              "Stretching one metaphor past its useful range."
+            ],
+            checklist: [
+              "I'm using the borrowed term in the way the source field uses it, not as marketing.",
+              "When the metaphor stops fitting, I drop it instead of forcing it.",
+              "I have at least two analogies for the same concept — one technical, one accessible.",
+              "If a stakeholder doesn't get the technical version, I have the accessible version ready."
+            ],
+            related: ["reference/before-every-task", "contract/security-floor"]
+          },
+          {
+            id: "before-every-task",
+            label: "Before Every Task",
+            provocation: "Five questions, then start.",
+            tldr: "A short pre-flight checklist run before any non-trivial work. Catches the obvious before it becomes expensive.",
+            analogy: "Pilots run a pre-flight every time. Not because they don't trust the plane — because they don't trust the absence of attention.",
+            concrete: "What problem? For whom? Done means what? What could break this? Who reviews it?",
+            operational: [
+              "Problem: stated in one sentence, in the user's words.",
+              "Audience: who feels the impact when this ships or when it breaks.",
+              "Done: observable, testable, time-bounded.",
+              "Risk: top three failure modes named.",
+              "Reviewer: a name, not a role."
+            ],
+            antiPatterns: [
+              "Starting work with no written problem statement.",
+              "'Done' meaning 'the code is written'.",
+              "Risk lists that read like generic security templates.",
+              "Reviews where the reviewer is 'the team'."
+            ],
+            checklist: [
+              "Problem statement fits in one sentence.",
+              "Audience is named — a person, role, or system.",
+              "Done is observable and has a verification step.",
+              "Top three risks are named with the conditions that trigger them.",
+              "Reviewer is a person who will actually read the diff."
+            ],
+            related: ["reference/rise-framework", "reference/flow-framework"]
+          },
+          {
+            id: "rise-framework",
+            label: "R-I-S-E Framework",
+            provocation: "Role, Input, Stops, Expectation.",
+            tldr: "A four-letter prompt or task scaffold. Use it when the request is fuzzy and the responder has no anchor.",
+            analogy: "Stage directions for an actor. Without them, performances drift; with them, the same script lands the same way every show.",
+            concrete: "ROLE: who is responding (engineer, reviewer, writer). INPUT: what context they have. STOPS: what they refuse to do. EXPECTATION: what the output must contain.",
+            operational: [
+              "Role: declared explicitly. 'Senior security reviewer' produces different output than 'helpful assistant'.",
+              "Input: the relevant context — files, constraints, prior decisions. Skip the rest.",
+              "Stops: what's out of scope, what's forbidden. Negative space matters.",
+              "Expectation: the shape of the output — bullet list, code, decision memo, table."
+            ],
+            antiPatterns: [
+              "Role declarations that are flattery rather than constraint.",
+              "Input that's a wall of context instead of the relevant subset.",
+              "Stops missing — leading to scope drift.",
+              "Expectations vague — 'help me with this' instead of 'produce A, B, C'."
+            ],
+            checklist: [
+              "Role is named with enough specificity to constrain output style.",
+              "Input is filtered to what's relevant, not everything available.",
+              "At least one explicit stop is listed (what NOT to do).",
+              "Expected output shape is named — format, length, structure.",
+              "If responses drift, I revise R-I-S-E rather than the responder."
+            ],
+            related: ["reference/flow-framework", "reference/before-every-task"]
+          },
+          {
+            id: "flow-framework",
+            label: "F-L-O-W Framework",
+            provocation: "Focus, Layers, Outcomes, Waypoints.",
+            tldr: "A four-letter execution scaffold. Use it when work is multi-step and you need to maintain direction across hours or days.",
+            analogy: "A long-distance hike. You name the destination, plan the layers (clothing, food, water), commit to outcomes by daylight, and set waypoints to course-correct.",
+            concrete: "FOCUS: the one thing that matters most this session. LAYERS: dependencies and prerequisites. OUTCOMES: what 'done' looks like for this session. WAYPOINTS: checkpoints to verify you're still on the path.",
+            operational: [
+              "Focus: name it before you start. Defaults to whatever's loudest otherwise.",
+              "Layers: prerequisites, supporting work, fallback plans.",
+              "Outcomes: phrased as observable artifacts, not activities.",
+              "Waypoints: small, frequent. Every 30–60 minutes if the work is dense."
+            ],
+            antiPatterns: [
+              "Focus that's actually three things in a trench coat.",
+              "Layers skipped because 'I'll figure them out as I go'.",
+              "Outcomes phrased as 'work on X' instead of 'X exists and does Y'.",
+              "Waypoints set so far apart that drift compounds."
+            ],
+            checklist: [
+              "Focus is one sentence and one thing.",
+              "Layers list names dependencies and at least one fallback.",
+              "Outcomes are artifacts (file exists, test passes, deploy succeeds), not verbs.",
+              "Waypoints are scheduled and frequent.",
+              "When a waypoint is missed, I adjust the plan rather than push through."
+            ],
+            related: ["reference/rise-framework", "reference/before-every-task"]
+          },
+          {
+            id: "owasp-checkpoint",
+            label: "OWASP Checkpoint",
+            provocation: "Three categories that catch most of what kills systems: misconfiguration, injection, cryptography.",
+            tldr: "A scoped checkpoint pulled from the OWASP Top 10. Not exhaustive — just the three categories that catch the largest share of preventable security failures in everyday work.",
+            analogy: "A doctor doesn't run every test on every patient. They run the three that catch the most common preventable conditions, then escalate based on what they find.",
+            concrete: "A02 Misconfiguration: defaults left on, ports open, headers missing. A03 Injection: user input concatenated into queries, commands, or rendered markup. A05 Cryptography: weak algorithms, missing TLS, secrets in plaintext.",
+            operational: [
+              "A02 — Misconfiguration: review framework defaults; remove unused features; harden HTTP headers; rotate default credentials.",
+              "A03 — Injection: parameterized queries; output escaping appropriate to the context (HTML / SQL / shell / LDAP); content security policy.",
+              "A05 — Cryptography: TLS everywhere; strong algorithms (AES-GCM, Argon2); secrets in env, not in code; key rotation plan.",
+              "Run this checkpoint at end-of-feature, not end-of-quarter."
+            ],
+            antiPatterns: [
+              "String concatenation building any kind of query or command.",
+              "MD5 or SHA-1 used for password hashing.",
+              "Self-signed certs in production.",
+              "'It's internal so we don't need TLS.'"
+            ],
+            checklist: [
+              "All queries / commands use parameterized APIs, not string concatenation.",
+              "All output is escaped for its rendering context.",
+              "All transport is TLS 1.2+ (TLS 1.3 preferred).",
+              "Passwords use Argon2id or bcrypt with appropriate work factor.",
+              "Default credentials, demo accounts, and unused endpoints have been removed.",
+              "HTTP security headers (CSP, HSTS, X-Content-Type-Options) are set."
+            ],
+            related: ["contract/security-floor", "reference/io-validation"]
+          },
+          {
+            id: "io-validation",
+            label: "Input / Output Validation",
+            provocation: "Trust nothing crossing a boundary, including what you produced.",
+            tldr: "Every input is hostile until validated. Every output is leakage until reviewed. The boundary is the system; everything inside is conditional on the boundary holding.",
+            analogy: "Customs at a border. Inbound is searched for what's forbidden. Outbound is searched for what's protected. Both are non-optional.",
+            concrete: "Inputs: schema validation, length limits, type narrowing, allowlists where possible. Outputs: redact PII, strip stack traces from public errors, scrub debug payloads.",
+            operational: [
+              "Validate at the boundary. The boundary is the controller, the parser, the queue consumer — not 'somewhere deeper'.",
+              "Use a schema library (Zod, Pydantic, JSON Schema). Hand-rolled validators drift.",
+              "Allowlist over blocklist. Every blocklist becomes obsolete.",
+              "Outputs strip secrets, PII, internal paths, stack traces.",
+              "Error messages crossing trust boundaries are sanitized before they leave."
+            ],
+            antiPatterns: [
+              "Trusting the frontend to enforce server constraints.",
+              "Validating in the data layer instead of the boundary.",
+              "Returning raw exceptions to clients.",
+              "Logging sensitive payloads at info level."
+            ],
+            checklist: [
+              "Schema validation runs at every public entrypoint.",
+              "Validation uses a library, not hand-rolled checks.",
+              "Allowlists are used where possible; blocklists are documented as temporary.",
+              "Public error messages reveal nothing about internals.",
+              "Logs are scrubbed of secrets, PII, and full request bodies at non-debug levels."
+            ],
+            related: ["reference/owasp-checkpoint", "contract/security-floor"]
+          }
+        ]
+      }
+    ]
+  };
+
+  /* =====================================================================
+     Markdown serializer.
+     Single source: walks DASHBOARD_DATA, produces MD strings used both
+     for the live preview pane and for downloadable .md files.
+     ===================================================================== */
+  const MD = {
+    section(tab, sec) {
+      const lines = [];
+      lines.push(`# ${tab.label} · ${tab.code}·${pad2(sec.idx)} ${sec.label}`);
+      if (sec.provocation) lines.push(`> ${sec.provocation}`);
+      lines.push("");
+      lines.push("## TL;DR");
+      lines.push(sec.tldr);
+      lines.push("");
+      if (sec.analogy) {
+        lines.push("## Analogy");
+        lines.push(sec.analogy);
+        lines.push("");
+      }
+      if (sec.concrete) {
+        lines.push("## Concrete example");
+        lines.push(sec.concrete);
+        lines.push("");
+      }
+      lines.push("## Operational definition");
+      sec.operational.forEach(b => lines.push(`- ${b}`));
+      lines.push("");
+      lines.push("## Anti-patterns");
+      sec.antiPatterns.forEach(b => lines.push(`- ${b}`));
+      lines.push("");
+      lines.push("## Practitioner checklist");
+      sec.checklist.forEach(b => lines.push(`- [ ] ${b}`));
+      lines.push("");
+      if (sec.related && sec.related.length) {
+        lines.push("## Related");
+        sec.related.forEach(r => lines.push(`- ${r}`));
+        lines.push("");
+      }
+      lines.push("---");
+      lines.push(`_Generated from ULTRATHINK Framework v${DASHBOARD_DATA.meta.version} · ${DASHBOARD_DATA.meta.generated}_`);
+      return lines.join("\n");
+    },
+    tab(tab) {
+      const lines = [];
+      lines.push(`# ULTRATHINK · ${tab.label}`);
+      lines.push(`> ${tab.intro}`);
+      lines.push("");
+      lines.push(`Tab code: \`${tab.code}\` · Sections: ${tab.sections.length}`);
+      lines.push("");
+      tab.sections.forEach((sec, idx) => {
+        lines.push(`## ${tab.code}·${pad2(idx + 1)} ${sec.label}`);
+        if (sec.provocation) lines.push(`> ${sec.provocation}`);
+        lines.push("");
+        lines.push(`**TL;DR.** ${sec.tldr}`);
+        lines.push("");
+        lines.push("**Operational:**");
+        sec.operational.forEach(b => lines.push(`- ${b}`));
+        lines.push("");
+        lines.push("**Practitioner checklist:**");
+        sec.checklist.forEach(b => lines.push(`- [ ] ${b}`));
+        lines.push("");
+        lines.push("---");
+        lines.push("");
+      });
+      lines.push(`_Generated from ULTRATHINK Framework v${DASHBOARD_DATA.meta.version} · ${DASHBOARD_DATA.meta.generated}_`);
+      return lines.join("\n");
+    },
+    all() {
+      const lines = [];
+      lines.push(`# ${DASHBOARD_DATA.meta.title}`);
+      lines.push(`> ${DASHBOARD_DATA.meta.tagline}`);
+      lines.push("");
+      lines.push(`Version ${DASHBOARD_DATA.meta.version} · ${DASHBOARD_DATA.meta.generated}`);
+      lines.push("");
+      lines.push("## Table of contents");
+      DASHBOARD_DATA.tabs.forEach(tab => {
+        lines.push(`- **${tab.label}** — ${tab.intro}`);
+        tab.sections.forEach((sec, idx) => {
+          lines.push(`  - ${tab.code}·${pad2(idx + 1)} ${sec.label}`);
+        });
+      });
+      lines.push("");
+      lines.push("---");
+      lines.push("");
+      DASHBOARD_DATA.tabs.forEach(tab => {
+        lines.push(`# ${tab.label}`);
+        lines.push(`> ${tab.intro}`);
+        lines.push("");
+        tab.sections.forEach((sec, idx) => {
+          const sectionMD = MD.section(tab, { ...sec, idx: idx + 1 });
+          // Demote the H1 to H2 for the combined doc
+          lines.push(sectionMD.replace(/^# /, "## "));
+          lines.push("");
+        });
+        lines.push("");
+      });
+      return lines.join("\n");
+    }
+  };
+
+  function pad2(n) { return String(n).padStart(2, "0"); }
+  function slugify(str) {
+    return String(str).toLowerCase()
+      .replace(/[^\w\s-]/g, "")
+      .replace(/\s+/g, "-")
+      .replace(/-+/g, "-");
+  }
+
+  /* =====================================================================
+     Router & state
+     ===================================================================== */
+  const STATE = {
+    tabId: "vision",
+    sectionId: null,
+    visited: loadVisited()
+  };
+
+  function loadVisited() {
+    try {
+      const raw = localStorage.getItem("ut.visited");
+      return raw ? new Set(JSON.parse(raw)) : new Set();
+    } catch { return new Set(); }
+  }
+  function saveVisited() {
+    try { localStorage.setItem("ut.visited", JSON.stringify([...STATE.visited])); }
+    catch { /* storage unavailable; soft-fail */ }
+  }
+
+  function parseHash() {
+    const h = location.hash.replace(/^#\/?/, "");
+    if (!h) return { tabId: "vision", sectionId: null };
+    const parts = h.split("/").filter(Boolean);
+    return { tabId: parts[0] || "vision", sectionId: parts[1] || null };
+  }
+
+  function setRoute(tabId, sectionId) {
+    const target = sectionId ? `#/${tabId}/${sectionId}` : `#/${tabId}`;
+    if (location.hash !== target) {
+      location.hash = target;
+    } else {
+      // Same hash, force re-render
+      handleRoute();
+    }
+  }
+
+  function findTab(id) { return DASHBOARD_DATA.tabs.find(t => t.id === id); }
+  function findSection(tab, id) { return tab && tab.sections.find(s => s.id === id); }
+  function sectionIdx(tab, id) {
+    if (!tab || !id) return -1;
+    return tab.sections.findIndex(s => s.id === id);
+  }
+
+  function handleRoute() {
+    const { tabId, sectionId } = parseHash();
+    const tab = findTab(tabId);
+    if (!tab) {
+      renderError(`No tab named "${tabId}".`);
+      return;
+    }
+    if (sectionId && !findSection(tab, sectionId)) {
+      renderError(`No section "${sectionId}" in tab "${tab.label}".`);
+      return;
+    }
+    STATE.tabId = tabId;
+    STATE.sectionId = sectionId;
+    if (sectionId) {
+      STATE.visited.add(`${tabId}/${sectionId}`);
+      saveVisited();
+    }
+    renderTabs();
+    renderSidebar();
+    renderContent();
+    renderPreview();
+    document.title = sectionId
+      ? `${findSection(tab, sectionId).label} · ${tab.label} · ULTRATHINK`
+      : `${tab.label} · ULTRATHINK`;
+  }
+
+  /* =====================================================================
+     Renderers
+     ===================================================================== */
+  const $ = (sel) => document.querySelector(sel);
+
+  function el(tag, attrs = {}, ...children) {
+    const node = document.createElement(tag);
+    for (const [k, v] of Object.entries(attrs)) {
+      if (k === "class") node.className = v;
+      else if (k === "html") node.innerHTML = v;
+      else if (k.startsWith("on") && typeof v === "function") {
+        node.addEventListener(k.slice(2).toLowerCase(), v);
+      } else if (v === true) node.setAttribute(k, "");
+      else if (v === false || v === null || v === undefined) { /* skip */ }
+      else node.setAttribute(k, v);
+    }
+    for (const c of children) {
+      if (c == null || c === false) continue;
+      node.appendChild(typeof c === "string" ? document.createTextNode(c) : c);
+    }
+    return node;
+  }
+
+  function renderTabs() {
+    const bar = $("#tabs");
+    bar.innerHTML = "";
+    DASHBOARD_DATA.tabs.forEach((tab, i) => {
+      const btn = el("button", {
+        class: "tab",
+        type: "button",
+        role: "tab",
+        "aria-selected": tab.id === STATE.tabId ? "true" : "false",
+        "aria-controls": "content",
+        onclick: () => setRoute(tab.id, null)
+      },
+        el("span", { class: "tab__id" }, `${tab.code}·0${i + 1}`),
+        document.createTextNode(tab.label)
+      );
+      bar.appendChild(btn);
+    });
+  }
+
+  function renderSidebar() {
+    const tab = findTab(STATE.tabId);
+    const nav = $("#nav");
+    const title = $("#sidebar-title");
+    title.textContent = `${tab.label} · ${tab.sections.length} sections`;
+    nav.innerHTML = "";
+
+    // Overview link (tab root)
+    nav.appendChild(el("a", {
+      class: "nav__item",
+      href: `#/${tab.id}`,
+      "aria-current": STATE.sectionId === null ? "page" : false,
+      onclick: (e) => { e.preventDefault(); setRoute(tab.id, null); }
+    },
+      el("span", { class: "nav__id" }, `${tab.code}·00`),
+      el("span", null, "Overview"),
+      el("span", { class: "nav__dot" })
+    ));
+
+    tab.sections.forEach((sec, i) => {
+      const visited = STATE.visited.has(`${tab.id}/${sec.id}`);
+      nav.appendChild(el("a", {
+        class: "nav__item" + (visited ? " is-visited" : ""),
+        href: `#/${tab.id}/${sec.id}`,
+        "aria-current": STATE.sectionId === sec.id ? "page" : false,
+        onclick: (e) => { e.preventDefault(); setRoute(tab.id, sec.id); }
+      },
+        el("span", { class: "nav__id" }, `${tab.code}·${pad2(i + 1)}`),
+        el("span", null, sec.label),
+        el("span", { class: "nav__dot" })
+      ));
+    });
+  }
+
+  function renderContent() {
+    const tab = findTab(STATE.tabId);
+    const root = $("#content");
+    root.innerHTML = "";
+
+    // Breadcrumbs
+    const crumbs = el("nav", { class: "breadcrumbs", "aria-label": "Breadcrumbs" });
+    crumbs.appendChild(el("a", { href: "#/vision", onclick: (e) => { e.preventDefault(); setRoute("vision", null); } }, "ULTRATHINK"));
+    crumbs.appendChild(el("span", { class: "sep" }, "/"));
+    crumbs.appendChild(el("a", { href: `#/${tab.id}`, onclick: (e) => { e.preventDefault(); setRoute(tab.id, null); } }, tab.label));
+    if (STATE.sectionId) {
+      const sec = findSection(tab, STATE.sectionId);
+      crumbs.appendChild(el("span", { class: "sep" }, "/"));
+      crumbs.appendChild(el("span", null, sec.label));
+    }
+    root.appendChild(crumbs);
+
+    if (!STATE.sectionId) {
+      renderTabOverview(root, tab);
+    } else {
+      renderSection(root, tab);
+    }
+  }
+
+  function renderTabOverview(root, tab) {
+    root.appendChild(el("div", { class: "page-head" },
+      el("span", { class: "page-head__id" }, `${tab.code} · 00`),
+      el("h1", { class: "page-head__title" }, tab.label),
+      el("p", { class: "page-head__provocation" }, tab.intro)
+    ));
+
+    const wrap = el("div", { class: "overview" });
+    const grid = el("div", { class: "grid" });
+    tab.sections.forEach((sec, i) => {
+      const visited = STATE.visited.has(`${tab.id}/${sec.id}`);
+      const card = el("a", {
+        class: "card",
+        href: `#/${tab.id}/${sec.id}`,
+        onclick: (e) => { e.preventDefault(); setRoute(tab.id, sec.id); }
+      },
+        el("span", { class: "card__id" }, `${tab.code}·${pad2(i + 1)}`),
+        el("h3", { class: "card__title" }, sec.label),
+        el("p", { class: "card__desc" }, sec.tldr.slice(0, 140) + (sec.tldr.length > 140 ? "…" : "")),
+        el("div", { class: "card__foot" },
+          el("span", null, sec.checklist.length + " checklist items"),
+          el("span", null, visited ? "✓ Read" : "Read →")
+        )
+      );
+      grid.appendChild(card);
+    });
+    wrap.appendChild(grid);
+    root.appendChild(wrap);
+  }
+
+  function renderSection(root, tab) {
+    const sec = findSection(tab, STATE.sectionId);
+    const idx = sectionIdx(tab, sec.id) + 1;
+
+    root.appendChild(el("div", { class: "page-head" },
+      el("span", { class: "page-head__id" }, `${tab.code} · ${pad2(idx)}`),
+      el("h1", { class: "page-head__title" }, sec.label),
+      el("p", { class: "page-head__provocation" }, sec.provocation)
+    ));
+
+    // TL;DR
+    root.appendChild(blockEl("TL;DR", el("p", null, sec.tldr)));
+
+    // Analogy
+    if (sec.analogy) {
+      root.appendChild(blockEl("Analogy", el("p", null, sec.analogy)));
+    }
+
+    // Concrete
+    if (sec.concrete) {
+      root.appendChild(blockEl("Concrete example", el("p", null, sec.concrete)));
+    }
+
+    // Operational
+    const ulOp = el("ul");
+    sec.operational.forEach(b => ulOp.appendChild(el("li", null, b)));
+    root.appendChild(blockEl("Operational definition", ulOp));
+
+    // Anti-patterns
+    const ulAp = el("ul");
+    sec.antiPatterns.forEach(b => ulAp.appendChild(el("li", null, b)));
+    root.appendChild(blockEl("Anti-patterns", ulAp));
+
+    // Checklist (the practitioner artifact)
+    const ulCk = el("ul", { class: "checklist" });
+    sec.checklist.forEach(b => ulCk.appendChild(el("li", null, b)));
+    root.appendChild(blockEl("Practitioner checklist · best-practices artifact", ulCk));
+
+    // Related
+    if (sec.related && sec.related.length) {
+      const rel = el("div", { class: "related" });
+      sec.related.forEach(r => {
+        const [tId, sId] = r.split("/");
+        const t = findTab(tId);
+        const s = t && findSection(t, sId);
+        if (!t || !s) return;
+        const i = sectionIdx(t, sId) + 1;
+        rel.appendChild(el("a", {
+          href: `#/${tId}/${sId}`,
+          onclick: (e) => { e.preventDefault(); setRoute(tId, sId); }
+        },
+          el("span", { class: "id" }, `${t.code}·${pad2(i)}`),
+          el("span", null, s.label)
+        ));
+      });
+      root.appendChild(blockEl("Related", rel));
+    }
+
+    // Per-section export bar
+    const exportBar = el("div", { class: "block" },
+      el("span", { class: "block__label" }, "Export this section"),
+      el("div", { style: "display:flex; gap:8px; flex-wrap: wrap;" },
+        el("button", {
+          class: "btn btn--accent",
+          type: "button",
+          onclick: () => downloadMD(MD.section(tab, { ...sec, idx }), sectionFilename(tab, sec))
+        },
+          iconDownload(), "Download .md"
+        ),
+        el("button", {
+          class: "btn",
+          type: "button",
+          onclick: () => copyToClipboard(MD.section(tab, { ...sec, idx }))
+        },
+          iconCopy(), "Copy Markdown"
+        )
+      )
+    );
+    root.appendChild(exportBar);
+  }
+
+  function blockEl(label, body) {
+    return el("section", { class: "block" },
+      el("span", { class: "block__label" }, label),
+      body
+    );
+  }
+
+  function iconDownload() {
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.setAttribute("class", "ico");
+    svg.setAttribute("viewBox", "0 0 24 24");
+    svg.setAttribute("fill", "none");
+    svg.setAttribute("stroke", "currentColor");
+    svg.setAttribute("stroke-width", "1.8");
+    svg.setAttribute("stroke-linecap", "round");
+    svg.setAttribute("stroke-linejoin", "round");
+    svg.innerHTML = `<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>`;
+    return svg;
+  }
+  function iconCopy() {
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.setAttribute("class", "ico");
+    svg.setAttribute("viewBox", "0 0 24 24");
+    svg.setAttribute("fill", "none");
+    svg.setAttribute("stroke", "currentColor");
+    svg.setAttribute("stroke-width", "1.8");
+    svg.setAttribute("stroke-linecap", "round");
+    svg.setAttribute("stroke-linejoin", "round");
+    svg.innerHTML = `<rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>`;
+    return svg;
+  }
+
+  function renderError(msg) {
+    const root = $("#content");
+    root.innerHTML = "";
+    root.appendChild(el("div", { class: "err" },
+      el("p", { class: "err__code" }, "404 · ROUTE NOT FOUND"),
+      el("h1", { class: "err__title" }, msg),
+      el("p", null, "Try the tabs above or jump to ",
+        el("a", { href: "#/vision", style: "color: var(--accent); text-decoration: underline;" }, "Vision"),
+        "."
+      )
+    ));
+    $("#preview-body").textContent = "";
+    $("#preview-meta").textContent = "—";
+    $("#preview-count").textContent = "0 lines";
+  }
+
+  /* =====================================================================
+     Preview pane — live MD rendering with simple highlighting
+     ===================================================================== */
+  function renderPreview() {
+    const tab = findTab(STATE.tabId);
+    let md, meta;
+    if (STATE.sectionId) {
+      const sec = findSection(tab, STATE.sectionId);
+      const idx = sectionIdx(tab, STATE.sectionId) + 1;
+      md = MD.section(tab, { ...sec, idx });
+      meta = sectionFilename(tab, sec);
+    } else {
+      md = MD.tab(tab);
+      meta = tabFilename(tab);
+    }
+    $("#preview-body").innerHTML = highlightMD(md);
+    $("#preview-meta").textContent = meta;
+    $("#preview-count").textContent = `${md.split("\n").length} lines`;
+    // Stash on container for toolbar buttons to use
+    $("#preview-body").dataset.md = md;
+    $("#preview-body").dataset.filename = meta;
+  }
+
+  function escapeHtml(s) {
+    return String(s)
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+  }
+  function highlightMD(md) {
+    return escapeHtml(md)
+      .replace(/^(#{1,6}.*)$/gm, '<span class="h">$1</span>')
+      .replace(/^(&gt; .*)$/gm, '<span class="q">$1</span>')
+      .replace(/^(- .*|- \[ \] .*)$/gm, '<span class="b">$1</span>');
+  }
+
+  /* =====================================================================
+     Export / copy
+     ===================================================================== */
+  function sectionFilename(tab, sec) {
+    return `ultrathink-${tab.id}-${sec.id}.md`;
+  }
+  function tabFilename(tab) {
+    return `ultrathink-${tab.id}.md`;
+  }
+  function downloadMD(content, filename) {
+    try {
+      const blob = new Blob([content], { type: "text/markdown;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = el("a", { href: url, download: filename, style: "display:none" });
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      toast(`Downloaded ${filename}`);
+      log("download", { filename, bytes: content.length });
+    } catch (err) {
+      console.error("[ut] download failed", err);
+      toast("Download failed — check console");
+    }
+  }
+
+  async function copyToClipboard(text) {
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        // Fallback for older browsers / non-secure contexts
+        const ta = el("textarea", { style: "position:fixed; left:-9999px;" });
+        ta.value = text;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand("copy");
+        document.body.removeChild(ta);
+      }
+      toast("Markdown copied");
+      log("copy", { bytes: text.length });
+    } catch (err) {
+      console.error("[ut] copy failed", err);
+      toast("Copy failed — check console");
+    }
+  }
+
+  function exportSection(tabId, sectionId) {
+    const tab = findTab(tabId);
+    const sec = findSection(tab, sectionId);
+    if (!tab || !sec) return console.warn("[ut] exportSection: not found", tabId, sectionId);
+    const idx = sectionIdx(tab, sectionId) + 1;
+    downloadMD(MD.section(tab, { ...sec, idx }), sectionFilename(tab, sec));
+  }
+  function exportTab(tabId) {
+    const tab = findTab(tabId);
+    if (!tab) return console.warn("[ut] exportTab: not found", tabId);
+    downloadMD(MD.tab(tab), tabFilename(tab));
+  }
+  function exportAll() {
+    downloadMD(MD.all(), "ultrathink-all.md");
+  }
+
+  /* =====================================================================
+     Toast + logging
+     ===================================================================== */
+  function toast(msg) {
+    const stack = $("#toast-stack");
+    const t = el("div", { class: "toast", role: "status" },
+      el("span", { class: "toast__dot" }),
+      el("span", null, msg)
+    );
+    stack.appendChild(t);
+    setTimeout(() => {
+      t.style.transition = "opacity 200ms";
+      t.style.opacity = "0";
+      setTimeout(() => t.remove(), 220);
+    }, 2200);
+  }
+
+  function log(event, payload = {}) {
+    // Single namespaced logging hook — swap to remote sink if needed.
+    console.debug(`[ut.${event}]`, payload);
+  }
+
+  /* =====================================================================
+     Init
+     ===================================================================== */
+  function init() {
+    // Toolbar
+    $("#btn-export-tab").addEventListener("click", () => exportTab(STATE.tabId));
+    $("#btn-export-all").addEventListener("click", () => exportAll());
+    $("#btn-copy-md").addEventListener("click", () => {
+      const md = $("#preview-body").dataset.md || "";
+      if (md) copyToClipboard(md);
+    });
+    $("#btn-download-md").addEventListener("click", () => {
+      const md = $("#preview-body").dataset.md || "";
+      const fn = $("#preview-body").dataset.filename || "ultrathink.md";
+      if (md) downloadMD(md, fn);
+    });
+
+    // Routing
+    window.addEventListener("hashchange", handleRoute);
+    handleRoute();
+
+    // Expose API for smoke testing / external automation
+    window.UT = {
+      data: DASHBOARD_DATA,
+      MD,
+      exportSection,
+      exportTab,
+      exportAll,
+      goto: setRoute,
+      smokeTest() {
+        const out = [];
+        const assert = (cond, label) => out.push(`${cond ? "PASS" : "FAIL"}  ${label}`);
+        assert(DASHBOARD_DATA.tabs.length === 4, "4 tabs present");
+        const total = DASHBOARD_DATA.tabs.reduce((n, t) => n + t.sections.length, 0);
+        assert(total === 20, `20 sections total (got ${total})`);
+        const md = MD.section(DASHBOARD_DATA.tabs[0], { ...DASHBOARD_DATA.tabs[0].sections[0], idx: 1 });
+        assert(md.includes("Practitioner checklist"), "section MD includes checklist");
+        const tabMD = MD.tab(DASHBOARD_DATA.tabs[1]);
+        assert(tabMD.startsWith("# ULTRATHINK"), "tab MD starts with title");
+        const allMD = MD.all();
+        assert(allMD.includes("Table of contents"), "all MD includes TOC");
+        // Round-trip a route
+        setRoute("contract", "security-floor");
+        assert(STATE.tabId === "contract" && STATE.sectionId === "security-floor", "route contract/security-floor set");
+        setRoute("vision", null);
+        out.forEach(l => console.log(l));
+        return out;
+      }
+    };
+    log("ready", { tab: STATE.tabId, section: STATE.sectionId, visited: STATE.visited.size });
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", init);
+  } else {
+    init();
+  }
+  </script>
+</body>
+</html>

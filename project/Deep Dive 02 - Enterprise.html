@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Deep Dive 02 — Enterprise Profile Builder</title>
+<link rel="stylesheet" href="audit/dossier.css" />
+</head>
+<body>
+<nav class="topnav">
+  <div class="inner">
+    <a class="home" href="Figma Make Audit Dossier.html">← Dossier index</a>
+    <span class="spacer"></span>
+    <a href="Deep Dive 01 - Dashboard.html">01 Dashboard</a>
+    <a class="cur" href="Deep Dive 02 - Enterprise.html">02 Enterprise</a>
+    <a href="Deep Dive 03 - Website.html">03 Website</a>
+    <a href="Security Remediation.html" style="color:var(--blue);">Remediation</a>
+    <a href="Production Cleanup.html" style="color:var(--blue);">Cleanup</a>
+  </div>
+</nav>
+
+<div class="wrap">
+  <header class="mast" data-screen-label="Deep Dive 02 header">
+    <div class="kicker">
+      <span class="fileno">FILE 02 · DEEP DIVE</span>
+      <span class="label">Vite · React · Tailwind/shadcn · 195 files (~40 docs)</span>
+    </div>
+    <h1>Enterprise Profile Builder:<br /><em>strong bones, theatrical security.</em></h1>
+    <p class="verdict-line">The best-architected of the three — real feature folders, typed contexts, UI primitives. But its headline "production-grade security" is largely <b>non-functional scaffolding</b>, and a genuine <b>API-key leak risk</b> hides beneath impressive comments.</p>
+    <div class="scorebar">
+      <div class="m"><span class="label">Craft</span><span class="v grade">B–</span></div>
+      <div class="m"><span class="label">Architecture</span><span class="v">B</span></div>
+      <div class="m"><span class="label">Security (claimed)</span><span class="v">A</span></div>
+      <div class="m"><span class="label">Security (actual)</span><span class="v">D</span></div>
+      <div class="m"><span class="label">Identity</span><span class="v">Confused</span></div>
+    </div>
+  </header>
+
+  <!-- ARCHITECTURE -->
+  <section class="blk" data-screen-label="Architecture">
+    <div class="sec-head"><span class="num">01</span><h2>The good bones — and the duplicate skeleton</h2></div>
+    <p class="sec-intro">Feature-folder layout, <code>NavigationContext</code> / <code>ToastContext</code>, reusable <code>Button</code>/<code>Badge</code>/<code>Toast</code> primitives, real hooks. Closest to shippable of the three. Then it forks into itself.</p>
+    <div class="arch">
+      <div class="node ok">
+        <div class="nh">/features, /components, /contexts, /hooks<span class="badge">CLEAN</span></div>
+        <div class="nd">Sensible domain separation; typed; <code>sr-only</code>, <code>:focus-visible</code>, print &amp; reduced-motion-friendly base CSS.</div>
+      </div>
+      <div class="node broken">
+        <div class="nh">/features  ⟂  /src/features<span class="badge">DUPLICATED</span></div>
+        <div class="nd">Deployment, Operations and ROI exist as <b>parallel copies</b> in two trees. So do <code>/components/ui</code> ⟂ <code>/src/components/ui</code>, <code>/utils</code> ⟂ <code>/src/utils</code>, and <b>three</b> copies of the type definitions (<code>/types.ts</code>, <code>/types/index.ts</code>, <code>/src/types/index.ts</code>). Drift is already visible between them.</div>
+      </div>
+    </div>
+    <div class="finding high">
+      <div class="fh"><span class="sev high">HIGH</span><h3>Two Claude integration paths, one dangerous</h3></div>
+      <p>The app ships <b>both</b> a correct server proxy and a risky in-browser client:</p>
+      <ul>
+        <li><b>Correct:</b> <code>supabase/functions/server</code> — a Hono edge function holding the key server-side, proxying to Anthropic.</li>
+        <li><b>Dangerous:</b> <code>src/lib/api/claude-client.ts</code> instantiates the Anthropic SDK <em>in the app</em> with <code>process.env.ANTHROPIC_API_KEY</code>. In a Vite SPA, anything bundled client-side is public — if this path is ever used in the browser, the key ships to every visitor.</li>
+      </ul>
+      <p>Two implementations of the same capability also means two rate limiters, two pricing tables, two places for behaviour to diverge.</p>
+      <p style="color:var(--blue);font-size:14px;margin:10px 0 0;">✓ RESOLVED — the in-browser Anthropic client (<code>/src/lib/api/claude-client.ts</code>) is deleted; only the server proxy remains. Live in <code>remediation/clean/enterprise</code>.</p>
+    </div>
+  </section>
+
+  <!-- SECURITY THEATER -->
+  <section class="blk" data-screen-label="Security theater">
+    <div class="sec-head"><span class="num">02</span><h2>The security layer is theatre</h2></div>
+    <p class="sec-intro"><code>security/prompt-injection-defense.ts</code> is 616 lines citing "OWASP Top 10 for LLMs (2025)" and "NIST AI RMF," structured into "6 security layers." Underneath the framing, the core does not work.</p>
+    <div class="finding crit">
+      <div class="fh"><span class="sev crit">CRITICAL</span><h3>The pipeline never calls Claude — it returns a mock</h3></div>
+      <p>The "execute" step at the heart of the secure pipeline is a stub. Every downstream "output validation / PII redaction" layer therefore inspects placeholder text, not real model output.</p>
+      <pre class="snip"><span class="cap">SecureLLMPipeline.executeSafely()</span><span class="cmt">// TODO: Integrate with actual Claude API</span>
+<span class="cmt">// For now, return mock response</span>
+<span class="bad">return 'This is a mock response. In production, this would call the Claude API…';</span></pre>
+      <p style="color:var(--blue);font-size:14px;margin:10px 0 0;">✓ RESOLVED — the mock <code>prompt-injection-defense.*</code> is deleted; Claude now goes through the authenticated server proxy (<code>supabase/functions/server/index.tsx</code>). Live in <code>remediation/clean/enterprise</code>.</p>
+    </div>
+    <div class="finding high">
+      <div class="fh"><span class="sev high">HIGH</span><h3>HITL &amp; monitoring are all TODOs</h3></div>
+      <p>The "human-in-the-loop" controller never approves anything (<code>getApprovalStatus</code> hardcodes <code>{approved:false}</code>), the security-team notification is <code>// TODO</code>, and the Sentry hook is commented out. The high-risk path submits a review that no one can ever clear.</p>
+      <p style="color:var(--blue);font-size:14px;margin:10px 0 0;">✓ RESOLVED — the mock HITL/monitoring file is deleted; replaced by the authenticated proxy with real per-user rate limiting.</p>
+    </div>
+    <div class="finding high">
+      <div class="fh"><span class="sev high">HIGH</span><h3>The real client bypasses the pipeline it imports</h3></div>
+      <p><code>claude-client.ts</code> uses <code>securePipeline.processRequest()</code> only as an allow/deny gate, then calls the live API <em>separately</em>. So the pipeline's sanitisation, isolation prompt, and output redaction never touch the actual request or response — they are dead code in the live path.</p>
+      <p style="color:var(--blue);font-size:14px;margin:10px 0 0;">✓ RESOLVED — the bypassing client is gone; the keyless proxy client is now the single Claude path.</p>
+    </div>
+    <div class="finding med">
+      <div class="fh"><span class="sev med">MEDIUM</span><h3>Regex detection: bypassable in, false-positive out</h3></div>
+      <p>Detection is a list of English-ish regexes (easily evaded by rephrasing). Meanwhile the matchers are catastrophically broad: the "base64" rule flags <em>any</em> 20+ char unspaced string, and the PII "API key" rule is <code>\b[A-Za-z0-9]{32,}\b</code> — which trips on ordinary IDs, hashes, and slugs. High-confidence blocks on innocent input are guaranteed.</p>
+    </div>
+    <div class="finding high">
+      <div class="fh"><span class="sev high">HIGH</span><h3>Open CORS + spoofable identity on the proxy</h3></div>
+      <p>The Supabase chat proxy sets <code>origin:"*"</code> and gates rate-limiting solely on an <code>x-user-id</code> header the caller supplies. There is no authentication. Anyone who learns the endpoint can spend your Anthropic budget, resetting the limit by changing one header value.</p>
+      <p style="color:var(--blue);font-size:14px;margin:10px 0 0;">✓ RESOLVED — proxy now uses a CORS allowlist (<code>ALLOWED_ORIGINS</code>) and verifies a Supabase bearer token; the user id comes from <code>auth.getUser</code>, not a header.</p>
+    </div>
+    <div class="finding med">
+      <div class="fh"><span class="sev med">MEDIUM</span><h3>Fabricated provenance</h3></div>
+      <p>Docblocks assert authorship and history that never happened: <code>@author INT Inc Security Team</code>, <code>@since 2025-12-11</code>, <code>@version 2.0.0</code>. Invented authority makes non-functional code read as battle-tested. This is the most quietly corrosive pattern in the file.</p>
+    </div>
+  </section>
+
+  <!-- IDENTITY & DOCS -->
+  <section class="blk" data-screen-label="Identity and docs">
+    <div class="sec-head"><span class="num">03</span><h2>Identity &amp; documentation</h2></div>
+    <div class="finding med">
+      <div class="fh"><span class="sev med">MEDIUM</span><h3>Three names for one product</h3></div>
+      <p>The sidebar logo reads <b>"INT Inc. / Internal Use Only"</b>, the export thumbnail says <b>"FF Inc."</b>, and the window title is <b>"Enterprise Claude Profile Builder."</b> Pick one.</p>
+    </div>
+    <div class="finding med">
+      <div class="fh"><span class="sev med">MEDIUM</span><h3>~40 markdown files / 30,000+ lines of phase-logs</h3></div>
+      <p>Generation exhaust shipped as product: <code>PHASES_ADVANCED_COMPLETE.md</code> (2,543 ln), <code>docs/PHASES.md</code> (2,237), <code>PHASE_10_11_COMPLETE_MAX_DEPTH.md</code> (1,463), plus a 2,253-line <code>reference-docs.ts</code>. The actual app code is a minority of the repo by line count, buried under status prose.</p>
+    </div>
+    <div class="finding pos">
+      <div class="fh"><span class="sev pos">CREDIT</span><h3>The fundamentals are right</h3></div>
+      <p>Accessibility baseline (focus rings, screen-reader utilities, print styles), a coherent component system, typed navigation/toast contexts, and a correct server-proxy <em>option</em>. Strip the theatre and the de-duplication problem, and this is a legitimately good foundation.</p>
+    </div>
+  </section>
+
+  <!-- FIXES -->
+  <section class="blk" data-screen-label="Fixes">
+    <div class="sec-head"><span class="num">04</span><h2>What this file needs</h2></div>
+    <ol class="fixes">
+      <li><h4>Delete the in-browser Claude client</h4><p>Keep only the server proxy. Never let an LLM key near a bundled SPA.</p></li>
+      <li><h4>Either make the security pipeline real, or remove it</h4><p>A non-functional 616-line "defense" with fabricated provenance is worse than none — it manufactures false confidence. Wire <code>executeSafely</code> to the proxy and finish HITL, or cut it to a small honest input check.</p></li>
+      <li><h4>Authenticate the proxy; lock CORS</h4><p>Require a real token, derive the user from it (not a client header), and scope <code>origin</code> to your domains.</p></li>
+      <li><h4>Collapse the duplicate trees</h4><p>One <code>/src</code>. Merge the parallel features, UI, utils, and the three type files into a single source of truth.</p></li>
+      <li><h4>Evict the phase-logs</h4><p>One README + one architecture doc. Move the rest out of the deliverable.</p></li>
+      <li><h4>Settle the name</h4><p>FlashFusion, INT Inc., or FF Inc. — one identity, applied everywhere.</p></li>
+    </ol>
+  </section>
+
+  <footer class="fn" data-screen-label="Footer">
+    <div class="note">
+      <p>// Source reconstructed from the file's generation log; recovered tree at <code>audit/src/enterprise/</code>. Security findings verified by reading <code>security/prompt-injection-defense.ts</code>, <code>src/lib/api/claude-client.ts</code>, and <code>supabase/functions/server/*</code> directly.</p>
+    </div>
+    <div class="pager">
+      <a href="Deep Dive 01 - Dashboard.html">← 01 · Dashboard</a>
+      <a href="Deep Dive 03 - Website.html">03 · FlashFusion Website →</a>
+    </div>
+  </footer>
+</div>
+
+<template id="__bundler_thumbnail">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400"><rect width="400" height="400" fill="#131315"/><rect x="150" y="120" width="100" height="60" rx="8" fill="#f59e0b"/><text x="200" y="280" font-family="Georgia,serif" font-size="120" fill="#ffbf00" text-anchor="middle">02</text></svg>
+</template>
+</body>
+</html>

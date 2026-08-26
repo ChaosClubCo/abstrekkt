@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cross-Document Connections — May 10 Sweep</title>
+<style>
+  :root {
+    color-scheme: light;
+    --bg0: #0F0618;
+    --bg1: #1a0b2e;
+    --bg2: #240f3d;
+    --glass: rgba(168, 85, 247, 0.08);
+    --glass-strong: rgba(168, 85, 247, 0.14);
+    --border: rgba(168, 85, 247, 0.22);
+    --border-strong: rgba(168, 85, 247, 0.4);
+    --primary: #A855F7;
+    --secondary: #F472B6;
+    --accent: #22D3EE;
+    --warn: #F59E0B;
+    --text: #F5F3FF;
+    --text-dim: #C4B5FD;
+    --text-muted: #8B7BAE;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg0);
+    color: var(--text);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    line-height: 1.55;
+    min-height: 100vh;
+  }
+  body {
+    background:
+      radial-gradient(ellipse at 20% 10%, rgba(168, 85, 247, 0.18), transparent 50%),
+      radial-gradient(ellipse at 80% 80%, rgba(244, 114, 182, 0.10), transparent 50%),
+      radial-gradient(ellipse at 50% 50%, rgba(34, 211, 238, 0.06), transparent 60%),
+      var(--bg0);
+    padding: 32px 20px 80px;
+  }
+  .wrap { max-width: 980px; margin: 0 auto; }
+
+  h1, h2, h3 { font-family: 'Poppins', 'Inter', sans-serif; font-weight: 600; letter-spacing: -0.01em; }
+  h1 { font-size: 2.2rem; margin: 0 0 8px; line-height: 1.15; }
+  h2 { font-size: 1.4rem; margin: 0 0 4px; }
+  h3 { font-size: 1.05rem; margin: 0 0 6px; color: var(--text); }
+  .subtitle { color: var(--text-dim); font-size: 1rem; margin: 0 0 28px; max-width: 720px; }
+
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 12px;
+    margin-bottom: 28px;
+  }
+  .stat {
+    background: var(--glass);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 14px 16px;
+    backdrop-filter: blur(12px);
+  }
+  .stat-num {
+    font-family: 'Poppins', sans-serif;
+    font-size: 1.6rem;
+    font-weight: 600;
+    color: var(--primary);
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+  .stat-label { font-size: 0.78rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+
+  .map-wrap {
+    background: var(--glass);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 20px;
+    margin-bottom: 28px;
+    backdrop-filter: blur(12px);
+  }
+  .map-wrap h2 { color: var(--text); margin-bottom: 14px; }
+  .map-wrap .map-hint { color: var(--text-muted); font-size: 0.85rem; margin-bottom: 10px; }
+  svg.map { width: 100%; height: auto; display: block; }
+
+  .connections-grid { display: flex; flex-direction: column; gap: 16px; }
+
+  .card {
+    background: var(--glass);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 0;
+    backdrop-filter: blur(12px);
+    overflow: hidden;
+    transition: border-color 0.2s, transform 0.15s;
+  }
+  .card:hover { border-color: var(--border-strong); }
+  .card.open { border-color: var(--border-strong); }
+
+  .card-head {
+    padding: 18px 20px;
+    cursor: pointer;
+    display: grid;
+    grid-template-columns: 36px 1fr 24px;
+    gap: 14px;
+    align-items: center;
+    user-select: none;
+  }
+  .card-head:hover { background: rgba(168, 85, 247, 0.04); }
+
+  .badge {
+    width: 36px; height: 36px;
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Poppins', sans-serif; font-weight: 600; font-size: 0.95rem;
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    color: white;
+  }
+  .card-title-block .surprise {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--accent);
+    margin-bottom: 2px;
+    font-weight: 500;
+  }
+  .card-title-block .title {
+    font-family: 'Poppins', sans-serif;
+    font-weight: 600;
+    font-size: 1.08rem;
+    color: var(--text);
+  }
+  .chev { color: var(--text-muted); transition: transform 0.25s; font-size: 1.1rem; }
+  .card.open .chev { transform: rotate(180deg); }
+
+  .card-body {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.35s ease-out;
+  }
+  .card.open .card-body { max-height: 1600px; }
+  .card-body-inner {
+    padding: 0 20px 20px 70px;
+    border-top: 1px solid var(--border);
+    padding-top: 16px;
+    margin-top: 4px;
+  }
+
+  .why { color: var(--text-dim); margin: 0 0 14px; font-size: 0.95rem; }
+
+  .bridge {
+    background: var(--bg1);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 16px;
+    margin: 12px 0;
+  }
+  .bridge-label {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--secondary);
+    margin-bottom: 6px;
+    font-weight: 500;
+  }
+  .bridge p { margin: 0; color: var(--text); font-size: 0.92rem; }
+
+  .docs { margin-top: 14px; }
+  .docs-label {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+    font-weight: 500;
+  }
+  .doc-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 6px; }
+  .doc-list li {
+    font-size: 0.86rem;
+    color: var(--text-dim);
+    padding-left: 18px;
+    position: relative;
+  }
+  .doc-list li::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 9px;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--primary);
+  }
+  .src-tag {
+    display: inline-block;
+    font-size: 0.68rem;
+    padding: 1px 7px;
+    border-radius: 4px;
+    margin-right: 6px;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    vertical-align: 1px;
+  }
+  .src-tag.drive { background: rgba(34, 211, 238, 0.15); color: var(--accent); }
+  .src-tag.notion { background: rgba(244, 114, 182, 0.15); color: var(--secondary); }
+  .src-tag.both { background: rgba(168, 85, 247, 0.18); color: var(--primary); }
+
+  .quote {
+    border-left: 2px solid var(--primary);
+    padding: 4px 14px;
+    margin: 12px 0;
+    color: var(--text);
+    font-style: italic;
+    font-size: 0.92rem;
+    background: rgba(168, 85, 247, 0.04);
+    border-radius: 0 8px 8px 0;
+  }
+  .quote-src { display: block; margin-top: 4px; color: var(--text-muted); font-style: normal; font-size: 0.78rem; }
+
+  .footer {
+    margin-top: 36px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+    color: var(--text-muted);
+    font-size: 0.82rem;
+    line-height: 1.6;
+  }
+
+  @media (max-width: 600px) {
+    h1 { font-size: 1.7rem; }
+    .card-head { grid-template-columns: 32px 1fr 20px; gap: 10px; padding: 16px; }
+    .card-body-inner { padding: 0 16px 18px 16px; padding-top: 14px; }
+    .card-title-block .title { font-size: 1rem; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Cross-Document Connections</h1>
+  <p class="subtitle">Five non-obvious bridges I found between your Drive material and your Notion projects. Click any card to see the docs involved and why the link is worth surfacing.</p>
+
+  <div class="stats">
+    <div class="stat"><div class="stat-num">5</div><div class="stat-label">Connections</div></div>
+    <div class="stat"><div class="stat-num">23</div><div class="stat-label">Drive docs scanned</div></div>
+    <div class="stat"><div class="stat-num">17</div><div class="stat-label">Notion pages scanned</div></div>
+    <div class="stat"><div class="stat-num">~6h</div><div class="stat-label">Window of activity</div></div>
+  </div>
+
+  <div class="map-wrap">
+    <h2>The shape of it</h2>
+    <p class="map-hint">Three projects you keep separate — but a single metaphor (and a single research fuel) keeps showing up across all three.</p>
+    <svg class="map" viewBox="0 0 800 280" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="g1" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stop-color="#A855F7" stop-opacity="0.6"/>
+          <stop offset="100%" stop-color="#F472B6" stop-opacity="0.6"/>
+        </linearGradient>
+        <linearGradient id="g2" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stop-color="#F472B6" stop-opacity="0.6"/>
+          <stop offset="100%" stop-color="#22D3EE" stop-opacity="0.6"/>
+        </linearGradient>
+        <radialGradient id="node-glow">
+          <stop offset="0%" stop-color="#A855F7" stop-opacity="0.4"/>
+          <stop offset="100%" stop-color="#A855F7" stop-opacity="0"/>
+        </radialGradient>
+      </defs>
+
+      <!-- bridges (drawn first so they sit behind nodes) -->
+      <path d="M 150 90 Q 400 30 650 90" stroke="url(#g1)" stroke-width="2" fill="none" stroke-dasharray="4 4"/>
+      <path d="M 150 90 Q 400 250 650 220" stroke="url(#g2)" stroke-width="2" fill="none" stroke-dasharray="4 4"/>
+      <path d="M 650 90 Q 750 155 650 220" stroke="url(#g1)" stroke-width="2" fill="none" stroke-dasharray="4 4"/>
+
+      <!-- center label for shared metaphor -->
+      <text x="400" y="155" text-anchor="middle" fill="#22D3EE" font-family="Poppins, Inter, sans-serif" font-size="13" font-weight="500" letter-spacing="0.05em">CONSTRUCTION / SCAFFOLDING</text>
+      <text x="400" y="173" text-anchor="middle" fill="#8B7BAE" font-family="Inter, sans-serif" font-size="11">shared metaphor running through all three</text>
+
+      <!-- nodes -->
+      <circle cx="150" cy="90" r="42" fill="url(#node-glow)"/>
+      <circle cx="150" cy="90" r="22" fill="#1a0b2e" stroke="#A855F7" stroke-width="2"/>
+      <text x="150" y="94" text-anchor="middle" fill="#F5F3FF" font-family="Poppins, sans-serif" font-size="13" font-weight="600">M</text>
+      <text x="150" y="148" text-anchor="middle" fill="#C4B5FD" font-family="Inter, sans-serif" font-size="11" font-weight="500">Memoir</text>
+      <text x="150" y="162" text-anchor="middle" fill="#8B7BAE" font-family="Inter, sans-serif" font-size="10">excavation</text>
+
+      <circle cx="650" cy="90" r="42" fill="url(#node-glow)"/>
+      <circle cx="650" cy="90" r="22" fill="#1a0b2e" stroke="#F472B6" stroke-width="2"/>
+      <text x="650" y="94" text-anchor="middle" fill="#F5F3FF" font-family="Poppins, sans-serif" font-size="13" font-weight="600">CC</text>
+      <text x="650" y="148" text-anchor="middle" fill="#C4B5FD" font-family="Inter, sans-serif" font-size="11" font-weight="500">Constructed</text>
+      <text x="650" y="162" text-anchor="middle" fill="#8B7BAE" font-family="Inter, sans-serif" font-size="10">Cognition framework</text>
+
+      <circle cx="650" cy="220" r="42" fill="url(#node-glow)"/>
+      <circle cx="650" cy="220" r="22" fill="#1a0b2e" stroke="#22D3EE" stroke-width="2"/>
+      <text x="650" y="224" text-anchor="middle" fill="#F5F3FF" font-family="Poppins, sans-serif" font-size="13" font-weight="600">FF</text>
+      <text x="650" y="270" text-anchor="middle" fill="#C4B5FD" font-family="Inter, sans-serif" font-size="11" font-weight="500">FlashFusion brand</text>
+    </svg>
+  </div>
+
+  <div class="connections-grid" id="grid">
+    <!-- Connection 1 -->
+    <div class="card" data-id="c1">
+      <div class="card-head" onclick="toggle('c1')">
+        <div class="badge">01</div>
+        <div class="card-title-block">
+          <div class="surprise">Same metaphor, three projects, three lanes</div>
+          <div class="title">Construction is showing up in your memoir, your framework, and your sales pitch</div>
+        </div>
+        <div class="chev">▼</div>
+      </div>
+      <div class="card-body">
+        <div class="card-body-inner">
+          <p class="why">You have three independent projects running on the same root metaphor — and you've already named the moment they fused, in your own notes.</p>
+          <div class="quote">"The memoir calls this construction. The clinician called it scaffolding. Same metaphor. Different person. Same moment."<span class="quote-src">— Tool Archaeology — Session 3: The AMEN Letter (Notion)</span></div>
+          <div class="bridge">
+            <div class="bridge-label">The bridge</div>
+            <p>Memoir excavation uses <em>construction</em> as the central metaphor. The "Constructed Cognition" framework you generated today (May 10) operationalizes the same metaphor as <em>externalized cognitive scaffolding</em>. The Anthropic Partner Network application sells it commercially as <em>"survival architecture for nontraditional builders"</em> — explicitly invoking "rupture points" and "biological hardware failure."</p>
+          </div>
+          <div class="bridge">
+            <div class="bridge-label">Why it's worth surfacing</div>
+            <p>You enforce strict lane isolation in Notion (Personal / Intinc / Freelance). But the brand thesis only works <em>because</em> it bridges lanes — the personal narrative is the differentiator. Worth being deliberate about whether that bridge is intentional or whether it's just leaking.</p>
+          </div>
+          <div class="docs">
+            <div class="docs-label">Source documents</div>
+            <ul class="doc-list">
+              <li><span class="src-tag drive">DRIVE</span>Constructed Cognition: An Operational Framework for AI-Integrated Professional Architecture <em>(May 10, 03:43)</em></li>
+              <li><span class="src-tag drive">DRIVE</span>Strategic Application & Brand Ecosystem: Claude Partner Network <em>(May 10, 03:43)</em></li>
+              <li><span class="src-tag notion">NOTION</span>📔 Excavation Session Log — Kyle's Memoir</li>
+              <li><span class="src-tag notion">NOTION</span>🎬 Scene + Moment Inventory — Kyle's Memoir</li>
+              <li><span class="src-tag notion">NOTION</span>Tool Archaeology — Session 3: The AMEN Letter (July 18, 2022)</li>
+              <li><span class="src-tag notion">NOTION</span>🧩 Character Evidence Ledger</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Connection 2 -->
+    <div class="card" data-id="c2">
+      <div class="card-head" onclick="toggle('c2')">
+        <div class="badge">02</div>
+        <div class="card-title-block">
+          <div class="surprise">Research vs. shipped configuration</div>
+          <div class="title">You wrote four docs about AI agents wiping production — then shipped 40 agents with always_allow</div>
+        </div>
+        <div class="chev">▼</div>
+      </div>
+      <div class="card-body">
+        <div class="card-body-inner">
+          <p class="why">Your Drive holds a near-complete study of Vercel DeepSec — a security harness designed to stop exactly the failure mode you've now configured into your own agent fleet.</p>
+          <div class="bridge">
+            <div class="bridge-label">The bridge</div>
+            <p>Four docs (May 10, 03:39–03:40) cover DeepSec's regex-first filtering, info.md guardrails, read-only tool access, and the headline horror story: <em>"AI agents… deleting entire projects or wiping production databases."</em> Two hours later, you defined 40 managed agents with <code style="background:rgba(34,211,238,0.12);color:#22D3EE;padding:1px 5px;border-radius:3px;font-size:0.85em;">permission_policy: always_allow</code> against n8n, Base44, and Supabase MCPs.</p>
+          </div>
+          <div class="bridge">
+            <div class="bridge-label">Why it's worth surfacing</div>
+            <p>The "Base44 Bearer Rotator" agent has always_allow on Supabase — it can write the credential audit log, but the same posture means it can write anything. You've already done the homework on what good containment looks like; the gap is just bringing it back to your own builds.</p>
+          </div>
+          <div class="docs">
+            <div class="docs-label">Source documents</div>
+            <ul class="doc-list">
+              <li><span class="src-tag drive">DRIVE</span>Your AI Agent Just Deleted the Production Database: How Vercel's DeepSec Fixes the Chaos</li>
+              <li><span class="src-tag drive">DRIVE</span>The Security Shield: Balancing Speed and Depth with Regex and AI Agents</li>
+              <li><span class="src-tag drive">DRIVE</span>SOP: AI-Enhanced Security Finding Management and Remediation Framework</li>
+              <li><span class="src-tag drive">DRIVE</span>The Beginner's Guide to Automated Security Scanning: A Systematic Journey</li>
+              <li><span class="src-tag drive">DRIVE</span>kyle-40-agents.md / managed_agents_40.json</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Connection 3 -->
+    <div class="card" data-id="c3">
+      <div class="card-head" onclick="toggle('c3')">
+        <div class="badge">03</div>
+        <div class="card-title-block">
+          <div class="surprise">A research cluster wearing a productivity disguise</div>
+          <div class="title">The "do hard things" research is feeding the memoir, not your productivity stack</div>
+        </div>
+        <div class="chev">▼</div>
+      </div>
+      <div class="card-body">
+        <div class="card-body-inner">
+          <p class="why">Eight Drive docs in a single hour today (03:39–03:43) all derive from the same Anna Lembke source. They <em>look</em> like productivity material. The framework underneath isn't.</p>
+          <div class="bridge">
+            <div class="bridge-label">The bridge</div>
+            <p>Lembke's source text is <em>Dopamine Nation: Finding Balance in the Age of Indulgence</em>. The "Constructed Cognition" doc you wrote a few minutes later explicitly names the trigger for externalized cognition as <em>"Rupture — TBI, addiction, or systemic burnout."</em> Your memoir excavation work in Notion already tracks the AMEN Letter session and clinical material on the same axis.</p>
+          </div>
+          <div class="bridge">
+            <div class="bridge-label">Why it's worth surfacing</div>
+            <p>You have eight near-duplicate stakeholder framings of the same source (personal, organizational, CPO proposal, neurobiology, beginner's guide, etc.). That looks like a NotebookLM remix burst — but the most interesting target audience for this material is probably the memoir, not a CPO. Worth deciding whether to keep splitting it or fold the strongest framing back into the excavation notes.</p>
+          </div>
+          <div class="docs">
+            <div class="docs-label">Source documents</div>
+            <ul class="doc-list">
+              <li><span class="src-tag drive">DRIVE</span>The Effort Paradox: Why Hard Things Lead to a Better Life</li>
+              <li><span class="src-tag drive">DRIVE</span>The Neurobiology of Resilience (organizational reframe)</li>
+              <li><span class="src-tag drive">DRIVE</span>A Neuro-Strategic Framework for Professional Development</li>
+              <li><span class="src-tag drive">DRIVE</span>Mastering the Hard Things: A Manual for Intentional Behavior Change</li>
+              <li><span class="src-tag drive">DRIVE</span>Proposal for a Sustainable Professional Development Initiative (CPO framing)</li>
+              <li><span class="src-tag drive">DRIVE</span>Training the Brain for Difficult Tasks (Lembke analysis)</li>
+              <li><span class="src-tag drive">DRIVE</span>How to Conquer Hard Projects (and Actually Enjoy the Process)</li>
+              <li><span class="src-tag drive">DRIVE</span>+ 2 spreadsheet variants of the same strategies table</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Connection 4 -->
+    <div class="card" data-id="c4">
+      <div class="card-head" onclick="toggle('c4')">
+        <div class="badge">04</div>
+        <div class="card-title-block">
+          <div class="surprise">A workflow signature in your file system</div>
+          <div class="title">23 docs in a 64-minute window today — three distinct generation bursts, one arc</div>
+        </div>
+        <div class="chev">▼</div>
+      </div>
+      <div class="card-body">
+        <div class="card-body-inner">
+          <p class="why">Drive timestamps show a single tight session this morning (May 10) with three sequential phases. Worth seeing as one shape rather than three workflows.</p>
+          <div class="bridge">
+            <div class="bridge-label">The phases</div>
+            <p><strong style="color:var(--accent);">03:39 — DeepSec cluster:</strong> 4 docs on AI agent security harnesses.<br>
+               <strong style="color:var(--accent);">03:40–03:43 — Lembke cluster:</strong> 8 docs reframing "doing hard things" for personal / leadership / CPO / neurobiology audiences.<br>
+               <strong style="color:var(--accent);">03:43 — Synthesis:</strong> "Constructed Cognition" framework + FlashFusion Partner Network application appear together.<br>
+               <strong style="color:var(--accent);">04:10–04:43 — Build:</strong> 40-agent YAML spec + FlashFusion artifact SKILL.md.</p>
+          </div>
+          <div class="bridge">
+            <div class="bridge-label">Why it's worth surfacing</div>
+            <p>This isn't unrelated work — it's research → synthesis → build, executed inside one hour. The pattern is good (it's exactly your stated philosophy: <em>spec → arch → code gen</em>). But the first two phases produced 12 stakeholder-targeted variants without a single decision about which framing actually ships. That's the kind of thing the WSJF ranking and SCOPE_MODE gating are designed to catch — and they didn't fire here.</p>
+          </div>
+          <div class="docs">
+            <div class="docs-label">Affected documents</div>
+            <ul class="doc-list">
+              <li><span class="src-tag drive">DRIVE</span>23 documents created or modified between 03:39 and 04:43 UTC, May 10</li>
+              <li><span class="src-tag both">PATTERN</span>Three distinct topic clusters with no apparent prioritization filter applied</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Connection 5 -->
+    <div class="card" data-id="c5">
+      <div class="card-head" onclick="toggle('c5')">
+        <div class="badge">05</div>
+        <div class="card-title-block">
+          <div class="surprise">Stated policy vs. observable practice</div>
+          <div class="title">Lane isolation is enforced in Notion — and quietly violated by the FlashFusion thesis</div>
+        </div>
+        <div class="chev">▼</div>
+      </div>
+      <div class="card-body">
+        <div class="card-body-inner">
+          <p class="why">Your Notion has a formal Lane Isolation Enforcement Policy v1.0. The brand pitch you wrote today builds its differentiator out of crossing that line on purpose.</p>
+          <div class="quote">"INTINC project memories do not bleed into Personal project memories."<span class="quote-src">— COWORK v5.0 Architecture Spec (Notion)</span></div>
+          <div class="bridge">
+            <div class="bridge-label">The bridge</div>
+            <p>The Anthropic Partner application positions Kyle as <em>"Architectural Lead and Staff Engineer at INT Inc"</em> in the same paragraph as <em>"Diagnostic Instinct refined through a decade of high-stakes hospitality and systems engineering"</em> — and lists the Teams Migration Agent (an Intinc deployment) as a FlashFusion case study. The lanes are explicitly fused as the value proposition.</p>
+          </div>
+          <div class="bridge">
+            <div class="bridge-label">Why it's worth surfacing</div>
+            <p>Either the lane isolation policy needs an exception clause for brand narrative, or the brand narrative needs to be rewritten without leaning on Intinc deployments. Pick one — but right now they contradict each other in the same workspace.</p>
+          </div>
+          <div class="docs">
+            <div class="docs-label">Source documents</div>
+            <ul class="doc-list">
+              <li><span class="src-tag notion">NOTION</span>Lane Isolation Enforcement Policy v1.0</li>
+              <li><span class="src-tag notion">NOTION</span>COWORK v5.0 — Architecture Spec</li>
+              <li><span class="src-tag drive">DRIVE</span>Strategic Application & Brand Ecosystem: Claude Partner Network</li>
+              <li><span class="src-tag notion">NOTION</span>FlashFusion HQ — Databases</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <strong style="color: var(--text-dim);">Scope of this scan:</strong> 23 most-recent Drive files (top of recency list, May 10 sweep) and 17 Notion pages (April 7 → present, semantic search). Connections are structural observations across documents you authored — no clinical, financial, or speculative claims. Anything you want me to drill into further, just say the word.
+  </div>
+</div>
+
+<script>
+  function toggle(id) {
+    const card = document.querySelector('[data-id="' + id + '"]');
+    card.classList.toggle('open');
+  }
+  // open the first card by default so people see the format
+  document.addEventListener('DOMContentLoaded', () => {
+    document.querySelector('[data-id="c1"]').classList.add('open');
+  });
+</script>
+</body>
+</html>

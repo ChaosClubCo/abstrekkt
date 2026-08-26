@@ -1,0 +1,194 @@
+{
+  "name": "INTINC Connect - New Hire Onboarding",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "new-hire-webhook",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "New Hire Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300],
+      "webhookId": "intinc-new-hire"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Validate and enrich new hire data\nconst input = $input.first().json;\n\n// Validate required fields\nconst required = ['employee_id', 'first_name', 'last_name', 'email', 'department', 'manager_email', 'start_date'];\nconst missing = required.filter(field => !input[field]);\n\nif (missing.length > 0) {\n  throw new Error(`Missing required fields: ${missing.join(', ')}`);\n}\n\n// Calculate days until start\nconst startDate = new Date(input.start_date);\nconst today = new Date();\nconst daysUntilStart = Math.ceil((startDate - today) / (1000 * 60 * 60 * 24));\n\n// Generate welcome message\nconst welcomeMessages = [\n  `We're thrilled to have ${input.first_name} joining the ${input.department} team! 🎉`,\n  `Please join us in welcoming ${input.first_name} ${input.last_name} to INTINC! 🌟`,\n  `Exciting news! ${input.first_name} is joining us as part of ${input.department}! 🚀`\n];\nconst randomWelcome = welcomeMessages[Math.floor(Math.random() * welcomeMessages.length)];\n\nreturn {\n  ...input,\n  full_name: `${input.first_name} ${input.last_name}`,\n  days_until_start: daysUntilStart,\n  welcome_message: randomWelcome,\n  onboarding_id: `ONB-${Date.now()}`,\n  created_at: new Date().toISOString(),\n  status: 'pending'\n};"
+      },
+      "id": "validate-enrich",
+      "name": "Validate & Enrich Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [470, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.INTINC_CONNECT_API_URL}}/api/employees",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"employee_id\": \"{{$json.employee_id}}\",\n  \"first_name\": \"{{$json.first_name}}\",\n  \"last_name\": \"{{$json.last_name}}\",\n  \"email\": \"{{$json.email}}\",\n  \"department\": \"{{$json.department}}\",\n  \"manager_email\": \"{{$json.manager_email}}\",\n  \"start_date\": \"{{$json.start_date}}\",\n  \"role\": \"employee\",\n  \"status\": \"onboarding\",\n  \"points_balance\": 100\n}",
+        "options": {}
+      },
+      "id": "create-employee-record",
+      "name": "Create Employee in INTINC Connect",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [690, 300],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "intinc-connect-api",
+          "name": "INTINC Connect API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.TEAMS_WEBHOOK_URL}}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"@type\": \"MessageCard\",\n  \"@context\": \"http://schema.org/extensions\",\n  \"themeColor\": \"0076D7\",\n  \"summary\": \"New Team Member Joining!\",\n  \"sections\": [{\n    \"activityTitle\": \"🎉 New Team Member Alert!\",\n    \"activitySubtitle\": \"{{$node['Validate & Enrich Data'].json.welcome_message}}\",\n    \"activityImage\": \"https://intinc.com/wp-content/uploads/2024/11/Dot-favicon.png\",\n    \"facts\": [\n      { \"name\": \"Name\", \"value\": \"{{$node['Validate & Enrich Data'].json.full_name}}\" },\n      { \"name\": \"Department\", \"value\": \"{{$node['Validate & Enrich Data'].json.department}}\" },\n      { \"name\": \"Start Date\", \"value\": \"{{$node['Validate & Enrich Data'].json.start_date}}\" },\n      { \"name\": \"Manager\", \"value\": \"{{$node['Validate & Enrich Data'].json.manager_email}}\" }\n    ],\n    \"markdown\": true\n  }],\n  \"potentialAction\": [{\n    \"@type\": \"OpenUri\",\n    \"name\": \"Send Welcome in INTINC Connect\",\n    \"targets\": [{ \"os\": \"default\", \"uri\": \"{{$env.INTINC_CONNECT_URL}}/recognition/new?recipient={{$node['Validate & Enrich Data'].json.employee_id}}\" }]\n  }]\n}",
+        "options": {}
+      },
+      "id": "teams-announcement",
+      "name": "Post to MS Teams #general",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [910, 200]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.INTINC_CONNECT_API_URL}}/api/recognition",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"type\": \"welcome\",\n  \"recipient_id\": \"{{$node['Validate & Enrich Data'].json.employee_id}}\",\n  \"sender_id\": \"system\",\n  \"message\": \"Welcome to the INTINC family, {{$node['Validate & Enrich Data'].json.first_name}}! 🎉 We're excited to have you join us. Here's 100 bonus points to get you started!\",\n  \"points\": 100,\n  \"tags\": [\"new-hire\", \"welcome\"],\n  \"visibility\": \"public\"\n}",
+        "options": {}
+      },
+      "id": "welcome-recognition",
+      "name": "Create Welcome Recognition Post",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [910, 300],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "intinc-connect-api",
+          "name": "INTINC Connect API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{$env.INTINC_NOREPLY_EMAIL}}",
+        "toEmail": "={{$node['Validate & Enrich Data'].json.email}}",
+        "subject": "Welcome to INTINC Connect! 🎉",
+        "emailType": "html",
+        "message": "=<html>\n<body style=\"font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;\">\n  <div style=\"background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center;\">\n    <img src=\"https://intinc.com/wp-content/uploads/2024/11/Dot-favicon.png\" alt=\"INTINC\" style=\"width: 60px; height: 60px;\">\n    <h1 style=\"color: white; margin: 20px 0;\">Welcome to INTINC Connect!</h1>\n  </div>\n  \n  <div style=\"padding: 30px; background: #f9fafb;\">\n    <p style=\"font-size: 18px;\">Hi {{$node['Validate & Enrich Data'].json.first_name}},</p>\n    \n    <p>We're thrilled to welcome you to the INTINC family! 🌟</p>\n    \n    <p>INTINC Connect is our employee engagement platform where you can:</p>\n    <ul>\n      <li>🎯 Give and receive recognition from teammates</li>\n      <li>🎁 Earn points and redeem rewards</li>\n      <li>📊 Participate in pulse surveys</li>\n      <li>🏆 Join wellness challenges</li>\n      <li>💬 Connect with your department and interest groups</li>\n    </ul>\n    \n    <p><strong>You've been awarded 100 welcome points!</strong> Use them to send your first recognition or save them for rewards.</p>\n    \n    <div style=\"text-align: center; margin: 30px 0;\">\n      <a href=\"{{$env.INTINC_CONNECT_URL}}/onboarding\" style=\"background: #667eea; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold;\">Get Started →</a>\n    </div>\n    \n    <p>Your manager {{$node['Validate & Enrich Data'].json.manager_email}} has been notified and will reach out soon.</p>\n    \n    <p>Welcome aboard! 🚀</p>\n    <p><em>The INTINC Team</em></p>\n  </div>\n  \n  <div style=\"padding: 20px; background: #1f2937; color: #9ca3af; text-align: center; font-size: 12px;\">\n    <p>INTINC • Business Solutions You CAN Take for Granted</p>\n    <p><a href=\"{{$env.INTINC_CONNECT_URL}}\" style=\"color: #60a5fa;\">INTINC Connect</a> | <a href=\"https://intinc.com\" style=\"color: #60a5fa;\">intinc.com</a></p>\n  </div>\n</body>\n</html>",
+        "options": {}
+      },
+      "id": "welcome-email",
+      "name": "Send Welcome Email",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2,
+      "position": [910, 400],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "gmail-intinc",
+          "name": "INTINC Gmail"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{$env.INTINC_NOREPLY_EMAIL}}",
+        "toEmail": "={{$node['Validate & Enrich Data'].json.manager_email}}",
+        "subject": "New Team Member: {{$node['Validate & Enrich Data'].json.full_name}} starts {{$node['Validate & Enrich Data'].json.start_date}}",
+        "emailType": "html",
+        "message": "=<html>\n<body style=\"font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;\">\n  <div style=\"padding: 30px;\">\n    <h2>New Team Member Onboarding</h2>\n    \n    <p>Hi there,</p>\n    \n    <p><strong>{{$node['Validate & Enrich Data'].json.full_name}}</strong> is joining your team on <strong>{{$node['Validate & Enrich Data'].json.start_date}}</strong>.</p>\n    \n    <h3>Suggested Onboarding Actions:</h3>\n    <ul>\n      <li>✅ Schedule a 1:1 welcome meeting</li>\n      <li>✅ Add them to relevant Teams channels</li>\n      <li>✅ Assign an onboarding buddy</li>\n      <li>✅ Send a welcome recognition in INTINC Connect</li>\n      <li>✅ Review first-week goals</li>\n    </ul>\n    \n    <div style=\"text-align: center; margin: 30px 0;\">\n      <a href=\"{{$env.INTINC_CONNECT_URL}}/recognition/new?recipient={{$node['Validate & Enrich Data'].json.employee_id}}\" style=\"background: #667eea; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px;\">Send Welcome Recognition</a>\n    </div>\n    \n    <p>Thanks for being a great manager!</p>\n  </div>\n</body>\n</html>",
+        "options": {}
+      },
+      "id": "manager-notification",
+      "name": "Notify Manager",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2,
+      "position": [910, 500],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "gmail-intinc",
+          "name": "INTINC Gmail"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.POSTHOG_API_URL}}/capture",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"api_key\": \"{{$env.POSTHOG_API_KEY}}\",\n  \"event\": \"onboarding_workflow_completed\",\n  \"distinct_id\": \"{{$node['Validate & Enrich Data'].json.employee_id}}\",\n  \"properties\": {\n    \"onboarding_id\": \"{{$node['Validate & Enrich Data'].json.onboarding_id}}\",\n    \"department\": \"{{$node['Validate & Enrich Data'].json.department}}\",\n    \"days_until_start\": {{$node['Validate & Enrich Data'].json.days_until_start}},\n    \"workflow\": \"n8n_new_hire_onboarding\",\n    \"timestamp\": \"{{$node['Validate & Enrich Data'].json.created_at}}\"\n  }\n}",
+        "options": {}
+      },
+      "id": "posthog-track",
+      "name": "Track in PostHog",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1130, 300]
+    },
+    {
+      "parameters": {
+        "errorMessage": "={{$json.error}}"
+      },
+      "id": "error-handler",
+      "name": "Error Handler",
+      "type": "n8n-nodes-base.stopAndError",
+      "typeVersion": 1,
+      "position": [690, 500]
+    }
+  ],
+  "connections": {
+    "New Hire Webhook": {
+      "main": [[{ "node": "Validate & Enrich Data", "type": "main", "index": 0 }]]
+    },
+    "Validate & Enrich Data": {
+      "main": [[{ "node": "Create Employee in INTINC Connect", "type": "main", "index": 0 }]]
+    },
+    "Create Employee in INTINC Connect": {
+      "main": [
+        [
+          { "node": "Post to MS Teams #general", "type": "main", "index": 0 },
+          { "node": "Create Welcome Recognition Post", "type": "main", "index": 0 },
+          { "node": "Send Welcome Email", "type": "main", "index": 0 },
+          { "node": "Notify Manager", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Post to MS Teams #general": {
+      "main": [[{ "node": "Track in PostHog", "type": "main", "index": 0 }]]
+    },
+    "Create Welcome Recognition Post": {
+      "main": [[{ "node": "Track in PostHog", "type": "main", "index": 0 }]]
+    },
+    "Send Welcome Email": {
+      "main": [[{ "node": "Track in PostHog", "type": "main", "index": 0 }]]
+    },
+    "Notify Manager": {
+      "main": [[{ "node": "Track in PostHog", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": ["intinc-connect", "onboarding", "hr-automation"],
+  "triggerCount": 0,
+  "updatedAt": "2025-11-25T00:00:00.000Z",
+  "versionId": "1.0.0"
+}

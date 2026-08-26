@@ -1,0 +1,703 @@
+<!DOCTYPE html><script type="application/json" id="cowork-artifact-meta">
+{
+  "name": "Ff Workstream Mapper",
+  "schemaVersion": 1,
+  "description": "FlashFusion Workstream Mapper — 29 prioritized items (P0–P3) across 7 workstreams with priority board, workstream view, AI prompt generation, and Ask Claude chat. Static board data (June 2026 snapshot); AI features use window.cowork.askClaude; prompts and chat persist in localStorage."
+}
+</script>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FlashFusion Workstream Mapper</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { background: #0A0A0F; }
+  body { font-family: 'Inter', system-ui, sans-serif; color: #F0F0F8; font-size: 14px; min-height: 100vh; }
+  button { font-family: inherit; }
+  .hdr { background: #12121A; border-bottom: 1px solid #1E1E2E; padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+  .hdr-title { font-size: 15px; font-weight: 700; letter-spacing: -0.3px; }
+  .hdr-sub { font-size: 11px; color: #6B7280; margin-top: 2px; }
+  .nav { display: flex; gap: 4px; flex-wrap: wrap; }
+  .nav-btn { padding: 5px 12px; border-radius: 6px; border: 1px solid #2A2A3A; background: transparent; color: #9CA3AF; cursor: pointer; font-size: 12px; font-weight: 500; }
+  .nav-btn.active { border-color: #7C3AED; background: #2D1B69; color: #C4B5FD; }
+  .stats { background: #0F0F18; border-bottom: 1px solid #1E1E2E; padding: 8px 16px; display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
+  .stat { display: flex; align-items: center; gap: 5px; }
+  .stat-n { font-size: 18px; font-weight: 700; }
+  .stat-l { font-size: 10px; color: #6B7280; }
+  .stats-ws { margin-left: auto; display: flex; gap: 10px; flex-wrap: wrap; font-size: 11px; color: #6B7280; }
+  .body { padding: 14px; }
+  .board { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 10px; }
+  @media (max-width: 1100px) { .board { grid-template-columns: repeat(2, minmax(0,1fr)); } }
+  @media (max-width: 640px) { .board { grid-template-columns: 1fr; } }
+  .col { background: #12121A; border-radius: 9px; overflow: hidden; }
+  .col-hd { padding: 9px 12px; display: flex; align-items: center; justify-content: space-between; }
+  .col-hd-l { font-size: 11px; font-weight: 600; }
+  .col-hd-n { font-size: 10px; padding: 1px 7px; border-radius: 10px; }
+  .col-bd { padding: 8px; display: flex; flex-direction: column; gap: 6px; }
+  .card { border-radius: 7px; border: 1px solid #2A2A3A; cursor: pointer; overflow: hidden; background: #0F0F18; transition: border-color .12s, background .12s; }
+  .card.open { background: #1A1A26; }
+  .card-hd { padding: 9px 10px; display: flex; align-items: flex-start; gap: 7px; }
+  .dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; margin-top: 5px; display: inline-block; }
+  .card-cap { font-size: 12px; font-weight: 600; color: #F0F0F8; line-height: 1.4; }
+  .card-meta { display: flex; gap: 5px; margin-top: 4px; flex-wrap: wrap; align-items: center; }
+  .chev { font-size: 10px; color: #6B7280; flex-shrink: 0; transition: transform .12s; }
+  .card.open .chev { transform: rotate(90deg); }
+  .tag { font-size: 10px; font-weight: 500; padding: 2px 6px; border-radius: 4px; }
+  .card-bd { padding: 0 10px 10px; display: flex; flex-direction: column; gap: 6px; cursor: default; }
+  .sec-lbl { font-size: 10px; font-weight: 700; color: #6B7280; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 3px; }
+  .sec-txt { font-size: 12px; line-height: 1.5; padding: 6px 8px; border-radius: 6px; }
+  .gen-zone { border-top: 1px solid #1E1E2E; padding-top: 8px; margin-top: 2px; }
+  .gen-btns { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 6px; }
+  .gen-btn { display: inline-flex; align-items: center; gap: 5px; padding: 5px 10px; border-radius: 6px; border: 1px solid #2A2A3A; background: transparent; color: #9CA3AF; cursor: pointer; font-size: 11px; font-weight: 500; }
+  .gen-btn:disabled { opacity: .5; cursor: not-allowed; }
+  .copy-btn { display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; border-radius: 5px; border: 1px solid #2A2A3A; background: transparent; color: #6B7280; cursor: pointer; font-size: 11px; }
+  .prompt-box { font-size: 11.5px; line-height: 1.55; padding: 8px 10px; border-radius: 6px; background: #0F0F18; border: 1px solid #2A2A3A; color: #F0F0F8; font-family: 'SF Mono','Fira Code',monospace; white-space: pre-wrap; word-break: break-word; max-height: 180px; overflow-y: auto; }
+  .err-box { font-size: 11px; line-height: 1.5; padding: 7px 9px; border-radius: 6px; background: #7F1D1D22; border: 1px solid #EF444455; color: #FCA5A5; font-family: monospace; white-space: pre-wrap; word-break: break-word; }
+  .hint { font-size: 11px; color: #6B7280; font-style: italic; }
+  .hint2 { font-size: 11px; color: #9CA3AF; font-style: italic; }
+  .filters { display: flex; gap: 5px; margin-bottom: 10px; flex-wrap: wrap; }
+  .f-btn { padding: 4px 9px; border-radius: 5px; border: 1px solid #2A2A3A; background: transparent; color: #9CA3AF; cursor: pointer; font-size: 11px; font-weight: 500; }
+  .f-btn.active { border-color: #7C3AED; background: #2D1B69; color: #C4B5FD; }
+  .ws-block { background: #12121A; border-radius: 9px; border: 1px solid #1E1E2E; overflow: hidden; margin-bottom: 10px; }
+  .ws-hd { padding: 10px 14px; border-bottom: 1px solid #1E1E2E; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .ws-name { font-size: 13px; font-weight: 600; }
+  .ws-status { font-size: 10px; border-radius: 10px; padding: 2px 8px; }
+  .ws-right { margin-left: auto; display: flex; gap: 5px; align-items: center; }
+  .ws-count { font-size: 11px; color: #6B7280; }
+  .hot { font-size: 10px; border-radius: 4px; padding: 1px 6px; }
+  .ws-bd { padding: 8px; display: flex; flex-direction: column; gap: 5px; }
+  .pv-top { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; padding: 10px 12px; background: #12121A; border-radius: 8px; border: 1px solid #1E1E2E; flex-wrap: wrap; }
+  .pv-prog { flex: 1; min-width: 140px; }
+  .pv-lbl { font-size: 11px; color: #9CA3AF; margin-bottom: 5px; }
+  .pv-bar { height: 4px; background: #0A0A0F; border-radius: 2px; overflow: hidden; }
+  .pv-fill { height: 4px; background: #10B981; border-radius: 2px; transition: width .4s; }
+  .pv-grp { font-size: 11px; font-weight: 600; border-radius: 6px; display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; margin-bottom: 8px; }
+  .pv-row { background: #12121A; border-radius: 7px; padding: 10px 12px; margin-bottom: 7px; }
+  .pv-row-hd { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .pv-cap { font-size: 12px; font-weight: 500; flex: 1; min-width: 0; }
+  .ask-wrap { display: flex; flex-direction: column; height: calc(100vh - 180px); max-width: 660px; margin: 0 auto; }
+  .msgs { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding: 4px 0 12px; }
+  .msg-row { display: flex; }
+  .msg { max-width: 82%; padding: 9px 12px; font-size: 13px; line-height: 1.65; white-space: pre-wrap; }
+  .msg.user { border-radius: 12px 12px 4px 12px; background: #2D1B69; color: #C4B5FD; }
+  .msg.asst { border-radius: 12px 12px 12px 4px; background: #1A1A26; color: #F0F0F8; }
+  .empty { text-align: center; padding: 40px 16px; }
+  .sugs { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
+  .sug { padding: 5px 12px; border-radius: 20px; border: 1px solid #2A2A3A; background: transparent; color: #9CA3AF; cursor: pointer; font-size: 11px; }
+  .ask-bar { display: flex; gap: 8px; padding-top: 10px; border-top: 1px solid #1E1E2E; }
+  .ask-input { flex: 1; background: #12121A; border: 1px solid #2A2A3A; border-radius: 7px; padding: 9px 12px; color: #F0F0F8; font-size: 13px; outline: none; font-family: inherit; }
+  .send-btn { background: #4C1D95; color: #C4B5FD; border: none; border-radius: 7px; padding: 9px 16px; cursor: pointer; font-size: 13px; font-weight: 600; }
+  .send-btn:disabled { opacity: .4; cursor: not-allowed; }
+  .card:focus-visible, .nav-btn:focus-visible, .f-btn:focus-visible, .gen-btn:focus-visible, .copy-btn:focus-visible, .sug:focus-visible, .send-btn:focus-visible, .ask-input:focus-visible { outline: 2px solid #7C3AED; outline-offset: 2px; }
+  @media (prefers-reduced-motion: reduce) { *, .pv-fill, .chev, .card { transition: none !important; animation: none !important; } }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+"use strict";
+// ─── DATA ────────────────────────────────────────────────────────────────
+const WS = {
+  fusion:     { label: "Fusion AI",            status: "101 entities / n8n blocked",  color: "#7C3AED" },
+  consulting: { label: "FF Consulting",        status: "Live / client.flashfusion.co", color: "#10B981" },
+  chaos:      { label: "chaosclub.co",         status: "Peer support / Firestore live", color: "#EC4899" },
+  content:    { label: "Content / The Prompt", status: "Greenlit / No distribution",  color: "#F59E0B" },
+  growth:     { label: "Growth Detector",      status: "Validation stage",             color: "#3B82F6" },
+  ops:        { label: "Ops / Blockers",       status: "Active",                       color: "#EF4444" },
+  ai:         { label: "AI Providers",          status: "Multi-provider / Untracked",   color: "#06B6D4" },
+};
+const PM = {
+  P0: { label: "P0 — This week",   dot: "#EF4444", bg: "#7F1D1D22", bd: "#EF444455", tx: "#FCA5A5" },
+  P1: { label: "P1 — This sprint", dot: "#F59E0B", bg: "#78350F22", bd: "#F59E0B55", tx: "#FCD34D" },
+  P2: { label: "P2 — Next sprint", dot: "#3B82F6", bg: "#1E3A5F22", bd: "#3B82F655", tx: "#93C5FD" },
+  P3: { label: "P3 — Backlog",     dot: "#6B7280", bg: "#1F293722", bd: "#6B728055", tx: "#D1D5DB" },
+};
+const TAG_COLOR = {
+  config:       { bg: "#064E3B", c: "#6EE7B7" },
+  reliability:  { bg: "#064E3B", c: "#6EE7B7" },
+  velocity:     { bg: "#064E3B", c: "#6EE7B7" },
+  efficiency:   { bg: "#064E3B", c: "#6EE7B7" },
+  architecture: { bg: "#2D1B69", c: "#C4B5FD" },
+  quality:      { bg: "#2D1B69", c: "#C4B5FD" },
+  analytics:    { bg: "#2D1B69", c: "#C4B5FD" },
+  "sales tool": { bg: "#78350F", c: "#FCD34D" },
+  distribution: { bg: "#78350F", c: "#FCD34D" },
+  positioning:  { bg: "#1E3A5F", c: "#93C5FD" },
+  product:      { bg: "#1E3A5F", c: "#93C5FD" },
+  migration:    { bg: "#7F1D1D", c: "#FCA5A5" },
+};
+const ITEMS = [
+  {
+    id: "op1", p: "P0", ws: "ops", tag: "config", ef: "2–3 hrs",
+    cap: "n8n: 3 scheduled triggers failing daily — OI-011 confirmed",
+    bk: "Confirmed via execution data (June 2): Three workflows failing on scheduled trigger mode every day. wlGeCq7iEz0zs8Hc at 18:00 UTC — error in <1 sec. eQp8c1Y0uM7I9dY7 at 17:00 UTC — failing daily since May 5. JPSVa3cLtQPi8NKF at 19:00 UTC — failing on scheduled trigger but 2,094 successful webhook runs (healthy on webhook, broken on cron). Fourth: 5oX3SVx3PQkznNdM errored via webhook June 2. Prior claim of '11 workflows / Bearer creds / SCH-02 / WIR-01' was fabricated — ignore it.",
+    ub: "All 3 scheduled triggers firing correctly. JPSVa3cLtQPi8NKF cron catches up on scheduled runs. Daily digest and monitoring workflows resume.",
+    ns: "Open each workflow in n8n UI (krosebrook.app.n8n.cloud). (1) eQp8c1Y0uM7I9dY7 (WF-04 Feed Health Monitor, 17:00 UTC) — SINGLE CHARACTER FIX: IF node comparison value is string \"0\" — change to number 0. Regression from April 23 n8n strict-type change. (2) wlGeCq7iEz0zs8Hc (18:00 UTC) — view last error log, likely credential or stale node. (3) JPSVa3cLtQPi8NKF (19:00 UTC cron) — disable the Schedule trigger node; webhook path is fully healthy with 2,094 runs. Do NOT rebuild from scratch."
+  },
+  {
+    id: "ct0", p: "P0", ws: "content", tag: "distribution", ef: "1 day",
+    cap: "Content has no home — memoir + The Prompt have nowhere to distribute",
+    bk: "Content strategy greenlit May 2026. Construction Manifesto written. Memoir active. The Prompt defined. Zero publicly indexed output exists. No Substack, no standalone site, no RSS. Writing is invisible.",
+    ub: "The Prompt has a live Substack with a first issue. Memoir has a dedicated page under flashfusion.co/writing or writing.flashfusion.co. Content becomes discoverable and shareable for the first time.",
+    ns: "Pick one channel and ship today: (A) Substack — set up, write 400-word Issue 0 as a positioning piece, publish. (B) writing.flashfusion.co — Cloudflare CNAME to Notion published page. Don't plan the full calendar first — get one URL live."
+  },
+  {
+    id: "oi012", p: "P0", ws: "ops", tag: "config", ef: "1–2 hrs — June 15 hard deadline",
+    cap: "OI-012: claude-sonnet-4-20250514 retires June 15 — 9 days — find/replace in Bundle 1",
+    bk: "Notion HQ OI-012 (logged May 15): Anthropic retires claude-sonnet-4-20250514 on June 15, 2026. This model string is used in Bundle 1 (Fusion AI codebase). The WorkstreamMapper already uses claude-sonnet-4-6 (correct). But any hardcoded references in Fusion AI, FF Consulting, or other FF app code will break silently or throw on June 15.",
+    ub: "All claude-sonnet-4-20250514 references replaced with claude-sonnet-4-6 before June 15. Zero app breakage on retirement date.",
+    ns: "Search all FF repos for 'claude-sonnet-4-20250514' via GitHub MCP or Claude Code + GitHub MCP. Priority: Fusion AI app code, any n8n Code nodes, any direct Anthropic SDK calls outside Base44. Replace with claude-sonnet-4-6. Commit. Deadline is firm — June 15 is 9 days out."
+  },
+  {
+    id: "entry", p: "P0", ws: "consulting", tag: "positioning", ef: "Decision only — 30 min",
+    cap: "Entry point conflict: FreeAssessment vs $99 Workflow Snapshot — live and unresolved",
+    bk: "Notion HQ flags this as a live conflict (June 1, 2026). FreeAssessment at audit.flashfusion.co is live and free. SEE v2.1 recommends replacing it with a $99 Workflow Snapshot ('launch in 48 hours, run 30 days'). Both cannot be the offer simultaneously. No traffic or ads should run until this is decided. The 30-Day Experiment (Ryan Anderskow outreach) is also stalled — not sent as of May 3.",
+    ub: "Single entry point, documented decision. Traffic can flow. The 30-Day Experiment unblocks.",
+    ns: "Pick one: (A) Kill FreeAssessment, launch $99 Snapshot — 48hr execution. (B) Keep FreeAssessment, park $99 Snapshot until 3 paying clients exist. (C) Split by ICP — FreeAssessment for cold/content, Snapshot for warm/referred. Document the decision in Notion HQ. Then re-examine Ryan Anderskow outreach timing."
+  },
+  {
+    id: "f1", p: "P1", ws: "fusion", tag: "architecture", ef: "3–5 days",
+    cap: "Fusion AI: model tier classification per entity — Base44 entity config audit",
+    bk: "Fusion AI is a Base44 app — 101 entities, AI model config set per entity inside Base44 UI. No evidence that model tier has been deliberately configured per entity type. Default is likely the same tier across all 101. Paying max rates on simple lookup entities the same as complex reasoning ones.",
+    ub: "Each entity classified by complexity (lookup / task / reasoning / secure) and model tier set accordingly in Base44 entity config. Estimated 40–60% cost reduction on low/medium entities once Base44 model settings are corrected.",
+    ns: "Open Fusion AI in Base44 (68dd8e79ca073475565c8e16). Export entity list. Classify each by operation type. Update model tier in each entity's AI config inside Base44 — not code changes, Base44 UI config. Spot-check 5 entities in staging before applying to all 101. Log cost delta in PostHog via n8n webhook after rollout."
+  },
+  {
+    id: "f2", p: "P1", ws: "fusion", tag: "velocity", ef: "2–3 days",
+    cap: "Fusion AI: Claude Code + Base44 MCP — batch audit all 101 entities",
+    bk: "101 Base44 entities reviewed manually one at a time. No programmatic audit path. Base44 MCP is connected — Claude can read entity schemas, relationships, and config directly. At manual pace this is 4–6 sessions. Cross-entity dependency patterns are invisible in single-entity review.",
+    ub: "Claude Code reads all 101 entity schemas via Base44 MCP in one session. Outputs: dependency map, dead entity candidates, misconfigured model tiers, missing relationships. Full audit in one session instead of weeks.",
+    ns: "Run Claude Code from ~/ff-claude. Use Base44 MCP (connected) to pull all entity schemas from app 68dd8e79ca073475565c8e16. Ask Claude to: (1) map entity → entity relationships, (2) flag entities with zero n8n references, (3) flag entities missing model tier config, (4) identify circular dependencies. Output structured JSON report. Use report to drive f1 and f3."
+  },
+  {
+    id: "c1", p: "P1", ws: "chaos", tag: "quality", ef: "2–3 days",
+    cap: "chaosclub.co: TypeScript strict mode + Zod validation migration",
+    bk: "chaosclub.co: peer support / mental health platform (NOT lyrics/audio/music — confirmed via design spec + app registry). Brand: Breathe Through the Bullsh*t™. Tokens: burnt orange #d4651c, Playfair Display + IBM Plex Sans. Product form undecided: PWA micro-app vs B2B/EAP. Running TypeScript without strict mode. No Zod on external inputs (Gemini, OpenAI, Anthropic, Stripe webhooks, Cloudflare R2). Stripe webhook handler is highest security risk.",
+    ub: "Strict mode catches null/undefined errors at compile time. Zod schemas on all external boundaries prevent malformed data from reaching business logic. Stripe webhook handler becomes audit-safe.",
+    ns: "1) Enable strict in tsconfig.json, run tsc — collect error list. 2) Fix nullability + implicit any. 3) Zod schemas on: Stripe webhook handler, Gemini API response parser, OpenAI API response parser, Anthropic API response parser, R2 metadata reader. 4) Run Vitest on all patched boundaries."
+  },
+  {
+    id: "p1", p: "P1", ws: "content", tag: "distribution", ef: "0.5 days",
+    cap: "The Prompt: Substack setup + Issue 0 published",
+    bk: "The Prompt newsletter has a defined format and FlashFusion creator-tech audience but no live distribution URL. Zero subscribers. docs/content-strategy-v1.md not yet created.",
+    ub: "Live Substack with a real URL. Issue 0 published as a positioning piece. Backlink from flashfusion.co. Content strategy document created and referenced from FlashFusion claude.md.",
+    ns: "Set up Substack under 'The Prompt by FlashFusion.' Write Issue 0: 400 words, your actual take on one tool or workflow. Publish. Then write docs/content-strategy-v1.md as a one-pager: audience, cadence, format per channel."
+  },
+  {
+    id: "wf05", p: "P1", ws: "ops", tag: "config", ef: "1 hr",
+    cap: "WF-05 Morning Briefing — built, not imported, 4 credentials need wiring",
+    bk: "WF-05 Morning Briefing built and documented in Notion HQ (May 15, 2026). Pipeline: Schedule (14:00 UTC Mon–Fri) → GitHub user/org events → n8n failed executions → Notion OI Tracker → Gmail HTML delivery. JSON file exists: WF-05-Morning-Briefing.json. Not yet imported into n8n. 4 credentials need wiring before activation.",
+    ub: "Daily briefing landing in Gmail at 9 AM CT covering: GitHub push activity (Krosebrook + ChaosClubCo), n8n failed executions, open OI Tracker P0/P1 items. Replaces manual status checks.",
+    ns: "Import WF-05-Morning-Briefing.json into n8n (Workflows → Import). Wire 4 credentials: (1) GitHub PAT — githubApi, scopes read:user + repo. (2) n8n API Key — httpHeaderAuth, X-N8N-API-KEY. (3) Notion token — httpHeaderAuth, Authorization: Bearer {token}. (4) Gmail OAuth2 — standard flow. Activate. Confirm first run at 14:00 UTC."
+  },
+  {
+    id: "obs1", p: "P2", ws: "ops", tag: "config", ef: "2–3 days",
+    cap: "Obsidian vault integration — Claude read/write via TS plugin + MCP bridge",
+    bk: "Obsidian vault disconnected from all Claude workflows. Project notes, session context, and skill library docs live in isolated silo. FlashFusion claude.md is the closest thing to a context file but has no live sync.",
+    ub: "Claude reads vault notes as session context. Session summaries write back to vault on close. File watcher triggers on vault changes. Context persists across sessions for the first time.",
+    ns: "Single blocker: vault absolute path. 1) Confirm vault path. 2) Wire TS plugin to MCP server. 3) Test read (FlashFusion project notes surface in context) and write (session summary lands in vault on close)."
+  },
+  {
+    id: "c2", p: "P2", ws: "chaos", tag: "analytics", ef: "1–2 days",
+    cap: "chaosclub.co: PostHog event taxonomy + conversion funnel",
+    bk: "PostHog installed but no defined event taxonomy. No conversion funnel tracked. Can't answer: do support-content viewers convert to account creation? What is the premium audio completion rate? Blind to actual user behavior.",
+    ub: "Named event taxonomy: support_content_viewed, session_started, session_completed, premium_gate_hit, account_created, stripe_checkout_started, stripe_payment_success. Funnel from support_content_viewed → stripe_payment_success visible in dashboard.",
+    ns: "Write event taxonomy doc (20 min). Implement one PostHog.capture() call per event in chaosclub.co codebase. Define 2 funnels in PostHog UI: free-to-paid and generation-to-completion. Baseline data visible within 24hrs of deploy."
+  },
+  {
+    id: "g1", p: "P2", ws: "growth", tag: "velocity", ef: "2–3 day sprint",
+    cap: "Growth Detector: GitHub signal pipeline validation sprint",
+    bk: "Growth Detector in validation stage. Signal-to-lead pipeline architecture defined but not smoke-tested end-to-end. Unknown: false positive rate on buying-signal classification, actual data freshness from GitHub API.",
+    ub: "Validated signal pipeline with known precision/recall on 3 test profiles. GitHub API rate limit ceiling confirmed. False positive rate measured on 50-repo sample. Go/no-go decision on moving to n8n automation.",
+    ns: "Run 50-repo manual validation sprint: pull GitHub events, classify signals by hand, compare to classifier output. If precision >70% — wire to n8n. If not — tighten classifier prompt. Don't automate an unvalidated signal."
+  },
+  {
+    id: "ff1", p: "P2", ws: "consulting", tag: "sales tool", ef: "2–3 days",
+    cap: "FF Consulting: CFO cost modeling tool — close the budget objection",
+    bk: "No credible cost projection before contract. Prospects at client.flashfusion.co asking for ROI model before approving. Consulting tiers shown but no forward-looking cost model at scale.",
+    ub: "React artifact: input team size + task distribution → output monthly AI cost at low/medium/high effort tiers with payback timeline. Defensible, shareable, closes the CFO objection cold.",
+    ns: "Build as standalone React artifact. Wire to FlashFusion consulting tier pricing. Test against 3 real prospect profiles. Host at client.flashfusion.co/roi or embed in Notion proposal template."
+  },
+  {
+    id: "f3", p: "P3", ws: "fusion", tag: "architecture", ef: "1 day audit",
+    cap: "Fusion AI: 101-entity schema audit — dead entities + dependency map",
+    bk: "101 entities accumulated over multiple build phases. Unknown how many are orphaned (no active n8n references, no active agent calls). Dead entities inflate schema complexity and slow Claude context load in Base44.",
+    ub: "Confirmed live vs dead entity count. Dependency map showing which entities are touched by which n8n workflows. Candidates for archival flagged. Cleaner schema = faster agent context loads.",
+    ns: "Cross-reference 101 Base44 entities against 11 n8n workflow inputs. Flag any entity with zero workflow references and no active API surface. Produce: live count, dead candidates list, dependency map. Archive dead candidates after confirmation."
+  },
+  {
+    id: "c3", p: "P3", ws: "chaos", tag: "migration", ef: "Design spike: 1 day",
+    cap: "chaosclub.co: Firebase → Supabase migration path design",
+    bk: "chaosclub.co on Firebase for auth + database. Rest of FlashFusion stack is Supabase. Running two DB platforms adds operational complexity, doubles auth surface, and prevents shared RLS policies across FF apps.",
+    ub: "Single Supabase instance across chaosclub.co + Fusion AI + consulting ops. Unified auth, shared RLS, single billing line. Migration path designed and costed before committing.",
+    ns: "Design sprint only. Map Firebase usage: auth providers, Firestore collections, security rules. Estimate migration effort (data export, auth migration, query rewrites). Produce go/no-go doc with complexity rating. Don't migrate — know the cost first."
+  },
+  {
+    id: "g2", p: "P3", ws: "growth", tag: "architecture", ef: "After g1 validates",
+    cap: "Growth Detector: n8n lead gen automation pipeline",
+    bk: "Growth Detector currently manual. GitHub signal → lead classification → outreach is a 3-step process by hand. Doesn't scale past 50 targets/week. Blocked on g1 validation sprint.",
+    ub: "Automated pipeline: GitHub API polling → n8n signal classifier → Supabase leads table → HubSpot contact create. Lead scored and queued without manual intervention. 10x lead volume capacity.",
+    ns: "Blocked on g1. Once signal precision confirmed >70%, wire: GitHub API polling → n8n classifier → Supabase insert → HubSpot contact create. Start with 20-lead/day cap for first 2 weeks."
+  },
+  {
+    id: "tok1", p: "P3", ws: "consulting", tag: "config", ef: "2–3 hours",
+    cap: "Create designs/FlashFusion-tokens.md + docs/content-strategy-v1.md",
+    bk: "FlashFusion claude.md references both files as '[NOT YET CREATED]'. Every UI build and content work starts without locked tokens or a canonical content direction. Design drift accumulates per-project.",
+    ub: "Locked token file (v3 spec: surfaces, typography, colors, radii) used in every UI build. Canonical content strategy doc referenced from all content work. Zero token drift across FF builds.",
+    ns: "1) Write designs/FlashFusion-tokens.md: Instrument Serif + Geist + Geist Mono, surfaces #0B0B14/#13131F, accent #7C3AED/#EC4899, border-radius 100px pills. 2) Write docs/content-strategy-v1.md: audience, cadence, format per channel. Commit both to source-of-truth-monorepo."
+  },
+  {
+    id: "ai1", p: "P1", ws: "ai", tag: "config", ef: "1 day",
+    cap: "AI provider version governance — pin + track models across all FF apps",
+    bk: "Confirmed via n8n credentials (June 2): Anthropic ×4 accounts (duplicate naming — accounts 2, 2, 3, 4), Google Gemini PaLM ×1, OpenAI ×1 (n8n free credits, managed). 4 Anthropic credentials is a consolidation gap — unclear which workflows use which. OI-012 confirms claude-sonnet-4-20250514 is hardcoded somewhere in Bundle 1 and retires June 15.",
+    ub: "Consolidated to 2 Anthropic credentials (personal + ChaosCollective project). AI_PROVIDERS.md created. OI-012 patched. Every n8n workflow references named credential, not ad-hoc.",
+    ns: "1) Audit which n8n workflows use each of the 4 Anthropic credentials — consolidate duplicates. 2) Search repos for claude-sonnet-4-20250514 (OI-012, June 15 deadline). 3) Confirm Gemini model version in chaosclub.co repo. 4) Write AI_PROVIDERS.md: provider → credential name → model → app → version pinned date."
+  },
+  {
+    id: "ai2", p: "P1", ws: "ai", tag: "architecture", ef: "2–3 days",
+    cap: "Multi-provider cost dashboard — unified Anthropic + Google + OpenAI spend",
+    bk: "AI costs fragmented across 3+ provider dashboards. Fusion AI runs on Base44 — Base44 abstracts the Anthropic API calls, so direct token instrumentation isn't possible from code. chaosclub.co Gemini costs untracked. No single view of total monthly AI COGS across FF.",
+    ub: "Unified cost view: Base44 billing dashboard exported to Supabase via n8n webhook + Gemini cost pulled from Google Cloud Console API + any direct Anthropic API costs. Monthly COGS per app visible in one PostHog or Supabase view.",
+    ns: "Three tracks: (1) Base44 — check if Base44 exposes usage API or webhook; if not, pull from Base44 billing dashboard manually and log to Supabase via n8n. (2) Gemini — Google Cloud Console has cost export to BigQuery; wire to Supabase. (3) Direct Anthropic calls (non-Base44) — log input/output tokens per call. Aggregate all three in a simple Supabase view with daily cost per provider."
+  },
+  {
+    id: "ai3", p: "P1", ws: "ai", tag: "positioning", ef: "0.5 days",
+    cap: "Provider intel pages — Anthropic / OpenAI / Google / Microsoft Notion trackers",
+    bk: "No dedicated Notion intel pages for any of the 4 major providers. Capability releases (new models, APIs, pricing changes) are discovered ad-hoc. FlashFusion's competitive positioning and client recommendations lag provider reality by weeks.",
+    ub: "4 live Notion pages: Anthropic, OpenAI, Google/Gemini, Microsoft/Copilot. Each tracks: latest model, pricing, key capabilities, FF relevance score, last-updated. Sync agent can push updates on session open.",
+    ns: "Create 4 Notion sub-pages under FlashFusion HQ (32eea14fb16781bdb12cff15311e1273). Template: Model | Version | Input$/1M | Output$/1M | Context window | FF relevance | Notes | Last updated. Seed with current known state. Wire Notion sync agent to update on session open."
+  },
+  {
+    id: "ai4", p: "P2", ws: "ai", tag: "architecture", ef: "2–3 days",
+    cap: "Provider abstraction layer — swap-safe AI calls across FF apps",
+    bk: "Every FF app calls its AI provider directly with no abstraction. Switching from Gemini to Claude, or adding a fallback provider, requires touching every call site. Provider outages have no fallback path. No A/B routing between providers.",
+    ub: "Thin provider abstraction: one interface, multiple backends (Anthropic / OpenAI / Gemini / Copilot). Swap providers via env var. Add fallback routing. Enable A/B cost testing across providers for identical tasks.",
+    ns: "Build lightweight TypeScript interface: generateText(prompt, options) → {text, provider, tokens, cost}. Implement adapters for: AnthropicAdapter, GeminiAdapter, OpenAIAdapter. Drop into chaosclub.co first (lowest risk). Wire Fusion AI after validation. Env var selects default + fallback."
+  },
+  {
+    id: "ai5", p: "P2", ws: "ai", tag: "positioning", ef: "1 day",
+    cap: "GitHub Copilot overlap map — where it helps vs. where FF Consulting competes",
+    bk: "GitHub Copilot is in active dev workflow (likely) but not mapped against FF Consulting's positioning. Prospects sometimes ask 'why not just use Copilot?' No documented answer. Risk of Copilot expanding into FF's advisory lane (enterprise AI strategy, workflow automation) with Microsoft backing.",
+    ub: "One-page overlap map: Copilot's actual scope (code completion, PR reviews, chat in IDE) vs FF Consulting's scope (AI strategy, workflow automation, org-wide enablement). Clear 'compete / complement / ignore' verdict per Copilot feature.",
+    ns: "Write overlap map doc. Copilot scope: code completion + IDE chat + PR summaries. FF scope: org AI strategy + workflow automation + enablement sprints + vCAIO. Most is complement, not compete. Formalize the answer so sales conversations don't stall on this objection."
+  },
+  {
+    id: "ai6", p: "P3", ws: "ai", tag: "product", ef: "Design spike: 1 day",
+    cap: "Multi-provider routing for Fusion AI — task-type aware provider selection",
+    bk: "Fusion AI sends all agent tasks to Anthropic. Some task types (structured data extraction, long-context summarization, image input) may be cheaper or more accurate on Gemini or OpenAI for specific agents. Single-provider dependency also creates outage risk.",
+    ub: "Fusion AI routes by task type: Claude for reasoning/agentic chains, Gemini for multimodal/long-context, OpenAI for embedding/fine-tuned tasks. Total cost down 20–40% on routed tasks. No single-provider outage takes down the platform.",
+    ns: "Design sprint only. Map 101 entity task types against provider strengths. Identify top 3 routing candidates. Cost model the savings. Build on top of provider abstraction layer (ai4 must ship first). Go/no-go doc before any routing logic is written."
+  },
+  {
+    id: "sub1", p: "P0", ws: "ops", tag: "config", ef: "30 min audit",
+    cap: "Subscription payment failures — Supabase, Notion, Zapier, Slack, Cloudflare (April audit)",
+    bk: "April 2026 audit flagged 5 vendors in urgent payment-failure status: Supabase, Notion, Zapier, Slack, Cloudflare. As of June 6 this is 9+ weeks unreviewed. Any of these lapsing silently kills a production dependency. Supabase lapse = database down across FF apps. Cloudflare lapse = all subdomains fail.",
+    ub: "All 5 vendors confirmed active with valid payment methods. No silent service interruptions pending.",
+    ns: "Check billing status for each: (1) Supabase dashboard — supabase.com/dashboard/org. (2) Cloudflare — cloudflare.com/billing. (3) Notion — notion.so/settings/billing. (4) Zapier — zapier.com/app/billing. (5) Slack — app.slack.com/plans. Fix any lapsed payment before anything else. This is the quietest possible failure mode."
+  },
+  {
+    id: "aff1", p: "P1", ws: "ops", tag: "efficiency", ef: "1–2 hrs",
+    cap: "AffordableStuffStore: broken OpenAI key — 4,665 monthly visitors hitting dead AI features",
+    bk: "NOT a FlashFusion brand asset (confirmed). Lovable project ID bacf6efc. Local: D:\\03_Development\\Projects\\AffordableStuffStoreAndroidReady. Domain: affordablestuffstore.com — 4,665 monthly visitors. OpenAI API key is broken. Every visitor hitting AI-dependent features gets a failure. Also needs domain reconnect verification.",
+    ub: "AI features functional for 4,665 monthly visitors. Domain routing confirmed. Clean separation from FlashFusion work maintained.",
+    ns: "grep -r OPENAI_API_KEY D:\\03_Development\\Projects\\AffordableStuffStoreAndroidReady --include=*.env. Replace with fresh key from platform.openai.com. Test AI feature locally. Deploy via Lovable. Verify affordablestuffstore.com routes to project bacf6efc. Standalone fix — do not conflate with FF work."
+  },
+  {
+    id: "b1", p: "P2", ws: "fusion", tag: "architecture", ef: "1 hr audit",
+    cap: "Base44: 49 apps — 3 INT-risk apps + dead pivot app need action",
+    bk: "Full Base44 app list pulled (June 2): 49 apps total. Three require immediate attention: INTeract (691e3ae3bd4916f2e05ae35e) — INT-branded name, dormant, known risk. INTelligence.ai (69861bd9ee42e63a83ea6c2e) — INT-branded, unknown status. Chaos Club (69726bea1c1525bf9ac336d1) — old peer-support pivot, dead. Also: Conduit, Knowledge OS, agentrus, Studio Spark, FlowState, Graph Studio — active builds not yet in any workstream.",
+    ub: "INT-branded apps renamed or archived. Dead pivot app archived. Active new builds (Conduit, Knowledge OS, etc.) assessed — either assigned to a workstream or explicitly parked.",
+    ns: "1) Archive Chaos Club app (dead pivot). 2) Rename INTeract — remove INT branding before any development resumes. 3) Check INTelligence.ai — if INT-adjacent, archive or rename. 4) Spot-check Conduit, Knowledge OS, agentrus, Studio Spark, FlowState — open each, note entity count and last activity. Assign to workstream or park explicitly."
+  },
+  {
+    id: "r1", p: "P0", ws: "ops", tag: "config", ef: "30 min",
+    cap: "Claude Code + GitHub MCP — cloneless dev environment",
+    bk: "741 repos across Krosebrook + ChaosClubCo. No single active working directory. Cloning individual repos per task is friction you've already rejected. source-of-truth-monorepo is under-used — exists but not populated.",
+    ub: "Run Claude Code from any empty directory. GitHub MCP reads and writes repos via API without local clones. One setup, access to all 741 repos. No clone management.",
+    ns: "mkdir ~/ff-claude && cd ~/ff-claude. Run: claude. GitHub MCP is built into Claude Code when gh CLI is authenticated. Confirm with: claude --mcp-list. If GitHub not listed, add to ~/.claude/claude.json: {\"github\": {\"command\": \"npx\", \"args\": [\"-y\", \"@modelcontextprotocol/server-github\"], \"env\": {\"GITHUB_PERSONAL_ACCESS_TOKEN\": \"$GITHUB_TOKEN\"}}}. Start there — don't clone first."
+  },
+  {
+    id: "r2", p: "P1", ws: "ops", tag: "architecture", ef: "1–2 hrs",
+    cap: "source-of-truth-monorepo: run consolidate.py to populate projects/",
+    bk: "source-of-truth-monorepo has production-grade infrastructure (pnpm Turborepo, CI/CD, OTEL, Terraform) but projects/ is unpopulated. REPO_MAP.md claims 312 repos imported — metadata only, not code. The monorepo is aspirational scaffolding, not an active working directory.",
+    ub: "All FF repos pulled into projects/ under one local checkout. Single Claude Code session with full codebase access. pnpm install resolves all workspace deps. Turborepo caches cross-project builds.",
+    ns: "cd source-of-truth-monorepo. export GITHUB_TOKEN=your_pat. python scripts/consolidate.py --phase 1 --batch-size 10. Monitor for errors — 3 repos were flagged unavailable/deleted in prior runs. After: pnpm install && pnpm build to confirm workspace integrity. This is a one-time cost for a permanent working environment."
+  },
+  {
+    id: "r3", p: "P1", ws: "fusion", tag: "velocity", ef: "Check first",
+    cap: "skills-pipeline repo: may already have the 259-skill agent build pipeline",
+    bk: "skills-pipeline (Krosebrook private, pushed May 18) description: '515 master skills → Claude Code conversion pipeline.' This is directly relevant to the 259-skill queue in s1. If the pipeline is built, the agent teams approach may already be scaffolded — rebuilding from scratch wastes a week.",
+    ub: "If skills-pipeline has a working conversion pipeline: drop in the 259 remaining skills, run the pipeline, done in hours not sessions. If incomplete: use it as the base instead of building from scratch.",
+    ns: "Read skills-pipeline repo first (via GitHub MCP or clone). Check: does it have a working pipeline script? What's the input format — raw SKILL.md? What's the output? If it runs on the 259 queued skills without modification, this is the fastest P0 in the entire board. Don't run s1 (agent teams) until this is checked."
+  },
+];
+const ASSISTANT_SYS = `You are Kyle Rosebrook's FlashFusion workstream assistant. Current date: June 6, 2026. FlashFusion only.
+Active workstreams:
+- Fusion AI (app.flashfusion.co): Base44 agent platform, 101 entities (grew from 77 Apr 7). App ID 68dd8e79ca073475565c8e16. n8n automation healthy on webhook (2,094 runs). OI-003: 68-entity gap vs Supabase unresolved.
+- FF Consulting (client.flashfusion.co): Base44 app ID 6a02ac1bad2b4e37732ef382. LIVE entry point conflict: FreeAssessment (free, live at audit.flashfusion.co) vs $99 Workflow Snapshot (SEE v2.1 rec). Decision required before any traffic. Ryan Anderskow outreach stalled — not sent as of May 3.
+- chaosclub.co: PEER SUPPORT / MENTAL HEALTH platform (confirmed: design spec + app registry). Brand: "Breathe Through the Bullsh*t™" — burnt orange #d4651c, Playfair Display + IBM Plex Sans. NOT lyrics/audio/music. Product form decision open: PWA micro-app vs B2B/EAP (kyle_todo_v7). React 19 + Vite + TypeScript + Firebase + Cloudflare R2 + Stripe + PostHog. No strict mode. No Zod. PostHog untaxonomied. The Base44 "Chaos Club" app (69726bea1c1525bf9ac336d1) is the Base44 version — lane: Personal. chaosclub.co is the standalone site build.
+- Content / The Prompt: Greenlit May 2026. Memoir active. Zero public distribution URLs.
+- Growth Detector: Validation stage. Signal pipeline not smoke-tested.
+- Ops/Blockers:
+  n8n CONFIRMED errors: wlGeCq7iEz0zs8Hc (18:00 UTC daily), eQp8c1Y0uM7I9dY7 (WF-04, 17:00 UTC daily — SINGLE CHAR FIX: IF node "0" string → 0 number, April 23 regression), JPSVa3cLtQPi8NKF (19:00 UTC cron broken, webhook healthy 2,094 runs).
+  Subscription risks (April audit — unreviewed 9+ weeks): Supabase, Notion, Zapier, Slack, Cloudflare all flagged payment-failure. Check billing before anything else.
+  AffordableStuffStore (Lovable bacf6efc, affordablestuffstore.com): 4,665 monthly visitors, broken OpenAI key. NOT FF brand — standalone fix needed.
+  OI-012 HARD DEADLINE June 15 (9 days out): claude-sonnet-4-20250514 retires — find/replace in Bundle 1.
+  WF-05 Morning Briefing: built, not imported, 4 creds need wiring.
+  Obsidian vault: integration pending (vault path needed).
+  designs/FlashFusion-tokens.md and docs/content-strategy-v1.md: not yet created.
+Base44 confirmed (49 apps June 2): Key apps: Fusion AI, FlashFusion (consulting), SparkAcademy, audit scorecard, Studio Spark, TeamSync. Risk apps: INTeract (INT-branded, dormant), INTelligence.ai (INT-branded), Chaos Club (dead pivot — archive). Active untracked: Conduit, Knowledge OS, agentrus, FlowState, Graph Studio.
+n8n credentials confirmed: Anthropic ×4 (consolidation gap), Gemini PaLM ×1, OpenAI ×1 (n8n free credits), Supabase ×1 (ChaosCollective project), PostHog ×2, Notion ×8, Google Drive/Sheets/Calendar, SerpAPI, Perplexity, Slack, Postgres, WordPress.
+Repo reality (June 2): Krosebrook 632 repos (153 private, 326 forks). ChaosClubCo 109 repos. source-of-truth-monorepo: pnpm Turborepo, projects/ unpopulated. skills-pipeline (private, May 18): 515 master skills → Claude Code pipeline. Dev environment: no active single working dir. Use Claude Code + GitHub MCP cloneless from ~/ff-claude.
+FlashFusion tech stack: Supabase, Vercel, Cloudflare (CDN/edge/DNS/R2), Stripe, PostHog, Sentry, Resend, Anthropic (claude-sonnet-4-6, ×4 n8n credentials), Google Gemini PaLM, OpenAI (n8n), Base44, n8n + Zapier, HubSpot, GitHub (ChaosClubCo + Krosebrook), Notion HQ (32eea14fb16781bdb12cff15311e1273).
+Answer directly under 200 words. Prioritize unblocking actions over planning.`;
+const PROMPT_SYS = `You generate production-ready context-engineered prompts for the FlashFusion platform. June 2026.
+Stack: TypeScript strict, React 19, Vite, Supabase (auth + RLS + Postgres), Vercel, Cloudflare (Workers/R2/CDN), Stripe, PostHog, Resend, Sentry, Anthropic API (claude-sonnet-4-6 default, claude-opus-4-6 for max tier).
+Apps:
+- Fusion AI (app.flashfusion.co): Base44 agent platform, 101 entities, n8n automation (4 WIR + 7 OAI workflows). Provider: Anthropic (claude-sonnet-4-6 default, claude-opus-4-6 max)
+- FF Consulting (client.flashfusion.co): Base44 consulting ops CRM. Provider: Anthropic
+- chaosclub.co: Peer support platform. React 19 + Vite + Firebase + Stripe + PostHog. Providers: Gemini (primary), OpenAI (TBC), Anthropic (TBC)
+- Growth Detector: GitHub signal → lead gen pipeline (validation stage). Provider: TBC
+- skills-pipeline (Krosebrook/skills-pipeline): 515 master skills → Claude Code conversion pipeline. Private. Pushed May 18 2026. Check before building agent teams.
+- source-of-truth-monorepo (Krosebrook): pnpm Turborepo, 86 root-level items, projects/ unpopulated. Run consolidate.py to populate. Node 22+, pnpm 9+.
+Dev environment: No single active local working dir. 741 repos total (632 Krosebrook + 109 ChaosClubCo). Recommended workflow: Claude Code + GitHub MCP cloneless from ~/ff-claude, OR populate source-of-truth-monorepo via scripts/consolidate.py.
+AI provider context: Anthropic = agentic reasoning + strategy tasks. Gemini = multimodal + long-context. OpenAI = embeddings + structured extraction. Copilot = dev workflow (IDE-level, not FF app-level). Provider abstraction layer not yet built — direct SDK calls per app.
+Capabilities:
+- Effort Controls GA: model tier routing (low/medium/high/max)
+- Skills API GA: /v1/skills programmatic deploy/version/manage
+- Context Compaction Beta: server-side summarization, trigger at 50K tokens
+- Agent Teams Research Preview: CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1
+Security: no client-side API keys, RLS enforced, Zod on all external inputs, Stripe webhooks via stripe.webhooks.constructEvent, no secrets in bundles.
+Generate ONE context-engineered prompt for the given capability and next step. Include: role, FF stack context, precise task with API/file references, security constraints, exact output spec. Return ONLY the prompt text starting with "You are" or "Act as". Under 400 words.`;
+// ─── STATE ───────────────────────────────────────────────────────────────
+function lsGet(k, fb) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : fb; } catch { return fb; } }
+function lsSet(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} }
+const state = {
+  view: lsGet("ffwm_view", "board"),
+  wsFilter: "all",
+  prompts: lsGet("ffwm_prompts", {}),
+  errors: {},
+  generating: {},
+  open: {},
+  genAllRunning: false, genAllDone: 0, genAllTotal: 0,
+  msgs: lsGet("ffwm_msgs", []),
+  loading: false,
+  inputVal: "",
+  focusCard: null,
+};
+// ─── AI BRIDGE (Cowork askClaude — no client-side API keys) ─────────────
+async function callClaude(system, userMsg) {
+  if (!(window.cowork && typeof window.cowork.askClaude === "function")) {
+    throw new Error("window.cowork.askClaude unavailable — open this artifact inside Cowork.");
+  }
+  const res = await window.cowork.askClaude(system + "\n\n────────────\n\n" + userMsg, []);
+  if (typeof res === "string") return res;
+  if (res && typeof res.text === "string") return res.text;
+  if (res && Array.isArray(res.content)) {
+    const t = res.content.find(b => b.type === "text");
+    if (t && t.text) return t.text;
+  }
+  if (res && typeof res.result === "string") return res.result;
+  throw new Error("Unexpected askClaude response shape: " + JSON.stringify(res).slice(0, 200));
+}
+// ─── HELPERS ─────────────────────────────────────────────────────────────
+function esc(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
+function copyText(text) {
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).catch(() => fallbackCopy(text));
+  } else { fallbackCopy(text); }
+}
+function fallbackCopy(text) {
+  const ta = document.createElement("textarea");
+  ta.value = text; ta.style.position = "fixed"; ta.style.opacity = "0";
+  document.body.appendChild(ta); ta.select();
+  try { document.execCommand("copy"); } catch {}
+  document.body.removeChild(ta);
+}
+function tagPill(tag) {
+  const tc = TAG_COLOR[tag] || { bg: "#1F2937", c: "#D1D5DB" };
+  return '<span class="tag" style="background:' + tc.bg + ';color:' + tc.c + '">' + esc(tag) + "</span>";
+}
+// ─── RENDER: CARD ────────────────────────────────────────────────────────
+function cardHTML(item, showWs) {
+  const pm = PM[item.p];
+  const open = !!state.open[item.id];
+  const pt = state.prompts[item.id], er = state.errors[item.id], g = state.generating[item.id];
+  let meta = "";
+  if (showWs) meta += '<span style="font-size:10px;color:' + WS[item.ws].color + '">' + esc(WS[item.ws].label) + "</span>";
+  meta += tagPill(item.tag);
+  meta += '<span style="font-size:10px;color:#6B7280">⏱ ' + esc(item.ef) + "</span>";
+  if (pt) meta += '<span style="font-size:10px;color:#10B981">✓ prompt</span>';
+  if (er) meta += '<span style="font-size:10px;color:#EF4444">⚠ error</span>';
+  let body = "";
+  if (open) {
+    const secs = [["Was blocked", item.bk, "#EF4444"], ["Now unblocked", item.ub, "#10B981"], ["Next step", item.ns, "#3B82F6"]];
+    let secHtml = secs.map(([lbl, txt, c]) =>
+      '<div><div class="sec-lbl">' + lbl + '</div><div class="sec-txt" style="background:' + c + '18;border:1px solid ' + c + '33;color:' + c + 'EE">' + esc(txt) + "</div></div>"
+    ).join("");
+    let genZone = '<div class="gen-zone"><div class="gen-btns">' +
+      '<button class="gen-btn" data-action="gen" data-id="' + item.id + '"' + (g ? " disabled" : "") + ">" +
+      (g ? "⏳ Generating…" : pt ? "↺ Regenerate" : "✦ Generate prompt") + "</button>" +
+      (pt ? '<button class="copy-btn" data-action="copy" data-id="' + item.id + '">⎘ Copy</button>' : "") +
+      "</div>";
+    if (g) genZone += '<div class="hint2">Generating context-engineered prompt…</div>';
+    else if (er) genZone += '<div class="err-box"><b>Error:</b> ' + esc(er) + "</div>";
+    else if (pt) genZone += '<div class="prompt-box">' + esc(pt) + "</div>";
+    else genZone += '<div class="hint">Not yet generated</div>';
+    genZone += "</div>";
+    body = '<div class="card-bd" data-stop="1">' + secHtml + genZone + "</div>";
+  }
+  return '<div class="card' + (open ? " open" : "") + '" data-action="toggle" data-id="' + item.id + '" tabindex="0" role="button" aria-expanded="' + open + '" aria-label="' + esc(item.cap) + " — " + item.p + ', press Enter to ' + (open ? "collapse" : "expand") + '" style="' + (open ? "border-color:" + pm.bd : "") + '">' +
+    '<div class="card-hd"><span class="dot" style="background:' + pm.dot + '"></span>' +
+    '<div style="flex:1;min-width:0"><div class="card-cap">' + esc(item.cap) + '</div><div class="card-meta">' + meta + "</div></div>" +
+    '<span class="chev">▶</span></div>' + body + "</div>";
+}
+// ─── RENDER: VIEWS ───────────────────────────────────────────────────────
+function boardHTML() {
+  return '<div class="board">' + ["P0", "P1", "P2", "P3"].map(p => {
+    const pm = PM[p];
+    const items = ITEMS.filter(i => i.p === p);
+    return '<div class="col" style="border:1px solid ' + pm.bd + '">' +
+      '<div class="col-hd" style="border-bottom:1px solid ' + pm.bd + ';background:' + pm.bg + '">' +
+      '<span class="col-hd-l" style="color:' + pm.tx + '">' + pm.label + "</span>" +
+      '<span class="col-hd-n" style="color:' + pm.tx + ';border:1px solid ' + pm.bd + '">' + items.length + "</span></div>" +
+      '<div class="col-bd">' + items.map(i => cardHTML(i, true)).join("") + "</div></div>";
+  }).join("") + "</div>";
+}
+function wsViewHTML() {
+  const filters = [["all", "All"]].concat(Object.entries(WS).map(([id, w]) => [id, w.label]));
+  let html = '<div class="filters">' + filters.map(([id, lbl]) =>
+    '<button class="f-btn' + (state.wsFilter === id ? " active" : "") + '" data-action="wsfilter" data-id="' + id + '">' + esc(lbl) + "</button>"
+  ).join("") + "</div>";
+  const ids = Object.keys(WS).filter(id => state.wsFilter === "all" || state.wsFilter === id);
+  html += ids.map(id => {
+    const w = WS[id];
+    const items = ITEMS.filter(i => i.ws === id);
+    const p0 = items.filter(i => i.p === "P0").length;
+    const p1 = items.filter(i => i.p === "P1").length;
+    const ordered = ["P0", "P1", "P2", "P3"].flatMap(p => items.filter(i => i.p === p));
+    return '<div class="ws-block"><div class="ws-hd">' +
+      '<span class="dot" style="background:' + w.color + ';margin-top:0"></span>' +
+      '<span class="ws-name">' + esc(w.label) + "</span>" +
+      '<span class="ws-status" style="color:' + w.color + ';background:' + w.color + "22;border:1px solid " + w.color + '44">' + esc(w.status) + "</span>" +
+      '<div class="ws-right">' +
+      (p0 > 0 ? '<span class="hot" style="color:#EF4444;background:#7F1D1D44;border:1px solid #EF444433">P0 ×' + p0 + "</span>" : "") +
+      (p1 > 0 ? '<span class="hot" style="color:#F59E0B;background:#78350F44;border:1px solid #F59E0B33">P1 ×' + p1 + "</span>" : "") +
+      '<span class="ws-count">' + items.length + " items</span></div></div>" +
+      '<div class="ws-bd">' + ordered.map(i => cardHTML(i, false)).join("") + "</div></div>";
+  }).join("");
+  return html;
+}
+function promptsViewHTML() {
+  const done = Object.keys(state.prompts).length;
+  const total = ITEMS.length;
+  const pct = Math.round(done / total * 100);
+  const rem = total - done;
+  let html = '<div class="pv-top"><div class="pv-prog">' +
+    '<div class="pv-lbl">' + done + " of " + total + " prompts generated" + (state.genAllRunning ? " — generating " + state.genAllDone + "/" + state.genAllTotal + "…" : "") + "</div>" +
+    '<div class="pv-bar"><div class="pv-fill" style="width:' + pct + '%"></div></div></div>' +
+    '<button class="gen-btn" style="padding:7px 14px;font-size:12px" data-action="genall"' + (state.genAllRunning ? " disabled" : "") + ">" +
+    (state.genAllRunning ? "⏳ " + state.genAllDone + "/" + state.genAllTotal + "…" : rem > 0 ? "✦ Generate remaining " + rem : "↺ Regenerate all") +
+    "</button></div>";
+  html += ["P0", "P1", "P2", "P3"].map(p => {
+    const pm = PM[p];
+    const items = ITEMS.filter(i => i.p === p);
+    const pdone = items.filter(i => state.prompts[i.id]).length;
+    let grp = '<div style="margin-bottom:16px"><div class="pv-grp" style="color:' + pm.tx + ";background:" + pm.bg + '">' + pm.label + ' <span style="opacity:.65">' + pdone + "/" + items.length + "</span></div>";
+    grp += items.map(item => {
+      const pt = state.prompts[item.id], er = state.errors[item.id], g = state.generating[item.id];
+      const bd = pt ? "#2A2A3A" : er ? "#EF444433" : "#1E1E2E";
+      let row = '<div class="pv-row" style="border:1px solid ' + bd + '"><div class="pv-row-hd"' + (pt || er || g ? ' style="margin-bottom:8px"' : "") + ">" +
+        '<span class="dot" style="background:' + pm.dot + ';margin-top:0"></span>' +
+        '<span class="pv-cap">' + esc(item.cap) + "</span>" +
+        '<span style="font-size:10px;color:' + WS[item.ws].color + '">' + esc(WS[item.ws].label) + "</span>" +
+        '<button class="gen-btn" style="font-size:10px;padding:3px 8px" data-action="gen" data-id="' + item.id + '"' + (g ? " disabled" : "") + ">" +
+        (g ? "⏳ Generating…" : pt ? "↺ Regen" : "✦ Generate") + "</button>" +
+        (pt ? '<button class="copy-btn" style="font-size:10px" data-action="copy" data-id="' + item.id + '">⎘ Copy</button>' : "") +
+        "</div>";
+      if (g) row += '<div class="hint2">Generating…</div>';
+      else if (er) row += '<div class="err-box">' + esc(er) + "</div>";
+      else if (pt) row += '<div class="prompt-box">' + esc(pt) + "</div>";
+      row += "</div>";
+      return row;
+    }).join("");
+    return grp + "</div>";
+  }).join("");
+  return html;
+}
+const SUGS = [
+  "What do I actually do this week?",
+  "Fastest path to unblock Fusion AI?",
+  "How do I get The Prompt live today?",
+  "chaosclub.co — what's the highest-risk gap?",
+  "Is Growth Detector worth automating yet?",
+  "Which AI provider is costing us the most right now?",
+  "Should chaosclub.co stay on Gemini or switch to Claude?",
+  "What's in skills-pipeline and does it replace the agent teams build?",
+  "Should I populate the monorepo or go cloneless with GitHub MCP?",
+];
+function askViewHTML() {
+  let msgsHtml;
+  if (state.msgs.length === 0) {
+    msgsHtml = '<div class="empty"><div style="font-size:28px;margin-bottom:10px">✦</div>' +
+      '<div style="font-size:13px;color:#9CA3AF;margin-bottom:18px">Ask anything about FlashFusion workstreams, blockers, or next steps</div>' +
+      '<div class="sugs">' + SUGS.map(sg => '<button class="sug" data-action="sug" data-q="' + esc(sg) + '">' + esc(sg) + "</button>").join("") + "</div></div>";
+  } else {
+    msgsHtml = state.msgs.map(m =>
+      '<div class="msg-row" style="justify-content:' + (m.role === "user" ? "flex-end" : "flex-start") + '"><div class="msg ' + (m.role === "user" ? "user" : "asst") + '">' + esc(m.content) + "</div></div>"
+    ).join("");
+  }
+  if (state.loading) msgsHtml += '<div class="msg-row"><div class="msg asst" style="color:#9CA3AF">Thinking…</div></div>';
+  return '<div class="ask-wrap"><div class="msgs" id="msgs">' + msgsHtml + "</div>" +
+    '<div class="ask-bar">' +
+    '<input class="ask-input" id="askInput" aria-label="Ask about FlashFusion workstreams, blockers, next steps" placeholder="Ask about FlashFusion workstreams, blockers, next steps…" value="' + esc(state.inputVal) + '">' +
+    '<button class="send-btn" id="sendBtn" data-action="send"' + ((!state.inputVal.trim() || state.loading) ? " disabled" : "") + ">Send</button></div></div>";
+}
+// ─── RENDER: SHELL ───────────────────────────────────────────────────────
+function render() {
+  const wasFocused = document.activeElement && document.activeElement.id === "askInput";
+  const y = window.scrollY;
+  const pdone = Object.keys(state.prompts).length;
+  const counts = { P0: 0, P1: 0, P2: 0, P3: 0 };
+  ITEMS.forEach(i => counts[i.p]++);
+  const navBtn = (v, lbl) => '<button class="nav-btn' + (state.view === v ? " active" : "") + '" data-action="nav" data-id="' + v + '">' + lbl + "</button>";
+  let html = '<div class="hdr"><div><div class="hdr-title">FlashFusion Workstream Mapper</div>' +
+    '<div class="hdr-sub">June 2026 · ' + ITEMS.length + " items · " + Object.keys(WS).length + " workstreams" + (pdone > 0 ? " · " + pdone + " prompts" : "") + "</div></div>" +
+    '<div class="nav">' + navBtn("board", "Priority board") + navBtn("ws", "Workstreams") +
+    navBtn("prompts", pdone > 0 ? "Prompts (" + pdone + ")" : "Prompts") + navBtn("ask", "Ask Claude ✦") + "</div></div>";
+  html += '<div class="stats">' + ["P0", "P1", "P2", "P3"].map(p =>
+    '<div class="stat"><span class="stat-n" style="color:' + PM[p].dot + '">' + counts[p] + '</span><span class="stat-l">' + p + "</span></div>"
+  ).join("") +
+    '<div class="stats-ws">' + Object.entries(WS).map(([id, w]) => {
+      const hot = ITEMS.filter(i => i.ws === id && (i.p === "P0" || i.p === "P1")).length;
+      return '<span><span style="color:' + w.color + '">●</span> ' + esc(w.label.split(" ")[0]) + ' <span style="color:' + (hot > 0 ? "#F59E0B" : "#6B7280") + (hot > 0 ? ";font-weight:600" : "") + '">' + hot + "</span></span>";
+    }).join("") + "</div></div>";
+  html += '<div class="body">';
+  if (state.view === "board") html += boardHTML();
+  else if (state.view === "ws") html += wsViewHTML();
+  else if (state.view === "prompts") html += promptsViewHTML();
+  else html += askViewHTML();
+  html += "</div>";
+  document.getElementById("app").innerHTML = html;
+  if (state.view === "ask") {
+    const m = document.getElementById("msgs");
+    if (m) m.scrollTop = m.scrollHeight;
+    const inp = document.getElementById("askInput");
+    if (inp) {
+      inp.addEventListener("input", e => {
+        state.inputVal = e.target.value;
+        const btn = document.getElementById("sendBtn");
+        if (btn) btn.disabled = !state.inputVal.trim() || state.loading;
+      });
+      inp.addEventListener("keydown", e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMsg(); } });
+      if (wasFocused || state.msgs.length === 0) inp.focus();
+    }
+  } else {
+    window.scrollTo(0, y);
+    if (state.focusCard) {
+      const fc = document.querySelector('.card[data-action="toggle"][data-id="' + state.focusCard + '"]');
+      if (fc) fc.focus();
+      state.focusCard = null;
+    }
+  }
+}
+// ─── ACTIONS ─────────────────────────────────────────────────────────────
+async function genPrompt(id) {
+  if (state.generating[id]) return;
+  const item = ITEMS.find(i => i.id === id);
+  if (!item) return;
+  state.generating[id] = true;
+  delete state.errors[id];
+  render();
+  try {
+    const text = await callClaude(PROMPT_SYS,
+      "Capability: " + item.cap + "\nWorkstream: " + WS[item.ws].label + " (" + item.p + ")\nTag: " + item.tag +
+      "\nEffort: " + item.ef + "\nBlocked: " + item.bk + "\nUnblocked: " + item.ub + "\nNext step: " + item.ns);
+    state.prompts[id] = text;
+    lsSet("ffwm_prompts", state.prompts);
+  } catch (err) {
+    state.errors[id] = err && err.message ? err.message : String(err);
+  }
+  delete state.generating[id];
+  render();
+}
+async function genAll() {
+  if (state.genAllRunning) return;
+  const targets = ITEMS.filter(i => !state.prompts[i.id]);
+  if (!targets.length) { state.prompts = {}; lsSet("ffwm_prompts", state.prompts); render(); return; }
+  state.genAllRunning = true; state.genAllDone = 0; state.genAllTotal = targets.length;
+  render();
+  for (let i = 0; i < targets.length; i++) {
+    await genPrompt(targets[i].id);
+    state.genAllDone = i + 1;
+    render();
+  }
+  state.genAllRunning = false;
+  render();
+}
+async function sendMsg() {
+  if (!state.inputVal.trim() || state.loading) return;
+  const txt = state.inputVal.trim();
+  state.inputVal = "";
+  state.msgs.push({ role: "user", content: txt });
+  state.loading = true;
+  render();
+  try {
+    const convo = state.msgs.map(m => m.role + ": " + m.content).join("\n\n");
+    const text = await callClaude(ASSISTANT_SYS, convo);
+    state.msgs.push({ role: "assistant", content: text });
+  } catch (err) {
+    state.msgs.push({ role: "assistant", content: "Error: " + (err && err.message ? err.message : String(err)) });
+  }
+  state.loading = false;
+  lsSet("ffwm_msgs", state.msgs);
+  render();
+}
+// ─── EVENT DELEGATION ────────────────────────────────────────────────────
+document.addEventListener("click", e => {
+  const stopEl = e.target.closest("[data-stop]");
+  const actEl = e.target.closest("[data-action]");
+  if (!actEl) return;
+  const action = actEl.getAttribute("data-action");
+  const id = actEl.getAttribute("data-id");
+  if (action === "toggle") {
+    if (stopEl && actEl.contains(stopEl)) return; // click inside expanded body — ignore unless inner action
+    state.open[id] = !state.open[id];
+    render();
+  } else if (action === "nav") {
+    state.view = id; lsSet("ffwm_view", state.view); render();
+  } else if (action === "wsfilter") {
+    state.wsFilter = id; render();
+  } else if (action === "gen") {
+    e.stopPropagation(); genPrompt(id);
+  } else if (action === "copy") {
+    e.stopPropagation();
+    if (state.prompts[id]) copyText(state.prompts[id]);
+    actEl.textContent = "✓ Copied"; setTimeout(() => { actEl.textContent = "⎘ Copy"; }, 1200);
+  } else if (action === "genall") {
+    genAll();
+  } else if (action === "sug") {
+    state.inputVal = actEl.getAttribute("data-q") || "";
+    render();
+  } else if (action === "send") {
+    sendMsg();
+  }
+}, true);
+// ─── KEYBOARD: Enter/Space toggles a focused card (a11y) ───────────────────
+document.addEventListener("keydown", e => {
+  if (e.key !== "Enter" && e.key !== " ") return;
+  const card = e.target && e.target.classList && e.target.classList.contains("card") && e.target.getAttribute("data-action") === "toggle" ? e.target : null;
+  if (!card) return;
+  if (document.activeElement !== card) return;
+  e.preventDefault();
+  const id = card.getAttribute("data-id");
+  state.open[id] = !state.open[id];
+  state.focusCard = id;
+  render();
+});
+render();
+</script>
+</body>
+</html>

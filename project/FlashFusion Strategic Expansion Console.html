@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FlashFusion — Strategic Expansion &amp; Triage Hub</title>
+<link rel="stylesheet" href="colors_and_type.css">
+<style>
+  body{ min-height:100vh; }
+  a{ color:inherit; }
+  .sx-shell{ max-width:1280px; margin:0 auto; padding:0 var(--gutter) 96px; }
+
+  /* ── TOP ── */
+  .sx-top{ position:sticky; top:0; z-index:100; background:rgba(10,10,15,.86); backdrop-filter:var(--blur-nav); border-bottom:1px solid var(--ff-border); }
+  .sx-top-in{ max-width:1280px; margin:0 auto; padding:16px var(--gutter); display:flex; align-items:center; gap:24px; flex-wrap:wrap; }
+  .sx-brand{ font-family:var(--ff-font-display); font-weight:700; font-size:15px; letter-spacing:-.01em; display:flex; align-items:center; gap:9px; white-space:nowrap; }
+  .sx-brand .dot{ width:8px; height:8px; border-radius:2px; background:var(--ff-grad-primary); }
+  .sx-title{ font-family:var(--ff-font-body); font-weight:500; font-size:13px; color:var(--ff-text-muted); white-space:nowrap; }
+  .sx-tabs{ display:flex; gap:4px; margin-left:auto; flex-wrap:wrap; }
+  .sx-tabbtn{ font-family:var(--ff-font-mono); font-size:11.5px; letter-spacing:.03em; padding:8px 14px; border-radius:var(--r-full); border:1px solid transparent; background:transparent; color:var(--ff-text-muted); cursor:pointer; transition:all .15s var(--ease); white-space:nowrap; }
+  .sx-tabbtn:hover{ color:var(--ff-text); border-color:var(--ff-border-strong); }
+  .sx-tabbtn[aria-selected="true"]{ background:rgba(139,92,246,.14); border-color:var(--ff-border-intense); color:var(--ff-primary-light); }
+  .sx-sample{ font-family:var(--ff-font-mono); font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:var(--ff-warning); border:1px solid var(--ff-warning-border); background:var(--ff-warning-bg); padding:4px 10px; border-radius:var(--r-full); white-space:nowrap; }
+
+  .sx-tab{ padding-top:36px; }
+  .sx-tab[hidden]{ display:none; }
+  .sx-head{ display:flex; align-items:flex-end; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom:24px; }
+  .sx-head h1{ font-family:var(--ff-font-display); font-weight:700; font-size:clamp(22px,3vw,30px); letter-spacing:-.02em; margin-bottom:6px; }
+  .sx-head p{ font-family:var(--ff-font-body); font-size:14px; color:var(--ff-text-muted); max-width:56ch; }
+  .fid-badge{ font-family:var(--ff-font-mono); font-size:11px; font-weight:600; color:#fff; background:var(--ff-grad-primary); padding:3px 10px; border-radius:var(--r-xs); letter-spacing:.04em; margin-right:10px; }
+
+  /* Data Requirements callout — shared across all tabs */
+  .datareq{ margin-top:28px; border:1px dashed var(--ff-border-strong); border-radius:var(--r-md); padding:16px 20px; background:var(--ff-overlay-hover); }
+  .datareq b{ display:flex; align-items:center; gap:8px; font-family:var(--ff-font-mono); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--ff-electric-light); margin-bottom:8px; }
+  .datareq b::before{ content:"◇"; }
+  .datareq p{ font-family:var(--ff-font-body); font-size:13px; color:var(--ff-text-2); line-height:1.6; margin:0; }
+
+  /* ═══ F1 — Intelligence Feed ═══ */
+  .feed{ display:flex; flex-direction:column; gap:1px; background:var(--ff-border); border:1px solid var(--ff-border); border-radius:var(--r-md); overflow:hidden; }
+  .feed-row{ background:var(--ff-surface-1); padding:14px 18px; display:grid; grid-template-columns:100px 1fr auto auto; gap:16px; align-items:center; }
+  @media(max-width:760px){ .feed-row{ grid-template-columns:1fr; } }
+  .src-tag{ font-family:var(--ff-font-mono); font-size:10px; letter-spacing:.06em; text-transform:uppercase; padding:3px 9px; border-radius:var(--r-xs); border:1px solid var(--ff-border-strong); color:var(--ff-text-2); width:fit-content; }
+  .src-tag.rss{ color:var(--ff-electric-light); border-color:var(--ff-info-border); }
+  .src-tag.hn{ color:var(--ff-warning); border-color:var(--ff-warning-border); }
+  .src-tag.angellist{ color:var(--ff-magenta-light); border-color:rgba(236,72,153,.32); }
+  .feed-title{ font-family:var(--ff-font-body); font-size:14px; color:var(--ff-text); }
+  .feed-ts{ font-family:var(--ff-font-mono); font-size:11px; color:var(--ff-text-3); white-space:nowrap; }
+  .status-chip{ font-family:var(--ff-font-mono); font-size:10px; letter-spacing:.05em; text-transform:uppercase; padding:3px 10px; border-radius:var(--r-full); border:1px solid; white-space:nowrap; }
+  .status-chip.parsed{ color:var(--ff-success); border-color:var(--ff-success-border); background:var(--ff-success-bg); }
+  .status-chip.queued{ color:var(--ff-text-muted); border-color:var(--ff-border-strong); }
+  .status-chip.skip{ color:var(--ff-text-3); border-color:var(--ff-border); }
+
+  /* ═══ F2 — Validation Matrix ═══ */
+  .dim-grid{ display:flex; flex-direction:column; gap:10px; }
+  .dim-row{ display:grid; grid-template-columns:1fr 60px 1fr 44px; gap:16px; align-items:center; padding:12px 16px; background:var(--ff-surface-1); border:1px solid var(--ff-border); border-radius:var(--r-md); }
+  @media(max-width:700px){ .dim-row{ grid-template-columns:1fr 44px; } .dim-row .dim-bar-wrap{ grid-column:1/-1; } }
+  .dim-name{ font-family:var(--ff-font-body); font-weight:500; font-size:13.5px; }
+  .dim-weight{ font-family:var(--ff-font-mono); font-size:11px; color:var(--ff-text-muted); text-align:right; }
+  .dim-bar-wrap{ height:6px; background:var(--ff-surface-2); border-radius:var(--r-full); overflow:hidden; }
+  .dim-bar{ height:100%; background:var(--ff-grad-primary); border-radius:inherit; }
+  .dim-score{ font-family:var(--ff-font-mono); font-size:13px; font-weight:600; color:var(--ff-primary-light); text-align:right; }
+  .composite{ margin-top:16px; display:flex; align-items:center; gap:18px; padding:18px 22px; background:var(--ff-grad-glass-hi); border:1px solid var(--ff-border-glow); border-radius:var(--r-md); }
+  .composite .num{ font-family:var(--ff-font-display); font-weight:700; font-size:40px; background:var(--ff-grad-text); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; line-height:1; }
+  .composite .lbl{ font-family:var(--ff-font-body); font-size:13px; color:var(--ff-text-2); line-height:1.5; }
+  .composite .lbl b{ color:var(--ff-text); display:block; font-family:var(--ff-font-mono); font-size:10px; letter-spacing:.1em; text-transform:uppercase; margin-bottom:3px; }
+  .formula{ font-family:var(--ff-font-mono); font-size:12px; color:var(--ff-text-3); margin-top:10px; }
+
+  /* ═══ F3 — Growth OS (4px max radius, border-depth only, per PRD F3) ═══ */
+  .gos-grid{ display:grid; grid-template-columns:340px 1fr; gap:24px; }
+  @media(max-width:860px){ .gos-grid{ grid-template-columns:1fr; } }
+  .gos-panel{ background:var(--ff-surface-1); border:1px solid var(--ff-border-strong); border-radius:4px; box-shadow:none; padding:20px; }
+  .gos-ring-wrap{ display:flex; align-items:center; justify-content:center; position:relative; }
+  .gos-center{ position:absolute; text-align:center; }
+  .gos-center .n{ font-family:var(--ff-font-display); font-weight:700; font-size:34px; color:var(--ff-text); line-height:1; }
+  .gos-center .l{ font-family:var(--ff-font-mono); font-size:9.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--ff-text-muted); margin-top:4px; }
+  .gos-legend{ display:flex; flex-direction:column; gap:8px; margin-top:18px; }
+  .gos-leg-item{ display:flex; align-items:center; gap:9px; font-family:var(--ff-font-body); font-size:12.5px; color:var(--ff-text-2); cursor:default; }
+  .gos-leg-item .sw{ width:9px; height:9px; border-radius:2px; flex-shrink:0; }
+  .gos-leg-item .pct{ margin-left:auto; font-family:var(--ff-font-mono); font-size:12px; color:var(--ff-text-muted); }
+
+  .gos-right{ display:flex; flex-direction:column; gap:16px; }
+  .gos-row{ display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
+  @media(max-width:640px){ .gos-row{ grid-template-columns:1fr; } }
+  .gos-stat{ background:var(--ff-surface-1); border:1px solid var(--ff-border-strong); border-radius:4px; box-shadow:none; padding:16px; position:relative; }
+  .gos-stat .l{ font-family:var(--ff-font-mono); font-size:10px; letter-spacing:.08em; text-transform:uppercase; color:var(--ff-text-muted); margin-bottom:8px; }
+  .gos-stat .v{ font-family:var(--ff-font-display); font-weight:700; font-size:24px; color:var(--ff-text); }
+  .gos-stat .status{ position:absolute; top:14px; right:14px; width:7px; height:7px; border-radius:2px; }
+  .gos-stat .status.ok{ background:var(--ff-success); } .gos-stat .status.risk{ background:var(--ff-warning); } .gos-stat .status.blocked{ background:var(--ff-danger); }
+
+  .think-list{ display:flex; flex-direction:column; gap:6px; }
+  .think-item{ font-family:var(--ff-font-mono); font-size:11.5px; color:var(--ff-text-3); opacity:0; transform:translateY(4px); display:flex; align-items:center; gap:8px; }
+  .think-item::before{ content:"›"; color:var(--ff-primary-light); }
+  .think-item.show{ animation:thinkIn .4s var(--ease-out) forwards; }
+  @keyframes thinkIn{ to{ opacity:1; transform:translateY(0); } }
+  @media(prefers-reduced-motion:reduce){ .think-item{ opacity:1; transform:none; animation:none; } }
+
+  .gos-tip{ position:fixed; z-index:500; background:var(--ff-surface-3); border:1px solid var(--ff-border-intense); border-radius:4px; padding:8px 12px; font-family:var(--ff-font-mono); font-size:11px; color:var(--ff-text); pointer-events:none; opacity:0; transition:opacity .12s; max-width:240px; }
+  .gos-tip.show{ opacity:1; }
+
+  /* ═══ F4 — Compliance Workbench ═══ */
+  .comp-badges{ display:flex; gap:10px; flex-wrap:wrap; margin-bottom:20px; }
+  .comp-badge{ display:flex; align-items:center; gap:8px; font-family:var(--ff-font-mono); font-size:11px; letter-spacing:.04em; padding:7px 14px; border-radius:var(--r-full); border:1px solid var(--ff-success-border); background:var(--ff-success-bg); color:var(--ff-success); }
+  .trace-table{ width:100%; border-collapse:collapse; font-family:var(--ff-font-mono); font-size:12px; }
+  .trace-table th{ text-align:left; font-size:10px; letter-spacing:.08em; text-transform:uppercase; color:var(--ff-text-muted); padding:9px 12px; border-bottom:1px solid var(--ff-border-strong); }
+  .trace-table td{ padding:10px 12px; border-bottom:1px solid var(--ff-border); color:var(--ff-text-2); vertical-align:top; }
+  .trace-table tr.exception td{ background:var(--ff-danger-bg); color:var(--ff-text); }
+  .trace-table .actor{ color:var(--ff-electric-light); }
+
+  .visually-hidden{ position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0,0,0,0); }
+</style>
+</head>
+<body class="ff-body">
+
+<header class="sx-top">
+  <div class="sx-top-in">
+    <div class="sx-brand"><span class="dot"></span>FlashFusion</div>
+    <div class="sx-title">Strategic Expansion &amp; Triage Hub</div>
+    <a href="FlashFusion Business Plan.html" style="font-family:var(--ff-font-mono);font-size:11px;color:var(--ff-text-muted);white-space:nowrap;">Business Plan</a>
+    <a href="FlashFusion PRD - Strategic Expansion Engine.html" style="font-family:var(--ff-font-mono);font-size:11px;color:var(--ff-text-muted);white-space:nowrap;">PRD</a>
+    <div class="sx-tabs" role="tablist" aria-label="Console sections">
+      <button class="sx-tabbtn" role="tab" aria-selected="true" data-tab="f1">F1 · Intelligence Feed</button>
+      <button class="sx-tabbtn" role="tab" aria-selected="false" data-tab="f2">F2 · Validation Matrix</button>
+      <button class="sx-tabbtn" role="tab" aria-selected="false" data-tab="f3">F3 · Growth OS</button>
+      <button class="sx-tabbtn" role="tab" aria-selected="false" data-tab="f4">F4 · Compliance Workbench</button>
+    </div>
+    <span class="sx-sample">◆ Sample data</span>
+  </div>
+</header>
+
+<div class="sx-shell">
+
+  <!-- ═══ F1 ═══ -->
+  <section class="sx-tab" id="tab-f1">
+    <div class="sx-head">
+      <div><h1><span class="fid-badge">F1</span>Intelligence &amp; Scraper Engine</h1>
+      <p>Automated ingestion across RSS, Hacker News, and AngelList data pools — surfacing systemic opportunities in real time.</p></div>
+    </div>
+    <div class="feed" id="feedList"></div>
+    <div class="datareq">
+      <b>Data needed to go live</b>
+      <p>Licensed/authorized RSS endpoints per source, Hacker News Firebase API access, an AngelList/Wellfound data-pool agreement, and an idempotency-key schema so repeat ingests don't double-count. Until wired, this tab shows illustrative sample rows only.</p>
+    </div>
+  </section>
+
+  <!-- ═══ F2 ═══ -->
+  <section class="sx-tab" id="tab-f2" hidden>
+    <div class="sx-head">
+      <div><h1><span class="fid-badge">F2</span>8-Dimension Strategic Validation</h1>
+      <p>Deterministic 0–100 scoring across eight weighted dimensions. Weights sum to 100; every score carries a stored rationale.</p></div>
+    </div>
+    <div class="dim-grid" id="dimGrid"></div>
+    <div class="composite">
+      <div class="num" id="compositeNum">—</div>
+      <div class="lbl"><b>Composite score</b>Σ (weight × score) ⁄ 100 — deterministic, not model-generated per run.<div class="formula">score = Σᵢ (wᵢ × sᵢ) / 100, where Σ wᵢ = 100</div></div>
+    </div>
+    <div class="datareq">
+      <b>Data needed to go live</b>
+      <p>The eight dimensions and their weights, signed off by whoever owns the rubric, plus a calibration set of historical engagements to validate the formula before it scores a live client.</p>
+    </div>
+  </section>
+
+  <!-- ═══ F3 ═══ -->
+  <section class="sx-tab" id="tab-f3" hidden>
+    <div class="sx-head">
+      <div><h1><span class="fid-badge">F3</span>Radial Growth OS — Strategy Dashboard</h1>
+      <p>Platform-breakdown rings, cost-savings target, health distribution. Border-based depth only, 4px max corner radius per spec.</p></div>
+    </div>
+    <div class="gos-grid">
+      <div class="gos-panel">
+        <div class="gos-ring-wrap"><svg id="gosRings" width="260" height="260" viewBox="0 0 260 260"></svg>
+          <div class="gos-center"><div class="n" id="gosHealth">—</div><div class="l">Composite health</div></div>
+        </div>
+        <div class="gos-legend" id="gosLegend"></div>
+      </div>
+      <div class="gos-right">
+        <div class="think-list" id="thinkList"></div>
+        <div class="gos-row">
+          <div class="gos-stat"><span class="status ok"></span><div class="l">Cost savings — actual</div><div class="v">$142K</div></div>
+          <div class="gos-stat"><span class="status risk"></span><div class="l">Cost savings — target</div><div class="v">$210K</div></div>
+          <div class="gos-stat"><span class="status ok"></span><div class="l">On-track pipelines</div><div class="v">7 / 9</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="datareq">
+      <b>Data needed to go live</b>
+      <p>A live feed of F2 health scores per client/pipeline, an actuals-vs-target cost-savings source (billing or time-tracking), and pipeline topology from ops defining what each ring segment represents.</p>
+    </div>
+  </section>
+
+  <!-- ═══ F4 ═══ -->
+  <section class="sx-tab" id="tab-f4" hidden>
+    <div class="sx-head">
+      <div><h1><span class="fid-badge">F4</span>Compliance &amp; Self-Healing Workbench</h1>
+      <p>Isolated multi-agent execution playground. Full trace logs auto-generate SOC 2 and ISO 27001 proof artifacts.</p></div>
+    </div>
+    <div class="comp-badges">
+      <span class="comp-badge">✓ SOC 2 CC6 — Logical Access</span>
+      <span class="comp-badge">✓ SOC 2 CC7 — System Operations</span>
+      <span class="comp-badge">✓ ISO 27001 — Annex A.12</span>
+    </div>
+    <table class="trace-table">
+      <thead><tr><th>Timestamp</th><th>Actor ID</th><th>Tool call</th><th>Status</th></tr></thead>
+      <tbody id="traceBody"></tbody>
+    </table>
+    <div class="datareq">
+      <b>Data needed to go live</b>
+      <p>Real trace-log export from the agent runtime, an actor-identity mapping (which credential/service ran which step), and a log-retention policy that satisfies the target compliance frameworks.</p>
+    </div>
+  </section>
+
+</div>
+<div class="gos-tip" id="gosTip" role="tooltip"></div>
+
+<script>
+/* ── Tab switching ── */
+const tabs=[...document.querySelectorAll('.sx-tabbtn')];
+const panels={f1:'tab-f1',f2:'tab-f2',f3:'tab-f3',f4:'tab-f4'};
+let f3Played=false;
+tabs.forEach(t=>t.onclick=()=>{
+  tabs.forEach(x=>x.setAttribute('aria-selected', x===t));
+  Object.values(panels).forEach(id=>document.getElementById(id).hidden=true);
+  document.getElementById(panels[t.dataset.tab]).hidden=false;
+  if(t.dataset.tab==='f3' && !f3Played){ f3Played=true; playThinking(); }
+});
+
+/* ── F1: sample feed ── */
+const FEED=[
+  ['RSS','r/SaaS — "Ops teams drowning in Zapier scenario limits"','2026-07-11 06:41','parsed'],
+  ['HN','Show HN: self-healing n8n wrapper for flaky webhooks','2026-07-11 05:58','parsed'],
+  ['AngelList','Seed-stage MSP tooling co. raises on "AI ops" thesis','2026-07-10 22:14','queued'],
+  ['RSS','Compliance blog — SOC2 CC7 audits flag agent sprawl','2026-07-10 19:02','parsed'],
+  ['HN','Ask HN: how are you rate-limiting LLM agent loops?','2026-07-10 14:37','skip'],
+];
+document.getElementById('feedList').innerHTML = FEED.map(([src,title,ts,st])=>`
+  <div class="feed-row">
+    <span class="src-tag ${src.toLowerCase().replace(/\\s/g,'')}">${src}</span>
+    <span class="feed-title">${title}</span>
+    <span class="feed-ts">${ts}</span>
+    <span class="status-chip ${st}">${st}</span>
+  </div>`).join('');
+
+/* ── F2: 8-dimension matrix ── */
+const DIMS=[
+  ['Market timing',10,72],['Technical feasibility',15,81],['Distribution / channel fit',10,64],
+  ['Revenue potential',15,77],['Competitive moat',10,58],['Team / operator capacity',15,88],
+  ['Regulatory & compliance risk',10,70],['Data availability & quality',15,66],
+];
+document.getElementById('dimGrid').innerHTML = DIMS.map(([n,w,s])=>`
+  <div class="dim-row">
+    <span class="dim-name">${n}</span>
+    <span class="dim-weight">${w}% wt</span>
+    <span class="dim-bar-wrap"><span class="dim-bar" style="width:${s}%"></span></span>
+    <span class="dim-score">${s}</span>
+  </div>`).join('');
+const composite = DIMS.reduce((sum,[,w,s])=>sum+w*s,0)/100;
+document.getElementById('compositeNum').textContent = Math.round(composite);
+
+/* ── F3: radial rings (SVG) ── */
+const RINGS=[
+  ['Client onboarding', '#8B5CF6', 84],
+  ['Enablement delivery', '#22D3EE', 71],
+  ['Fractional CTO retainers', '#EC4899', 92],
+  ['Compliance overhead', '#F59E0B', 55],
+];
+(function drawRings(){
+  const svg=document.getElementById('gosRings'), cx=130, cy=130, base=110, step=24, sw=16;
+  const NS='http://www.w3.org/2000/svg';
+  RINGS.forEach(([label,color,pct],i)=>{
+    const r = base - i*step;
+    const circumf = 2*Math.PI*r;
+    const bg=document.createElementNS(NS,'circle');
+    bg.setAttribute('cx',cx); bg.setAttribute('cy',cy); bg.setAttribute('r',r);
+    bg.setAttribute('fill','none'); bg.setAttribute('stroke','rgba(196,181,253,.10)'); bg.setAttribute('stroke-width',sw);
+    svg.appendChild(bg);
+    const fg=document.createElementNS(NS,'circle');
+    fg.setAttribute('cx',cx); fg.setAttribute('cy',cy); fg.setAttribute('r',r);
+    fg.setAttribute('fill','none'); fg.setAttribute('stroke',color); fg.setAttribute('stroke-width',sw);
+    fg.setAttribute('stroke-linecap','round');
+    fg.setAttribute('stroke-dasharray', (circumf*pct/100)+' '+circumf);
+    fg.setAttribute('transform', `rotate(-90 ${cx} ${cy})`);
+    fg.style.cursor='default';
+    fg.addEventListener('mousemove', e=>showTip(e, `${label}: ${pct}%`));
+    fg.addEventListener('mouseleave', hideTip);
+    svg.appendChild(fg);
+  });
+  document.getElementById('gosHealth').textContent = Math.round(RINGS.reduce((s,[,,p])=>s+p,0)/RINGS.length);
+  document.getElementById('gosLegend').innerHTML = RINGS.map(([l,c,p])=>`
+    <div class="gos-leg-item"><span class="sw" style="background:${c}"></span>${l}<span class="pct">${p}%</span></div>`).join('');
+})();
+
+function showTip(e,text){
+  const tip=document.getElementById('gosTip');
+  tip.textContent=text;
+  tip.classList.add('show');
+  const pad=12; let x=e.clientX+14, y=e.clientY+14;
+  const tw=tip.offsetWidth||160, th=tip.offsetHeight||30;
+  if(x+tw+pad>window.innerWidth) x = e.clientX - tw - 14;
+  if(y+th+pad>window.innerHeight) y = e.clientY - th - 14;
+  tip.style.left=x+'px'; tip.style.top=y+'px';
+}
+function hideTip(){ document.getElementById('gosTip').classList.remove('show'); }
+
+/* ── F3: 520ms staggered "thinking" reveal (runs once, respects reduced motion) ── */
+function playThinking(){
+  const steps=['Ingesting pipeline telemetry…','Normalizing health deltas…','Weighting against F2 composite…','Rendering ring topology…'];
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const list=document.getElementById('thinkList');
+  list.innerHTML = steps.map(s=>`<div class="think-item">${s}</div>`).join('');
+  if(reduce){ [...list.children].forEach(el=>el.classList.add('show')); return; }
+  [...list.children].forEach((el,i)=> setTimeout(()=>el.classList.add('show'), i*520));
+}
+
+/* ── F4: trace log ── */
+const TRACE=[
+  ['06:41:02.114','svc-agent-07','vector_search(query)','ok'],
+  ['06:41:02.980','svc-agent-07','draft_response(ctx)','ok'],
+  ['06:41:04.221','svc-agent-11','tool_call(webhook.send)','ok'],
+  ['06:41:07.550','svc-agent-11','tool_call(webhook.send)','retry'],
+  ['06:41:44.302','svc-agent-11','loop_guard(cycle=25)','exception'],
+];
+document.getElementById('traceBody').innerHTML = TRACE.map(([ts,actor,call,st])=>`
+  <tr class="${st==='exception'?'exception':''}"><td>${ts}</td><td class="actor">${actor}</td><td>${call}</td><td>${st==='exception'?'⛔ hard boundary — reported to admin':st}</td></tr>`).join('');
+</script>
+</body>
+</html>

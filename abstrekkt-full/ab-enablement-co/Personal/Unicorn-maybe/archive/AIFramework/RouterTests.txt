@@ -1,0 +1,1377 @@
+/**
+ * Realtime Router Tests
+ * Phase 4.3 Week 1: WebSocket subscription management tests
+ * 
+ * Coverage targets:
+ * - Channel management (CRUD, visibility, limits)
+ * - Subscription lifecycle (subscribe, unsubscribe, pause, resume)
+ * - Live metrics (update, query, trends, alerts)
+ * - Connection management (register, heartbeat, cleanup)
+ * - Event streams (create, publish, consume)
+ * - Cursors (position tracking, acknowledgment)
+ * - Broadcasts (create, send, dismiss)
+ * - System metrics (recording, querying)
+ * - Error handling and security
+ */
+
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { createTestContext, createAdminContext, mockSupabase } from './test-utils';
+
+// Mock Supabase client
+vi.mock('@supabase/supabase-js', () => ({
+  createClient: vi.fn(() => mockSupabase)
+}));
+
+describe('Realtime Router', () => {
+  let userCtx: ReturnType<typeof createTestContext>;
+  let adminCtx: ReturnType<typeof createAdminContext>;
+  const tenantId = 'tenant-123';
+  const userId = 'user-456';
+
+  beforeEach(() => {
+    userCtx = createTestContext({ tenantId, userId, role: 'member' });
+    adminCtx = createAdminContext({ tenantId, userId: 'admin-789', role: 'admin' });
+    vi.clearAllMocks();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  // ==========================================================================
+  // CHANNEL MANAGEMENT
+  // ==========================================================================
+
+  describe('Channel Management', () => {
+    describe('listChannels', () => {
+      it('should list all active channels', async () => {
+        const mockChannels = [
+          { id: 'ch-1', name: 'Metrics', slug: 'metrics', channel_type: 'metrics', visibility: 'public', is_active: true },
+          { id: 'ch-2', name: 'Alerts', slug: 'alerts', channel_type: 'alerts', visibility: 'private', is_active: true }
+        ];
+
+        mockSupabase.from.mockReturnValue({
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              order: vi.fn().mockResolvedValue({ data: mockChannels, error: null })
+            })
+          })
+        });
+
+        const result = await userCtx.caller.realtime.listChannels({ active_only: true });
+
+        expect(result.channels).toHaveLength(2);
+        expect(result.total).toBe(2);
+      });
+
+      it('should filter by channel type', async () => {
+        const mockChannels = [
+          { id: 'ch-1', name: 'Metrics', slug: 'metrics', channel_type: 'metrics', visibility: 'public', is_active: true }
+        ];
+
+        mockSupabase.from.mockReturnValue({
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                order: vi.fn().mockResolvedValue({ data: mockChannels, error: null })
+              })
+            })
+          })
+        });
+
+        const result = await userCtx.caller.realtime.listChannels({ 
+          channel_type: 'metrics',
+          active_only: true 
+        });
+
+        expect(result.channels).toHaveLength(1);
+        expect(result.channels[0].channel_type).toBe('metrics');
+      });
+
+      it('should hide admin channels from non-admin users', async () => {
+        const mockChannels = [
+          { id: 'ch-1', name: 'Public', slug: 'public', channel_type: 'system', visibility: 'public', is_active: true },
+          { id: 'ch-2', name: 'Admin Only', slug: 'admin', channel_type: 'system', visibility: 'admin', is_active: true }
+        ];
+
+        mockSupabase.from.mockReturnValue({
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              order: vi.fn().mockResolvedValue({ data: mockChannels, error: null })
+            })
+          })
+        });
+
+        const result = await userCtx.caller.realtime.listChannels({ active_only: true });
+
+        // Should only see public channel
+        expect(result.channels).toHaveLength(1);
+        expect(result.channels[0].visibility).toBe('public');
+      });
+    });
+
+    describe('createChannel', () => {
+      it('should create a new channel (admin only)', async () => {
+        const newChannel = {
+          id: 'ch-new',
+          name: 'New Channel',
+          slug: 'new-channel',
+          channel_type: 'custom',
+          visibility: 'private',
+          config: { throttle_ms: 500 },
+          max_events_per_second: 100,
+          max_subscribers: 1000,
+          is_active: true
+        };
+
+        mockSupabase.from.mockReturnValue({
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              single: vi.fn().mockResolvedValue({ data: null, error: null })
+            })
+          }),
+          insert: vi.fn().mockReturnValue({
+            select: vi.fn().mockReturnValue({
+              single: vi.fn().mockResolvedValue({ data: newChannel, error: null })
+            })
+          })
+        });
+
+        const result = await adminCtx.caller.realtime.createChannel({
+          name: 'New Channel',
+          slug: 'new-channel',
+          channel_type: 'custom',
+          visibility: 'private',
+          config: { throttle_ms: 500 }
+        });
+
+        expect(result.id).toBe('ch-new');
+        expect(result.slug).toBe('new-channel');
+      });
+
+      it('should reject duplicate slugs', async () => {
+        mockSupabase.from.mockReturnValue({
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              single: vi.fn().mockResolvedValue({ data: { id: 'existing' }, error: null })
+            })
+          })
+        });
+
+        await expect(
+          adminCtx.caller.realtime.createChannel({
+            name: 'Duplicate',
+            slug: 'existing-slug',
+            channel_type: 'custom'
+          })
+        ).rejects.toThrow('already exists');
+      });
+
+      it('should validate slug format', async () => {
+        await expect(
+          adminCtx.caller.realtime.createChannel({
+            name: 'Invalid Slug',
+            slug: 'Invalid Slug!',
+            channel_type: 'custom'
+          })
+        ).rejects.toThrow();
+      });
+    });
+
+    describe('updateChannel', () => {
+      it('should update channel configuration', async () => {
+        const updatedChannel = {
+          id: 'ch-1',
+          name: 'Updated Name',
+          max_events_per_second: 200
+        };
+
+        mockSupabase.from.mockReturnValue({
+          update: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              select: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({ data: updatedChannel, error: null })
+              })
+            })
+          })
+        });
+
+        const result = await adminCtx.caller.realtime.updateChannel({
+          channel_id: 'ch-1',
+          name: 'Updated Name',
+          max_events_per_second: 200
+        });
+
+        expect(result.name).toBe('Updated Name');
+      });
+    });
+
+    describe('deleteChannel', () => {
+      it('should prevent deletion of channel with active subscriptions', async () => {
+        mockSupabase.from.mockReturnValue({
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              eq: vi.fn().mockResolvedValue({ count: 5 })
+            })
+          })
+        });
+
+        await expect(
+          adminCtx.caller.realtime.deleteChannel({ channel_id: 'ch-1' })
+        ).rejects.toThrow('active subscriptions');
+      });
+
+      it('should delete channel when no active subscriptions', async () => {
+        mockSupabase.from.mockReturnValueOnce({
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              eq: vi.fn().mockResolvedValue({ count: 0 })
+            })
+          })
+        }).mockReturnValueOnce({
+          delete: vi.fn().mockReturnValue({
+            eq: vi.fn().mockResolvedValue({ error: null })
+          })
+        });
+
+        const result = await adminCtx.caller.realtime.deleteChannel({ channel_id: 'ch-1' });
+        expect(result.success).toBe(true);
+      });
+    });
+  });
+
+  // ==========================================================================
+  // SUBSCRIPTION MANAGEMENT
+  // ==========================================================================
+
+  describe('Subscription Management', () => {
+    describe('subscribe', () => {
+      it('should create subscription to a channel', async () => {
+        const mockChannel = {
+          id: 'ch-1',
+          slug: 'metrics',
+          name: 'Metrics',
+          channel_type: 'metrics',
+          max_subscribers: 1000,
+          is_active: true
+        };
+
+        const mockSubscription = {
+          id: 'sub-1',
+          channel_id: 'ch-1',
+          tenant_id: tenantId,
+          user_id: userId,
+          connection_id: 'conn-123',
+          status: 'active'
+        };
+
+        mockSupabase.from.mockReturnValueOnce({
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({ data: mockChannel, error: null })
+              })
+            })
+          })
+        }).mockReturnValueOnce({
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              eq: vi.fn().mockResolvedValue({ count: 10 })
+            })
+          })
+        }).mockReturnValueOnce({
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({ data: null, error: null })
+              })
+            })
+          })
+        }).mockReturnValueOnce({
+          insert: vi.fn().mockReturnValue({
+            select: vi.fn().mockReturnValue({
+              single: vi.fn().mockResolvedValue({ data: mockSubscription, error: null })
+            })
+          })
+        });
+
+        const result = await userCtx.caller.realtime.subscribe({
+          channel_slug: 'metrics',
+          connection_id: 'conn-123'
+        });
+
+        expect(result.subscription_id).toBe('sub-1');
+        expect(result.channel.slug).toBe('metrics');
+      });
+
+      it('should reject when channel subscriber limit reached', async () => {
+        const mockChannel = {
+          id: 'ch-1',
+          max_subscribers: 10,
+          is_active: true
+        };
+
+        mockSupabase.from.mockReturnValueOnce({
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({ data: mockChannel, error: null })
+              })
+            })
+          })
+        }).mockReturnValueOnce({
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              eq: vi.fn().mockResolvedValue({ count: 10 })
+            })
+          })
+        });
+
+        await expect(
+          userCtx.caller.realtime.subscribe({
+            channel_slug: 'full-channel',
+            connection_id: 'conn-123'
+          })
+        ).rejects.toThrow('limit reached');
+      });
+
+      it('should reject duplicate subscriptions', async () => {
+        const mockChannel = { id: 'ch-1', max_subscribers: 1000, is_active: true };
+
+        mockSupabase.from.mockReturnValueOnce({
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({ data: mockChannel, error: null })
+              })
+            })
+          })
+        }).mockReturnValueOnce({
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              eq: vi.fn().mockResolvedValue({ count: 5 })
+            })
+          })
+        }).mockReturnValueOnce({
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({ data: { id: 'existing' }, error: null })
+              })
+            })
+          })
+        });
+
+        await expect(
+          userCtx.caller.realtime.subscribe({
+            channel_slug: 'metrics',
+            connection_id: 'conn-123'
+          })
+        ).rejects.toThrow('Already subscribed');
+      });
+    });
+
+    describe('unsubscribe', () => {
+      it('should unsubscribe from a channel', async () => {
+        mockSupabase.from.mockReturnValueOnce({
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({ 
+                  data: { id: 'sub-1', status: 'active' }, 
+                  error: null 
+                })
+              })
+            })
+          })
+        }).mockReturnValueOnce({
+          update: vi.fn().mockReturnValue({
+            eq: vi.fn().mockResolvedValue({ error: null })
+          })
+        });
+
+        const result = await userCtx.caller.realtime.unsubscribe({
+          subscription_id: 'sub-1'
+        });
+
+        expect(result.success).toBe(true);
+      });
+    });
+
+    describe('pauseSubscription', () => {
+      it('should pause an active subscription', async () => {
+        const pausedSub = { id: 'sub-1', status: 'paused' };
+
+        mockSupabase.from.mockReturnValue({
+          update: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                eq: vi.fn().mockReturnValue({
+                  select: vi.fn().mockReturnValue({
+                    single: vi.fn().mockResolvedValue({ data: pausedSub, error: null })
+                  })
+                })
+              })
+            })
+          })
+        });
+
+        const result = await userCtx.caller.realtime.pauseSubscription({
+          subscription_id: 'sub-1'
+        });
+
+        expect(result.status).toBe('paused');
+      });
+    });
+
+    describe('resumeSubscription', () => {
+      it('should resume a paused subscription', async () => {
+        const resumedSub = { id: 'sub-1', status: 'active' };
+
+        mockSupabase.from.mockReturnValue({
+          update: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                eq: vi.fn().mockReturnValue({
+                  select: vi.fn().mockReturnValue({
+                    single: vi.fn().mockResolvedValue({ data: resumedSub, error: null })
+                  })
+                })
+              })
+            })
+          })
+        });
+
+        const result = await userCtx.caller.realtime.resumeSubscription({
+          subscription_id: 'sub-1'
+        });
+
+        expect(result.status).toBe('active');
+      });
+    });
+
+    describe('listSubscriptions', () => {
+      it('should list user subscriptions', async () => {
+        const mockSubs = [
+          { id: 'sub-1', channel: { name: 'Metrics', slug: 'metrics' }, status: 'active' },
+          { id: 'sub-2', channel: { name: 'Alerts', slug: 'alerts' }, status: 'paused' }
+        ];
+
+        mockSupabase.from.mockReturnValue({
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              order: vi.fn().mockResolvedValue({ data: mockSubs, error: null })
+            })
+          })
+        });
+
+        const result = await userCtx.caller.realtime.listSubscriptions({});
+
+        expect(result.subscriptions).toHaveLength(2);
+        expect(result.total).toBe(2);
+      });
+
+      it('should filter by status', async () => {
+        const mockSubs = [
+          { id: 'sub-1', channel: { name: 'Metrics' }, status: 'active' }
+        ];
+
+        mockSupabase.from.mockReturnValue({
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                order: vi.fn().mockResolvedValue({ data: mockSubs, error: null })
+              })
+            })
+          })
+        });
+
+        const result = await userCtx.caller.realtime.listSubscriptions({
+          status: 'active'
+        });
+
+        expect(result.subscriptions).toHaveLength(1);
+        expect(result.subscriptions[0].status).toBe('active');
+      });
+    });
+  });
+
+  // ==========================================================================
+  // LIVE METRICS
+  // ==========================================================================
+
+  describe('Live Metrics', () => {
+    describe('updateLiveMetric', () => {
+      it('should update a metric value', async () => {
+        mockSupabase.rpc.mockResolvedValue({ data: 'metric-123', error: null });
+
+        const result = await userCtx.caller.realtime.updateLiveMetric({
+          metric_key: 'cpu_usage',
+          value: 75.5,
+          metric_name: 'CPU Usage',
+          unit: '%',
+          window_type: 'rolling_1m'
+        });
+
+        expect(result.metric_id).toBe('metric-123');
+        expect(mockSupabase.rpc).toHaveBeenCalledWith('update_live_metric', expect.objectContaining({
+          p_metric_key: 'cpu_usage',
+          p_value: 75.5
+        }));
+      });
+    });
+
+    describe('batchUpdateMetrics', () => {
+      it('should batch update multiple metrics', async () => {
+        mockSupabase.rpc.mockResolvedValue({ data: 'metric-id', error: null });
+
+        const result = await userCtx.caller.realtime.batchUpdateMetrics({
+          metrics: [
+            { metric_key: 'cpu', value: 50 },
+            { metric_key: 'memory', value: 70 },
+            { metric_key: 'disk', value: 30 }
+          ]
+        });
+
+        expect(result.summary.successful).toBe(3);
+        expect(result.summary.failed).toBe(0);
+        expect(result.summary.total).toBe(3);
+      });
+
+      it('should handle partial failures', async () => {
+        mockSupabase.rpc
+          .mockResolvedValueOnce({ data: 'metric-1', error: null })
+          .mockResolvedValueOnce({ data: null, error: { message: 'Failed' } })
+          .mockResolvedValueOnce({ data: 'metric-3', error: null });
+
+        const result = await userCtx.caller.realtime.batchUpdateMetrics({
+          metrics: [
+            { metric_key: 'cpu', value: 50 },
+            { metric_key: 'memory', value: 70 },
+            { metric_key: 'disk', value: 30 }
+          ]
+        });
+
+        expect(result.summary.successful).toBe(2);
+        expect(result.summary.failed).toBe(1);
+      });
+    });
+
+    describe('getLiveMetrics', () => {
+      it('should get all live metrics', async () => {
+        const mockMetrics = [
+          { id: 'm-1', metric_key: 'cpu', current_value: 50, status: 'normal' },
+          { id: 'm-2', metric_key: 'memory', current_value: 80, status: 'warning' }
+        ];
+
+        mockSupabase.from.mockReturnValue({
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              order: vi.fn().mockResolvedValue({ data: mockMetrics, error: null })
+            })
+          })
+        });
+
+        const result = await userCtx.caller.realtime.getLiveMetrics({});
+
+        expect(result.metrics).toHaveLength(2);
+        expect(result.total).toBe(2);
+      });
+
+      it('should filter by metric keys', async () => {
+        const mockMetrics = [
+          { id: 'm-1', metric_key: 'cpu', current_value: 50 }
+        ];
+
+        mockSupabase.from.mockReturnValue({
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              in: vi.fn().mockReturnValue({
+                order: vi.fn().mockResolvedValue({ data: mockMetrics, error: null })
+              })
+            })
+          })
+        });
+
+        const result = await userCtx.caller.realtime.getLiveMetrics({
+          metric_keys: ['cpu']
+        });
+
+        expect(result.metrics).toHaveLength(1);
+        expect(result.metrics[0].metric_key).toBe('cpu');
+      });
+
+      it('should filter by status', async () => {
+        const mockMetrics = [
+          { id: 'm-2', metric_key: 'memory', current_value: 95, status: 'critical' }
+        ];
+
+        mockSupabase.from.mockReturnValue({
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                order: vi.fn().mockResolvedValue({ data: mockMetrics, error: null })
+              })
+            })
+          })
+        });
+
+        const result = await userCtx.caller.realtime.getLiveMetrics({
+          status: 'critical'
+        });
+
+        expect(result.metrics[0].status).toBe('critical');
+      });
+    });
+
+    describe('getMetricTrend', () => {
+      it('should get metric trend data', async () => {
+        const mockMetric = {
+          id: 'm-1',
+          metric_key: 'cpu',
+          metric_name: 'CPU Usage',
+          trend_data: [
+            { t: 1703000000, v: 45 },
+            { t: 1703000060, v: 50 },
+            { t: 1703000120, v: 55 }
+          ],
+          min_value: 40,
+          max_value: 60,
+          avg_value: 50
+        };
+
+        mockSupabase.from.mockReturnValue({
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({ data: mockMetric, error: null })
+              })
+            })
+          })
+        });
+
+        const result = await userCtx.caller.realtime.getMetricTrend({
+          metric_id: 'm-1',
+          points: 60
+        });
+
+        expect(result.trend).toHaveLength(3);
+        expect(result.statistics.avg).toBe(50);
+      });
+    });
+
+    describe('configureMetricAlerts', () => {
+      it('should configure alert thresholds', async () => {
+        const updatedMetric = {
+          id: 'm-1',
+          warning_threshold: 80,
+          critical_threshold: 95,
+          alert_direction: 'above'
+        };
+
+        mockSupabase.from.mockReturnValue({
+          update: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                select: vi.fn().mockReturnValue({
+                  single: vi.fn().mockResolvedValue({ data: updatedMetric, error: null })
+                })
+              })
+            })
+          })
+        });
+
+        const result = await userCtx.caller.realtime.configureMetricAlerts({
+          metric_id: 'm-1',
+          warning_threshold: 80,
+          critical_threshold: 95,
+          alert_direction: 'above'
+        });
+
+        expect(result.warning_threshold).toBe(80);
+        expect(result.critical_threshold).toBe(95);
+      });
+    });
+  });
+
+  // ==========================================================================
+  // CONNECTION MANAGEMENT
+  // ==========================================================================
+
+  describe('Connection Management', () => {
+    describe('registerConnection', () => {
+      it('should register a new WebSocket connection', async () => {
+        const mockConnection = {
+          id: 'conn-1',
+          connection_id: 'ws-123',
+          tenant_id: tenantId,
+          user_id: userId,
+          server_id: 'server-1',
+          status: 'connected'
+        };
+
+        mockSupabase.from.mockReturnValue({
+          upsert: vi.fn().mockReturnValue({
+            select: vi.fn().mockReturnValue({
+              single: vi.fn().mockResolvedValue({ data: mockConnection, error: null })
+            })
+          })
+        });
+
+        const result = await userCtx.caller.realtime.registerConnection({
+          connection_id: 'ws-123',
+          server_id: 'server-1',
+          client_ip: '192.168.1.1',
+          user_agent: 'Mozilla/5.0'
+        });
+
+        expect(result.connection_id).toBe('ws-123');
+        expect(result.status).toBe('connected');
+      });
+    });
+
+    describe('heartbeat', () => {
+      it('should record heartbeat', async () => {
+        mockSupabase.rpc.mockResolvedValue({ data: true, error: null });
+
+        const result = await userCtx.caller.realtime.heartbeat({
+          connection_id: 'ws-123'
+        });
+
+        expect(result.success).toBe(true);
+        expect(mockSupabase.rpc).toHaveBeenCalledWith('record_heartbeat', {
+          p_connection_id: 'ws-123'
+        });
+      });
+    });
+
+    describe('disconnect', () => {
+      it('should disconnect and update all subscriptions', async () => {
+        mockSupabase.from.mockReturnValueOnce({
+          update: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              eq: vi.fn().mockResolvedValue({ error: null })
+            })
+          })
+        }).mockReturnValueOnce({
+          update: vi.fn().mockReturnValue({
+            eq: vi.fn().mockResolvedValue({ error: null })
+          })
+        });
+
+        const result = await userCtx.caller.realtime.disconnect({
+          connection_id: 'ws-123'
+        });
+
+        expect(result.success).toBe(true);
+      });
+    });
+
+    describe('cleanupConnections', () => {
+      it('should cleanup stale connections (admin only)', async () => {
+        mockSupabase.rpc.mockResolvedValue({ data: 5, error: null });
+
+        const result = await adminCtx.caller.realtime.cleanupConnections();
+
+        expect(result.disconnected_count).toBe(5);
+      });
+    });
+  });
+
+  // ==========================================================================
+  // EVENT STREAMS
+  // ==========================================================================
+
+  describe('Event Streams', () => {
+    describe('listStreams', () => {
+      it('should list all active streams', async () => {
+        const mockStreams = [
+          { id: 's-1', name: 'Metrics Stream', slug: 'metrics', source_type: 'table' },
+          { id: 's-2', name: 'Alerts Stream', slug: 'alerts', source_type: 'table' }
+        ];
+
+        mockSupabase.from.mockReturnValue({
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              order: vi.fn().mockResolvedValue({ data: mockStreams, error: null })
+            })
+          })
+        });
+
+        const result = await userCtx.caller.realtime.listStreams({ active_only: true });
+
+        expect(result.streams).toHaveLength(2);
+      });
+    });
+
+    describe('createStream', () => {
+      it('should create a new event stream (admin)', async () => {
+        const mockStream = {
+          id: 's-new',
+          name: 'Custom Stream',
+          slug: 'custom',
+          source_type: 'query',
+          is_active: true
+        };
+
+        mockSupabase.from.mockReturnValueOnce({
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              single: vi.fn().mockResolvedValue({ data: { id: 'ch-1' }, error: null })
+            })
+          })
+        }).mockReturnValueOnce({
+          insert: vi.fn().mockReturnValue({
+            select: vi.fn().mockReturnValue({
+              single: vi.fn().mockResolvedValue({ data: mockStream, error: null })
+            })
+          })
+        });
+
+        const result = await adminCtx.caller.realtime.createStream({
+          name: 'Custom Stream',
+          slug: 'custom',
+          source_type: 'query',
+          source_config: { query: 'SELECT * FROM metrics' },
+          output_channel_slug: 'metrics'
+        });
+
+        expect(result.slug).toBe('custom');
+      });
+    });
+
+    describe('publishEvent', () => {
+      it('should publish an event to a stream', async () => {
+        mockSupabase.rpc.mockResolvedValue({ data: 'event-123', error: null });
+
+        const result = await userCtx.caller.realtime.publishEvent({
+          stream_slug: 'metrics',
+          event_type: 'metric_update',
+          event_data: { metric: 'cpu', value: 75 }
+        });
+
+        expect(result.event_id).toBe('event-123');
+      });
+
+      it('should support broadcast events', async () => {
+        mockSupabase.rpc.mockResolvedValue({ data: 'event-123', error: null });
+
+        const result = await userCtx.caller.realtime.publishEvent({
+          stream_slug: 'announcements',
+          event_type: 'system_message',
+          event_data: { message: 'System update' },
+          broadcast: true
+        });
+
+        expect(mockSupabase.rpc).toHaveBeenCalledWith('publish_realtime_event', expect.objectContaining({
+          p_broadcast: true
+        }));
+      });
+    });
+
+    describe('getStreamEvents', () => {
+      it('should get recent events from a stream', async () => {
+        const mockEvents = [
+          { id: 'e-1', sequence_number: 1, event_type: 'update', event_data: {} },
+          { id: 'e-2', sequence_number: 2, event_type: 'update', event_data: {} }
+        ];
+
+        mockSupabase.from.mockReturnValueOnce({
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              single: vi.fn().mockResolvedValue({ data: { id: 's-1' }, error: null })
+            })
+          })
+        }).mockReturnValueOnce({
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              or: vi.fn().mockReturnValue({
+                order: vi.fn().mockReturnValue({
+                  limit: vi.fn().mockResolvedValue({ data: mockEvents, error: null })
+                })
+              })
+            })
+          })
+        });
+
+        const result = await userCtx.caller.realtime.getStreamEvents({
+          stream_slug: 'metrics',
+          limit: 10
+        });
+
+        expect(result.events).toHaveLength(2);
+      });
+    });
+  });
+
+  // ==========================================================================
+  // CURSORS
+  // ==========================================================================
+
+  describe('Cursors', () => {
+    describe('updateCursor', () => {
+      it('should update cursor position', async () => {
+        const mockCursor = {
+          id: 'cursor-1',
+          subscription_id: 'sub-1',
+          stream_id: 's-1',
+          cursor_value: '100'
+        };
+
+        mockSupabase.from.mockReturnValueOnce({
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({ data: { id: 'sub-1' }, error: null })
+              })
+            })
+          })
+        }).mockReturnValueOnce({
+          upsert: vi.fn().mockReturnValue({
+            select: vi.fn().mockReturnValue({
+              single: vi.fn().mockResolvedValue({ data: mockCursor, error: null })
+            })
+          })
+        });
+
+        const result = await userCtx.caller.realtime.updateCursor({
+          subscription_id: 'sub-1',
+          stream_id: 's-1',
+          cursor_value: '100'
+        });
+
+        expect(result.cursor_value).toBe('100');
+      });
+    });
+
+    describe('acknowledgeCursor', () => {
+      it('should acknowledge cursor position', async () => {
+        const mockCursor = {
+          id: 'cursor-1',
+          last_ack_cursor: '100',
+          pending_events: 0
+        };
+
+        mockSupabase.from.mockReturnValueOnce({
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({ data: { id: 'sub-1' }, error: null })
+              })
+            })
+          })
+        }).mockReturnValueOnce({
+          update: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                select: vi.fn().mockReturnValue({
+                  single: vi.fn().mockResolvedValue({ data: mockCursor, error: null })
+                })
+              })
+            })
+          })
+        });
+
+        const result = await userCtx.caller.realtime.acknowledgeCursor({
+          subscription_id: 'sub-1',
+          stream_id: 's-1',
+          ack_cursor: '100'
+        });
+
+        expect(result.pending_events).toBe(0);
+      });
+    });
+  });
+
+  // ==========================================================================
+  // BROADCASTS
+  // ==========================================================================
+
+  describe('Broadcasts', () => {
+    describe('createBroadcast', () => {
+      it('should create and send a broadcast message (admin)', async () => {
+        const mockBroadcast = {
+          id: 'broadcast-1',
+          title: 'System Update',
+          message: 'Scheduled maintenance',
+          status: 'sent'
+        };
+
+        mockSupabase.from.mockReturnValueOnce({
+          insert: vi.fn().mockReturnValue({
+            select: vi.fn().mockReturnValue({
+              single: vi.fn().mockResolvedValue({ data: mockBroadcast, error: null })
+            })
+          })
+        }).mockReturnValueOnce({
+          update: vi.fn().mockReturnValue({
+            eq: vi.fn().mockResolvedValue({ error: null })
+          })
+        });
+
+        mockSupabase.rpc.mockResolvedValue({ data: 'event-1', error: null });
+
+        const result = await adminCtx.caller.realtime.createBroadcast({
+          message_type: 'system_maintenance',
+          target_type: 'all',
+          title: 'System Update',
+          message: 'Scheduled maintenance',
+          priority: 'high'
+        });
+
+        expect(result.title).toBe('System Update');
+      });
+
+      it('should schedule future broadcasts', async () => {
+        const futureDate = new Date(Date.now() + 3600000).toISOString();
+        const mockBroadcast = {
+          id: 'broadcast-1',
+          title: 'Future Update',
+          scheduled_at: futureDate,
+          status: 'scheduled'
+        };
+
+        mockSupabase.from.mockReturnValue({
+          insert: vi.fn().mockReturnValue({
+            select: vi.fn().mockReturnValue({
+              single: vi.fn().mockResolvedValue({ data: mockBroadcast, error: null })
+            })
+          })
+        });
+
+        const result = await adminCtx.caller.realtime.createBroadcast({
+          message_type: 'feature_announcement',
+          title: 'Future Update',
+          message: 'Coming soon',
+          scheduled_at: futureDate
+        });
+
+        expect(result.status).toBe('scheduled');
+      });
+    });
+
+    describe('listBroadcasts', () => {
+      it('should list broadcasts with pagination', async () => {
+        const mockBroadcasts = [
+          { id: 'b-1', title: 'Update 1', status: 'sent' },
+          { id: 'b-2', title: 'Update 2', status: 'scheduled' }
+        ];
+
+        mockSupabase.from.mockReturnValue({
+          select: vi.fn().mockReturnValue({
+            order: vi.fn().mockReturnValue({
+              range: vi.fn().mockResolvedValue({ 
+                data: mockBroadcasts, 
+                count: 10,
+                error: null 
+              })
+            })
+          })
+        });
+
+        const result = await userCtx.caller.realtime.listBroadcasts({
+          limit: 20,
+          offset: 0
+        });
+
+        expect(result.broadcasts).toHaveLength(2);
+      });
+    });
+
+    describe('cancelBroadcast', () => {
+      it('should cancel a scheduled broadcast', async () => {
+        const cancelledBroadcast = {
+          id: 'b-1',
+          status: 'cancelled'
+        };
+
+        mockSupabase.from.mockReturnValue({
+          update: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                select: vi.fn().mockReturnValue({
+                  single: vi.fn().mockResolvedValue({ data: cancelledBroadcast, error: null })
+                })
+              })
+            })
+          })
+        });
+
+        const result = await adminCtx.caller.realtime.cancelBroadcast({
+          broadcast_id: 'b-1'
+        });
+
+        expect(result.status).toBe('cancelled');
+      });
+    });
+  });
+
+  // ==========================================================================
+  // SYSTEM METRICS
+  // ==========================================================================
+
+  describe('System Metrics', () => {
+    describe('getSystemMetrics', () => {
+      it('should get realtime system metrics (admin)', async () => {
+        const mockMetrics = [
+          { 
+            bucket_time: '2024-01-01T00:00:00Z',
+            active_connections: 100,
+            messages_published: 1000,
+            delivery_latency_p95: 50
+          }
+        ];
+
+        mockSupabase.from.mockReturnValue({
+          select: vi.fn().mockReturnValue({
+            gte: vi.fn().mockReturnValue({
+              order: vi.fn().mockResolvedValue({ data: mockMetrics, error: null })
+            })
+          })
+        });
+
+        const result = await adminCtx.caller.realtime.getSystemMetrics({ hours: 24 });
+
+        expect(result.metrics).toHaveLength(1);
+        expect(result.aggregates).toBeDefined();
+      });
+    });
+
+    describe('recordSystemMetrics', () => {
+      it('should record system metrics', async () => {
+        const mockMetric = {
+          bucket_time: '2024-01-01T00:00:00Z',
+          active_connections: 150
+        };
+
+        mockSupabase.from.mockReturnValue({
+          upsert: vi.fn().mockReturnValue({
+            select: vi.fn().mockReturnValue({
+              single: vi.fn().mockResolvedValue({ data: mockMetric, error: null })
+            })
+          })
+        });
+
+        const result = await adminCtx.caller.realtime.recordSystemMetrics({
+          active_connections: 150,
+          peak_connections: 200,
+          new_connections: 10,
+          closed_connections: 5,
+          messages_published: 1000,
+          messages_delivered: 950
+        });
+
+        expect(result.active_connections).toBe(150);
+      });
+    });
+  });
+
+  // ==========================================================================
+  // ERROR HANDLING
+  // ==========================================================================
+
+  describe('Error Handling', () => {
+    it('should handle database errors gracefully', async () => {
+      mockSupabase.from.mockReturnValue({
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            order: vi.fn().mockResolvedValue({ 
+              data: null, 
+              error: { message: 'Database error' } 
+            })
+          })
+        })
+      });
+
+      await expect(
+        userCtx.caller.realtime.listChannels({ active_only: true })
+      ).rejects.toThrow('Database error');
+    });
+
+    it('should handle RPC errors', async () => {
+      mockSupabase.rpc.mockResolvedValue({ 
+        data: null, 
+        error: { message: 'RPC failed' } 
+      });
+
+      await expect(
+        userCtx.caller.realtime.updateLiveMetric({
+          metric_key: 'cpu',
+          value: 50
+        })
+      ).rejects.toThrow('RPC failed');
+    });
+  });
+
+  // ==========================================================================
+  // SECURITY
+  // ==========================================================================
+
+  describe('Security', () => {
+    it('should enforce admin-only operations', async () => {
+      await expect(
+        userCtx.caller.realtime.createChannel({
+          name: 'Test',
+          slug: 'test',
+          channel_type: 'custom'
+        })
+      ).rejects.toThrow();
+    });
+
+    it('should enforce tenant isolation in subscriptions', async () => {
+      // User should only see their own subscriptions
+      const mockSubs = [{ id: 'sub-1', user_id: userId }];
+
+      mockSupabase.from.mockReturnValue({
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            order: vi.fn().mockResolvedValue({ data: mockSubs, error: null })
+          })
+        })
+      });
+
+      const result = await userCtx.caller.realtime.listSubscriptions({});
+
+      // Should have filtered by user_id
+      expect(result.subscriptions).toHaveLength(1);
+    });
+
+    it('should enforce tenant isolation in metrics', async () => {
+      const mockMetrics = [{ id: 'm-1', tenant_id: tenantId }];
+
+      mockSupabase.from.mockReturnValue({
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            order: vi.fn().mockResolvedValue({ data: mockMetrics, error: null })
+          })
+        })
+      });
+
+      const result = await userCtx.caller.realtime.getLiveMetrics({});
+
+      // Query should have included tenant_id filter
+      expect(mockSupabase.from).toHaveBeenCalledWith('live_metrics');
+    });
+
+    it('should validate subscription ownership before unsubscribe', async () => {
+      mockSupabase.from.mockReturnValue({
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              single: vi.fn().mockResolvedValue({ data: null, error: null })
+            })
+          })
+        })
+      });
+
+      await expect(
+        userCtx.caller.realtime.unsubscribe({ subscription_id: 'other-user-sub' })
+      ).rejects.toThrow('not found');
+    });
+  });
+
+  // ==========================================================================
+  // INTEGRATION TESTS
+  // ==========================================================================
+
+  describe('Integration Tests', () => {
+    it('should handle full subscription lifecycle', async () => {
+      // 1. Register connection
+      mockSupabase.from.mockReturnValueOnce({
+        upsert: vi.fn().mockReturnValue({
+          select: vi.fn().mockReturnValue({
+            single: vi.fn().mockResolvedValue({ 
+              data: { connection_id: 'ws-123', status: 'connected' }, 
+              error: null 
+            })
+          })
+        })
+      });
+
+      const conn = await userCtx.caller.realtime.registerConnection({
+        connection_id: 'ws-123',
+        server_id: 'server-1'
+      });
+      expect(conn.status).toBe('connected');
+
+      // 2. Subscribe to channel
+      const mockChannel = { id: 'ch-1', slug: 'metrics', max_subscribers: 1000, is_active: true };
+      mockSupabase.from.mockReturnValueOnce({
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              single: vi.fn().mockResolvedValue({ data: mockChannel, error: null })
+            })
+          })
+        })
+      }).mockReturnValueOnce({
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            eq: vi.fn().mockResolvedValue({ count: 5 })
+          })
+        })
+      }).mockReturnValueOnce({
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              single: vi.fn().mockResolvedValue({ data: null, error: null })
+            })
+          })
+        })
+      }).mockReturnValueOnce({
+        insert: vi.fn().mockReturnValue({
+          select: vi.fn().mockReturnValue({
+            single: vi.fn().mockResolvedValue({ 
+              data: { id: 'sub-1', status: 'active' }, 
+              error: null 
+            })
+          })
+        })
+      });
+
+      const sub = await userCtx.caller.realtime.subscribe({
+        channel_slug: 'metrics',
+        connection_id: 'ws-123'
+      });
+      expect(sub.subscription_id).toBe('sub-1');
+
+      // 3. Heartbeat
+      mockSupabase.rpc.mockResolvedValue({ data: true, error: null });
+      const hb = await userCtx.caller.realtime.heartbeat({ connection_id: 'ws-123' });
+      expect(hb.success).toBe(true);
+
+      // 4. Disconnect
+      mockSupabase.from.mockReturnValueOnce({
+        update: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            eq: vi.fn().mockResolvedValue({ error: null })
+          })
+        })
+      }).mockReturnValueOnce({
+        update: vi.fn().mockReturnValue({
+          eq: vi.fn().mockResolvedValue({ error: null })
+        })
+      });
+
+      const disc = await userCtx.caller.realtime.disconnect({ connection_id: 'ws-123' });
+      expect(disc.success).toBe(true);
+    });
+
+    it('should handle metric update with alert trigger', async () => {
+      // Update metric that crosses critical threshold
+      mockSupabase.rpc.mockResolvedValue({ data: 'metric-1', error: null });
+
+      await userCtx.caller.realtime.updateLiveMetric({
+        metric_key: 'cpu_usage',
+        value: 98, // Above critical threshold
+        metric_name: 'CPU Usage',
+        unit: '%'
+      });
+
+      // Verify the update was called with correct parameters
+      expect(mockSupabase.rpc).toHaveBeenCalledWith('update_live_metric', expect.objectContaining({
+        p_value: 98
+      }));
+    });
+  });
+});

@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Production Cleanup — FlashFusion exports</title>
+<link rel="stylesheet" href="audit/dossier.css" />
+<style>
+  .lead{font-size:18px; color:var(--ink-var); max-width:70ch; text-wrap:pretty;}
+  .kd{display:grid; grid-template-columns:1fr 1fr; gap:16px; margin:16px 0 6px;}
+  @media(max-width:680px){ .kd{grid-template-columns:1fr;} }
+  .kd .col{background:var(--s-lowest); border:1px solid color-mix(in srgb,var(--outline-var) 30%,transparent); padding:18px 20px;}
+  .kd .col.keep{border-top:2px solid var(--blue);}
+  .kd .col.del{border-top:2px solid var(--error);}
+  .kd .col h4{font-family:var(--mono); font-size:11px; letter-spacing:.13em; text-transform:uppercase; margin:0 0 12px;}
+  .kd .col.keep h4{color:var(--blue);}
+  .kd .col.del h4{color:var(--error);}
+  .kd ul{margin:0; padding:0; list-style:none;}
+  .kd li{font-family:var(--mono); font-size:12.5px; color:var(--ink-var); padding:4px 0; border-top:1px solid color-mix(in srgb,var(--outline-var) 20%,transparent); line-height:1.5;}
+  .kd li:first-child{border-top:none;}
+  .kd li .n{color:var(--ink);}
+  .kd li .why{color:var(--outline); font-size:11.5px;}
+  .files{display:grid; grid-template-columns:repeat(2,1fr); gap:12px; margin-top:14px;}
+  @media(max-width:680px){ .files{grid-template-columns:1fr;} }
+  .files .f{background:var(--s-lowest); border:1px solid color-mix(in srgb,var(--outline-var) 30%,transparent); padding:13px 15px;}
+  .files .f .p{font-family:var(--mono); font-size:12px; color:var(--blue); word-break:break-all;}
+  .files .f .d{font-size:13px; color:var(--ink-var); margin-top:4px;}
+  .scoreflip{font-family:var(--mono); font-size:12px; color:var(--outline); margin-top:10px;}
+  .scoreflip b{color:var(--blue);}
+</style>
+</head>
+<body>
+<nav class="topnav">
+  <div class="inner">
+    <a class="home" href="Figma Make Audit Dossier.html">← Dossier index</a>
+    <span class="spacer"></span>
+    <a href="Deep Dive 01 - Dashboard.html">01</a>
+    <a href="Deep Dive 02 - Enterprise.html">02</a>
+    <a href="Deep Dive 03 - Website.html">03</a>
+    <a href="Security Remediation.html" style="color:var(--blue);">Remediation</a>
+    <a class="cur" href="Production Cleanup.html">Cleanup</a>
+  </div>
+</nav>
+
+<div class="wrap">
+  <header class="mast" data-screen-label="Cleanup header">
+    <div class="kicker">
+      <span class="fileno">PRODUCTION CLEANUP · ARCHITECTURE</span>
+      <span class="label">3 files · keep/delete decisions + drop-ins</span>
+    </div>
+    <h1>Cut the dead weight,<br /><em>keep what ships.</em></h1>
+    <p class="lead">The security package stopped the leaks. This one removes the structural blockers: ghost routers, duplicate trees, an abandoned second app, and off-domain code — grounded in the actual import wiring, with delete/keep manifests, code drop-ins, and runnable scripts.</p>
+    <div class="scorebar">
+      <div class="m"><span class="label">Broken-import sources removed</span><span class="v">3</span></div>
+      <div class="m"><span class="label">Duplicate trees collapsed</span><span class="v">2</span></div>
+      <div class="m"><span class="label">Drop-in fixes</span><span class="v">3</span></div>
+      <div class="m"><span class="label">Scripts</span><span class="v">2</span></div>
+    </div>
+  </header>
+
+  <section class="blk" data-screen-label="Implemented status">
+    <div class="sec-head"><span class="num">✓</span><h2>Implemented — clean trees built</h2></div>
+    <p class="sec-intro">The cleanup is applied, not just described. Pruned, fixed source trees now live at <code>remediation/clean/&lt;project&gt;/</code> — drop-in fixes overlaid, dead files removed, no dangling imports (verified by import-graph grep).</p>
+    <div class="kd">
+      <div class="col keep">
+        <h4>Built · remediation/clean/</h4>
+        <ul>
+          <li><span class="n">dashboard/</span> <span class="why">23 → 46 files · full app — 13 screens + auth gate (Routes, Playground, Analytics, Integrations, Billing, Team…)</span></li>
+          <li><span class="n">enterprise/</span> <span class="why">195 → 144 · /src duplicate (26) + mock security + phase-logs gone; hardened proxy in</span></li>
+          <li><span class="n">website/</span> <span class="why">142 → 56 · Vite app + audio marketplace + ~55 docs gone; apps/site fixes in</span></li>
+        </ul>
+      </div>
+      <div class="col keep">
+        <h4>Verified</h4>
+        <ul>
+          <li><span class="n">complete graph</span> <span class="why">F1 router + pages + panels all resolve; live preview renders</span></li>
+          <li><span class="n">no imports</span> <span class="why">of /src/* or the browser SDK (F2)</span></li>
+          <li><span class="n">no imports</span> <span class="why">of src/core, studio, landing, lib/env (F3)</span></li>
+          <li><span class="n">stale docs</span> <span class="why">patched to the hardened env rule</span></li>
+        </ul>
+      </div>
+    </div>
+    <p class="scoreflip">Use the download card in chat to grab the cleaned repos, or browse them under <b>remediation/clean/</b>. The manifests &amp; scripts below document exactly what changed.</p>
+  </section>
+
+  <!-- FILE 01 -->
+  <section class="blk" data-screen-label="Cleanup file 01">
+    <div class="sec-head"><span class="num">01</span><h2>Dashboard — wired the app (built, not deleted)</h2></div>
+    <p class="sec-intro">You asked why delete instead of wire — fair. The router, onboarding, and nav were already written; only the screens were missing. So I <b>built them</b>. The neon page now lives at <code>/</code>; the product app lives at <code>/app</code> in a calm Linear-style UI. <a href="FlashFusion App Preview.html" style="color:var(--amber-dim);">▸ Open the live preview</a>.</p>
+    <div class="kd">
+      <div class="col keep">
+        <h4>Built &amp; wired</h4>
+        <ul>
+          <li><span class="n">pages/</span> <span class="why">Dashboard, Kanban, Docs, Workflow, Code, Settings, Landing</span></li>
+          <li><span class="n">components/</span> <span class="why">CommandPalette, FeedbackModal, NotificationsDrawer</span></li>
+          <li><span class="n">restored</span> <span class="why">routes.tsx, Root, NavBar, OnboardingOverlay</span></li>
+          <li><span class="n">entry</span> <span class="why">main.tsx, index.html, vite.config, tsconfig, package.json</span></li>
+        </ul>
+      </div>
+      <div class="col keep">
+        <h4>Fixed in place</h4>
+        <ul>
+          <li><span class="n">BootScreen</span> <span class="why">reduced-motion + skip + once/session</span></li>
+          <li><span class="n">App.tsx</span> <span class="why">cursor restored; custom cursor gated</span></li>
+          <li><span class="n">app.css</span> <span class="why">shared Linear-indigo theme tokens</span></li>
+          <li><span class="n">Cmd+K</span> <span class="why">palette, drawer, onboarding all functional</span></li>
+        </ul>
+      </div>
+    </div>
+    <p class="scoreflip">Architecture <b>D → A−</b> · Accessibility <b>D → B+</b> · <b>13 screens</b> + sign-in gate, 46 files, every import resolves. The 7 newest — Routes, Playground, Analytics, Integrations, Billing, Team, auth — are live in the preview. Run with <code>npm i &amp;&amp; npm run dev</code>.</p>
+  </section>
+
+  <!-- FILE 02 -->
+  <section class="blk" data-screen-label="Cleanup file 02">
+    <div class="sec-head"><span class="num">02</span><h2>Enterprise — one tree, not two</h2></div>
+    <p class="sec-intro">Verified by wiring: <code>App.tsx → MainLayout → ContentViewer → ../features/*</code>. <b>Nothing imports <code>/src/*</code></b>, so the whole <code>/src</code> subtree is dead duplicate — and it's where the dangerous in-browser Claude client lives. Delete it.</p>
+    <div class="kd">
+      <div class="col keep">
+        <h4>Keep — canonical root tree</h4>
+        <ul>
+          <li><span class="n">App.tsx, contexts/*, components/*</span></li>
+          <li><span class="n">features/*</span> <span class="why">— the wired modules</span></li>
+          <li><span class="n">data/*, hooks/*, lib/* (root)</span></li>
+          <li><span class="n">supabase/functions/server/*</span> <span class="why">— use hardened index</span></li>
+        </ul>
+      </div>
+      <div class="col del">
+        <h4>Delete — duplicate /src</h4>
+        <ul>
+          <li><span class="n">src/features, src/components</span></li>
+          <li><span class="n">src/contexts, src/hooks, src/utils</span></li>
+          <li><span class="n">src/lib/api/claude-client.ts</span> <span class="why">— browser key leak</span></li>
+          <li><span class="n">src/types, src/docs</span></li>
+        </ul>
+      </div>
+    </div>
+    <div class="files">
+      <div class="f"><div class="p">remediation/cleanup/enterprise/cleanup.sh</div><div class="d">Removes /src, the mock security file, and phase-logs.</div></div>
+      <div class="f"><div class="p">remediation/cleanup/enterprise/CLEANUP.md</div><div class="d">Type de-dup + name decision + security follow-through.</div></div>
+    </div>
+    <p class="scoreflip">Also: collapse 3+ duplicate type files → one <code>/types/index.ts</code>; delete or wire the mock <code>prompt-injection-defense.ts</code>; settle the INT&nbsp;Inc./FF&nbsp;Inc. name.</p>
+  </section>
+
+  <!-- FILE 03 -->
+  <section class="blk" data-screen-label="Cleanup file 03">
+    <div class="sec-head"><span class="num">03</span><h2>Website — keep the Next.js app, evict the stowaways</h2></div>
+    <p class="sec-intro">Three codebases ship together. Keep <code>apps/site</code> (the working Next.js site). Delete the abandoned root Vite app and the off-domain audio-marketplace components.</p>
+    <div class="kd">
+      <div class="col keep">
+        <h4>Keep</h4>
+        <ul>
+          <li><span class="n">apps/site/**</span> <span class="why">— the product</span></li>
+          <li><span class="n">.github/workflows/**</span> <span class="why">— CodeQL, gitleaks, RLS</span></li>
+          <li><span class="n">supabase/tests/**</span></li>
+          <li><span class="n">deploy configs for apps/site</span></li>
+        </ul>
+      </div>
+      <div class="col del">
+        <h4>Delete</h4>
+        <ul>
+          <li><span class="n">src/core/**</span> <span class="why">— Vite app, ~8 missing imports</span></li>
+          <li><span class="n">components/studio/**</span> <span class="why">— audio marketplace, off-domain</span></li>
+          <li><span class="n">components/landing, components/ui</span></li>
+          <li><span class="n">lib/env.ts, lib/config.ts</span> <span class="why">— replaced</span></li>
+        </ul>
+      </div>
+    </div>
+    <div class="files">
+      <div class="f"><div class="p">remediation/cleanup/website/cleanup.sh</div><div class="d">Removes the Vite app, studio, and narration docs.</div></div>
+      <div class="f"><div class="p">remediation/cleanup/website/actions.ts</div><div class="d">Lead action with analytics fixed (fires client-side).</div></div>
+    </div>
+    <p class="scoreflip">Repo coherence <b>D → B+</b>. With one app left, update <code>turbo.json</code> or flatten <code>apps/site</code> to root.</p>
+  </section>
+
+  <!-- ORDER -->
+  <section class="blk" data-screen-label="Order of operations">
+    <div class="sec-head"><span class="num">04</span><h2>Order of operations</h2></div>
+    <ol class="fixes">
+      <li><h4>Security first</h4><p>Apply the <a href="Security Remediation.html" style="color:var(--amber-dim);">remediation package</a> and rotate keys before touching structure.</p></li>
+      <li><h4>Run the cleanup scripts on a branch</h4><p><code>cleanup.sh</code> per repo, then review <code>git status</code> — nothing should reference a deleted path.</p></li>
+      <li><h4>Drop in the corrected files</h4><p>BootScreen + cursor (File 01), hardened server + types merge (File 02), actions + middleware (File 03).</p></li>
+      <li><h4>Build &amp; typecheck</h4><p><code>tsc --noEmit</code> + a production build. Broken imports surface here; there should be none left.</p></li>
+      <li><h4>Then brand</h4><p>Pick one FlashFusion palette + type system and align all three — the last dossier item.</p></li>
+    </ol>
+  </section>
+
+  <footer class="fn" data-screen-label="Footer">
+    <div class="note">
+      <p>// Keep/delete decisions are grounded in the reconstructed import graph (e.g. enterprise <code>ContentViewer</code> imports <code>../features/*</code>, never <code>/src/*</code>). Scripts are conservative — run on a branch and review the diff. This clears the structural blockers; brand unification remains a design task, not a code one.</p>
+    </div>
+    <div class="pager">
+      <a href="Security Remediation.html">← Security Remediation</a>
+      <a href="Figma Make Audit Dossier.html">Dossier index →</a>
+    </div>
+  </footer>
+</div>
+
+<template id="__bundler_thumbnail">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400"><rect width="400" height="400" fill="#131315"/><path d="M150 150 h100 M150 200 h100 M150 250 h60" stroke="#504532" stroke-width="10" stroke-linecap="round"/><path d="M120 130 l160 160 M280 130 l-160 160" stroke="#ffbf00" stroke-width="12" stroke-linecap="round" opacity="0.85"/></svg>
+</template>
+</body>
+</html>

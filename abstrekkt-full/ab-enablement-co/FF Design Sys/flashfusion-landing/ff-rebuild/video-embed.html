@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="color-scheme" content="dark"/>
+<title>FlashFusion — Mascot Video Embed</title>
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  body{background:#05060d;color:#fff;font-family:'Inter',system-ui,sans-serif;min-height:100vh;display:grid;place-items:center;padding:40px}
+  .demo{display:flex;align-items:center;gap:clamp(24px,5vw,64px);flex-wrap:wrap;justify-content:center;max-width:880px}
+  .copy{max-width:380px}
+  .eyebrow{font-size:10.5px;font-weight:600;letter-spacing:0.2em;color:#FF6A00;text-transform:uppercase;margin-bottom:12px}
+  h1{font-size:clamp(22px,3vw,34px);line-height:1.15;margin-bottom:16px}
+  p{font-size:15px;line-height:1.7;color:#9a948a}
+  /* The embed */
+  .mascot-vid{width:100%;max-width:300px;height:auto;border-radius:12px;display:block;
+              filter:drop-shadow(0 16px 40px rgba(161,68,255,0.28))}
+</style>
+</head>
+<body>
+  <div class="demo">
+    <div class="copy">
+      <div class="eyebrow">Embed demo</div>
+      <h1>Mascot loop, embedded.</h1>
+      <p>Muted, looping, <code>playsinline</code>. Plays only while on-screen and only if the visitor hasn't asked for reduced motion — otherwise the poster frame stays put. ~205&nbsp;KB, no audio track, fast-start MP4.</p>
+    </div>
+
+    <!-- ── EMBED: copy this block ─────────────────────────────────── -->
+    <video class="mascot-vid"
+           poster="video/mascot-poster.jpg"
+           muted loop playsinline preload="metadata"
+           aria-label="FlashFusion mascot animation"
+           disablepictureinpicture>
+      <source src="video/mascot.mp4" type="video/mp4"/>
+    </video>
+    <!-- ───────────────────────────────────────────────────────────── -->
+  </div>
+
+  <script>
+  // Reduced-motion-safe, in-view-only autoplay (no `autoplay` attribute by design).
+  (function () {
+    var vids = document.querySelectorAll('.mascot-vid');
+    if (!vids.length) return;
+    var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduce) return; // poster stays; never animate
+    if (!('IntersectionObserver' in window)) {
+      vids.forEach(function (v) { v.play().catch(function () {}); });
+      return;
+    }
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (e.isIntersecting) e.target.play().catch(function () {});
+        else e.target.pause();
+      });
+    }, { threshold: 0.25 });
+    vids.forEach(function (v) { io.observe(v); });
+  })();
+  </script>
+</body>
+</html>

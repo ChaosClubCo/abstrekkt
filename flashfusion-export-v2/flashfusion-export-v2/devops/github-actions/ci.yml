@@ -1,0 +1,22 @@
+name: FlashFusion CI
+on:
+  pull_request:
+  push:
+    branches: [main]
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: "22", cache: "pnpm"}
+      - run: corepack enable
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: pnpm build
+      - name: Secret scan smoke
+        run: |
+          if grep -R "sk_live_\|SUPABASE_SERVICE_ROLE_KEY=.*" . --exclude-dir=.git; then exit 1; fi

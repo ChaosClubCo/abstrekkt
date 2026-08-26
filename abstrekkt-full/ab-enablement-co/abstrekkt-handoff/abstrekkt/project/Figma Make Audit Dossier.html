@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Audit Dossier — Figma Make Exports</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,500;1,7..72,400&family=JetBrains+Mono:wght@400;500;700&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --bg:#131315; --carbon:#0A0A0C;
+    --s-lowest:#0e0e10; --s-low:#1c1b1d; --s:#201f21; --s-high:#2a2a2c; --s-highest:#353437; --s-bright:#39393b;
+    --ink:#e5e1e4; --ink-var:#d4c5ab;
+    --outline:#9c8f78; --outline-var:#504532;
+    --amber:#ffbf00; --amber-lt:#ffe2ab; --amber-dim:#fbbc00; --on-amber:#402d00;
+    --blue:#a9c7ff; --blue-c:#026bd2; --cyan:#00f0ff;
+    --error:#ffb4ab; --error-c:#93000a;
+    --garamond:'EB Garamond',Georgia,serif;
+    --body:'Literata',Georgia,serif;
+    --mono:'JetBrains Mono',monospace;
+    --brut:'Space Grotesk',sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:var(--body); font-size:16px; line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+  }
+  /* microfilm grain */
+  body::before{
+    content:""; position:fixed; inset:0; z-index:1; pointer-events:none; opacity:.04;
+    background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-size:180px;
+  }
+  .wrap{max-width:1100px; margin:0 auto; padding:0 40px; position:relative; z-index:2;}
+  @media(max-width:680px){ .wrap{padding:0 20px;} body{font-size:15px;} }
+
+  .label{font-family:var(--mono); font-size:12px; letter-spacing:.1em; text-transform:uppercase; color:var(--outline);}
+  .tech{font-family:var(--mono); font-size:12px; color:var(--blue); letter-spacing:.02em;}
+  .amber{color:var(--amber);}
+  .caps{font-family:var(--garamond); text-transform:uppercase; letter-spacing:.08em; font-weight:600;}
+
+  /* ── Masthead ── */
+  header.mast{ padding:90px 0 56px; border-bottom:1px solid color-mix(in srgb,var(--outline-var) 35%, transparent); }
+  .mast .kicker{display:flex; justify-content:space-between; align-items:baseline; flex-wrap:wrap; gap:12px; margin-bottom:40px;}
+  .mast h1{
+    font-family:var(--garamond); font-weight:500; font-size:64px; line-height:1.04; letter-spacing:-.02em; margin:0 0 18px;
+    text-wrap:balance;
+  }
+  .mast h1 em{font-style:italic; color:var(--ink-var);}
+  .mast .sub{font-size:19px; color:var(--ink-var); max-width:60ch; margin:0;}
+  @media(max-width:680px){ .mast h1{font-size:40px;} header.mast{padding:56px 0 40px;} }
+
+  .meta-row{display:flex; flex-wrap:wrap; gap:32px 56px; margin-top:40px;}
+  .meta-row .cell .label{display:block; margin-bottom:6px;}
+  .meta-row .cell .val{font-family:var(--mono); font-size:13px; color:var(--ink);}
+
+  /* ── Verdict banner ── */
+  .verdict{ margin:56px 0; padding:36px 40px; background:var(--s-low); border-left:3px solid var(--amber); position:relative;}
+  .verdict .label{color:var(--amber-dim); margin-bottom:14px; display:block;}
+  .verdict p{font-family:var(--garamond); font-size:27px; line-height:1.32; margin:0; color:var(--ink); text-wrap:pretty;}
+  .verdict p strong{color:var(--amber-lt); font-weight:600;}
+  @media(max-width:680px){ .verdict{padding:26px 22px;} .verdict p{font-size:21px;} }
+
+  /* ── Section ── */
+  section.blk{padding:64px 0; border-bottom:1px solid color-mix(in srgb,var(--outline-var) 30%, transparent);}
+  .sec-head{display:flex; align-items:baseline; gap:18px; margin-bottom:36px;}
+  .sec-head .num{font-family:var(--mono); font-size:13px; color:var(--amber-dim);}
+  .sec-head h2{font-family:var(--garamond); font-weight:500; font-size:34px; letter-spacing:-.01em; margin:0;}
+  @media(max-width:680px){ .sec-head h2{font-size:26px;} section.blk{padding:44px 0;} }
+
+  /* ── File dossier cards ── */
+  .file-card{ background:var(--s-lowest); margin-bottom:28px; position:relative; }
+  .fc-top{display:flex; justify-content:space-between; align-items:flex-start; gap:20px; padding:26px 30px 22px; border-bottom:1px solid color-mix(in srgb,var(--outline-var) 28%, transparent);}
+  .fc-id{font-family:var(--mono); font-size:11px; color:var(--outline); letter-spacing:.12em; text-transform:uppercase;}
+  .fc-name{font-family:var(--garamond); font-weight:600; font-size:25px; margin:8px 0 4px; letter-spacing:-.01em;}
+  .fc-actual{font-family:var(--mono); font-size:12px; color:var(--error); letter-spacing:.02em;}
+  .fc-actual.ok{color:var(--blue);}
+  .fc-grade{flex-shrink:0; text-align:right;}
+  .fc-grade .g{font-family:var(--garamond); font-size:42px; font-weight:600; line-height:1; color:var(--amber);}
+  .fc-grade .glabel{font-family:var(--mono); font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:var(--outline); display:block; margin-top:6px;}
+
+  .fc-body{padding:24px 30px 30px;}
+  .fc-stats{display:flex; flex-wrap:wrap; gap:10px 28px; margin-bottom:22px;}
+  .fc-stats .st .label{display:block; font-size:11px; margin-bottom:3px;}
+  .fc-stats .st .v{font-family:var(--mono); font-size:14px; color:var(--ink);}
+
+  .swatches{display:flex; gap:0; margin:18px 0 24px; border:1px solid color-mix(in srgb,var(--outline-var) 30%, transparent);}
+  .swatches .sw{flex:1; height:46px; display:flex; align-items:flex-end; padding:4px 6px;}
+  .swatches .sw span{font-family:var(--mono); font-size:9px; color:rgba(255,255,255,.55); mix-blend-mode:difference;}
+
+  .findings{list-style:none; margin:0; padding:0;}
+  .findings li{position:relative; padding:11px 0 11px 30px; border-top:1px solid color-mix(in srgb,var(--outline-var) 22%, transparent); font-size:15.5px; color:var(--ink-var); text-wrap:pretty;}
+  .findings li:first-child{border-top:none;}
+  .findings li::before{position:absolute; left:0; top:11px; font-family:var(--mono); font-size:12px; font-weight:700;}
+  .findings li.pos::before{content:"+"; color:var(--blue);}
+  .findings li.neg::before{content:"–"; color:var(--error);}
+  .findings li.warn::before{content:"!"; color:var(--amber-dim);}
+  .findings li b{color:var(--ink); font-weight:600;}
+  .findings li code{font-family:var(--mono); font-size:12.5px; background:var(--s); padding:1px 6px; color:var(--ink-var);}
+
+  /* ── cross-cutting grid ── */
+  .xgrid{display:grid; grid-template-columns:repeat(2,1fr); gap:20px;}
+  @media(max-width:680px){ .xgrid{grid-template-columns:1fr;} }
+  .xcard{background:var(--s-low); padding:24px 26px; border-top:2px solid var(--outline-var);}
+  .xcard.crit{border-top-color:var(--error);}
+  .xcard.warn{border-top-color:var(--amber-dim);}
+  .xcard h3{font-family:var(--garamond); font-weight:600; font-size:20px; margin:0 0 6px; letter-spacing:-.01em;}
+  .xcard .tag{font-family:var(--mono); font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:var(--outline); display:block; margin-bottom:12px;}
+  .xcard p{margin:0; font-size:15px; color:var(--ink-var); text-wrap:pretty;}
+  .xcard p + p{margin-top:10px;}
+  .xcard .num-big{font-family:var(--garamond); font-size:30px; color:var(--amber); font-weight:600;}
+
+  /* ── recommendations ── */
+  ol.recs{counter-reset:r; list-style:none; margin:0; padding:0;}
+  ol.recs li{counter-increment:r; position:relative; padding:22px 0 22px 64px; border-top:1px solid color-mix(in srgb,var(--outline-var) 28%, transparent);}
+  ol.recs li::before{content:"R" counter(r,decimal-leading-zero); position:absolute; left:0; top:22px; font-family:var(--mono); font-size:13px; color:var(--amber-dim); letter-spacing:.06em;}
+  ol.recs li h3{font-family:var(--garamond); font-weight:600; font-size:21px; margin:0 0 6px;}
+  ol.recs li p{margin:0; font-size:15.5px; color:var(--ink-var); text-wrap:pretty;}
+  ol.recs li .pri{font-family:var(--mono); font-size:10px; letter-spacing:.12em; text-transform:uppercase; padding:2px 8px; border:1px solid var(--outline-var); color:var(--outline); margin-left:10px; vertical-align:middle;}
+  ol.recs li .pri.p1{color:var(--error); border-color:color-mix(in srgb,var(--error) 50%,transparent);}
+  ol.recs li .pri.p2{color:var(--amber-dim); border-color:color-mix(in srgb,var(--amber-dim) 45%,transparent);}
+
+  footer.fn{padding:50px 0 90px;}
+  footer.fn .note{background:var(--s-lowest); padding:24px 28px; border:1px solid color-mix(in srgb,var(--outline-var) 28%, transparent);}
+  footer.fn .note p{margin:0; font-family:var(--mono); font-size:12.5px; line-height:1.7; color:var(--outline);}
+  footer.fn .note p + p{margin-top:10px;}
+  footer.fn .sig{margin-top:28px; display:flex; justify-content:space-between; flex-wrap:wrap; gap:10px;}
+
+  /* deep-dive links */
+  .dd-links{display:grid; grid-template-columns:repeat(3,1fr); gap:16px;}
+  @media(max-width:680px){ .dd-links{grid-template-columns:1fr;} }
+  a.dd{display:block; text-decoration:none; background:var(--s-lowest); border:1px solid color-mix(in srgb,var(--outline-var) 30%,transparent); border-top:2px solid var(--amber); padding:22px 22px 24px; transition:background .15s, transform .15s;}
+  a.dd:hover{background:var(--s-low); transform:translateY(-2px);}
+  a.dd .dd-no{font-family:var(--mono); font-size:12px; color:var(--amber-dim); letter-spacing:.1em; display:block; margin-bottom:14px;}
+  a.dd .dd-t{font-family:var(--garamond); font-weight:600; font-size:21px; color:var(--ink); display:block; line-height:1.2; margin-bottom:8px; letter-spacing:-.01em;}
+  a.dd .dd-d{font-family:var(--mono); font-size:11.5px; color:var(--outline); line-height:1.5; display:block;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="mast" data-screen-label="Masthead">
+    <div class="kicker">
+      <span class="label">Abstrekkt · Audit Division</span>
+      <span class="label">Case № FM-2026-0624</span>
+    </div>
+    <h1>Three exports.<br /><em>Three brands.</em> One question.</h1>
+    <p class="sub">A forensic audit of three Figma&nbsp;Make files — reconstructed from their embedded source, examined for architecture, brand integrity, and craft.</p>
+    <div class="meta-row">
+      <div class="cell"><span class="label">Artifacts</span><span class="val">3 × .make</span></div>
+      <div class="cell"><span class="label">Source recovered</span><span class="val">361 files</span></div>
+      <div class="cell"><span class="label">Method</span><span class="val">tool-call replay</span></div>
+      <div class="cell"><span class="label">Exported</span><span class="val">2026-06-24</span></div>
+    </div>
+  </header>
+
+  <div class="verdict" data-screen-label="Verdict">
+    <span class="label">Headline Finding</span>
+    <p>All three files claim the <strong>FlashFusion</strong> name, yet each runs a <strong>different color system, type pairing, and tech stack</strong>. There is no shared design language between them — and the one literally titled <em>"cohesive dashboard interface"</em> is neither cohesive nor a dashboard.</p>
+  </div>
+
+  <!-- ───────────── DEEP DIVES ───────────── -->
+  <section class="blk" data-screen-label="Deep dives">
+    <div class="sec-head"><span class="num">00</span><h2>Per-file deep dives</h2></div>
+    <p style="max-width:66ch; font-size:17px; color:var(--ink-var); margin:0 0 26px;">Each artifact has its own forensic report — architecture maps, code-level findings with snippets, and severity-tagged fixes.</p>
+    <div class="dd-links">
+      <a class="dd" href="Deep Dive 01 - Dashboard.html">
+        <span class="dd-no">01</span>
+        <span class="dd-t">"Cohesive Dashboard"</span>
+        <span class="dd-d">Neon landing on a broken router · <span style="color:var(--amber-dim)">grade C</span></span>
+      </a>
+      <a class="dd" href="Deep Dive 02 - Enterprise.html">
+        <span class="dd-no">02</span>
+        <span class="dd-t">Enterprise Profile Builder</span>
+        <span class="dd-d">Strong bones, theatrical security · <span style="color:var(--amber-dim)">grade B–</span></span>
+      </a>
+      <a class="dd" href="Deep Dive 03 - Website.html">
+        <span class="dd-no">03</span>
+        <span class="dd-t">FlashFusion Website</span>
+        <span class="dd-d">Good site, two stowaway apps · <span style="color:var(--amber-dim)">grade C+</span></span>
+      </a>
+      <a class="dd" href="Security Remediation.html" style="border-top-color:var(--blue);">
+        <span class="dd-no" style="color:var(--blue);">RX</span>
+        <span class="dd-t">Security Remediation</span>
+        <span class="dd-d">Sanitised keys + 7 drop-in production fixes</span>
+      </a>
+      <a class="dd" href="Production Cleanup.html" style="border-top-color:var(--blue);">
+        <span class="dd-no" style="color:var(--blue);">CX</span>
+        <span class="dd-t">Production Cleanup</span>
+        <span class="dd-d">Keep/delete manifests + scripts for all 3 repos</span>
+      </a>
+    </div>
+  </section>
+
+  <!-- ───────────── FILE DOSSIERS ───────────── -->
+  <section class="blk" data-screen-label="File dossiers">
+    <div class="sec-head"><span class="num">01</span><h2>The artifacts, at a glance</h2></div>
+
+    <!-- FILE 1 -->
+    <article class="file-card">
+      <div class="fc-top">
+        <div>
+          <div class="fc-id">FILE 01 · 1.18 MB · canvas 1408×1244</div>
+          <div class="fc-name">Design cohesive dashboard interface</div>
+          <div class="fc-actual">⚠ ACTUAL CONTENT: a neon marketing landing page — not a dashboard</div>
+        </div>
+        <div class="fc-grade"><span class="g">C</span><span class="glabel">Craft grade</span></div>
+      </div>
+      <div class="fc-body">
+        <div class="fc-stats">
+          <div class="st"><span class="label">Stack</span><span class="v">Vite · React · inline styles</span></div>
+          <div class="st"><span class="label">Source</span><span class="v">24 files / ~4,200 LOC</span></div>
+          <div class="st"><span class="label">Type</span><span class="v">Syne · Space Mono</span></div>
+        </div>
+        <div class="swatches">
+          <div class="sw" style="background:#03000a"><span>#03000a void</span></div>
+          <div class="sw" style="background:#1a003d"><span>#1a003d</span></div>
+          <div class="sw" style="background:#7b00ff"><span>#7b00ff</span></div>
+          <div class="sw" style="background:#bf00ff"><span>#bf00ff neon</span></div>
+          <div class="sw" style="background:#e040fb"><span>#e040fb</span></div>
+          <div class="sw" style="background:#f8f0ff"><span>#f8f0ff</span></div>
+        </div>
+        <ul class="findings">
+          <li class="pos">Genuinely <b>ambitious motion design</b> — boot sequence, signal-trail canvas, HUD overlay, scroll-driven dividers. The most visually distinctive of the three.</li>
+          <li class="neg"><b>Misnamed.</b> Filename promises a dashboard; the build is a FlashFusion marketing page (Hero / Pricing / Customers / CTA). An orphaned <code>OnboardingOverlay</code> + routing layer hints at a half-started pivot.</li>
+          <li class="neg"><b>100% inline styles</b> in <code>App.tsx</code> &amp; components — no shared token layer beyond a handful of CSS vars. Re-theming means hand-editing every file.</li>
+          <li class="warn"><code>cursor:none</code> globally for a custom cursor — an accessibility and usability risk; breaks on touch and for motor-impaired users.</li>
+          <li class="warn">Neon purple/magenta on near-black + heavy glow: striking, but contrast on dim metadata text (<code>rgba(232,213,255,.4)</code>) falls below WCAG AA.</li>
+        </ul>
+      </div>
+    </article>
+
+    <!-- FILE 2 -->
+    <article class="file-card">
+      <div class="fc-top">
+        <div>
+          <div class="fc-id">FILE 02 · 4.77 MB · canvas 1408×1244</div>
+          <div class="fc-name">Enterprise Profile Builder</div>
+          <div class="fc-actual ok">Enterprise enablement console — sidebar + sectioned content</div>
+        </div>
+        <div class="fc-grade"><span class="g">B–</span><span class="glabel">Craft grade</span></div>
+      </div>
+      <div class="fc-body">
+        <div class="fc-stats">
+          <div class="st"><span class="label">Stack</span><span class="v">Vite · React · Tailwind / shadcn</span></div>
+          <div class="st"><span class="label">Source</span><span class="v">195 files · ~40 are docs</span></div>
+          <div class="st"><span class="label">Type</span><span class="v">system sans (Tailwind default)</span></div>
+        </div>
+        <div class="swatches">
+          <div class="sw" style="background:#0f172a"><span>#0f172a slate-900</span></div>
+          <div class="sw" style="background:#1e293b"><span>slate-800</span></div>
+          <div class="sw" style="background:#d97706"><span>#d97706 amber-600</span></div>
+          <div class="sw" style="background:#f59e0b"><span>#f59e0b amber-500</span></div>
+          <div class="sw" style="background:#cbd5e1"><span>slate-300</span></div>
+          <div class="sw" style="background:#ffffff"><span>#fff</span></div>
+        </div>
+        <ul class="findings">
+          <li class="pos"><b>Best-organized codebase</b> of the three — feature-folder architecture, typed contexts, UI primitives (<code>Button</code>, <code>Badge</code>, <code>Toast</code>), real hooks. Closest to shippable.</li>
+          <li class="pos">Sensible a11y baseline: <code>sr-only</code>, <code>:focus-visible</code> rings, print styles, reduced-motion-friendly.</li>
+          <li class="neg"><b>Identity confusion:</b> sidebar reads "INT&nbsp;Inc. / Internal Use Only", the export thumbnail says "FF&nbsp;Inc.", the title says "Enterprise Claude Profile Builder." Three names for one product.</li>
+          <li class="neg"><b>Documentation tumour.</b> ~40 markdown files / 30,000+ lines of AI phase-tracking: <code>PHASES_ADVANCED_COMPLETE.md</code> (2,543 ln), <code>PHASES.md</code> (2,237), <code>reference-docs.ts</code> (2,253). This is process exhaust shipped as product.</li>
+          <li class="warn">Duplicate trees: <code>/features/…</code> and <code>/src/features/…</code> hold parallel copies (Deployment, Operations, ROI). Dead weight + drift risk.</li>
+          <li class="warn">Global underlined amber links + amber-on-slate generic Tailwind look — competent but anonymous; no proprietary visual signature.</li>
+        </ul>
+      </div>
+    </article>
+
+    <!-- FILE 3 -->
+    <article class="file-card">
+      <div class="fc-top">
+        <div>
+          <div class="fc-id">FILE 03 · 18.0 MB · canvas 1496×1244</div>
+          <div class="fc-name">FlashFusion Website</div>
+          <div class="fc-actual ok">Next.js marketing site (App Router, monorepo)</div>
+        </div>
+        <div class="fc-grade"><span class="g">C+</span><span class="glabel">Craft grade</span></div>
+      </div>
+      <div class="fc-body">
+        <div class="fc-stats">
+          <div class="st"><span class="label">Stack</span><span class="v">Next.js · Turborepo · Tailwind</span></div>
+          <div class="st"><span class="label">Source</span><span class="v">142 files · ~60 are docs</span></div>
+          <div class="st"><span class="label">Type</span><span class="v">Sora · Inter</span></div>
+        </div>
+        <div class="swatches">
+          <div class="sw" style="background:#0f172a"><span>#0F172A bg</span></div>
+          <div class="sw" style="background:#1e293b"><span>#1E293B</span></div>
+          <div class="sw" style="background:#ff7b00"><span>#FF7B00 orange</span></div>
+          <div class="sw" style="background:#00b4d8"><span>#00B4D8 cyan</span></div>
+          <div class="sw" style="background:#e91e63"><span>#E91E63 pink</span></div>
+          <div class="sw" style="background:#ffffff"><span>#fff</span></div>
+        </div>
+        <ul class="findings">
+          <li class="pos"><b>Most production-minded plumbing:</b> CI workflows (CodeQL, gitleaks, RLS tests), env templating, Playwright visual tests, multi-domain deploy configs.</li>
+          <li class="pos">Real SEO/OpenGraph metadata and server actions for lead capture — it's wired like an actual site, not a mockup.</li>
+          <li class="neg"><b>Tri-color gradient brand</b> (orange + cyan + pink) is classic AI-slop — gradient hero washes, blurred color blobs, <code>Inter</code> body. Generic SaaS, not memorable.</li>
+          <li class="neg"><b>Worst doc bloat:</b> ~60 narration files incl. <code>COMPLETE_USER_WORKFLOWS…md</code> (3,073 ln), <code>FIGMA_PROTOTYPE…ANALYSIS.md</code> (1,827), plus paired <code>X_ADDED.md</code> + <code>X_COMPLETE.md</code> status spam.</li>
+          <li class="warn">A <code>verify-flashfusion-branding.js</code> script exists to police the name — yet the name is the <em>only</em> thing consistent across the portfolio; the visuals it should protect drift freely.</li>
+          <li class="warn">18 MB export carries 12 large embedded raster images — heavy for what is largely text + gradients.</li>
+        </ul>
+      </div>
+    </article>
+  </section>
+
+  <!-- ───────────── CROSS-CUTTING ───────────── -->
+  <section class="blk" data-screen-label="Cross-cutting">
+    <div class="sec-head"><span class="num">02</span><h2>Patterns across all three</h2></div>
+    <div class="xgrid">
+      <div class="xcard crit">
+        <span class="tag">Critical · brand</span>
+        <h3>No shared design language</h3>
+        <p><span class="num-big">3</span> palettes, <span class="num-big">3</span> type pairings, <span class="num-big">3</span> stacks for one brand. Purple-neon vs. amber-slate vs. orange-cyan-pink. A user moving between them would not recognize them as the same company.</p>
+      </div>
+      <div class="xcard crit">
+        <span class="tag">Critical · process</span>
+        <h3>Documentation &gt; product</h3>
+        <p>Across files 2 &amp; 3, <b>~100 markdown files / 65,000+ lines</b> of "PHASE_N_COMPLETE" narration ship inside the repos. This is generation exhaust mistaken for deliverable. It buries the real code and signals churn, not progress.</p>
+      </div>
+      <div class="xcard warn">
+        <span class="tag">Warning · craft</span>
+        <h3>Naming doesn't match content</h3>
+        <p>"Cohesive dashboard" is a landing page. "Enterprise Profile Builder" calls itself INT Inc., FF Inc., <em>and</em> Claude Profile Builder. Labels and artifacts have drifted apart.</p>
+      </div>
+      <div class="xcard warn">
+        <span class="tag">Warning · a11y</span>
+        <h3>Contrast &amp; cursor risks</h3>
+        <p>File 1 hides the cursor globally and uses sub-AA dim text on black. Files 2–3 have decent baselines but lean on low-contrast muted greys for secondary copy.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───────────── ABSTREKKT FIT ───────────── -->
+  <section class="blk" data-screen-label="Abstrekkt fit">
+    <div class="sec-head"><span class="num">03</span><h2>Relationship to Abstrekkt</h2></div>
+    <p style="max-width:68ch; font-size:17px; color:var(--ink-var);">For the record: none of the three match this project's <span class="amber">Abstrekkt</span> system — carbon&nbsp;<code style="font-family:var(--mono);font-size:13px;background:var(--s);padding:1px 6px;">#131315</code>, golden-hour amber, blueprint blue, EB&nbsp;Garamond&nbsp;/&nbsp;Literata&nbsp;/&nbsp;JetBrains&nbsp;Mono. That's expected — FlashFusion is a separate brand. The concern isn't that they differ from Abstrekkt; it's that they differ from <em>each other</em>. Abstrekkt's discipline (one tonal ladder, one type system, depth via layering not gradient glow) is exactly the corrective these files need.</p>
+  </section>
+
+  <!-- ───────────── RECOMMENDATIONS ───────────── -->
+  <section class="blk" data-screen-label="Recommendations">
+    <div class="sec-head"><span class="num">04</span><h2>What to do next</h2></div>
+    <ol class="recs">
+      <li>
+        <h3>Pick one FlashFusion palette &amp; type system<span class="pri p1">P1</span></h3>
+        <p>Choose a single direction — the orange/cyan or the purple-neon, not both — write it as design tokens, and apply it across all three. Right now the brand has no fixed point.</p>
+      </li>
+      <li>
+        <h3>Purge the markdown phase-logs from the repos<span class="pri p1">P1</span></h3>
+        <p>Move "PHASE_N_COMPLETE" narration out of the deliverable (or delete it). Keep a single README + one architecture doc per project. ~65k lines of status prose is actively harmful to handoff.</p>
+      </li>
+      <li>
+        <h3>Rename to match content; resolve the identity<span class="pri p2">P2</span></h3>
+        <p>"Cohesive dashboard" → "FlashFusion Landing". Settle whether the enterprise console is FlashFusion, INT&nbsp;Inc., or FF&nbsp;Inc. — one name, everywhere.</p>
+      </li>
+      <li>
+        <h3>De-dupe the enterprise tree<span class="pri p2">P2</span></h3>
+        <p>Collapse <code>/features</code> and <code>/src/features</code> into one source of truth before they drift further apart.</p>
+      </li>
+      <li>
+        <h3>Promote the enterprise architecture as the standard<span class="pri p2">P2</span></h3>
+        <p>File 2's feature-folder structure + UI primitives is the strongest foundation. Use it as the template; fold the landing page's motion ideas in as a themed layer, not a separate codebase.</p>
+      </li>
+      <li>
+        <h3>Fix the obvious a11y gaps<span class="pri p2">P2</span></h3>
+        <p>Drop global <code>cursor:none</code>, raise muted-text contrast to AA, and gate the boot/motion sequences behind <code>prefers-reduced-motion</code>.</p>
+      </li>
+    </ol>
+  </section>
+
+  <footer class="fn" data-screen-label="Method">
+    <div class="note">
+      <p>// METHOD — Each .make file is a ZIP containing <code style="color:var(--blue)">canvas.fig</code> (binary), images, and an <code style="color:var(--blue)">ai_chat.json</code> generation log. Source was reconstructed by replaying the <code style="color:var(--blue)">write / edit / fast_apply</code> tool-calls recorded in that log, in order, to recover final file state.</p>
+      <p>// CAVEAT — Reconstruction reflects operations captured in the chat thread. Edits whose base predates the recorded session may differ slightly from the true final tree. Structure, stacks, palettes, and file inventories are reliable; exact line counts are approximate. Recovered source saved to <code style="color:var(--blue)">audit/src/</code>.</p>
+    </div>
+    <div class="sig">
+      <span class="label">Abstrekkt Audit Division</span>
+      <span class="label">End of dossier · FM-2026-0624</span>
+    </div>
+  </footer>
+
+</div>
+
+<template id="__bundler_thumbnail">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400">
+    <rect width="400" height="400" fill="#131315"/>
+    <rect x="120" y="120" width="160" height="160" fill="none" stroke="#ffbf00" stroke-width="6"/>
+    <text x="200" y="218" font-family="Georgia,serif" font-size="120" fill="#ffbf00" text-anchor="middle">A</text>
+  </svg>
+</template>
+</body>
+</html>

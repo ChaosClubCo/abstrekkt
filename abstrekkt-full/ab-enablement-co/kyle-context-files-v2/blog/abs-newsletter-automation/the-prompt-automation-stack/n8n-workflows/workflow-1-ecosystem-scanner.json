@@ -1,0 +1,437 @@
+{
+  "name": "The Prompt — Daily Ecosystem Scanner",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 6 * * *"
+            }
+          ]
+        }
+      },
+      "name": "Daily 6AM Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 300]
+    },
+    {
+      "parameters": {},
+      "name": "Manual Test Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [0, 500]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===========================================\n// FEED CONFIGURATION\n// Edit this list to add/remove/modify feeds\n// ===========================================\n\nconst feeds = [\n  // TIER 1 — Primary Sources (AI Labs)\n  { url: 'https://raw.githubusercontent.com/Olshansk/rss-feeds/main/feeds/feed_anthropic_news.xml', source: 'Anthropic News', tier: 1, category: 'ai_labs' },\n  { url: 'https://raw.githubusercontent.com/Olshansk/rss-feeds/main/feeds/feed_anthropic_engineering.xml', source: 'Anthropic Engineering', tier: 1, category: 'ai_labs' },\n  { url: 'https://raw.githubusercontent.com/Olshansk/rss-feeds/main/feeds/feed_openai_research.xml', source: 'OpenAI', tier: 1, category: 'ai_labs' },\n  { url: 'https://blog.google/technology/ai/rss/', source: 'Google AI', tier: 1, category: 'ai_labs' },\n  { url: 'https://blogs.microsoft.com/ai/feed/', source: 'Microsoft AI', tier: 1, category: 'ai_labs' },\n\n  // TIER 2 — Industry News\n  { url: 'https://techcrunch.com/category/artificial-intelligence/feed/', source: 'TechCrunch AI', tier: 2, category: 'tech_news' },\n  { url: 'https://www.theverge.com/rss/ai-artificial-intelligence/index.xml', source: 'The Verge AI', tier: 2, category: 'tech_news' },\n  { url: 'https://venturebeat.com/category/ai/feed/', source: 'VentureBeat AI', tier: 2, category: 'tech_news' },\n  { url: 'https://feeds.arstechnica.com/arstechnica/index', source: 'Ars Technica', tier: 2, category: 'tech_news' },\n  { url: 'https://www.techmeme.com/feed.xml', source: 'Techmeme', tier: 2, category: 'tech_news' },\n  { url: 'https://www.wired.com/feed/tag/ai/latest/rss', source: 'Wired AI', tier: 2, category: 'tech_news' },\n\n  // TIER 3 — Developer Ecosystem\n  { url: 'https://hnrss.org/newest?q=AI+OR+LLM+OR+Claude+OR+GPT+OR+agent', source: 'HN AI Filtered', tier: 3, category: 'developer' },\n  { url: 'https://www.producthunt.com/feed', source: 'Product Hunt', tier: 3, category: 'developer' },\n  { url: 'https://raw.githubusercontent.com/Olshansk/rss-feeds/main/feeds/feed_cursor.xml', source: 'Cursor Blog', tier: 3, category: 'developer' },\n  { url: 'https://vercel.com/atom', source: 'Vercel Blog', tier: 3, category: 'developer' },\n  { url: 'https://supabase.com/blog/rss.xml', source: 'Supabase Blog', tier: 3, category: 'developer' },\n\n  // TIER 4 — Research (excluding ArXiv — separate workflow)\n  { url: 'https://magazine.sebastianraschka.com/feed', source: 'Ahead of AI', tier: 4, category: 'research' },\n  { url: 'https://thealgorithmicbridge.substack.com/feed', source: 'Algorithmic Bridge', tier: 4, category: 'research' },\n\n  // TIER 5 — Security & Infrastructure\n  { url: 'https://feeds.feedburner.com/TheHackersNews', source: 'The Hacker News', tier: 5, category: 'security' },\n  { url: 'https://krebsonsecurity.com/feed/', source: 'Krebs on Security', tier: 5, category: 'security' },\n  { url: 'https://blog.cloudflare.com/rss/', source: 'Cloudflare Blog', tier: 5, category: 'infrastructure' },\n  { url: 'https://simonwillison.net/atom/everything/', source: 'Simon Willison', tier: 5, category: 'developer' }\n];\n\n// Output each feed as a separate item for the RSS Read node\nreturn feeds.map(feed => ({ json: feed }));"
+      },
+      "name": "Feed URLs",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "batchSize": 5,
+        "options": {
+          "reset": false
+        }
+      },
+      "name": "Batch Feeds",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [470, 300]
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.url }}",
+        "options": {}
+      },
+      "name": "Fetch RSS",
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1,
+      "position": [690, 300],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Normalize RSS items and attach source metadata\n// Handles different RSS feed formats (RSS 2.0, Atom)\n\nconst items = $input.all();\nconst batchMeta = $('Batch Feeds').first().json;\n\nconst results = [];\nconst now = new Date();\nconst oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);\n\nfor (const item of items) {\n  const data = item.json;\n  \n  // Skip items with no title (malformed entries)\n  if (!data.title) continue;\n  \n  // Parse publication date\n  let pubDate;\n  try {\n    pubDate = new Date(data.pubDate || data.isoDate || data.published || data.date || now);\n  } catch {\n    pubDate = now;\n  }\n  \n  // Only include items from the last 24 hours\n  // (prevents re-processing old items on first run — remove this filter for initial backfill)\n  if (pubDate < oneDayAgo) continue;\n  \n  // Extract content snippet (first 500 chars)\n  const rawContent = data.content || data['content:encoded'] || data.summary || data.description || '';\n  const textContent = rawContent.replace(/<[^>]*>/g, '').substring(0, 500);\n  \n  results.push({\n    json: {\n      title: data.title,\n      url: data.link || data.url || data.guid || '',\n      content_snippet: textContent,\n      pub_date: pubDate.toISOString(),\n      source: batchMeta.source || 'Unknown',\n      tier: batchMeta.tier || 0,\n      category: batchMeta.category || 'uncategorized',\n      feed_url: batchMeta.url || ''\n    }\n  });\n}\n\n// Return results or empty item to prevent workflow stop\nif (results.length === 0) {\n  return [{ json: { _empty: true, source: batchMeta.source, message: 'No new items in last 24h' } }];\n}\n\nreturn results;"
+      },
+      "name": "Normalize Items",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [910, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Deduplicate items by URL across all feeds\n// Also removes empty marker items from feeds with no new content\n\nconst items = $input.all();\nconst seen = new Set();\nconst deduped = [];\n\nfor (const item of items) {\n  // Skip empty markers\n  if (item.json._empty) continue;\n  \n  const url = item.json.url;\n  if (!url || seen.has(url)) continue;\n  \n  seen.add(url);\n  deduped.push(item);\n}\n\nconsole.log(`Deduplication: ${items.length} items → ${deduped.length} unique`);\n\nif (deduped.length === 0) {\n  return [{ json: { _no_items: true, message: 'No new unique items found across all feeds' } }];\n}\n\nreturn deduped;"
+      },
+      "name": "Deduplicate",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1130, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "no-items-check",
+              "leftValue": "={{ $json._no_items }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "notTrue"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "name": "Has Items?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1350, 300]
+    },
+    {
+      "parameters": {
+        "batchSize": 5,
+        "options": {
+          "reset": false
+        }
+      },
+      "name": "Batch for Claude",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [1570, 200]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Wait 1 second between batches to respect API rate limits\nawait new Promise(resolve => setTimeout(resolve, 1000));\nreturn $input.all();"
+      },
+      "name": "Rate Limit Pause",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1790, 200]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"claude-sonnet-4-20250514\",\n  \"max_tokens\": 300,\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"Rate this article for inclusion in an AI ecosystem intelligence newsletter called The Prompt. The newsletter serves: (1) non-technical leaders wanting business impact, (2) technical department heads wanting strategic implications, (3) AI practitioners wanting actionable builder intelligence.\\n\\nArticle Title: {{ $json.title }}\\nSource: {{ $json.source }}\\nContent: {{ $json.content_snippet }}\\n\\nScore 1-10. Only score >= 7 if it contains genuine builder intelligence — not just product announcements or hype. Score < 4 for promotional fluff.\\n\\nRespond ONLY with valid JSON, no markdown:\\n{\\\"score\\\": <number>, \\\"reason\\\": \\\"<1 sentence>\\\", \\\"category\\\": \\\"<ai_labs|enterprise|developer|security|research|product_launch>\\\", \\\"newsletter_tier\\\": \\\"<tier1_exec|tier2_tech|tier3_builder|all>\\\", \\\"newsletter_angle\\\": \\\"<1 sentence: how to frame this for the newsletter>\\\"}\"\n    }\n  ]\n}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "name": "Claude Score",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2010, 200],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse Claude API response and merge with original item data\n\nconst items = $input.all();\nconst results = [];\n\nfor (const item of items) {\n  const original = item.json;\n  \n  // Get the original RSS item data from the batch\n  const batchItem = $('Rate Limit Pause').first().json;\n  \n  let score = 0;\n  let reason = 'Parse error';\n  let category = 'unknown';\n  let newsletter_tier = 'unknown';\n  let newsletter_angle = '';\n  \n  try {\n    // Claude API response structure\n    const content = original.content;\n    if (content && content[0] && content[0].text) {\n      const text = content[0].text.replace(/```json|```/g, '').trim();\n      const parsed = JSON.parse(text);\n      score = parsed.score || 0;\n      reason = parsed.reason || '';\n      category = parsed.category || 'unknown';\n      newsletter_tier = parsed.newsletter_tier || 'unknown';\n      newsletter_angle = parsed.newsletter_angle || '';\n    }\n  } catch (e) {\n    console.log('Claude parse error:', e.message);\n    // Keep defaults — item will be filtered out by low score\n  }\n  \n  results.push({\n    json: {\n      ...batchItem,\n      relevance_score: score,\n      score_reason: reason,\n      ai_category: category,\n      newsletter_tier: newsletter_tier,\n      newsletter_angle: newsletter_angle,\n      scored_at: new Date().toISOString()\n    }\n  });\n}\n\nreturn results;"
+      },
+      "name": "Parse Score",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2230, 200]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "score-filter",
+              "leftValue": "={{ $json.relevance_score }}",
+              "rightValue": 7,
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "name": "Score >= 7?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [2450, 200]
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "create",
+        "databaseId": {
+          "__rl": true,
+          "value": "YOUR_NOTION_DATABASE_ID_HERE",
+          "mode": "id"
+        },
+        "title": "={{ $json.title }}",
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Source",
+              "type": "selectType",
+              "selectValue": "={{ $json.source }}"
+            },
+            {
+              "key": "URL",
+              "type": "urlType",
+              "urlValue": "={{ $json.url }}"
+            },
+            {
+              "key": "Score",
+              "type": "numberType",
+              "numberValue": "={{ $json.relevance_score }}"
+            },
+            {
+              "key": "Category",
+              "type": "selectType",
+              "selectValue": "={{ $json.ai_category }}"
+            },
+            {
+              "key": "Newsletter Tier",
+              "type": "selectType",
+              "selectValue": "={{ $json.newsletter_tier }}"
+            },
+            {
+              "key": "Newsletter Angle",
+              "type": "richTextType",
+              "textContent": "={{ $json.newsletter_angle }}"
+            },
+            {
+              "key": "Status",
+              "type": "selectType",
+              "selectValue": "new"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Save to Notion",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [2670, 100]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Count results for the daily summary\nconst items = $input.all();\nconst highScore = items.filter(i => i.json.relevance_score >= 8).length;\nconst medScore = items.filter(i => i.json.relevance_score >= 7 && i.json.relevance_score < 8).length;\n\nreturn [{\n  json: {\n    total_saved: items.length,\n    high_relevance: highScore,\n    medium_relevance: medScore,\n    date: new Date().toISOString().split('T')[0],\n    summary: `Daily scan complete: ${items.length} items saved (${highScore} high, ${medScore} medium relevance)`\n  }\n}];"
+      },
+      "name": "Daily Summary",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2890, 100]
+    },
+    {
+      "parameters": {
+        "channel": "#the-prompt",
+        "text": "=📊 *Ecosystem Scanner — Daily Digest*\n{{ $json.summary }}\n\nReview inbox: [Notion Link]",
+        "otherOptions": {}
+      },
+      "name": "Notify Slack",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2,
+      "position": [3110, 100],
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "subject": "=The Prompt Scanner: {{ $json.total_saved }} items found",
+        "message": "={{ $json.summary }}",
+        "toEmail": "YOUR_EMAIL_HERE"
+      },
+      "name": "Notify Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2,
+      "position": [3110, 300],
+      "disabled": true
+    },
+    {
+      "parameters": {},
+      "name": "Error Trigger",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [0, 700]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Log error details for debugging\nconst error = $input.first().json;\n\nreturn [{\n  json: {\n    workflow: 'Ecosystem Scanner',\n    error_message: error.execution?.error?.message || 'Unknown error',\n    error_node: error.execution?.lastNodeExecuted || 'Unknown',\n    timestamp: new Date().toISOString(),\n    execution_id: error.execution?.id || 'unknown'\n  }\n}];"
+      },
+      "name": "Format Error",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [250, 700]
+    },
+    {
+      "parameters": {
+        "subject": "=⚠️ Ecosystem Scanner FAILED: {{ $json.error_node }}",
+        "message": "=Workflow: {{ $json.workflow }}\nNode: {{ $json.error_node }}\nError: {{ $json.error_message }}\nTime: {{ $json.timestamp }}\nExecution: {{ $json.execution_id }}",
+        "toEmail": "YOUR_EMAIL_HERE"
+      },
+      "name": "Error Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2,
+      "position": [470, 700],
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Count items that scored below 7 for monitoring\n// Useful to see if the filter is too aggressive or too lenient\nconst items = $input.all();\n\nconsole.log(`Filtered out ${items.length} items (score < 7)`);\n\n// Optional: save low-scoring items to a separate log for tuning\nreturn [{\n  json: {\n    filtered_count: items.length,\n    message: `${items.length} items scored below threshold`\n  }\n}];"
+      },
+      "name": "Log Filtered",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2670, 400]
+    }
+  ],
+  "connections": {
+    "Daily 6AM Trigger": {
+      "main": [
+        [{ "node": "Feed URLs", "type": "main", "index": 0 }]
+      ]
+    },
+    "Manual Test Trigger": {
+      "main": [
+        [{ "node": "Feed URLs", "type": "main", "index": 0 }]
+      ]
+    },
+    "Feed URLs": {
+      "main": [
+        [{ "node": "Batch Feeds", "type": "main", "index": 0 }]
+      ]
+    },
+    "Batch Feeds": {
+      "main": [
+        [{ "node": "Fetch RSS", "type": "main", "index": 0 }]
+      ]
+    },
+    "Fetch RSS": {
+      "main": [
+        [{ "node": "Normalize Items", "type": "main", "index": 0 }]
+      ]
+    },
+    "Normalize Items": {
+      "main": [
+        [{ "node": "Batch Feeds", "type": "main", "index": 0 }]
+      ]
+    },
+    "Batch Feeds": {
+      "main": [
+        null,
+        [{ "node": "Deduplicate", "type": "main", "index": 0 }]
+      ]
+    },
+    "Deduplicate": {
+      "main": [
+        [{ "node": "Has Items?", "type": "main", "index": 0 }]
+      ]
+    },
+    "Has Items?": {
+      "main": [
+        [{ "node": "Batch for Claude", "type": "main", "index": 0 }],
+        []
+      ]
+    },
+    "Batch for Claude": {
+      "main": [
+        [{ "node": "Rate Limit Pause", "type": "main", "index": 0 }]
+      ]
+    },
+    "Rate Limit Pause": {
+      "main": [
+        [{ "node": "Claude Score", "type": "main", "index": 0 }]
+      ]
+    },
+    "Claude Score": {
+      "main": [
+        [{ "node": "Parse Score", "type": "main", "index": 0 }]
+      ]
+    },
+    "Parse Score": {
+      "main": [
+        [{ "node": "Batch for Claude", "type": "main", "index": 0 }]
+      ]
+    },
+    "Batch for Claude": {
+      "main": [
+        null,
+        [{ "node": "Score >= 7?", "type": "main", "index": 0 }]
+      ]
+    },
+    "Score >= 7?": {
+      "main": [
+        [{ "node": "Save to Notion", "type": "main", "index": 0 }],
+        [{ "node": "Log Filtered", "type": "main", "index": 0 }]
+      ]
+    },
+    "Save to Notion": {
+      "main": [
+        [{ "node": "Daily Summary", "type": "main", "index": 0 }]
+      ]
+    },
+    "Daily Summary": {
+      "main": [
+        [
+          { "node": "Notify Slack", "type": "main", "index": 0 },
+          { "node": "Notify Email", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Error Trigger": {
+      "main": [
+        [{ "node": "Format Error", "type": "main", "index": 0 }]
+      ]
+    },
+    "Format Error": {
+      "main": [
+        [{ "node": "Error Email", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": ""
+  },
+  "tags": [
+    { "name": "the-prompt" },
+    { "name": "content-engine" },
+    { "name": "daily" }
+  ]
+}

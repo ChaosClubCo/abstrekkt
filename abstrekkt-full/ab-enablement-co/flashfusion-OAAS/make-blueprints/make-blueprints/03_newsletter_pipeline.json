@@ -1,0 +1,86 @@
+{
+  "name": "Newsletter Production Pipeline — Monday 7AM",
+  "flow": [
+    {
+      "id": 1,
+      "module": "rss:TriggerNewItem",
+      "version": 1,
+      "parameters": {"feedUrl": "https://openai.com/blog/rss.xml"},
+      "mapper": {},
+      "metadata": {"designer": {"x": 0, "y": -200}, "label": "OpenAI Blog"}
+    },
+    {
+      "id": 2,
+      "module": "rss:TriggerNewItem",
+      "version": 1,
+      "parameters": {"feedUrl": "https://blog.google/technology/ai/rss/"},
+      "mapper": {},
+      "metadata": {"designer": {"x": 0, "y": 0}, "label": "Google AI Blog"}
+    },
+    {
+      "id": 3,
+      "module": "rss:TriggerNewItem",
+      "version": 1,
+      "parameters": {"feedUrl": "https://techcrunch.com/category/artificial-intelligence/feed/"},
+      "mapper": {},
+      "metadata": {"designer": {"x": 0, "y": 200}, "label": "TechCrunch AI"}
+    },
+    {
+      "id": 4,
+      "module": "rss:TriggerNewItem",
+      "version": 1,
+      "parameters": {"feedUrl": "https://www.theverge.com/rss/ai-artificial-intelligence/index.xml"},
+      "mapper": {},
+      "metadata": {"designer": {"x": 0, "y": 400}, "label": "The Verge AI"}
+    },
+    {
+      "id": 5,
+      "module": "rss:TriggerNewItem",
+      "version": 1,
+      "parameters": {"feedUrl": "https://feeds.arstechnica.com/arstechnica/technology-lab"},
+      "mapper": {},
+      "metadata": {"designer": {"x": 0, "y": 600}, "label": "Ars Technica"}
+    },
+    {
+      "id": 6,
+      "module": "tools:TextAggregator",
+      "version": 1,
+      "parameters": {"sourceModule": 1},
+      "mapper": {
+        "value": "SOURCE: {{1.source}}\nTITLE: {{1.title}}\nURL: {{1.url}}\nDATE: {{1.pubDate}}\nSUMMARY: {{1.description}}\n---"
+      },
+      "metadata": {"designer": {"x": 400, "y": 0}, "label": "Collect All Feeds"}
+    },
+    {
+      "id": 7,
+      "module": "google-gmail:sendEmail",
+      "version": 2,
+      "parameters": {"__IMTCONN__": "{{CONNECTION:google-gmail}}"},
+      "mapper": {
+        "to": "kylerosebrook@gmail.com",
+        "subject": "📰 AI Research Brief — Week of {{formatDate(now; \"MMM D\")}}",
+        "content": "Weekly AI feed digest — last 7 days:\n\n{{6.value}}",
+        "contentType": "text/plain"
+      },
+      "metadata": {"designer": {"x": 700, "y": 0}, "label": "Email Brief"}
+    }
+  ],
+  "metadata": {
+    "instant": false,
+    "version": 1,
+    "scenario": {
+      "roundtrips": 1,
+      "maxErrors": 3,
+      "autoCommit": true,
+      "autoCommitTriggerLast": true,
+      "sequential": false,
+      "confidential": false,
+      "dataloss": false,
+      "dlq": false,
+      "freshVariables": false
+    },
+    "designer": {"orphans": []},
+    "zone": "us1.make.com",
+    "notes": "Migrated from n8n YIUG6qrc9sVIEr7f. NOTE: Make RSS module triggers on each new item individually — use an Iterator aggregator pattern to batch. Set schedule: Monday 7AM CT. Requires: Gmail connection."
+  }
+}

@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>03 · Self-Service Setup — FlashFusion</title>
+<link rel="stylesheet" href="../assets/design-system.css">
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="../assets/suite.js"></script>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect } = React;
+
+const STEPS=[
+  {id:"account",title:"Create your account",sub:"Sign up at claude.ai with your work email",plan:null,
+    items:[{id:"a1",t:"Go to claude.ai and click Sign up"},{id:"a2",t:"Use your work email address"},{id:"a3",t:"Verify email and complete onboarding"},{id:"a4",t:"Download desktop app from claude.com/download"},{id:"a5",t:"Install mobile app (iOS or Android)"}],
+    tip:"Work email keeps your account separate and enables org features later."},
+  {id:"plan",title:"Check your plan",sub:"Pro unlocks most useful features",planNote:"Pro recommended",
+    items:[{id:"p1",t:"Open Settings (avatar, bottom-left)"},{id:"p2",t:"Navigate to Plan — note your tier"},{id:"p3",t:"If Free: check with manager about Pro ($20/mo)"}],
+    tip:"Free: basic chat. Pro: Projects, Memory, Connectors, file creation."},
+  {id:"memory",title:"Enable Memory",sub:"Claude remembers context across conversations",
+    items:[{id:"m1",t:"Settings → Memory & Integrations"},{id:"m2",t:"Toggle Memory ON"},{id:"m3",t:"Toggle Memory from chat history ON"},{id:"m4",t:"Click Manage Memories — review what's there"}],
+    tip:"Memory means Claude doesn't start from scratch every conversation."},
+  {id:"edits",title:"Write memory edits",sub:"Tell Claude the essentials about you",
+    items:[{id:"me1",t:"Manage Memories → Add edit"},{id:"me2",t:"Write: 'User is [Name], [Role] at [Org].'"},{id:"me3",t:"Add 1-2 more: preferences, tone, domain"},{id:"me4",t:"Test in a new conversation"},{id:"me5",t:"Add current projects or recurring focus"}],
+    tip:"Memory edits are your persistent instructions to Claude.",
+    examples:["User is [Name], Operations Manager at [Org]. Always respond concisely.","User works primarily in Excel and Teams.","User's current focus is Q3 planning."]},
+  {id:"project",title:"Create your first Project",sub:"Each Project is its own AI workspace",planNote:"Pro",
+    items:[{id:"pr1",t:"Left sidebar → + New Project"},{id:"pr2",t:"Name it for your primary work context"},{id:"pr3",t:"Gear icon → set Project instructions"},{id:"pr4",t:"Test: open conversation in project"},{id:"pr5",t:"Pin 1-2 reference files"}],
+    tip:"Custom instructions are your persistent system prompt."},
+  {id:"connectors",title:"Connect your tools",sub:"Claude reads and acts on your actual work data",planNote:"Pro",
+    items:[{id:"c1",t:"Settings → Connectors"},{id:"c2",t:"Connect Google Drive or OneDrive"},{id:"c3",t:"Connect Notion, Slack, or Teams if used"},{id:"c4",t:"Test: 'search my Drive for [recent doc]'"},{id:"c5",t:"403 error fix: disconnect and reconnect"}],
+    tip:"Connectors let Claude reference your real documents instead of making things up."},
+  {id:"style",title:"Set your writing style",sub:"Make Claude write in your voice",
+    items:[{id:"s1",t:"Settings → Writing style (or picker in conversation)"},{id:"s2",t:"Try the Concise preset"},{id:"s3",t:"Or write a custom description of your tone"}],
+    tip:"Override the style in any conversation without changing your default."},
+  {id:"first",title:"Your first real task",sub:"Use Claude on something you actually need done today",
+    items:[{id:"f1",t:"Open a conversation in your new Project"},{id:"f2",t:"Ask Claude to help with a real work task"},{id:"f3",t:"Upload a file and ask Claude to summarize"},{id:"f4",t:"Ask a web search question about your industry"},{id:"f5",t:"Build something in Artifacts"}],
+    tip:"Don't start with test prompts — start with something you actually need done."}
+];
+
+function App(){
+  const [done,setDone]=useState(()=>RR.load("self-setup-v1",{}));
+  useEffect(()=>RR.save("self-setup-v1",done),[done]);
+  const toggle=(id)=>setDone(d=>({...d,[id]:!d[id]}));
+  const allItems=STEPS.flatMap(s=>s.items.map(i=>i.id));
+  const pct=Math.round(allItems.filter(id=>done[id]).length/allItems.length*100);
+
+  return (
+    <div style={{maxWidth:760,margin:"0 auto",padding:"40px 24px 80px"}}>
+      <a href="../index.html" className="rr-mono" style={{fontSize:11}}>&larr; Suite</a>
+      <div style={{margin:"14px 0 24px",borderBottom:"1px solid var(--border)",paddingBottom:20}}>
+        <div className="rr-eyebrow">03 · Self-Service Setup Guide</div>
+        <h1 className="rr-head" style={{fontSize:30,margin:"8px 0 6px"}}>Get set up independently</h1>
+        <p style={{color:"var(--text2)",fontSize:14}}>Work through these in order. Your progress saves automatically in this browser.</p>
+        <div style={{marginTop:16,display:"flex",alignItems:"center",gap:12}}>
+          <div style={{flex:1,height:6,background:"var(--card)",borderRadius:3,overflow:"hidden",border:"1px solid var(--border)"}}>
+            <div style={{width:pct+"%",height:"100%",background:"var(--accent)",transition:"width .3s"}}></div>
+          </div>
+          <span className="rr-mono" style={{fontSize:11,color:pct===100?"var(--green)":"var(--accent)"}}>{pct}%</span>
+        </div>
+      </div>
+
+      {STEPS.map((s,idx)=>{
+        const stepDone=s.items.every(i=>done[i.id]);
+        return <div className="rr-card" style={{marginBottom:12,borderColor:stepDone?"var(--green)":"var(--border)"}} key={s.id}>
+          <div style={{display:"flex",alignItems:"baseline",gap:10}}>
+            <span className="rr-mono" style={{fontSize:11,color:"var(--text3)"}}>{String(idx+1).padStart(2,"0")}</span>
+            <div style={{flex:1}}>
+              <div style={{display:"flex",alignItems:"center",gap:8}}>
+                <h3 className="rr-head" style={{fontSize:18}}>{s.title}</h3>
+                {s.planNote && <span className="rr-tag" style={{color:"var(--mono2)"}}>{s.planNote}</span>}
+                {stepDone && <span className="rr-mono" style={{fontSize:10,color:"var(--green)"}}>✓ done</span>}
+              </div>
+              <p style={{color:"var(--text2)",fontSize:13,marginTop:2}}>{s.sub}</p>
+            </div>
+          </div>
+          <div style={{marginTop:12,display:"flex",flexDirection:"column",gap:6}}>
+            {s.items.map(i=><label key={i.id} style={{display:"flex",alignItems:"center",gap:9,cursor:"pointer",fontSize:13,color:done[i.id]?"var(--text3)":"var(--text)"}}>
+              <input type="checkbox" checked={!!done[i.id]} onChange={()=>toggle(i.id)} style={{accentColor:"#d4893a",width:15,height:15}} />
+              <span style={{textDecoration:done[i.id]?"line-through":"none"}}>{i.t}</span>
+            </label>)}
+          </div>
+          {s.examples && <div style={{marginTop:10,background:"var(--bg)",border:"1px solid var(--border)",borderRadius:2,padding:"10px 12px"}}>
+            <div className="rr-label" style={{marginBottom:6}}>Example memory edits</div>
+            {s.examples.map((e,i)=><div key={i} className="rr-mono" style={{fontSize:11,color:"var(--mono)",lineHeight:1.7}}>• {e}</div>)}
+          </div>}
+          <p style={{marginTop:10,fontSize:12,color:"var(--text3)",fontStyle:"italic"}}>{s.tip}</p>
+        </div>;
+      })}
+    </div>
+  );
+}
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>

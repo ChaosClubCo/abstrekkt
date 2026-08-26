@@ -1,0 +1,51 @@
+# FlashFusion AI and the Cortex-Nexus Framework Architecture
+
+- FlashFusion AI Agent & Cortex-Nexus Framework
+  - Core Orchestration Engine (UMPG v4.0)
+    - Plan-and-Execute Paradigm
+      - Phase 1: Strategic Planning
+      - Phase 2: Execution & State Management
+    - Quality Gates
+      - Immersive First
+      - SEO & Semantic
+      - Performance (SLO/Cost)
+      - Accessible Motion
+    - Self-Correction Protocol
+  - Execution Engine Architecture
+    - 5-Phase Process
+      - Phase 1: Ingestion (Validation & Cache)
+      - Phase 2: Strategic Mandate
+      - Phase 3: Policy & Resource
+      - Phase 4: Execution (Recursive Runner)
+      - Phase 5: Serialization & Audit
+    - Resilience & Self-Healing
+      - Exponential Backoff
+      - Transient vs Permanent Errors
+      - Idempotency Handling
+  - Tool Registry & Capabilities
+    - Workflow Orchestrator (n8n/Activepieces)
+    - Google Search Grounding (RAG)
+    - Code Executor (Sandboxed JS/Python)
+    - Parallel Job Runner
+    - Context Retrieval
+  - Observability & Debugging
+    - Audit System
+      - Correlation ID Tracing
+      - Distributed Tracing
+      - AuditLogger
+    - Dynamic Context Debugger (DCD)
+      - Hierarchical Execution Trace
+      - Debug Payload Generator
+  - Cortex-Nexus Roadmap
+    - Phase 0: Foundation (Monorepo/ADRs)
+    - Phase 1: Shell & Proxy (API Gateway)
+    - Phase 2: Intelligence Layer (Memory/AI)
+    - Phase 3: Orchestration (Flows/Cortex)
+    - Phase 4: Automation (Proactive Bots)
+    - Phase 5: Production Hardening
+    - Phase 6: Strategic R&D (Build-Bot)
+  - Governance & Constraints
+    - Context Window Validation
+    - Cost Attribution & Billing
+    - Recursion Depth Limits
+    - Anti-Patterns (No Auto-play/All-canvas)

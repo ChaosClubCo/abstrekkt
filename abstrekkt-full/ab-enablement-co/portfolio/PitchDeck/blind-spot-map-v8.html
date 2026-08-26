@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Kyle — Blind Spot Map v8</title>
+<style>
+:root{
+  --base:#09090f;--s1:#111118;--s2:#1a1a24;--di:#2a2a38;
+  --v:#A855F7;--c:#22D3EE;--br:#c9a96e;
+  --tx:#E2E2F0;--mu:#6B6B80;
+  --red:#EF4444;--amb:#F59E0B;--grn:#10B981;--sky:#38BDF8;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--base);color:var(--tx);font-family:Geist,'Segoe UI',sans-serif;padding:20px 24px;font-size:13px;line-height:1.5}
+h1{font-size:19px;font-weight:600;letter-spacing:-.01em}
+.sub{color:var(--mu);font-size:11px;margin-bottom:22px;margin-top:3px}
+.alert{border-radius:10px;padding:12px 15px;margin-bottom:10px;display:flex;gap:11px;align-items:flex-start}
+.a-red{background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.32)}
+.a-v{background:rgba(168,85,247,.06);border:1px solid rgba(168,85,247,.28)}
+.a-amb{background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.28)}
+.a-grn{background:rgba(16,185,129,.06);border:1px solid rgba(16,185,129,.25)}
+.alert-icon{font-size:15px;flex-shrink:0;margin-top:1px}
+.at{font-size:12px;font-weight:700;margin-bottom:2px}
+.at-red{color:#F87171}.at-v{color:#C084FC}.at-amb{color:#FCD34D}.at-grn{color:#34D399}
+.alert p,.alert li{font-size:11px;color:var(--tx);line-height:1.55}
+.alert ul{padding-left:16px;margin-top:4px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:14px}
+@media(max-width:820px){.grid3{grid-template-columns:1fr 1fr}}
+@media(max-width:560px){.grid2,.grid3{grid-template-columns:1fr}}
+.card{background:var(--s1);border:1px solid var(--di);border-radius:10px;padding:12px 14px}
+.card.full{grid-column:1/-1}
+.ct{font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--mu);margin-bottom:8px;padding-bottom:7px;border-bottom:1px solid var(--di)}
+.row{display:flex;gap:8px;align-items:flex-start;padding:5px 0;border-bottom:1px solid rgba(42,42,56,.6)}
+.row:last-child{border-bottom:none}
+.dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;margin-top:5px}
+.d-r{background:var(--red)}.d-a{background:var(--amb)}.d-g{background:var(--grn)}
+.d-v{background:var(--v)}.d-c{background:var(--c)}.d-b{background:var(--br)}
+.d-s{background:var(--sky)}.d-m{background:var(--mu)}
+.rb{flex:1;min-width:0}
+.rl{font-size:12px;color:var(--tx);line-height:1.4}
+.rs{font-size:11px;color:var(--mu);margin-top:2px;line-height:1.45}
+.badge{font-size:9px;padding:1px 6px;border-radius:8px;font-weight:700;margin-left:5px;vertical-align:middle;white-space:nowrap}
+.bf{background:rgba(239,68,68,.15);color:#F87171;border:1px solid rgba(239,68,68,.3)}
+.bw{background:rgba(245,158,11,.12);color:#FCD34D;border:1px solid rgba(245,158,11,.25)}
+.bg{background:rgba(16,185,129,.12);color:#34D399;border:1px solid rgba(16,185,129,.25)}
+.bv{background:rgba(168,85,247,.15);color:#C084FC;border:1px solid rgba(168,85,247,.3)}
+.bc{background:rgba(34,211,238,.1);color:#67E8F9;border:1px solid rgba(34,211,238,.2)}
+.bb{background:rgba(201,169,110,.12);color:#D4AA6E;border:1px solid rgba(201,169,110,.22)}
+.shead{font-size:14px;font-weight:600;margin:18px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--di);display:flex;align-items:center;gap:8px}
+.dl{margin-left:auto;font-size:11px;font-weight:700;color:var(--red)}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{color:var(--mu);font-size:10px;text-transform:uppercase;letter-spacing:.05em;padding:5px 8px;border-bottom:1px solid var(--di);text-align:left;white-space:nowrap}
+td{padding:6px 8px;border-bottom:1px solid rgba(42,42,56,.5);vertical-align:top;font-size:11.5px}
+td:first-child{color:var(--mu);min-width:140px}
+.diff-new::before{content:"NEW · ";color:#C084FC;font-weight:700;font-size:10px}
+.diff-chg::before{content:"CHANGED · ";color:#67E8F9;font-weight:700;font-size:10px}
+.diff-open::before{content:"OPEN · ";color:#FCD34D;font-weight:700;font-size:10px}
+.diff-flag::before{content:"⚠ FLAG · ";color:#F87171;font-weight:700;font-size:10px}
+.stamp{font-size:10px;color:var(--di);text-align:right;margin-top:18px}
+code{font-family:'JetBrains Mono',monospace;font-size:10px;padding:1px 5px;border-radius:3px}
+.cr{background:rgba(239,68,68,.1);color:#F87171}
+.cg{background:rgba(16,185,129,.1);color:#34D399}
+</style>
+</head>
+<body>
+
+<h1>Kyle Rosebrook — Blind Spot Map <span style="color:var(--v)">v8</span></h1>
+<p class="sub">Canonical project sweep · June 11 2026 · arc files + lane blockers + research doc indexed · significant diffs from v7</p>
+
+<!-- TOP ALARMS -->
+<div class="alert a-red">
+  <div class="alert-icon">🔴</div>
+  <div>
+    <div class="at at-red">JUNE 15 = T–4 DAYS · <code class="cr">claude-sonnet-4-20250514</code> → <code class="cg">claude-sonnet-4-6</code> everywhere</div>
+    <p>WorkstreamMapper.jsx L153 · voice_map.jsx L255 · EPB cost router (INT). Grep all repos before patching.</p>
+  </div>
+</div>
+
+<div class="alert a-red">
+  <div class="alert-icon">🚨</div>
+  <div>
+    <div class="at at-red">E&O INSURANCE IS A HARD GATE — bind BEFORE the first paid contract, not after</div>
+    <p>Standard Tech E&O now carries ABSOLUTE AI exclusions at Chubb, Travelers, CNA (ISO forms CG 40 47/48, effective Jan 1 2026). A standard policy does not cover AI consulting. You need an affirmative-AI rider or standalone AI liability policy. Providers: Munich Re aiSure, Armilla (Lloyd's-backed), Mayflower Specialty, Embroker ($2M–$50M limits). Underwriters expect documented AI risk-management posture. Budget $2,000–$3,500/yr all-in. [SOURCED: Honigman, Policyholder Pulse, Insuriam, Embroker, accessed Jun 10 2026]</p>
+  </div>
+</div>
+
+<div class="alert a-amb">
+  <div class="alert-icon">⚠️</div>
+  <div>
+    <div class="at at-amb">LLC gates every contract signature · E&O gates every paid contract · neither is done</div>
+    <p>IL Articles of Organization: $150, ilsos.gov, 5–10 business days. EIN same day. Bank account immediately after. File FlashFusion LLC first. These two items (LLC + E&O) are the dual P0 before any revenue.</p>
+  </div>
+</div>
+
+<div class="alert a-v">
+  <div class="alert-icon">⚡</div>
+  <div>
+    <div class="at at-v">OVERDUE from lane blockers: Union VP outreach + CLC formal confirmation</div>
+    <p>Lane blockers (WSJF-scored, Jun 10) flagged both for "today." Union VP = largest pipeline potential, board-approval path. CLC = verbal go in hand, email converts it to written commitment. Workshop scoping starts only after written CLC confirmation.</p>
+  </div>
+</div>
+
+<!-- DIFF SECTION -->
+<div class="shead">🔄 Key diffs from v7 — what this project revealed</div>
+<div class="card full">
+  <table>
+    <thead><tr><th>Item</th><th>v7 state</th><th>v8 correction</th></tr></thead>
+    <tbody>
+      <tr><td class="diff-chg">Ryan/Iron Horse</td><td>Described as "$3K rate exception"</td><td>FREE CASE-STUDY TRADE — free audit + profile build, conversion gate to paid. "Exception #2 in spirit." Boundary doc owed M1 W3, still not written.</td></tr>
+      <tr><td class="diff-chg">Art engagement</td><td>"Agreed to continue, not yet paying client"</td><td>ACTIVE CHAMPION DELIVERY — champion capability map + working tool, GUI/web only in scope. M2 W4 target: validate in a live real-estate showing. Quarterly self-briefing frames Art as "active delivery client — domain expert, AI novice."</td></tr>
+      <tr><td class="diff-new">E&O insurance</td><td>Not in v7 as a gate</td><td>HARD P0 GATE before first paid contract. Standard Tech E&O has absolute AI exclusions since Jan 2026. Requires affirmative-AI rider. This risk exists NOW — not a future consideration.</td></tr>
+      <tr><td class="diff-new">Concurrent-engagement cap</td><td>Not in v7</td><td>Must decide BEFORE CLC + Union both land. Recommendation from arc: cap at 3 active. Art + Ryan = 2 now. CLC + Union arriving simultaneously would push to 4 without a decision.</td></tr>
+      <tr><td class="diff-new">Reading Room arc</td><td>Not in v7</td><td>OPEN LANE: 4–8 hrs/wk. Platform decision (Beehiiv/Substack/Ghost/custom) is a WSJF blocker. Surface decision at M10 (paid vs free vs FF feeder). Lane-bleed risk highest of all four lanes.</td></tr>
+      <tr><td class="diff-new">$222K Y1 target</td><td>Carried as active target</td><td>GENERATED — explicitly flagged in arc claims as "carried from May plan, not revalidated. Recalibrate at Q1 retro with actual conversion data."</td></tr>
+      <tr><td class="diff-flag">Chris Butler in arc M2 W1</td><td>Butler confirmed FICTIONAL</td><td>CONFLICT — the FlashFusion arc (Jun 10) still references "Chris Butler permission request for case study" in M2 W1. Butler is confirmed fictional template content (memory #26). Arc needs this line removed.</td></tr>
+      <tr><td class="diff-flag">Memory #6 — Lafu</td><td>Says "Lafu = technical co-founder"</td><td>WRONG — contradicts memory #28 and confirmed by canon arc's lane-blocker claims: "Lafu reframing is deliberate: client/contact, cstmprnt ERP, Joe is decision maker." Memory #6 is stale and carries the wrong framing.</td></tr>
+      <tr><td class="diff-chg">CCA-F exam</td><td>Flagged as deadline item</td><td>EXAM OWNS M2 (July) — no client delivery scheduled week of July 20. No credential claims until passed. If failed: claims stay locked, retake path planned at M2 retro, client work continues unaffected.</td></tr>
+      <tr><td class="diff-new">Partner anchor arc</td><td>Not in v7</td><td>12-month arc in this project: Anthropic Partner Network as a revenue channel. Niche selection at M1, three case studies in Q2, referral generation in Q3. Target $200–500K ARR through Partner or Partner-adjacent. Separate from the proposals package.</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- P0 BLOCKERS FROM LANE-BLOCKERS.JSX -->
+<div class="shead">🔴 Lane blockers — WSJF-scored P0/P1 <span class="dl">source: lane-blockers.jsx Jun 10</span></div>
+<div class="grid2">
+  <div class="card">
+    <div class="ct">CROSS-lane (gate everything)</div>
+    <div class="row"><div class="dot d-r"></div><div class="rb"><div class="rl">ID 1 — Form the LLC <span class="badge bf">this week</span></div><div class="rs">$150, ilsos.gov, 5–10 biz days. Annual report $75, due May 31 2027. Gates every contract signature. Skip $25 name reservation — search and file same day.</div></div></div>
+    <div class="row"><div class="dot d-r"></div><div class="rb"><div class="rl">ID 2 — Bind E&O with affirmative AI coverage <span class="badge bf">before first paid contract</span></div><div class="rs">Standard Tech E&O = absolute AI exclusion. Requires affirmative-AI rider or standalone policy. Underwriters expect documented AI risk-management posture. Unmet rider conditions void coverage at claim time.</div></div></div>
+  </div>
+  <div class="card">
+    <div class="ct">FlashFusion lane</div>
+    <div class="row"><div class="dot d-r"></div><div class="rb"><div class="rl">ID 3 — Union VP outreach <span class="badge bf">overdue</span></div><div class="rs">Largest pipeline potential. Board-approval path (30–90 days). Message opens the path; follow-up cadence = FF M1 W2-W4.</div></div></div>
+    <div class="row"><div class="dot d-r"></div><div class="rb"><div class="rl">ID 4 — CLC formal confirmation <span class="badge bf">overdue</span></div><div class="rs">Verbal go in hand. Email converts to written. Workshop scoping starts only after written confirmation.</div></div></div>
+    <div class="row"><div class="dot d-a"></div><div class="rb"><div class="rl">ID 5 — Concurrent-engagement cap decision <span class="badge bw">before CLC + Union land</span></div><div class="rs">Recommended cap: 3 active engagements. Art + Ryan = 2 now. Deciding after they land isn't deciding — it's triage.</div></div></div>
+    <div class="row"><div class="dot d-a"></div><div class="rb"><div class="rl">ID 6 — Art deliverables: live-showing validation <span class="badge bw">M2 W4 target</span></div><div class="rs">Champion capability map + working tool in scope. GUI/web only. Art is never named externally. M2 W4 = validate tool in a real showing.</div></div></div>
+    <div class="row"><div class="dot d-a"></div><div class="rb"><div class="rl">ID 7 — Ryan boundary doc <span class="badge bf">still owed (M1 W3)</span></div><div class="rs">Scope edges, deliverable boundaries, conversion gate, what the trade does NOT include. Two undocumented inches become a broken floor. Exception #2 — the doc is what keeps it an exception.</div></div></div>
+    <div class="row"><div class="dot d-a"></div><div class="rb"><div class="rl">ID 8 — CCA-F exam <span class="badge bf">July 20 hard date</span></div><div class="rs">Exam prep owns M2. No credential claims until passed. No delivery scheduled exam week. D1 27% / D3 20% / D4 20% focus. Failure = retake path planned at M2 retro, delivery continues.</div></div></div>
+    <div class="row"><div class="dot d-a"></div><div class="rb"><div class="rl">ID 10 — Load-Bearing platform decision <span class="badge bw">M1 W1-W2</span></div><div class="rs">Beehiiv vs Substack vs Ghost vs custom on flashfusion.co. Decision criteria matter more than platform — write criteria before choosing. Cheap to decide now; expensive to migrate later.</div></div></div>
+  </div>
+</div>
+
+<!-- ENGAGEMENT STATUS -->
+<div class="shead">🤝 Active engagements — current state</div>
+<div class="grid3">
+  <div class="card">
+    <div class="ct">Art — Champion delivery (1 of 2)</div>
+    <div class="row"><div class="dot d-g"></div><div class="rb"><div class="rl">Status <span class="badge bg">active delivery</span></div><div class="rs">Domain expert, AI novice. Real estate owner. Teaching AI to RE agents via coaching packages.</div></div></div>
+    <div class="row"><div class="dot d-g"></div><div class="rb"><div class="rl">Deliverables</div><div class="rs">Champion capability map + working tool. GUI/web only — hard constraint. Anonymous publicly — hard constraint.</div></div></div>
+    <div class="row"><div class="dot d-a"></div><div class="rb"><div class="rl">Next gate <span class="badge bw">M2 W4</span></div><div class="rs">Validate tool in a real showing. Case study = anonymized, vertical-described, never named.</div></div></div>
+    <div class="row"><div class="dot d-c"></div><div class="rb"><div class="rl">Not paid</div><div class="rs">No audit sold. Free engagement → champion delivery model proof.</div></div></div>
+  </div>
+  <div class="card">
+    <div class="ct">Ryan / Iron Horse — Case-study trade (2 of 2)</div>
+    <div class="row"><div class="dot d-g"></div><div class="rb"><div class="rl">Status <span class="badge bg">confirmed go</span></div><div class="rs">Free audit + profile build as case-study trade. Iron Horse = custom furniture. Ryan = champion inside company.</div></div></div>
+    <div class="row"><div class="dot d-r"></div><div class="rb"><div class="rl">Boundary doc <span class="badge bf">still owed</span></div><div class="rs">M1 W3 deliverable. Must cover: scope edges, what conversion to paid looks like, what trade does NOT include. Undocumented = broken floor risk.</div></div></div>
+    <div class="row"><div class="dot d-a"></div><div class="rb"><div class="rl">Exception status</div><div class="rs">Exception #2 against $4,500 floor (exception #1 = $3K personal scope). The boundary doc is what keeps it an exception, not precedent.</div></div></div>
+    <div class="row"><div class="dot d-c"></div><div class="rb"><div class="rl">Conversion gate</div><div class="rs">After delivery: what does Iron Horse get as a paying client that the trade doesn't include? Stated every update, lightly.</div></div></div>
+  </div>
+  <div class="card">
+    <div class="ct">Pipeline — not yet delivery</div>
+    <div class="row"><div class="dot d-v"></div><div class="rb"><div class="rl">CLC <span class="badge bv">verbal go, no written</span></div><div class="rs">Email needs to go out now. Workshop scoping starts after written confirmation only. Contact: Charles Kellogg (ckellogg@clcillinois.edu).</div></div></div>
+    <div class="row"><div class="dot d-v"></div><div class="rb"><div class="rl">Union VP <span class="badge bv">outreach overdue</span></div><div class="rs">Largest potential. Board cycle 30–90 days. Message opens the path. Not delivery-committed until contract signed.</div></div></div>
+    <div class="row"><div class="dot d-m"></div><div class="rb"><div class="rl">Grand Appliance <span class="badge bb">slot opens week 4</span></div><div class="rs">Owner = long-time friend. Delivery slot opens when Art + Ryan phase transitions create room.</div></div></div>
+    <div class="row"><div class="dot d-m"></div><div class="rb"><div class="rl">Warm list</div><div class="rs">Timothy O'Toole's, brother's boss (guitar mfg), Milwaukee rentals, community dive bar. Floor = $4,500. No exceptions beyond Ryan.</div></div></div>
+  </div>
+</div>
+
+<!-- ARC ROADMAP SUMMARY -->
+<div class="shead">🗺️ FlashFusion arc M1–M3 (Jun–Aug 2026) — current quarter</div>
+<div class="grid2">
+  <div class="card">
+    <div class="ct">M1 gate — by end of June 2026</div>
+    <div class="row"><div class="dot d-r"></div><div class="rb"><div class="rl">LLC filed</div></div></div>
+    <div class="row"><div class="dot d-r"></div><div class="rb"><div class="rl">E&O in motion (broker outreach + affirmative-AI rider requirement stated)</div></div></div>
+    <div class="row"><div class="dot d-a"></div><div class="rb"><div class="rl">Art deliverable set scoped + locked</div></div></div>
+    <div class="row"><div class="dot d-r"></div><div class="rb"><div class="rl">Ryan case-study scope locked IN WRITING (boundary doc)</div></div></div>
+    <div class="row"><div class="dot d-r"></div><div class="rb"><div class="rl">CLC email sent</div></div></div>
+    <div class="row"><div class="dot d-r"></div><div class="rb"><div class="rl">Union VP message sent</div></div></div>
+    <div class="row"><div class="dot d-a"></div><div class="rb"><div class="rl">CCA-F study blocks on calendar</div></div></div>
+  </div>
+  <div class="card">
+    <div class="ct">M2–M3 (Jul–Aug 2026)</div>
+    <div class="row"><div class="dot d-r"></div><div class="rb"><div class="rl">CCA-F exam July 20 <span class="badge bf">owns this month</span></div><div class="rs">No delivery week of July 20. No credential claims until passed. D1/D3/D4 focus.</div></div></div>
+    <div class="row"><div class="dot d-a"></div><div class="rb"><div class="rl">Art delivery session #1</div><div class="rs">M2 W1. Champion delivery begins.</div></div></div>
+    <div class="row"><div class="dot d-a"></div><div class="rb"><div class="rl">Ryan audit fieldwork + profile build</div><div class="rs">M2 W2.</div></div></div>
+    <div class="row"><div class="dot d-a"></div><div class="rb"><div class="rl">Art tool in a live showing <span class="badge bw">M2 W4</span></div><div class="rs">Validation gate for champion model proof.</div></div></div>
+    <div class="row"><div class="dot d-a"></div><div class="rb"><div class="rl">Ryan audit + profile delivered <span class="badge bw">M2</span></div></div></div>
+    <div class="row"><div class="dot d-a"></div><div class="rb"><div class="rl">Case studies #1-2 drafted <span class="badge bw">M3</span></div><div class="rs">Art: anonymous, vertical-described. Ryan: permission conversation required.</div></div></div>
+    <div class="row"><div class="dot d-a"></div><div class="rb"><div class="rl">First paid audit signed at $4,500 <span class="badge bw">M3</span></div><div class="rs">Warm list: Grand Appliance, O'Toole's, brother's boss, Lafu/Joe. Floor held without hedging.</div></div></div>
+    <div class="row"><div class="dot d-a"></div><div class="rb"><div class="rl">Concurrent-engagement cap decided <span class="badge bw">before M3 end</span></div><div class="rs">Before CLC + Union both land. Cap at 3 is the arc's recommendation.</div></div></div>
+  </div>
+</div>
+
+<!-- FOUR LANES -->
+<div class="shead">🏗️ Four-lane state</div>
+<div class="card full">
+  <table>
+    <thead><tr><th>Lane</th><th>Current state</th><th>Next gate</th><th>Signal</th></tr></thead>
+    <tbody>
+      <tr><td><strong>FlashFusion</strong></td><td>Art + Ryan in delivery (2 concurrent). Pipeline: CLC verbal, Union outreach overdue, Grand Appliance week 4. Floor $4,500. Y1 $222K target is GENERATED — recalibrate Q1 retro.</td><td>LLC + E&O bound. Boundary doc written. Union/CLC outreach sent.</td><td><span class="badge bf">P0s unblocked</span></td></tr>
+      <tr><td><strong>Reading Room</strong></td><td>Load-Bearing 8/8 essays complete. No platform locked. No subscriber count confirmed. Lane arc built, platform decision is WSJF blocker ID 10.</td><td>Platform decision criteria written. Platform chosen. First weekly issue on cadence.</td><td><span class="badge bw">platform undecided</span></td></tr>
+      <tr><td><strong>Abstrekkt Products</strong></td><td>claude-code-plugins-plus built (244 plugins, not distributed). Ample scope in flux. FissionPrompt last commit Nov 2025. No distribution decision made on any product.</td><td>claude-code-plugins-plus distribution path decided (marketplace / blog / direct / Anthropic).</td><td><span class="badge bw">no distribution</span></td></tr>
+      <tr><td><strong>Memoir</strong></td><td>O'Toole's + Card table + Salvation Army excavated. Schopp character new. Facebook post Jan 2025 excavated. Session 3 Tool Archaeology not done (highest leverage). Tom Ropel / Dave Datt / Sedona not excavated.</td><td>Session 3 Tool Archaeology. Schopp character session.</td><td><span class="badge bw">excavation behind</span></td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- FLAGS -->
+<div class="shead">🚩 Flags requiring explicit decision</div>
+<div class="grid2">
+  <div class="card">
+    <div class="ct">Contradictions in canonical artifacts</div>
+    <div class="row"><div class="dot d-r"></div><div class="rb"><div class="rl">Chris Butler in FlashFusion arc M2 W1 <span class="badge bf">arc needs cleanup</span></div><div class="rs">Arc references "Chris Butler permission request for case study" in M2 W1. Butler is confirmed fictional template content per memory. This line needs to be removed or replaced with Ryan's case-study permission step.</div></div></div>
+    <div class="row"><div class="dot d-r"></div><div class="rb"><div class="rl">Memory #6 — Lafu = co-founder <span class="badge bf">stale + wrong</span></div><div class="rs">Memory #6 still says "Lafu=technical co-founder (cstmprnt, Waukegan)." Contradicts memory #28 and the lane-blocker claims ("Lafu reframing is deliberate: client/contact"). Memory #6 needs a replace.</div></div></div>
+    <div class="row"><div class="dot d-a"></div><div class="rb"><div class="rl">$222K Y1 target <span class="badge bw">GENERATED label missing from map</span></div><div class="rs">Arc explicitly flags this as carried from May plan, not revalidated. Should not be quoted as a commitment. Recalibrate at Q1 retro with actual conversion data from Art + Ryan cycles.</div></div></div>
+  </div>
+  <div class="card">
+    <div class="ct">Structural decisions not yet made</div>
+    <div class="row"><div class="dot d-a"></div><div class="rb"><div class="rl">Load-Bearing platform <span class="badge bw">decision pending</span></div><div class="rs">Beehiiv / Substack / Ghost / custom. Criteria: audience portability, cost at 1K subs, friction per weekly post. Write criteria before choosing. Migration is expensive later.</div></div></div>
+    <div class="row"><div class="dot d-a"></div><div class="rb"><div class="rl">Concurrent-engagement cap <span class="badge bw">decide in M1</span></div><div class="rs">5 potential engagements (Art, Ryan, CLC, Union, warm list) against ~24 FF hrs/wk on top of day job. Arc recommends cap at 3. Deciding after they land = triage, not strategy.</div></div></div>
+    <div class="row"><div class="dot d-a"></div><div class="rb"><div class="rl">claude-code-plugins-plus distribution <span class="badge bw">open</span></div><div class="rs">244 plugins built, installable via /plugin install. No distribution path decided: marketplace / blog / direct / Anthropic. This is the highest-leverage Abstrekkt Products asset sitting dormant.</div></div></div>
+    <div class="row"><div class="dot d-m"></div><div class="rb"><div class="rl">Reading Room paid-tier vs free <span class="badge bb">M10 decision</span></div><div class="rs">Does Reading Room stay free editorial, become a paid product, serve as FF top-of-funnel, or amplify across lanes only? Each is valid. Drift is not. M10 is the structural moment.</div></div></div>
+  </div>
+</div>
+
+<!-- OPEN ITEMS -->
+<div class="shead">⚠️ Open items — unresolved carry-over</div>
+<div class="card full">
+  <table>
+    <thead><tr><th>Item</th><th>State</th><th>Signal</th></tr></thead>
+    <tbody>
+      <tr><td class="diff-open">LLC formation</td><td>Kit ready in llc-formation-kit-v2.html. Not filed. $150, ilsos.gov, 5–10 biz days. Gates every contract.</td><td><span class="badge bf">P0</span></td></tr>
+      <tr><td class="diff-open">E&O insurance</td><td>Not bound. Must request affirmative-AI rider. Research doc has provider list (Munich Re, Armilla, Embroker). Bind before first paid contract.</td><td><span class="badge bf">P0 before paid</span></td></tr>
+      <tr><td class="diff-open">Ryan boundary doc</td><td>M1 W3 deliverable. Scope edges, conversion definition, what trade excludes. Still owed.</td><td><span class="badge bf">owed now</span></td></tr>
+      <tr><td class="diff-open">Union VP outreach</td><td>Should have gone out today per lane blockers. Board cycle 30–90 days — every day of delay matters.</td><td><span class="badge bf">overdue</span></td></tr>
+      <tr><td class="diff-open">CLC email</td><td>Should have gone out today per lane blockers. Verbal go → written confirmation gate for workshop scoping.</td><td><span class="badge bf">overdue</span></td></tr>
+      <tr><td class="diff-open">model string deprecation</td><td>WorkstreamMapper.jsx L153, voice_map.jsx L255, EPB router. June 15 deadline. Grep all repos first.</td><td><span class="badge bf">T–4 days</span></td></tr>
+      <tr><td class="diff-open">Memory #6 fix</td><td>"Lafu=technical co-founder" is wrong. Needs replace: Lafu is client/contact, Joe is decision maker on cstmprnt ERP.</td><td><span class="badge bf">stale memory</span></td></tr>
+      <tr><td class="diff-open">Arc cleanup — Butler</td><td>FlashFusion arc M2 W1 references Chris Butler case-study permission. Butler is fictional. Replace with Ryan case-study permission step.</td><td><span class="badge bf">artifact conflict</span></td></tr>
+      <tr><td class="diff-open">Fusionomics n8n creds</td><td>0/7 credentials set. 3 workflows built. Pipeline not running.</td><td><span class="badge bw">blocked</span></td></tr>
+      <tr><td class="diff-open">audit.flashfusion.co noindex</td><td>Meta noindex/nofollow. Zero organic. Zero real submissions.</td><td><span class="badge bw">funnel dead</span></td></tr>
+      <tr><td class="diff-open">TESSA B44</td><td>Harmful UGC. Manual Base44 dashboard deletion only.</td><td><span class="badge bw">manual</span></td></tr>
+      <tr><td class="diff-open">Supabase flashnframe-app</td><td>Empty schema, migrations pending. Verify bill status before writing anything.</td><td><span class="badge bw">pre-launch</span></td></tr>
+      <tr><td class="diff-open">CCA-F exam prep</td><td>July 20. 39 days. Known gaps: Agent SDK, CLAUDE.md hierarchy, MCP scoping, Batches API. Exam owns M2 — protect the calendar.</td><td><span class="badge bw">39 days</span></td></tr>
+      <tr><td class="diff-open">Session 3 Tool Archaeology</td><td>Highest-leverage memoir action. Unblocks 3 chapters. Not done.</td><td><span class="badge bw">memoir P0</span></td></tr>
+      <tr><td class="diff-open">Schopp character excavation</td><td>Kyle's best friend. Met at Salvation Army shelter. New character, no excavation yet.</td><td><span class="badge bw">new</span></td></tr>
+      <tr><td class="diff-open">Load-Bearing platform decision</td><td>Beehiiv/Substack/Ghost/custom. M1 W1-W2 in Reading Room arc. Criteria before choice.</td><td><span class="badge bw">M1</span></td></tr>
+    </tbody>
+  </table>
+</div>
+
+<p class="stamp">Blind Spot Map v8 · Canonical project sweep · June 11 2026 · arc files + lane blockers + research indexed · diff from v7 documented above</p>
+</body>
+</html>

@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Claude Onboarding Kit</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#0B0B14;--surface:#13131F;--border:rgba(139,92,246,0.14);--v:#A855F7;--m:#EC4899;--c:#22D3EE;--g:#10B981;--amber:#F59E0B;--text:#E2E8F0;--muted:#94A3B8;--dim:#475569;--card:rgba(19,19,31,0.92);--r:12px;--rs:8px}
+body{background:var(--bg);color:var(--text);font-family:'Geist','Inter',system-ui,sans-serif;min-height:100vh;font-size:15px;line-height:1.6}
+.app{max-width:740px;margin:0 auto;padding:2rem 1.25rem 5rem}
+h1{font-size:22px;font-weight:500;background:linear-gradient(135deg,#A855F7,#EC4899);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:6px}
+.sub{font-size:13px;color:var(--muted);margin-bottom:1.5rem;line-height:1.5}
+.sdots{display:flex;gap:8px;align-items:center;margin-bottom:1.5rem;flex-wrap:wrap}
+.sd{width:24px;height:24px;border-radius:50%;border:1px solid var(--dim);display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--dim);flex-shrink:0}
+.sd.a{background:rgba(168,85,247,.2);border-color:var(--v);color:var(--v);font-weight:600}
+.sd.d{background:rgba(34,211,238,.12);border-color:var(--c);color:var(--c)}
+.sdl{font-size:12px;color:var(--muted)}
+.dsep{width:3px;height:3px;border-radius:50%;background:var(--dim);flex-shrink:0}
+.pg{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:1rem}
+@media(max-width:480px){.pg{grid-template-columns:1fr}}
+.pc{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:1.1rem 1rem;cursor:pointer;transition:all .18s;position:relative}
+.pc:hover{border-color:rgba(168,85,247,.4);background:rgba(168,85,247,.05)}
+.pc.sel{border-color:var(--v);background:rgba(168,85,247,.1)}
+.pc.ex-c{border-color:rgba(16,185,129,.2)}
+.pc.ex-c:hover{border-color:rgba(16,185,129,.5);background:rgba(16,185,129,.04)}
+.pc.ex-c.sel{border-color:var(--g);background:rgba(16,185,129,.09)}
+.pc .ic{font-size:22px;margin-bottom:6px}
+.pc .lb{font-size:13px;font-weight:500;color:var(--text);margin-bottom:3px}
+.pc .ds{font-size:11px;color:var(--muted);line-height:1.4}
+.new-tag{position:absolute;top:10px;right:10px;font-size:9px;padding:2px 6px;border-radius:8px;background:rgba(16,185,129,.15);color:var(--g);border:1px solid rgba(16,185,129,.3);font-weight:700;letter-spacing:.4px}
+.detect-banner{background:rgba(16,185,129,.07);border:1px solid rgba(16,185,129,.25);border-radius:var(--r);padding:12px 14px;margin-bottom:14px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.detect-banner p{font-size:13px;color:var(--muted);flex:1;min-width:200px}
+.detect-banner strong{color:var(--g)}
+.qb{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:1rem 1.1rem;margin-bottom:10px}
+.ql{font-size:13px;font-weight:500;color:var(--text);margin-bottom:8px}
+.qs{font-size:12px;color:var(--muted);margin-bottom:8px;margin-top:-4px}
+.cr{display:flex;flex-wrap:wrap;gap:6px}
+.ch{border:1px solid var(--dim);border-radius:20px;padding:4px 12px;font-size:12px;color:var(--muted);cursor:pointer;background:transparent;transition:all .15s;user-select:none}
+.ch:hover{border-color:rgba(168,85,247,.5);color:var(--text)}
+.ch.on{background:rgba(168,85,247,.15);border-color:var(--v);color:var(--v)}
+.ch.on.ex{background:rgba(16,185,129,.12);border-color:var(--g);color:var(--g)}
+.xbar{background:rgba(168,85,247,.06);border:1px solid var(--border);border-radius:var(--r);padding:10px 14px;margin-bottom:14px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.xbar-lbl{font-size:12px;color:var(--muted);margin-right:4px}
+.tr{display:flex;gap:2px;margin-bottom:1rem;border-bottom:1px solid var(--border);overflow-x:auto}
+.tb{padding:7px 11px;font-size:12px;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;white-space:nowrap;transition:color .15s}
+.tb:hover{color:var(--text)}
+.tb.on{color:var(--v);border-bottom-color:var(--v);font-weight:500}
+.tb.ex-tab.on{color:var(--g);border-bottom-color:var(--g)}
+.tb.mgr-tab.on{color:var(--amber);border-bottom-color:var(--amber)}
+.rs{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:1rem 1.1rem;margin-bottom:10px}
+.rs.ex-s{border-color:rgba(16,185,129,.18)}
+.rs.mgr-s{border-color:rgba(245,158,11,.18)}
+.rt{font-size:13px;font-weight:500;color:var(--text);margin-bottom:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.bm{font-size:10px;padding:2px 7px;border-radius:10px;font-weight:600;letter-spacing:.3px;white-space:nowrap}
+.mu{background:rgba(236,72,153,.15);color:var(--m);border:1px solid rgba(236,72,153,.3)}
+.hi{background:rgba(168,85,247,.15);color:var(--v);border:1px solid rgba(168,85,247,.3)}
+.op{background:rgba(148,163,184,.1);color:var(--muted);border:1px solid var(--dim)}
+.cu{background:rgba(34,211,238,.1);color:var(--c);border:1px solid rgba(34,211,238,.25)}
+.gr{background:rgba(16,185,129,.12);color:var(--g);border:1px solid rgba(16,185,129,.25)}
+.am{background:rgba(245,158,11,.12);color:var(--amber);border:1px solid rgba(245,158,11,.25)}
+.cap-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+@media(max-width:500px){.cap-grid{grid-template-columns:1fr}}
+.cap-card{background:rgba(0,0,0,.2);border:1px solid rgba(16,185,129,.1);border-radius:var(--rs);padding:.9rem}
+.cap-title{font-size:12px;font-weight:600;color:var(--text);margin-bottom:6px;display:flex;align-items:center;gap:6px}
+.cap-items{list-style:none;font-size:12px;color:var(--muted);line-height:1.8}
+.cap-items li::before{content:'-> ';color:var(--g);font-size:11px}
+.cap-myth{margin-top:8px;padding-top:8px;border-top:1px solid rgba(236,72,153,.12);font-size:11px;color:rgba(236,72,153,.7);font-style:italic;line-height:1.4}
+.cap-myth::before{content:'x ';font-style:normal}
+.cap-real{margin-top:3px;font-size:11px;color:rgba(16,185,129,.8);line-height:1.4}
+.cap-real::before{content:'v ';font-style:normal}
+.myth-row{padding:12px 0;border-bottom:1px solid rgba(139,92,246,.06)}
+.myth-row:last-child{border-bottom:none}
+.ml{font-size:10px;font-weight:700;letter-spacing:.5px;padding:2px 7px;border-radius:8px;display:inline-block;margin-bottom:4px}
+.ml.my{background:rgba(236,72,153,.12);color:var(--m)}
+.ml.re{background:rgba(16,185,129,.12);color:var(--g)}
+.myth-text{font-size:13px;color:var(--muted);line-height:1.5;margin-bottom:6px}
+.myth-text.rv{color:var(--text)}
+.prompt-card{background:rgba(0,0,0,.25);border:1px solid var(--border);border-radius:var(--rs);padding:.9rem;margin-bottom:8px}
+.pl{font-size:10px;font-weight:700;letter-spacing:.4px;color:var(--g);margin-bottom:5px}
+.pt{font-size:13px;font-weight:500;color:var(--text);margin-bottom:3px}
+.pw{font-size:12px;color:var(--muted);margin-bottom:8px;line-height:1.4}
+.px{font-family:'Geist Mono',monospace;font-size:11px;color:var(--c);background:rgba(0,0,0,.3);padding:8px 10px;border-radius:var(--rs);border:1px solid rgba(34,211,238,.15);line-height:1.6;word-break:break-word}
+.path-phases{display:flex;flex-direction:column;gap:0}
+.phase-block{border-left:2px solid var(--border);padding:0 0 16px 16px;margin-left:10px;position:relative}
+.phase-block:last-child{border-left:2px solid transparent;padding-bottom:0}
+.phase-dot{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;position:absolute;left:-11px;top:0;border:2px solid var(--bg)}
+.phase-pill{font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;display:inline-block;margin-bottom:6px;letter-spacing:.3px}
+.ph-d{background:rgba(236,72,153,.15);color:var(--m);border:1px solid rgba(236,72,153,.3)}
+.ph-w1{background:rgba(168,85,247,.15);color:var(--v);border:1px solid rgba(168,85,247,.3)}
+.ph-w2{background:rgba(34,211,238,.12);color:var(--c);border:1px solid rgba(34,211,238,.25)}
+.ph-m1{background:rgba(16,185,129,.12);color:var(--g);border:1px solid rgba(16,185,129,.25)}
+.ph-m3{background:rgba(148,163,184,.1);color:var(--muted);border:1px solid var(--dim)}
+.phase-title{font-size:13px;font-weight:500;color:var(--text);margin-bottom:4px}
+.phase-domain{font-size:11px;color:var(--v);margin-bottom:6px;font-weight:500}
+.phase-items div{margin-bottom:2px;font-size:12px;color:var(--muted)}
+.phase-items div::before{content:'-> ';color:var(--g);font-size:11px}
+.milestone{margin-top:8px;font-size:11px;color:var(--amber);background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);border-radius:var(--rs);padding:5px 9px;display:inline-block}
+.milestone::before{content:'Milestone: ';font-weight:600}
+.mr{display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid rgba(139,92,246,.06)}
+.mr:last-child{border-bottom:none;padding-bottom:0}
+.mi{width:30px;height:30px;border-radius:7px;background:rgba(168,85,247,.1);border:1px solid rgba(168,85,247,.12);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:14px}
+.mn{font-size:13px;font-weight:500;color:var(--text);display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+.mw{font-size:12px;color:var(--muted);margin-top:2px;line-height:1.4}
+.mex{font-size:11px;color:var(--g);margin-top:3px;font-style:italic;line-height:1.4}
+.gate{background:rgba(245,158,11,.05);border:1px dashed rgba(245,158,11,.3);border-radius:var(--rs);padding:14px}
+.gate-title{font-size:12px;font-weight:600;color:var(--amber);margin-bottom:6px}
+.gate-sub{font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.5}
+.gate-bar{flex:1;height:4px;background:rgba(245,158,11,.15);border-radius:2px;overflow:hidden}
+.gate-fill{height:100%;background:var(--amber);border-radius:2px;transition:width .3s}
+.gate-prog{display:flex;gap:6px;align-items:center;margin-bottom:10px}
+.gate-label{font-size:11px;color:var(--amber);min-width:30px;text-align:right}
+.gate-item{margin-bottom:3px;font-size:12px;color:var(--muted)}
+.search-bar{display:flex;gap:8px;margin-bottom:10px}
+.search-input{background:rgba(0,0,0,.3);border:1px solid var(--border);border-radius:var(--rs);padding:7px 12px;font-size:13px;color:var(--text);font-family:inherit;flex:1;outline:none}
+.search-input:focus{border-color:rgba(168,85,247,.4)}
+.search-input::placeholder{color:var(--dim)}
+.frow{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.ftag{border:1px solid var(--dim);border-radius:16px;padding:3px 10px;font-size:11px;color:var(--muted);cursor:pointer;background:transparent;transition:all .15s;white-space:nowrap}
+.ftag:hover{border-color:var(--v);color:var(--text)}
+.ftag.on{background:rgba(168,85,247,.15);border-color:var(--v);color:var(--v)}
+.cat-hdr{font-size:10px;font-weight:700;color:var(--dim);letter-spacing:.8px;text-transform:uppercase;margin:14px 0 6px;padding-bottom:6px;border-bottom:1px solid rgba(139,92,246,.1)}
+.cat-hdr:first-of-type{margin-top:0}
+.stat{font-size:11px;color:var(--muted);background:rgba(0,0,0,.2);border:1px solid var(--border);border-radius:10px;padding:2px 8px;margin-left:6px}
+.cb{background:rgba(0,0,0,.35);border:1px solid var(--border);border-radius:var(--rs);padding:.85rem;font-family:'Geist Mono',monospace;font-size:11px;color:var(--text);line-height:1.7;white-space:pre-wrap;word-break:break-word;margin-bottom:10px;max-height:240px;overflow-y:auto}
+.ci{display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid rgba(139,92,246,.06)}
+.ci:last-child{border-bottom:none}
+.ck{width:17px;height:17px;border:1px solid var(--dim);border-radius:4px;flex-shrink:0;cursor:pointer;display:flex;align-items:center;justify-content:center;margin-top:1px;font-size:10px;color:var(--c)}
+.ck:hover{border-color:var(--v)}
+.ck.dn{background:rgba(34,211,238,.12);border-color:var(--c)}
+.ct{font-size:13px;color:var(--text);line-height:1.5}
+.cs{font-size:12px;color:var(--muted);margin-top:2px;line-height:1.4}
+.ub{background:rgba(236,72,153,.06);border:1px solid rgba(236,72,153,.18);border-radius:var(--rs);padding:10px 13px;margin-bottom:8px}
+.ub strong{color:var(--m);font-weight:500}
+.ub p{font-size:13px;color:var(--muted);line-height:1.5}
+.uc-item{padding:10px 0;border-bottom:1px solid rgba(139,92,246,.06)}
+.uc-item:last-child{border-bottom:none}
+.uc-title{font-size:13px;font-weight:500;color:var(--text);display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.uc-ex{font-family:'Geist Mono',monospace;font-size:11px;color:var(--muted);background:rgba(0,0,0,.3);padding:7px 10px;border-radius:var(--rs);border:1px solid var(--border);line-height:1.5}
+.mgr-block{background:rgba(245,158,11,.04);border:1px solid rgba(245,158,11,.15);border-radius:var(--rs);padding:1rem;margin-bottom:10px}
+.mgr-block h3{font-size:13px;font-weight:500;color:var(--amber);margin-bottom:6px}
+.mgr-block p,.mgr-block li{font-size:13px;color:var(--muted);line-height:1.6}
+.mgr-block ul{list-style:none;padding:0}
+.mgr-block li::before{content:'· ';color:var(--amber)}
+.ex-banner{background:linear-gradient(135deg,rgba(16,185,129,.07),rgba(168,85,247,.07));border:1px solid rgba(16,185,129,.22);border-radius:var(--r);padding:1rem 1.1rem;margin-bottom:14px}
+.ex-banner h2{font-size:13px;font-weight:500;color:var(--g);margin-bottom:4px}
+.ex-banner p{font-size:12px;color:var(--muted);line-height:1.5}
+.note{font-size:12px;color:var(--muted);line-height:1.5;padding:8px 10px;background:rgba(0,0,0,.2);border-radius:var(--rs);border-left:2px solid var(--v);margin-top:8px}
+button{background:rgba(168,85,247,.1);border:1px solid rgba(168,85,247,.3);color:var(--v);padding:7px 14px;border-radius:var(--rs);font-size:12px;cursor:pointer;font-family:inherit;transition:all .15s;display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+button:hover{background:rgba(168,85,247,.2);border-color:var(--v)}
+button.sec{background:transparent;border-color:var(--dim);color:var(--muted)}
+button.sec:hover{border-color:var(--muted);color:var(--text)}
+button.dl{background:rgba(168,85,247,.12);border-color:rgba(168,85,247,.4);color:var(--v)}
+button.cp{background:rgba(34,211,238,.08);border-color:rgba(34,211,238,.25);color:var(--c)}
+button.cp:hover{background:rgba(34,211,238,.16)}
+button.pr{background:rgba(148,163,184,.08);border-color:var(--dim);color:var(--muted)}
+button.nt{background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.15);color:var(--dim)}
+button.nt:hover{background:rgba(255,255,255,.1);color:var(--text)}
+button.am-btn{background:rgba(245,158,11,.1);border-color:rgba(245,158,11,.3);color:var(--amber)}
+button.am-btn:hover{background:rgba(245,158,11,.2)}
+button.gr-btn{background:rgba(16,185,129,.1);border-color:rgba(16,185,129,.3);color:var(--g)}
+.br{display:flex;gap:8px;margin-top:1rem;flex-wrap:wrap}
+.toast{position:fixed;bottom:20px;right:20px;background:rgba(168,85,247,.15);border:1px solid rgba(168,85,247,.4);color:var(--v);padding:8px 16px;border-radius:var(--rs);font-size:12px;font-weight:500;z-index:99;opacity:0;transition:opacity .2s;pointer-events:none;max-width:280px}
+.toast.s{opacity:1}
+@media print{body{background:#fff;color:#000}.xbar,.tr,.br,.search-bar,.frow,button,.new-tag,.detect-banner,.gate,.ex-banner{display:none!important}.rs,.qb,.ub,.prompt-card,.cap-card,.mgr-block,.phase-block{border:1px solid #ddd!important;background:#fff!important}.cb{background:#f5f5f5!important;max-height:none!important;color:#000!important}h1{background:none!important;-webkit-text-fill-color:#000!important;color:#000!important}.app{max-width:100%;padding:1rem}.cap-grid{grid-template-columns:repeat(2,1fr)!important}}
+</style>
+</head>
+<body>
+<div class="app" id="app"></div>
+<div class="toast" id="tst"></div>
+<script>
+const S={step:1,profile:null,ans:{context:[],overwhelm:[],style:[],comfort:[],role:[],use:[],tools:[],pain:[]},tab:'',chk:{},search:'',filterTier:'all',filterCat:'all'};
+const PROFS={
+  professional:{lb:'Professional',ds:'Work, career, clients, ops',ic:'💼',ex:false},
+  personal:{lb:'Personal',ds:'Life, hobbies, creative, learning',ic:'🌱',ex:false},
+  both:{lb:'Both',ds:'Work and personal — one setup',ic:'⚡',ex:false},
+  explorer:{lb:'Explorer',ds:"New to AI — I want to learn what's possible",ic:'🔭',ex:true}
+};
+const EXQ=[
+  {id:'context',lb:'Which describes you best?',sub:'Pick all that fit',opts:['Full-time employee','Manager or team lead','Student or recent grad','Freelancer / self-employed','Career changer','Stay-at-home parent','Retired or semi-retired','Small business owner','Creative professional']},
+  {id:'overwhelm',lb:'What areas of life or work feel most inefficient or draining?',sub:'Be honest — these become your first use cases',opts:['Too much to read and absorb','Writing takes me forever','I lose track of things I need to do','Research feels endless','Meetings eat my whole day','I repeat the same things constantly','Never have time to learn new things','Making decisions is exhausting','Creative work keeps stalling','Admin tasks drain me','Explaining things over and over','I feel behind on everything']},
+  {id:'style',lb:'How do you learn best?',sub:'Shapes how Claude teaches you',opts:['Show me an example first','Explain why before how','Just tell me what to do','Let me experiment','Step-by-step, one at a time','Give me context, then let me ask']},
+  {id:'comfort',lb:'Where are you honestly with AI right now?',sub:'No wrong answer',opts:["Never really used it","Tried ChatGPT, didn't stick","Use it occasionally, don't get much out","Curious but slightly skeptical","Worried I'm already behind","Open and ready — just need a starting point"]}
+];
+const QS={
+  professional:[
+    {id:'role',lb:'Your role',sub:'Pick best fit',opts:['Executive / Founder','Manager / Team Lead','Individual Contributor','Sales / GTM','Creative / Designer','Technical / Engineer','Operations / Admin','Consultant / Freelance']},
+    {id:'use',lb:'Primary use cases',sub:'Select all that apply',opts:['Writing & editing','Research & synthesis','Strategy & planning','Data analysis','Code & automation','Client communication','Presentations & reports','Process documentation']},
+    {id:'tools',lb:'Tools you use daily',sub:'Claude can connect to all of these',opts:['Gmail','Google Calendar','Notion','Slack','Google Drive','GitHub','HubSpot','Asana','Linear','Figma','Microsoft 365','Atlassian / Jira','Zapier','n8n']},
+    {id:'pain',lb:'Biggest time drains',sub:'Be honest',opts:['Writing from scratch','Email overload','Meeting prep & notes','Research rabbit holes','Repetitive reporting','Status updates','Context-switching','Explaining things repeatedly']},
+    {id:'comfort',lb:'AI comfort level',sub:'No judgment',opts:['Total beginner','Used ChatGPT a bit','Daily ChatGPT user','Some Claude experience','Heavy AI user']}
+  ],
+  personal:[
+    {id:'role',lb:'Personal use focus',sub:'Pick what resonates',opts:['Learning new skills','Journaling / creative writing','Life admin & planning','Health & fitness','Travel planning','Finance & budgeting','Hobbies & research','Parenting & family']},
+    {id:'use',lb:'Content you create or consume',sub:'Select all that apply',opts:['Long-form writing','Quick notes & ideas','Reading summaries','Recipes & how-tos','Learning plans','Creative projects','Social media drafts','Research deep dives']},
+    {id:'tools',lb:'Apps in your daily life',sub:'Claude can connect to these',opts:['Gmail','Google Calendar','Google Drive','Notion','Spotify','Todoist','Instacart','AllTrails','Expedia','Booking.com','Uber']},
+    {id:'pain',lb:'Things that drain you',sub:'Honest = better setup',opts:['Planning & scheduling','Writing anything','Decision fatigue','Information overload','Staying organized','Learning new things','Administrative tasks','Creative blocks']},
+    {id:'comfort',lb:'AI comfort level',sub:'No judgment',opts:['Total beginner','Used ChatGPT a bit','Daily ChatGPT user','Some Claude experience','Heavy AI user']}
+  ]
+};
+QS.both=QS.professional.map((q,i)=>({...q,opts:[...new Set([...q.opts,...QS.personal[i].opts])].slice(0,12)}));
+function isEx(){return S.profile==='explorer';}
+function getCaps(){return[
+  {area:'Write & Edit',ic:'✏️',items:['Draft emails, reports, messages in seconds','Edit for clarity, tone, and length','Rewrite anything in a different voice','Summarize long documents instantly','Generate multiple versions of the same thing'],myth:'AI writing sounds robotic and fake',real:'It sounds like you — if you tell it how you sound'},
+  {area:'Research & Learn',ic:'🔍',items:['Find information and cite sources','Explain complex topics in plain language','Compare options and surface tradeoffs','Synthesize what you\'ve been reading','Build a learning plan for any subject'],myth:'AI just makes things up',real:'It can be wrong, but it can search the web and flag when it\'s unsure'},
+  {area:'Think & Decide',ic:'🧠',items:['Challenge assumptions on a plan','Break down hard decisions with tradeoffs','Stress-test an idea before committing','Brainstorm options you haven\'t considered','Identify blind spots in your thinking'],myth:"AI can't really think — it's just autocomplete",real:'It reasons through problems systematically. Imperfect, but genuinely useful'},
+  {area:'Organize & Plan',ic:'📋',items:['Turn a brain dump into a structured plan','Prioritize a list by impact or urgency','Draft agendas, outlines, project plans','Create checklists from a conversation','Build a schedule around your constraints'],myth:'You need to know exactly what to ask',real:'You can dump everything on it and ask it to sort things out'},
+  {area:'Build & Create',ic:'🛠️',items:['Generate working apps inside the chat window','Create dashboards, calculators, trackers','Build interactive tools — no coding required','Draft presentations, proposals, pitches','Design charts and diagrams from data'],myth:'AI tools are only for tech people',real:'The highest-value use cases are non-technical: writing, decisions, organization'},
+  {area:'Automate & Connect',ic:'⚡',items:['Connect to your email, calendar, and docs','Read uploaded files in any format','Trigger workflows in other apps','Maintain context across an entire project','Run multi-step tasks without copy-paste'],myth:'Setting this up is complicated',real:'Connecting your first tool takes 2 clicks. Start there'},
+];}
+function getMyths(){return[
+  {myth:"AI is going to take my job — I'm already behind",real:"AI is a tool, not a replacement. People who use it well outperform those who don't. That gap is growing. You're here now — that's what matters."},
+  {myth:"You need to be technical to use AI effectively",real:"Claude understands plain English. You don't write code or commands. The people getting the most value are not engineers."},
+  {myth:"AI just makes things up and can't be trusted",real:"Claude can be wrong, and it should tell you when it's uncertain. Fix: ask it to cite sources, enable web search, ask 'are you sure?' That's the whole trust framework."},
+  {myth:"I need to learn 'prompt engineering' first",real:"Be specific, give context, say what format you want. You already do this in every email you write. Advanced prompting helps but isn't a prerequisite."},
+  {myth:"AI is only useful for writers and coders",real:"The highest-leverage use cases are often the boring ones: drafting emails, summarizing meetings, prepping conversations, making decisions faster."},
+  {myth:"I need the paid version to get real value",real:"Free tier is genuinely capable. Prove value there first. Most people find paid necessary only once they're using it daily — which takes a few weeks."},
+  {myth:"I'll have to start over every time — it won't remember anything",real:"Claude's Project feature keeps context alive indefinitely. Set one up on Day 1 and Claude carries your context forward. The memory problem is solved — if you set it up."},
+  {myth:"AI responses are all the same — one generic voice",real:"Claude adapts to your instructions. Tell it your style, preferences, constraints. Custom instructions apply them automatically to every chat."},
+];}
+function getTryNow(){
+  const ow=S.ans.overwhelm||[];
+  const all=[
+    {label:'FIRST WIN',title:'Summarize something overwhelming',why:'Proves Claude reads documents in seconds — not minutes.',text:'"Here is something I need to understand: [paste article, email, or doc]. Give me: (1) the 3 most important points, (2) anything I should be skeptical of, (3) one question I should be asking."',triggers:['Too much to read and absorb','Research feels endless']},
+    {label:'FIRST WIN',title:"Draft something you've been avoiding",why:'Proves Claude can write in your voice — not generic, not robotic.',text:'"I need to write [email/message/report] about [topic]. Context: [2-3 sentences]. Draft this so it sounds like a thoughtful human wrote it, not a press release."',triggers:['Writing takes me forever','I repeat the same things constantly','Explaining things over and over']},
+    {label:'FIRST WIN',title:"Think through a decision you're stuck on",why:'Proves Claude is a thinking partner, not just a search engine.',text:'"I\'m deciding between [A] and [B]. My situation: [context]. What am I not considering? What\'s your recommendation and why?"',triggers:['Making decisions is exhausting','I feel behind on everything']},
+    {label:'FIRST WIN',title:'Turn chaos into a plan',why:'Proves Claude takes a brain dump and creates clarity.',text:'"Here\'s everything on my mind: [dump it all]. Turn this into: (1) what actually needs to happen, (2) what order to do it in, (3) what I can ignore or defer."',triggers:['I lose track of things I need to do','Admin tasks drain me','I feel behind on everything']},
+    {label:'FIRST WIN',title:'Get a research summary — not a rabbit hole',why:'Proves Claude saves 2 hours of reading in under 2 minutes.',text:'"I need to understand [topic] for [reason]. I have 5 minutes. Key concepts, why they matter, and what to explore further if I want to go deeper."',triggers:['Research feels endless','Never have time to learn new things']},
+    {label:'FIRST WIN',title:'Prep for a meeting or conversation',why:'Proves Claude makes you look prepared with almost no effort.',text:'"I have a [meeting/call] with [person/company] about [topic] in [timeframe]. Prep me: what I should know, what I should ask, what my goal should be."',triggers:['Meetings eat my whole day']},
+    {label:'FIRST WIN',title:'Unstick a creative project',why:'Proves Claude pushes past the blank page with you.',text:'"I\'m working on [project] and I\'m stuck because [blocker]. Give me 5 directions I could take this — from safe to unexpected."',triggers:['Creative work keeps stalling']},
+  ];
+  const rel=all.filter(p=>p.triggers.some(t=>ow.includes(t)));
+  const rest=all.filter(p=>!p.triggers.some(t=>ow.includes(t)));
+  return [...rel,...rest].slice(0,5);
+}
+function getLearningPath(){return[
+  {phase:'Day 1',pcls:'ph-d',bg:'var(--m)',title:'One real conversation',domain:'Domain: Writing or Decisions — lowest barrier, highest immediate payoff',items:["Open Claude and paste something you've been meaning to deal with.","Run one of the Try Now prompts. Pick the one closest to your biggest drain.","Notice: did it surprise you? That's the signal this is worth continuing.","Don't try to learn everything. Just get one useful result."],milestone:"You got something useful out of a real conversation — not a test."},
+  {phase:'Week 1',pcls:'ph-w1',bg:'var(--v)',title:'Find your anchor use case',domain:'Domain: Whatever saved you most time on Day 1 — go deeper',items:['Use Claude for the same type of task 3 times this week. Same prompt shape, different content.','Identify the one task where it saves you the most time or effort.','This becomes your anchor — the reason you keep coming back.','Paste your custom instructions into Settings. 2 minutes. Affects every future chat.'],milestone:'You have one thing you would genuinely miss if Claude disappeared tomorrow.'},
+  {phase:'Week 2',pcls:'ph-w2',bg:'var(--c)',title:'Set up the infrastructure',domain:'Domain: Research — second easiest to show ROI',items:['Connect 2-3 MCPs (Gmail + Calendar + one more). Do this before you think you need it.','Toggle web search on. Now Claude can verify facts and find current information.','Create your first Project. Name it after your biggest focus area.','Try asking Claude to research something you\'ve been meaning to understand.'],milestone:"Claude knows who you are and can see your real data. Infrastructure is live."},
+  {phase:'Month 1',pcls:'ph-m1',bg:'var(--g)',title:'Expand into new domains',domain:'Domain: Building — the one that surprises people most',items:["Try a domain you haven't used yet. If writing, try building. If research, try building.","Ask: 'Build me a simple [tracker/calculator] for [something I manage].' See what happens.",'Start noticing what you still do manually that Claude could handle.','Ask Claude: "What are you capable of that I haven\'t taken advantage of yet?"'],milestone:"You've used Claude in at least 3 different ways. You have opinions now."},
+  {phase:'Month 3',pcls:'ph-m3',bg:'var(--dim)',title:'Teach someone else',domain:'Domain: Automation — connects everything else',items:["Show one person the 1 thing you use Claude for most.",'Explaining forces you to understand it more deeply. This is how fluency compounds.','Connect a workflow tool (Zapier or n8n) to let Claude trigger actions in other apps.','You\'re no longer exploring. You have a practice.'],milestone:'Someone else is using AI because of you. You are now a multiplier.'},
+];}
+function getExplorerInst(){const sty=(S.ans.style||[])[0]||'step by step';return `I am new to AI and exploring what is possible. I want to learn as I go.\n\n# How I need you to work\n- Guide me: When you do something useful, briefly explain what you just did and why.\n- Teach me: After answering, occasionally surface one related capability I might not know about.\n- Experiment with me: After answering, suggest one related thing I could try next.\n- Keep it accessible. Not technical, but intelligent. Don't oversimplify.\n- If there is a better framing for what I am asking, reframe it and answer that instead.\n\n# My learning style\n${sty}\n\n# What I am figuring out\nWhat AI can actually do for me in real life. Discovery mode — no specific use case yet.\n\n# Hard rules\n- Never make things up. Say when you don't know.\n- Don't overwhelm me. One idea at a time.\n- These instructions last updated: May 2026.`;}
+function getStdInst(){const r=S.ans;const role=(r.role||[])[0]||'[your role]';const use=(r.use||[]).slice(0,3).join(', ')||'[your main tasks]';const pain=(r.pain||[])[0]||'[your biggest drain]';const p=S.profile;let b=`I am a ${role}. Primary use cases: ${use}.\n\n# How I need you to work\n- Research FIRST for any product, price, or recommendation.\n- Challenge my reasoning. If my approach has a flaw, say it directly.\n- When tradeoffs exist: show 2-3 options with evidence, pick one and justify it.\n- Be concise. Skip the preamble.\n- If you are unsure, say so. Do not fabricate confidence.\n- If my request is ambiguous, ask one clarifying question first.\n\n# My biggest time drain\n${pain}\n\n# Output defaults\n- Bullet points only when items are genuinely parallel. Otherwise prose.\n- No filler phrases.\n- Give me something I can use immediately.`;if(p==='personal'||p==='both')b+='\n\n# Personal context\n- Respond like a trusted advisor.\n- Tone: direct but warm. Not corporate.';if(p==='professional'||p==='both')b+='\n\n# Professional context\n- Recommendations must be implementable.\n- I care about execution and speed.';b+='\n\n# Hard rules\n- Never invent statistics. Cannot verify beats a guess.\n- These instructions last updated: May 2026.';return b;}
+function getInst(){return isEx()?getExplorerInst():getStdInst();}
+function getCases(){const use=S.ans.use||[];const pain=S.ans.pain||[];const all=[{tr:['Writing & editing'],tl:'Draft anything faster',ex:'"Draft a [email/report] for [context]. My voice: direct, no filler. 2 versions."',ic:'✏️'},{tr:['Research & synthesis'],tl:'Research without the rabbit hole',ex:'"Research [topic]. 5 key findings with sources. Flag anything you cannot verify."',ic:'🔍'},{tr:['Email overload'],tl:'Email triage and drafting',ex:'"[Paste thread] — what is being asked of me and draft my reply."',ic:'📧'},{tr:['Meeting prep & notes'],tl:'Meeting prep in 5 minutes',ex:'"Meeting about [topic] in 30 mins. Background, likely questions, 3 goals."',ic:'📅'},{tr:['Repetitive reporting','Status updates'],tl:'Report generation',ex:'"Here is last months data [paste]. Status report under 300 words."',ic:'📊'},{tr:['Decision fatigue'],tl:'Make decisions faster',ex:'"Deciding between [A] and [B]. Tradeoffs, recommendation, rationale."',ic:'⚖️'},{tr:['Code & automation'],tl:'Build tools without coding',ex:'"Build me an interactive [tracker/calculator] for [what I manage]."',ic:'🛠️'},{tr:['Strategy & planning'],tl:'Strategic thinking partner',ex:'"Planning [initiative]. Challenge my assumptions. What am I missing?"',ic:'🎯'}];const rel=all.filter(e=>e.tr.some(t=>use.includes(t)||pain.includes(t)));const rest=all.filter(e=>!e.tr.some(t=>use.includes(t)||pain.includes(t)));return[...rel,...rest].slice(0,6);}
+function getExConn(){return[{n:'Gmail',ic:'📧',w:'Claude reads your actual emails.',ex:'Ask: "Summarize the last 5 emails from [person] and tell me what I need to do."',t:'must'},{n:'Google Calendar',ic:'📅',w:'Claude sees your real schedule.',ex:'Ask: "What does my week look like? Where can I fit a 2-hour focus block?"',t:'must'},{n:'Google Drive',ic:'📁',w:'Claude reads your docs and files.',ex:'Upload any PDF and ask: "What is the key decision in this document?"',t:'must'},{n:'Notion',ic:'📓',w:'Claude reads and writes to your notes.',ex:'Ask: "Summarize my notes on [project]. What is missing?"',t:'high'},{n:'Todoist',ic:'☑️',w:'Claude manages your task list.',ex:'Ask: "What tasks are overdue? Help me prioritize what to tackle today."',t:'high'}];}
+function getChk(){if(isEx())return[{id:'e1',lb:'Run your first Try Now prompt',sb:'Go to the Try Now tab. Pick one. Paste into claude.ai. Just do it.',u:true},{id:'e2',lb:'Paste your custom instructions',sb:'claude.ai → Settings → User Preferences → paste. Now Claude knows you are learning.',u:true},{id:'e3',lb:'Enable web search',sb:"Toggle ON at the top of any chat. Without this Claude's info may be stale.",u:true},{id:'e4',lb:'Connect Gmail and Google Calendar',sb:'claude.ai → Connectors. Two clicks each. Shows you what MCPs feel like.',u:true},{id:'e5',lb:'Upload something you would normally explain',sb:'A doc, PDF, or screenshot. Ask: "What is the key decision in this?"',u:false},{id:'e6',lb:'Create a Project for your main focus area',sb:'Name it after the area where you are most overwhelmed. Give Claude that context permanently.',u:false},{id:'e7',lb:'Ask Claude what else it can do for you',sb:'"Based on how I have been using you, what am I not taking advantage of?"',u:false},{id:'e8',lb:'Find your anchor use case',sb:'The one thing Claude saves you the most time on. Once you have it, you will keep coming back.',u:false},{id:'e9',lb:'Show one person one thing',sb:'Fastest way to deepen fluency. Teach someone the thing that surprised you most.',u:false},{id:'e10',lb:'30-day check-in',sb:'What did I do manually this month that Claude could have handled? That is your next unlock.',u:false}];
+return[{id:'c1',lb:'Paste your custom instructions',sb:'claude.ai → Settings → User Preferences → paste.',u:true},{id:'c2',lb:'Connect your top 3 MCPs',sb:'Gmail + Calendar + one work tool. Do it before leaving.',u:true},{id:'c3',lb:'Enable web search',sb:'Toggle ON at the top of any chat.',u:true},{id:'c4',lb:'Create your first Project',sb:'One project = one ongoing focus.',u:true},{id:'c5',lb:'Upload a file and ask about it',sb:'PDFs, spreadsheets, images — Claude reads them all.',u:false},{id:'c6',lb:'Ask Claude to build you something',sb:'"Build me a [tracker/dashboard] for [what I manage]."',u:false},{id:'c7',lb:"Run deep research on something you've avoided",sb:'"Research [topic] and give me a synthesis with sources."',u:false},{id:'c8',lb:'30-day check-in',sb:'Note what Claude saved you time on.',u:false}];}
+function getUU(){const base=[{t:'Claude starts fresh every conversation',b:'No memory between chats. Projects fix this. Without them, you repeat yourself every session.'},{t:'Custom instructions are the single highest-leverage action',b:'Every conversation runs without context about you. Set them once, benefit forever.'},{t:'Web search is OFF by default',b:"Claude won't check current info unless you toggle it on. Prices, news — stale without it."},{t:'MCPs turn Claude from a chatbot into a co-worker',b:"Without connectors, Claude only works on what you paste in. With them, it reads your real data."},{t:'You can generate working apps in the chat window',b:'"Build me a tracker or calculator" — interactive code you use immediately. No install.'},{t:'File uploads unlock massive leverage',b:'Upload a PDF or deck — Claude reads it, summarizes it, rewrites it.'},{t:'Claude will agree when it should push back',b:"Sycophancy tendency by default. Tell it to challenge you in custom instructions."},{t:'Projects are not optional — they are the operating model',b:'Projects carry persistent context. Without them, Claude forgets you between sessions.'}];if(!isEx())return base;return[{t:"You don't need a use case to start — you discover it by starting",b:"Most people wait until they know what they want to use it for. That is backwards. Start with anything. Your use case emerges from using it, not from planning to use it."},{t:'The learning curve is delegation, not software',b:"The skill is learning what to hand off, how to brief it, and when to push back. That takes a few weeks of actual use, not studying."},{t:'Your first few prompts will feel awkward — that is calibration, not failure',b:"You don't have calibrated expectations yet. You might over-explain or under-explain. Claude will still give you something useful. Calibration happens fast once you start."},{t:'You are not behind — you are earlier than most people realize',b:"Adoption of AI in daily work is still early for most roles and industries. You are not catching up. You are getting ahead of a wave that has not broken yet."},...base];}
+function getMgrMD(){const ow=(S.ans.overwhelm||[]).slice(0,3);const caps=getCaps().slice(0,3);const d=new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});return `# Why I Am Learning AI — and What It Could Mean for Our Team\n${d}\n\n---\n\n## What I Am Learning and Why Now\n\nI have started exploring AI tools — specifically Claude — to understand where they can save time, reduce cognitive load, and create leverage in our work. This is not about hype. It is about identifying which parts of our day-to-day could be handled faster, better, or without manual effort.\n\n---\n\n## What AI Can Actually Do\n\n${caps.map(c=>'### '+c.ic+' '+c.area+'\n'+c.items.slice(0,3).map(i=>'- '+i).join('\n')).join('\n\n')}\n\n---\n\n## Where I Am Starting\n\n${ow.length>0?ow.map(u=>'- '+u).join('\n'):'- Writing and communication efficiency\n- Research and synthesis\n- Decision-making support'}\n\n---\n\n## What This Could Mean for the Team\n\n- Faster first drafts on everything written\n- Less time on research and summarization\n- Better-prepped meetings with less prep time\n- A team that is not starting from scratch every time\n\n---\n\n## Simple Starting Point for Anyone\n\nOpen claude.ai (free tier is enough to start). Paste in a problem you have been putting off. See what happens. If it saves time once, it saves time repeatedly.\n\n---\n\n*Generated by FlashFusion Claude Onboarding Kit · flashfusion.co*`;}
+function buildMD(){const d=new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});const cl=getChk();const u=getUU();if(isEx()){const prompts=getTryNow();const path=getLearningPath();const myths=getMyths();const caps=getCaps();const ecs=getExConn();return `# Claude Onboarding Kit — Explorer Edition\nGenerated: ${d}\n\n---\n\n## What AI Can Actually Do\n\n${caps.map(c=>'### '+c.ic+' '+c.area+'\n'+c.items.map(i=>'- '+i).join('\n')+'\n\nMyth: '+c.myth+'\nReality: '+c.real).join('\n\n')}\n\n---\n\n## Myths vs Reality\n\n${myths.map(m=>'Myth: '+m.myth+'\nReality: '+m.real).join('\n\n---\n')}\n\n---\n\n## Try This Right Now\n\n${prompts.map(p=>'### '+p.title+'\n'+p.why+'\n\n'+p.text).join('\n\n')}\n\n---\n\n## Learning Path\n\n${path.map(p=>'### '+p.phase+': '+p.title+'\n'+p.domain+'\n\n'+p.items.map(i=>'- '+i).join('\n')+'\n\nMilestone: '+p.milestone).join('\n\n')}\n\n---\n\n## Custom Instructions\n\nPaste into: claude.ai > Settings > User Preferences\n\n${getInst()}\n\n---\n\n## Start With These 5 Connectors\n\n${ecs.map(c=>'### '+c.n+'\n'+c.w+'\nTry: '+c.ex).join('\n\n')}\n\n---\n\n## Checklist\n\n${cl.map(c=>'- [ ] '+c.lb+(c.u?' (Start here)':'')+'\n  '+c.sb).join('\n')}\n\n---\n\n## Unknown Unknowns\n\n${u.map(x=>'### '+x.t+'\n'+x.b).join('\n\n')}\n\n---\n*FlashFusion Claude Onboarding Kit · May 2026*`;}
+const fc=filteredCatalog();const cs=getCases();return `# Claude Onboarding Kit\nGenerated: ${d}\nProfile: ${S.profile}\n\n---\n\n## Custom Instructions\n\nPaste into: claude.ai > Settings > User Preferences\n\n${getInst()}\n\n---\n\n## Connectors\n\n${['must','high'].map(t=>'### '+{must:'Must-Have',high:'High-Value'}[t]+'\n'+fc.filter(c=>c.t===t).map(c=>'- '+c.n+' — '+c.w).join('\n')).join('\n\n')}\n\n---\n\n## Prompt Templates\n\n${cs.map(c=>'### '+c.ic+' '+c.tl+'\n'+c.ex).join('\n\n')}\n\n---\n\n## Checklist\n\n${cl.map(c=>'- [ ] '+c.lb+(c.u?' (Day 1)':'')+'\n  '+c.sb).join('\n')}\n\n---\n\n## Unknown Unknowns\n\n${u.map(x=>'### '+x.t+'\n'+x.b).join('\n\n')}\n\n---\n*FlashFusion Claude Onboarding Kit · May 2026*`;}
+const CAT=[
+  {cat:'Productivity',n:'Gmail',ic:'📧',w:'Read, search, draft replies.',t:'must',p:['professional','personal','both'],m:'gmail',pop:2},
+  {cat:'Productivity',n:'Google Calendar',ic:'📅',w:'Schedule, check availability, create events.',t:'must',p:['professional','personal','both'],m:'calendar',pop:3},
+  {cat:'Productivity',n:'Google Drive',ic:'📁',w:'Claude reads docs, decks, and sheets.',t:'must',p:['professional','personal','both'],m:'drive',pop:1},
+  {cat:'Productivity',n:'Notion',ic:'📓',w:'Search notes, create pages, update databases.',t:'must',p:['professional','both'],m:'notion',pop:6},
+  {cat:'Productivity',n:'Microsoft 365',ic:'🪟',w:'Outlook, Teams, SharePoint, OneDrive.',t:'high',p:['professional','both'],m:'microsoft',pop:8},
+  {cat:'Productivity',n:'Slack',ic:'💬',w:'Search messages, draft replies.',t:'high',p:['professional','both'],m:'slack',pop:9},
+  {cat:'Productivity',n:'Asana',ic:'📋',w:'Tasks, projects, and goals.',t:'high',p:['professional','both'],m:'asana',pop:null},
+  {cat:'Productivity',n:'Linear',ic:'📐',w:'Engineering issues and roadmap.',t:'high',p:['professional','both'],m:'linear',pop:null},
+  {cat:'Productivity',n:'ClickUp',ic:'✅',w:'Project management and collaboration.',t:'opt',p:['professional','both'],m:'clickup',pop:null},
+  {cat:'Productivity',n:'Todoist',ic:'☑️',w:'Search, complete, manage tasks.',t:'must',p:['personal','both'],m:'todoist',pop:null},
+  {cat:'Productivity',n:'Calendly',ic:'🗓',w:'Manage event types and bookings.',t:'opt',p:['professional','both'],m:'calendly',pop:null},
+  {cat:'Productivity',n:'Granola',ic:'🎙',w:'AI notepad for meetings.',t:'opt',p:['professional','both'],m:'granola',pop:null},
+  {cat:'Design & Creative',n:'Figma',ic:'🎨',w:'Pull design context, generate code.',t:'must',p:['professional','both'],m:'figma',pop:5},
+  {cat:'Design & Creative',n:'Canva',ic:'🖼',w:'Search, create, export designs.',t:'high',p:['professional','personal','both'],m:'canva',pop:4},
+  {cat:'Design & Creative',n:'Adobe',ic:'🅰️',w:'Ideate and create with Adobe tools.',t:'high',p:['professional','both'],m:'adobe',pop:null},
+  {cat:'Design & Creative',n:'Miro',ic:'📌',w:'Access and update Miro boards.',t:'opt',p:['professional','both'],m:'miro',pop:null},
+  {cat:'Design & Creative',n:'Gamma',ic:'🖥',w:'Create presentations with AI.',t:'opt',p:['professional','both'],m:'gamma',pop:null},
+  {cat:'Dev & Engineering',n:'GitHub',ic:'🐙',w:'Issues, PRs, code review.',t:'must',p:['professional','both'],m:'github',pop:null},
+  {cat:'Dev & Engineering',n:'Supabase',ic:'🗄',w:'Databases, auth, storage.',t:'high',p:['professional','both'],m:'supabase',pop:null},
+  {cat:'Dev & Engineering',n:'Vercel',ic:'▲',w:'Deployments and debugging.',t:'high',p:['professional','both'],m:'vercel',pop:null},
+  {cat:'Dev & Engineering',n:'Sentry',ic:'🔍',w:'Search and debug errors.',t:'high',p:['professional','both'],m:'sentry',pop:null},
+  {cat:'Dev & Engineering',n:'Cloudflare',ic:'☁️',w:'Edge compute and storage.',t:'opt',p:['professional','both'],m:'cloudflare',pop:null},
+  {cat:'Dev & Engineering',n:'Netlify',ic:'🌐',w:'Deploy and manage websites.',t:'opt',p:['professional','both'],m:'netlify',pop:null},
+  {cat:'Dev & Engineering',n:'Datadog',ic:'🐶',w:'Telemetry and debugging.',t:'opt',p:['professional','both'],m:'datadog',pop:null},
+  {cat:'CRM & Sales',n:'HubSpot',ic:'🎯',w:'CRM contacts, deals, pipeline.',t:'must',p:['professional','both'],m:'hubspot',pop:10},
+  {cat:'CRM & Sales',n:'Apollo.io',ic:'🚀',w:'Find buyers, enrich contacts.',t:'high',p:['professional','both'],m:'apollo',pop:null},
+  {cat:'CRM & Sales',n:'Clay',ic:'🧱',w:'Prospects and personalized outreach.',t:'high',p:['professional','both'],m:'clay',pop:null},
+  {cat:'CRM & Sales',n:'ZoomInfo',ic:'🔭',w:'GTM intelligence.',t:'opt',p:['professional','both'],m:'zoominfo',pop:null},
+  {cat:'CRM & Sales',n:'Intercom',ic:'💬',w:'Customer data for support.',t:'opt',p:['professional','both'],m:'intercom',pop:null},
+  {cat:'Analytics & Data',n:'PostHog',ic:'🦔',w:'Product analytics.',t:'high',p:['professional','both'],m:'posthog',pop:null},
+  {cat:'Analytics & Data',n:'Airtable',ic:'🗂',w:'Structured databases in Claude.',t:'high',p:['professional','both'],m:'airtable',pop:null},
+  {cat:'Analytics & Data',n:'Semrush',ic:'🔍',w:'SEO and market data.',t:'opt',p:['professional','both'],m:'semrush',pop:null},
+  {cat:'Finance',n:'Stripe',ic:'💳',w:'Payment processing.',t:'high',p:['professional','both'],m:'stripe',pop:null},
+  {cat:'Finance',n:'Ramp',ic:'💰',w:'Spend analysis.',t:'opt',p:['professional','both'],m:'ramp',pop:null},
+  {cat:'Finance',n:'QuickBooks',ic:'📒',w:'Business finances.',t:'opt',p:['professional','both'],m:'quickbooks',pop:null},
+  {cat:'Personal',n:'Spotify',ic:'🎵',w:'Music recommendations.',t:'must',p:['personal'],m:'spotify',pop:null},
+  {cat:'Personal',n:'AllTrails',ic:'🥾',w:'Hike recommendations.',t:'opt',p:['personal'],m:'alltrails',pop:null},
+  {cat:'Personal',n:'Expedia',ic:'✈️',w:'Trips and hotels.',t:'opt',p:['personal','both'],m:'expedia',pop:null},
+  {cat:'Personal',n:'Instacart',ic:'🛒',w:'Groceries from chat.',t:'opt',p:['personal'],m:'instacart',pop:null},
+  {cat:'Legal',n:'Docusign',ic:'✍️',w:'Contract management.',t:'opt',p:['professional','both'],m:'docusign',pop:null},
+  {cat:'Legal',n:'Harvey',ic:'⚡',w:'Legal research.',t:'opt',p:['professional'],m:'harvey',pop:null},
+  {cat:'Custom & Advanced',n:'Zapier',ic:'⚡',w:'Automate across thousands of apps.',t:'high',p:['professional','personal','both'],m:'zapier',pop:null,custom:true},
+  {cat:'Custom & Advanced',n:'n8n',ic:'🔗',w:'Trigger n8n workflows from Claude.',t:'high',p:['professional','both'],m:'n8n',pop:null,custom:true},
+  {cat:'Custom & Advanced',n:'Atlassian',ic:'🔷',w:'Jira and Confluence.',t:'high',p:['professional','both'],m:'atlassian',pop:null,custom:true},
+  {cat:'Custom & Advanced',n:'Lovable',ic:'💜',w:'Build web apps from Claude.',t:'opt',p:['professional','both'],m:'lovable',pop:null,custom:true},
+  {cat:'Custom & Advanced',n:'Base44',ic:'🏗',w:'Build and manage Base44 apps.',t:'opt',p:['professional','both'],m:'base44',pop:null,custom:true},
+  {cat:'Custom & Advanced',n:'Ideabrowser',ic:'💡',w:'Validated startup ideas.',t:'opt',p:['professional','both'],m:'ideabrowser',pop:null,custom:true},
+  {cat:'Custom & Advanced',n:'Invideo',ic:'🎞',w:'AI video generation.',t:'opt',p:['professional','personal','both'],m:'invideo',pop:null,custom:true},
+  {cat:'Custom & Advanced',n:'Explorium',ic:'🔭',w:'B2B data intelligence.',t:'opt',p:['professional','both'],m:'explorium',pop:null,custom:true},
+  {cat:'Custom & Advanced',n:'GitLab',ic:'🦊',w:'CI/CD and code review.',t:'opt',p:['professional','both'],m:'gitlab',pop:null,custom:true},
+  {cat:'Custom & Advanced',n:'Playwright',ic:'🎭',w:'Browser automation.',t:'opt',p:['professional','both'],m:'playwright',pop:null,custom:true},
+  {cat:'Custom & Advanced',n:'monday.com',ic:'🗓',w:'Project boards.',t:'opt',p:['professional','both'],m:'monday',pop:null,custom:true},
+  {cat:'Custom & Advanced',n:'DataGrail',ic:'🛡',w:'Privacy and AI orchestration.',t:'opt',p:['professional'],m:'datagrail',pop:null,custom:true},
+];
+const ALL_CATS=[...new Set(CAT.map(c=>c.cat))];
+function filteredCatalog(){
+  const p=isEx()?'both':S.profile||'both';
+  const q=S.search.toLowerCase();
+  const tier=S.filterTier;const cat=S.filterCat;
+  return CAT.filter(c=>{
+    if(!c.p.includes(p)&&!c.p.includes('both'))return false;
+    if(tier!=='all'&&c.t!==tier)return false;
+    if(cat!=='all'&&c.cat!==cat)return false;
+    if(q&&!c.n.toLowerCase().includes(q)&&!c.w.toLowerCase().includes(q)&&!c.cat.toLowerCase().includes(q))return false;
+    return true;
+  }).sort((a,b)=>{const ta=a.t==='must'?0:a.t==='high'?1:2;const tb=b.t==='must'?0:b.t==='high'?1:2;return ta-tb;});
+}
+function getMilestone(){const keys=isEx()?['e1','e2','e3','e4']:['c1','c2','c3','c4'];const done=keys.filter(k=>S.chk[k]).length;return{done,total:keys.length};}
+function toast(msg,dur){dur=dur||2600;const t=document.getElementById('tst');t.textContent=msg;t.classList.add('s');setTimeout(()=>t.classList.remove('s'),dur);}
+function dlMD(){try{const b=new Blob([buildMD()],{type:'text/markdown'});const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download='claude-setup-'+S.profile+'-'+Date.now()+'.md';document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(u);toast('Downloaded');}catch(e){toast('Download failed');}}
+function dlMgr(){try{const b=new Blob([getMgrMD()],{type:'text/markdown'});const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download='ai-opportunity-one-pager-'+Date.now()+'.md';document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(u);toast('One-pager downloaded');}catch(e){toast('Failed');}}
+function copyInst(){navigator.clipboard.writeText(getInst()).then(()=>toast('Copied — paste into Settings > User Preferences'));}
+function notionPush(){const md=buildMD();navigator.clipboard.writeText(md).catch(()=>{});toast('Sending to Notion...',3000);document.getElementById('ntn').style.display='block';try{window.parent.postMessage({type:'sendPrompt',text:'NOTION_PUSH subpage under Production Hub 323ea14f. Title: Claude Onboarding Kit '+(isEx()?'Explorer':'')+'  '+new Date().toLocaleDateString()+'. Content:\n\n'+md},'*');}catch(e){}}
+function cRow(c,showEx){const tb=c.t==='must'?'<span class="bm mu">Must-Have</span>':c.t==='high'?'<span class="bm hi">High-Value</span>':'<span class="bm op">Specialized</span>';const cb=c.custom?'<span class="bm cu">Custom</span>':'';return '<div class="mr"><div class="mi">'+c.ic+'</div><div style="flex:1;min-width:0"><div class="mn">'+c.n+' '+tb+cb+'</div><div class="mw">'+c.w+'</div>'+(showEx&&c.ex?'<div class="mex">Try: '+c.ex+'</div>':'')+'</div></div>';}
+function render(){
+  const app=document.getElementById('app');
+  const ex=isEx();
+  const steps=['Profile','Questions','Setup'];
+  const sdots=steps.map((l,i)=>{const n=i+1;const cl=n<S.step?'sd d':n===S.step?'sd a':'sd';return '<div class="'+cl+'">'+(n<S.step?'v':n)+'</div><span class="sdl">'+l+'</span>';}).join('<div class="dsep"></div>');
+  let body='';
+  if(S.step===1){
+    body='<h1>Claude Onboarding Kit</h1><p class="sub">Get scoped custom instructions, matched connectors, and a setup path in 3 steps.</p><div class="sdots">'+sdots+'</div><p style="font-size:13px;color:var(--muted);margin-bottom:12px">How will you primarily use Claude?</p><div class="pg">'+Object.entries(PROFS).map(([k,v])=>'<div class="pc'+(S.profile===k?' sel':'')+(v.ex?' ex-c':'')+'" onclick="selP(\''+k+'\')">'+(v.ex?'<div class="new-tag">NEW</div>':'')+'<div class="ic">'+v.ic+'</div><div class="lb">'+v.lb+'</div><div class="ds">'+v.ds+'</div></div>').join('')+'</div><div class="br"><button onclick="if(S.profile){S.step=2;render()}" '+(S.profile?'':'disabled style="opacity:.4"')+'>Next</button></div>';
+  }else if(S.step===2){
+    const qs=ex?EXQ:(QS[S.profile]||QS.professional);
+    const useCount=(S.ans.use||[]).length;
+    const showDetect=!ex&&S.profile!=='explorer'&&useCount===0;
+    const det=showDetect?'<div class="detect-banner"><p>Not sure about use cases yet? <strong>Explorer mode</strong> is built for people still figuring out what AI can do for them.</p><button class="gr-btn" onclick="selP(\'explorer\');render()">Switch to Explorer</button></div>':'';
+    const bothBranch=S.profile==='both'?'<div class="qb" style="border-color:rgba(16,185,129,.2)"><div class="ql">Are you already using AI regularly, or still figuring out where it fits?</div><div class="cr"><div class="ch on">I already have specific use cases in mind</div><div class="ch" onclick="selP(\'explorer\');render()">Still figuring out what AI can do for me — Explorer mode</div></div></div>':'';
+    body='<h1>'+(ex?'Tell me about yourself':'Scoping questions')+'</h1><p class="sub">'+(ex?'No right answers. The more honest, the better Claude can guide you.':'Multi-select anything that fits.')+'</p><div class="sdots">'+sdots+'</div>'+det+bothBranch+qs.map(q=>'<div class="qb"><div class="ql">'+q.lb+'</div>'+(q.sub?'<div class="qs">'+q.sub+'</div>':'')+'<div class="cr">'+q.opts.map(o=>'<div class="ch'+((S.ans[q.id]||[]).includes(o)?(' on'+(ex?' ex':'')):'')+('" onclick="togA(\''+q.id+'\',\''+o.replace(/'/g,"\\'")+'\')">')+o+'</div>').join('')+'</div></div>').join('')+'<div class="br"><button class="sec" onclick="S.step=1;render()">Back</button><button onclick="S.step=3;S.tab=isEx()?\'capmap\':\'inst\';render()">Generate my setup</button></div>';
+  }else{
+    if(!S.tab)S.tab=ex?'capmap':'inst';
+    const exTabs=[{id:'capmap',lb:'What AI does'},{id:'myths',lb:'Myths'},{id:'trynow',lb:'Try now'},{id:'path',lb:'Learning path'},{id:'inst',lb:'Instructions'},{id:'conn',lb:'Connectors'},{id:'chk',lb:'Checklist'},{id:'uu',lb:'Unknowns'},{id:'mgr',lb:'For my team'}];
+    const stdTabs=[{id:'inst',lb:'Instructions'},{id:'conn',lb:'Connectors'},{id:'cases',lb:'Use Cases'},{id:'chk',lb:'Checklist'},{id:'uu',lb:'Unknowns'},{id:'mgr',lb:'For my team'}];
+    const tabs=ex?exTabs:stdTabs;
+    const {done}=getMilestone();
+    let tc='';
+    if(S.tab==='capmap'){
+      const caps=getCaps();
+      tc='<div class="rs ex-s"><div class="rt">What AI can actually do — with myth busters built in</div><p style="font-size:12px;color:var(--muted);margin-bottom:14px">Not theoretical. Each domain is something you can do in Claude today. Each card shows a common myth and the reality.</p><div class="cap-grid">'+caps.map(c=>'<div class="cap-card"><div class="cap-title"><span style="font-size:16px">'+c.ic+'</span>'+c.area+'</div><ul class="cap-items">'+c.items.map(i=>'<li>'+i+'</li>').join('')+'</ul><div class="cap-myth">'+c.myth+'</div><div class="cap-real">'+c.real+'</div></div>').join('')+'</div></div>';
+    }else if(S.tab==='myths'){
+      const myths=getMyths();
+      tc='<div class="rs ex-s"><div class="rt">Myths cleared — read this before anything else</div><p style="font-size:12px;color:var(--muted);margin-bottom:14px">These beliefs slow people down more than any technical barrier.</p>'+myths.map(m=>'<div class="myth-row"><span class="ml my">Myth</span><div class="myth-text">'+m.myth+'</div><span class="ml re">Reality</span><div class="myth-text rv">'+m.real+'</div></div>').join('')+'</div>';
+    }else if(S.tab==='trynow'){
+      const prompts=getTryNow();
+      tc='<div class="rs ex-s"><div class="rt">Try this right now — 5 first-win prompts</div><p style="font-size:12px;color:var(--muted);margin-bottom:14px">Copy, adapt the [brackets], paste into claude.ai.</p>'+prompts.map(p=>'<div class="prompt-card"><div class="pl">'+p.label+'</div><div class="pt">'+p.title+'</div><div class="pw">'+p.why+'</div><div class="px">'+p.text+'</div></div>').join('')+'</div>';
+    }else if(S.tab==='path'){
+      const path=getLearningPath();
+      tc='<div class="rs ex-s"><div class="rt">Your learning path</div><p style="font-size:12px;color:var(--muted);margin-bottom:16px">Time-anchored with domain progression. Milestones tell you what done looks like. Go at your own pace.</p><div class="path-phases">'+path.map(p=>'<div class="phase-block"><div class="phase-dot" style="background:'+p.bg+'"></div><span class="phase-pill '+p.pcls+'">'+p.phase+'</span><div class="phase-title">'+p.title+'</div><div class="phase-domain">'+p.domain+'</div><div class="phase-items">'+p.items.map(i=>'<div>'+i+'</div>').join('')+'</div><div class="milestone">'+p.milestone+'</div></div>').join('')+'</div></div>';
+    }else if(S.tab==='inst'){
+      tc='<div class="rs'+(ex?' ex-s':'')+'"><div class="rt">Custom instructions '+(ex?'— Explorer mode ':'')+' <span class="bm mu">Paste into Settings</span></div><p style="font-size:12px;color:var(--muted);margin-bottom:10px">claude.ai > Settings > User Preferences > paste.'+(ex?' This switches Claude into teaching mode.':' Edit the [bracketed] fields.')+'</p><div class="cb">'+getInst().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')+'</div></div><div class="rs'+(ex?' ex-s':'')+'"><div class="rt">Why this matters most</div><p style="font-size:13px;color:var(--muted);line-height:1.6">'+(ex?"Without this, Claude answers correctly but has no idea you're exploring. It won't explain what it's doing or suggest what to try next. These instructions turn on all three behaviours.":'Every conversation starts with zero context about you. Custom instructions inject your role and preferences into every chat automatically.')+'</p></div>';
+    }else if(S.tab==='conn'){
+      if(ex){
+        const ecs=getExConn();const fc=filteredCatalog();const off=fc.filter(c=>!c.custom);const cust=fc.filter(c=>c.custom);const cm={};off.forEach(c=>{if(!cm[c.cat])cm[c.cat]=[];cm[c.cat].push(c);});const unlocked=done>=3;const tiers=[{v:'all',lb:'All'},{v:'must',lb:'Must-Have'},{v:'high',lb:'High-Value'},{v:'opt',lb:'Specialized'}];const cats=[{v:'all',lb:'All'},...ALL_CATS.filter(c=>c!=='Custom & Advanced').map(c=>({v:c,lb:c.split(' ')[0]}))];
+        tc='<div class="rs ex-s"><div class="rt">Start with these 5 — guaranteed first wins <span class="bm gr">Week 1</span></div><p style="font-size:12px;color:var(--muted);margin-bottom:12px">Connect at: claude.ai > Settings > Connectors.</p>'+ecs.map(c=>cRow(c,true)).join('')+'</div>'+(unlocked?'<div class="rs"><div class="rt">Full catalog — unlocked <span class="stat">'+fc.length+' connectors</span></div><div class="search-bar"><input class="search-input" type="text" placeholder="Search connectors..." value="'+S.search+'" oninput="S.search=this.value;render()"/></div><div class="frow">'+tiers.map(f=>'<div class="ftag'+(S.filterTier===f.v?' on':'')+'" onclick="S.filterTier=\''+f.v+'\';render()">'+f.lb+'</div>').join('')+'<div style="width:1px;background:var(--dim);margin:0 2px"></div>'+cats.slice(0,6).map(f=>'<div class="ftag'+(S.filterCat===f.v?' on':'')+'" onclick="S.filterCat=\''+f.v+'\';render()">'+f.lb+'</div>').join('')+'</div>'+Object.entries(cm).map(([cat,items])=>'<div class="cat-hdr">'+cat+'</div>'+items.map(c=>cRow(c,false)).join('')).join('')+(cust.length?'<div style="margin-top:10px;padding-top:10px;border-top:1px solid rgba(34,211,238,.15)"><div class="rt"><span class="bm cu">Custom & Advanced</span></div>'+cust.map(c=>cRow(c,false)).join('')+'</div>':'')+'</div>':'<div class="gate"><div class="gate-title">Full catalog — unlock after 3 setup items</div><div class="gate-sub">Complete 3 items from your checklist and the full connector catalog opens here. Start with the 5 curated picks above.</div><div class="gate-prog"><div class="gate-bar"><div class="gate-fill" style="width:'+Math.round((done/3)*100)+'%"></div></div><div class="gate-label">'+done+'/3</div></div>'+['Run your first Try Now prompt','Paste your custom instructions','Enable web search'].map((i,idx)=>'<div class="gate-item">'+(idx<done?'✓':'○')+' '+i+'</div>').join('')+'</div>');
+      }else{
+        const fc=filteredCatalog();const off=fc.filter(c=>!c.custom);const cust=fc.filter(c=>c.custom);const cm={};off.forEach(c=>{if(!cm[c.cat])cm[c.cat]=[];cm[c.cat].push(c);});const tiers=[{v:'all',lb:'All tiers'},{v:'must',lb:'Must-Have'},{v:'high',lb:'High-Value'},{v:'opt',lb:'Specialized'}];const cats=[{v:'all',lb:'All'},...ALL_CATS.filter(c=>c!=='Custom & Advanced').map(c=>({v:c,lb:c.split(' ')[0]}))];
+        tc='<div class="rs"><div class="rt">Connector catalog <span class="stat">'+fc.length+' shown</span></div><div class="search-bar"><input class="search-input" type="text" placeholder="Search connectors..." value="'+S.search+'" oninput="S.search=this.value;render()"/></div><div class="frow">'+tiers.map(f=>'<div class="ftag'+(S.filterTier===f.v?' on':'')+'" onclick="S.filterTier=\''+f.v+'\';render()">'+f.lb+'</div>').join('')+'<div style="width:1px;background:var(--dim);margin:0 2px"></div>'+cats.slice(0,6).map(f=>'<div class="ftag'+(S.filterCat===f.v?' on':'')+'" onclick="S.filterCat=\''+f.v+'\';render()">'+f.lb+'</div>').join('')+'</div>'+(off.length===0?'<div style="padding:16px;text-align:center;color:var(--dim);font-size:13px">No connectors match.</div>':'')+Object.entries(cm).map(([cat,items])=>'<div class="cat-hdr">'+cat+'</div>'+items.map(c=>cRow(c,false)).join('')).join('')+'</div>'+(cust.length?'<div class="rs" style="border-color:rgba(34,211,238,.2)"><div class="rt">Custom and Advanced <span class="bm cu">Your workspace</span></div>'+cust.map(c=>cRow(c,false)).join('')+'</div>':'');
+      }
+    }else if(S.tab==='cases'){
+      const cs=getCases();
+      tc='<div class="rs"><div class="rt">Prompt templates for your profile</div>'+cs.map(c=>'<div class="uc-item"><div class="uc-title"><span style="font-size:16px">'+c.ic+'</span>'+c.tl+'</div><div class="uc-ex">'+c.ex+'</div></div>').join('')+'</div>';
+    }else if(S.tab==='chk'){
+      const cl=getChk();const dn=Object.values(S.chk).filter(Boolean).length;
+      tc='<div class="rs'+(ex?' ex-s':'')+'"><div class="rt">'+(ex?'Explorer':'30-day')+' checklist <span class="bm op">'+dn+'/'+cl.length+' done</span></div>'+cl.map(c=>'<div class="ci"><div class="ck'+(S.chk[c.id]?' dn':'')+'" onclick="togChk(\''+c.id+'\')" role="checkbox" aria-checked="'+(!!S.chk[c.id])+'">'+(S.chk[c.id]?'v':'')+'</div><div><div class="ct" style="'+(S.chk[c.id]?'opacity:.4;text-decoration:line-through':'')+'">'+(c.lb)+(c.u?' <span class="bm '+(ex?'gr':'mu')+'">'+(ex?'Start here':'Day 1')+'</span>':'')+'</div><div class="cs">'+c.sb+'</div></div></div>').join('')+'</div>';
+    }else if(S.tab==='uu'){
+      const u=getUU();
+      tc='<div class="rs'+(ex?' ex-s':'')+'"><div class="rt">'+(ex?'What most people learning AI do not know':'Unknown unknowns')+'</div><p style="font-size:12px;color:var(--muted);margin-bottom:12px">'+(ex?'Mindset gaps that slow people down more than any technical barrier.':'Things every new Claude user hits in the first month.')+'</p>'+u.map(x=>'<div class="ub"><p><strong>'+x.t+'</strong> — '+x.b+'</p></div>').join('')+'</div>';
+    }else if(S.tab==='mgr'){
+      const caps=getCaps().slice(0,3);const ow=(S.ans.overwhelm||[]).slice(0,3);
+      tc='<div class="rs mgr-s"><div class="rt">For my manager and team <span class="bm am">One-pager</span></div><p style="font-size:12px;color:var(--muted);margin-bottom:14px">Share with your manager, team lead, or colleagues. Download as markdown or copy.</p><div class="mgr-block"><h3>Why I Am Learning AI</h3><p>I have started exploring AI tools to understand where they can save time, reduce cognitive load, and create leverage in our work. Not hype — identifying which parts of our day-to-day could be handled faster or without manual effort.</p></div><div class="mgr-block"><h3>What AI Can Actually Do</h3><ul>'+caps.map(c=>'<li><strong>'+c.area+'</strong> — '+c.items.slice(0,2).join('; ')+'</li>').join('')+'</ul></div><div class="mgr-block"><h3>Where I Am Starting</h3><ul>'+(ow.length>0?ow.map(u=>'<li>'+u+'</li>').join(''):'<li>Writing and communication efficiency</li><li>Research and synthesis</li><li>Decision-making support</li>')+'</ul></div><div class="mgr-block"><h3>What This Could Mean for the Team</h3><ul><li>Faster first drafts on everything written</li><li>Less time on research and summarization</li><li>Better-prepped meetings with less prep time</li><li>A team that is not starting from scratch every time</li></ul></div><div class="mgr-block"><h3>Simple Starting Point for Anyone</h3><p>Open claude.ai (free tier is enough). Paste in a problem you have been putting off. See what happens.</p></div><div class="br"><button class="am-btn" onclick="dlMgr()">Download one-pager .md</button><button class="cp" onclick="navigator.clipboard.writeText(getMgrMD()).then(()=>toast(\'Copied\'))">Copy</button></div></div>';
+    }
+    const banner=ex?'<div class="ex-banner"><h2>Explorer Mode — discovery path</h2><p>Tabs ordered for learning: What AI does > Myths > Try now > Learning path > Instructions > Connectors > Checklist > Unknowns > For my team. Start left, move right.</p></div>':'';
+    body='<h1>'+(ex?'Your Explorer Setup':'Your Claude Setup')+'</h1><p class="sub">'+(ex?'Built for someone learning what is possible. Work left to right.':'Personalised to your profile. Export before you leave.')+'</p><div class="sdots">'+sdots+'</div>'+banner+'<div class="xbar"><span class="xbar-lbl">Export</span><button class="dl" onclick="dlMD()">Download .md</button><button class="cp" onclick="copyInst()">Copy instructions</button><button class="pr" onclick="window.print()">Print</button><button class="nt" onclick="notionPush()">Notion</button>'+(ex?'<button class="am-btn" onclick="dlMgr()">Team one-pager</button>':'')+'</div><div id="ntn" style="display:none" class="note">Notion push triggered — creating under Production Hub. Markdown also copied to clipboard.</div><div class="tr">'+tabs.map(t=>'<div class="tb'+(S.tab===t.id?' on':'')+(ex?' ex-tab':'')+(t.id==='mgr'?' mgr-tab':'')+'" onclick="setTab(\''+t.id+'\')">'+t.lb+'</div>').join('')+'</div>'+tc+'<div class="br"><button class="sec" onclick="S.step=2;render()">Edit answers</button></div>';
+  }
+  app.innerHTML=body;
+}
+window.selP=p=>{S.profile=p;render();};
+window.togA=(id,val)=>{if(!S.ans[id])S.ans[id]=[];const i=S.ans[id].indexOf(val);if(i>-1)S.ans[id].splice(i,1);else S.ans[id].push(val);render();};
+window.setTab=t=>{S.tab=t;render();};
+window.togChk=id=>{S.chk[id]=!S.chk[id];render();};
+window.dlMD=dlMD;window.dlMgr=dlMgr;window.copyInst=copyInst;window.notionPush=notionPush;window.getMgrMD=getMgrMD;window.toast=toast;
+render();
+</script>
+</body>
+</html>

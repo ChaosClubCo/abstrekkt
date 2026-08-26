@@ -1,0 +1,247 @@
+{
+  "name": "01 — Ecosystem Scanner (Daily)",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 6
+            }
+          ]
+        }
+      },
+      "name": "Daily 6AM CT",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 300]
+    },
+    {
+      "parameters": {},
+      "name": "Manual Test",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [0, 500]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ============================================\n// FEED CONFIGURATION — Edit this list to add/remove feeds\n// ============================================\nconst feeds = [\n  // Tier 1 — Primary Sources\n  { name: 'Anthropic News', url: 'https://raw.githubusercontent.com/Olshansk/rss-feeds/main/feeds/feed_anthropic_news.xml', tier: 1, category: 'ai_labs' },\n  { name: 'Anthropic Engineering', url: 'https://raw.githubusercontent.com/Olshansk/rss-feeds/main/feeds/feed_anthropic_engineering.xml', tier: 1, category: 'ai_labs' },\n  { name: 'OpenAI Blog', url: 'https://raw.githubusercontent.com/Olshansk/rss-feeds/main/feeds/feed_openai_research.xml', tier: 1, category: 'ai_labs' },\n  { name: 'Google AI Blog', url: 'https://blog.google/technology/ai/rss/', tier: 1, category: 'ai_labs' },\n  { name: 'Microsoft AI Blog', url: 'https://blogs.microsoft.com/ai/feed/', tier: 1, category: 'ai_labs' },\n  // Tier 2 — Industry News\n  { name: 'TechCrunch AI', url: 'https://techcrunch.com/category/artificial-intelligence/feed/', tier: 2, category: 'tech_news' },\n  { name: 'The Verge AI', url: 'https://www.theverge.com/rss/ai-artificial-intelligence/index.xml', tier: 2, category: 'tech_news' },\n  { name: 'VentureBeat AI', url: 'https://venturebeat.com/category/ai/feed/', tier: 2, category: 'tech_news' },\n  { name: 'Techmeme', url: 'https://www.techmeme.com/feed.xml', tier: 2, category: 'tech_news' },\n  { name: 'Wired AI', url: 'https://www.wired.com/feed/tag/ai/latest/rss', tier: 2, category: 'tech_news' },\n  // Tier 3 — Developer Ecosystem\n  { name: 'HN AI Filtered', url: 'https://hnrss.org/newest?q=AI+OR+LLM+OR+Claude+OR+GPT+OR+agent', tier: 3, category: 'developer' },\n  { name: 'Vercel Blog', url: 'https://vercel.com/atom', tier: 3, category: 'developer' },\n  { name: 'Supabase Blog', url: 'https://supabase.com/blog/rss.xml', tier: 3, category: 'developer' },\n  { name: 'Cursor Blog', url: 'https://raw.githubusercontent.com/Olshansk/rss-feeds/main/feeds/feed_cursor.xml', tier: 3, category: 'developer' },\n  // Tier 4 — Research\n  { name: 'Ahead of AI', url: 'https://magazine.sebastianraschka.com/feed', tier: 4, category: 'research' },\n  { name: 'The Algorithmic Bridge', url: 'https://thealgorithmicbridge.substack.com/feed', tier: 4, category: 'research' },\n  // Tier 5 — Security & Infrastructure\n  { name: 'The Hacker News', url: 'https://feeds.feedburner.com/TheHackersNews', tier: 5, category: 'security' },\n  { name: 'Krebs on Security', url: 'https://krebsonsecurity.com/feed/', tier: 5, category: 'security' },\n  { name: 'Cloudflare Blog', url: 'https://blog.cloudflare.com/rss/', tier: 5, category: 'infrastructure' },\n  { name: 'Simon Willison', url: 'https://simonwillison.net/atom/everything/', tier: 5, category: 'developer' }\n];\n\nreturn feeds.map(f => ({ json: f }));"
+      },
+      "name": "Feed Config",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [240, 400]
+    },
+    {
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      },
+      "name": "Loop Feeds",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [460, 400]
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.url }}",
+        "options": {
+          "timeout": 15000,
+          "response": {
+            "response": {
+              "responseFormat": "text"
+            }
+          }
+        }
+      },
+      "name": "Fetch Feed",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [680, 400],
+      "onError": "continueRegularOutput",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 3000
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse RSS/Atom XML into normalized article items\nconst response = $input.item.json;\nconst xml = typeof response === 'string' ? response : (response.data || response.body || JSON.stringify(response));\nconst feedMeta = $('Loop Feeds').first().json;\n\nif (!xml || xml.length < 100) return [];\n\nconst items = [];\nconst now = new Date();\nconst cutoff = new Date(now.getTime() - 48 * 60 * 60 * 1000); // 48hr window\n\n// Extract <item> (RSS) or <entry> (Atom) blocks\nconst blockRegex = /<item[\\s>][\\s\\S]*?<\\/item>|<entry[\\s\\S]*?<\\/entry>/gi;\nconst blocks = xml.match(blockRegex) || [];\n\nfunction extractTag(block, tag) {\n  const cdataRe = new RegExp(`<${tag}[^>]*><!\\\\[CDATA\\\\[([\\\\s\\\\S]*?)\\\\]\\\\]><\\/${tag}>`, 'i');\n  const plainRe = new RegExp(`<${tag}[^>]*>([\\\\s\\\\S]*?)<\\/${tag}>`, 'i');\n  const m = block.match(cdataRe) || block.match(plainRe);\n  return m ? m[1].trim() : '';\n}\n\nfunction extractLink(block) {\n  // Atom: <link href=\"...\" />\n  const atomLink = block.match(/<link[^>]*href=[\"']([^\"']+)[\"'][^>]*\\/?>/i);\n  if (atomLink) return atomLink[1];\n  // RSS: <link>...</link>\n  return extractTag(block, 'link');\n}\n\nfunction stripHtml(str) {\n  return str.replace(/<[^>]+>/g, ' ').replace(/\\s+/g, ' ').trim();\n}\n\nfor (const block of blocks.slice(0, 15)) {\n  const title = stripHtml(extractTag(block, 'title'));\n  const link = extractLink(block);\n  const desc = stripHtml(\n    extractTag(block, 'description') ||\n    extractTag(block, 'summary') ||\n    extractTag(block, 'content')\n  ).substring(0, 600);\n  const dateStr = extractTag(block, 'pubDate') ||\n    extractTag(block, 'published') ||\n    extractTag(block, 'updated') ||\n    extractTag(block, 'dc:date');\n\n  if (dateStr) {\n    const d = new Date(dateStr);\n    if (!isNaN(d.getTime()) && d < cutoff) continue;\n  }\n\n  if (title && title.length > 5) {\n    items.push({\n      title,\n      link: link.trim(),\n      description: desc,\n      pub_date: dateStr,\n      source_name: feedMeta.name,\n      source_tier: feedMeta.tier,\n      source_category: feedMeta.category,\n      fetched_at: now.toISOString()\n    });\n  }\n}\n\nreturn items.map(i => ({ json: i }));"
+      },
+      "name": "Parse Items",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 400]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Collect all parsed items from the loop and deduplicate by title\nconst items = $input.all().map(i => i.json);\nconst seen = new Set();\nconst unique = [];\n\nfor (const item of items) {\n  const key = item.title.toLowerCase().substring(0, 80);\n  if (!seen.has(key)) {\n    seen.add(key);\n    unique.push(item);\n  }\n}\n\n// Store total count for digest\nconst totalCount = unique.length;\n\nreturn unique.map((item, idx) => ({\n  json: { ...item, _batch_total: totalCount, _batch_index: idx }\n}));"
+      },
+      "name": "Deduplicate",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1120, 400]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "anthropic-version", "value": "2023-06-01" },
+            { "name": "content-type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"claude-sonnet-4-20250514\",\n  \"max_tokens\": 250,\n  \"messages\": [{\n    \"role\": \"user\",\n    \"content\": \"Rate this article for an AI ecosystem newsletter.\\n\\nTitle: {{ $json.title }}\\nSource: {{ $json.source_name }} (Tier {{ $json.source_tier }})\\nSummary: {{ $json.description }}\\n\\nScore 1-10. >= 7 only for genuine builder intelligence, platform shifts, or actionable signals. < 4 for fluff or rehashed news.\\n\\nRespond ONLY with valid JSON, no markdown fences:\\n{\\\"score\\\": <number>, \\\"reason\\\": \\\"<1 sentence>\\\", \\\"category\\\": \\\"<ai_labs|enterprise|developer|security|research|product_launch>\\\", \\\"newsletter_tier\\\": \\\"<tier1_exec|tier2_tech|tier3_builder|all>\\\", \\\"newsletter_angle\\\": \\\"<1 sentence>\\\"}\"\n  }]\n}",
+        "options": { "timeout": 30000 }
+      },
+      "name": "Claude Score",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1340, 400],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse Claude response and merge with original item\nconst claudeRaw = $input.item.json;\nconst original = $('Deduplicate').item.json;\n\nlet parsed;\ntry {\n  const text = claudeRaw.content?.[0]?.text || '';\n  const cleaned = text.replace(/```json\\n?|```\\n?/g, '').trim();\n  parsed = JSON.parse(cleaned);\n} catch {\n  parsed = { score: 5, reason: 'Unparseable response', category: 'unknown', newsletter_tier: 'all', newsletter_angle: 'Review manually' };\n}\n\nreturn {\n  json: {\n    ...original,\n    relevance_score: parsed.score || 5,\n    score_reason: parsed.reason || '',\n    ai_category: parsed.category || 'unknown',\n    newsletter_tier: parsed.newsletter_tier || 'all',\n    newsletter_angle: parsed.newsletter_angle || ''\n  }\n};"
+      },
+      "name": "Merge Scores",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1560, 400]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [{
+            "id": "score-filter",
+            "leftValue": "={{ $json.relevance_score }}",
+            "rightValue": 7,
+            "operator": { "type": "number", "operation": "gte" }
+          }],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "name": "Score >= 7",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2,
+      "position": [1780, 400]
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "databaseId": "={{ 02dcdeff6afe43d6a1325882a14289dc }}",
+        "title": "={{ $json.title }}",
+        "propertiesUi": {
+          "propertyValues": [
+            { "key": "Source", "type": "selectValue", "selectValue": "={{ $json.source_name }}" },
+            { "key": "URL", "type": "urlValue", "urlValue": "={{ $json.link }}" },
+            { "key": "Relevance Score", "type": "numberValue", "numberValue": "={{ $json.relevance_score }}" },
+            { "key": "Category", "type": "selectValue", "selectValue": "={{ $json.ai_category }}" },
+            { "key": "Newsletter Tier", "type": "selectValue", "selectValue": "={{ $json.newsletter_tier }}" },
+            { "key": "Newsletter Angle", "type": "richTextValue", "textContent": "={{ $json.newsletter_angle }}" },
+            { "key": "Summary", "type": "richTextValue", "textContent": "={{ $json.description }}" },
+            { "key": "Score Reason", "type": "richTextValue", "textContent": "={{ $json.score_reason }}" },
+            { "key": "Status", "type": "selectValue", "selectValue": "new" }
+          ]
+        }
+      },
+      "name": "→ Notion",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [2000, 400],
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 2000
+    },
+    {
+      "parameters": {
+        "jsCode": "// Build daily digest summary\nconst scored = $('Merge Scores').all();\nconst passed = $('Score >= 7').all();\n\nconst byCategory = {};\nfor (const item of passed) {\n  const cat = item.json.ai_category || 'unknown';\n  byCategory[cat] = (byCategory[cat] || 0) + 1;\n}\n\nconst catBreakdown = Object.entries(byCategory)\n  .sort((a, b) => b[1] - a[1])\n  .map(([c, n]) => `  ${c}: ${n}`)\n  .join('\\n');\n\nconst topItems = [...passed]\n  .sort((a, b) => (b.json.relevance_score || 0) - (a.json.relevance_score || 0))\n  .slice(0, 5)\n  .map(i => `  [${i.json.relevance_score}] ${i.json.title}\\n       → ${i.json.newsletter_angle}`)\n  .join('\\n');\n\nconst d = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });\n\nreturn { json: {\n  summary: `📡 Ecosystem Scanner — ${d}\\n\\n` +\n    `Scanned ${scored.length} items → ${passed.length} passed (score ≥ 7)\\n\\n` +\n    `Categories:\\n${catBreakdown || '  (none)'}\\n\\n` +\n    `Top signals:\\n${topItems || '  (none today)'}`,\n  items_found: passed.length,\n  total_scanned: scored.length\n}};"
+      },
+      "name": "Daily Digest",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2220, 400]
+    },
+    {
+      "parameters": {
+        "channel": "={{ $env.SLACK_NOTIFY_CHANNEL || '#ai-scanner' }}",
+        "text": "={{ $json.summary }}",
+        "otherOptions": {}
+      },
+      "name": "→ Slack",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.2,
+      "position": [2440, 300]
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{ $env.NOTIFY_EMAIL_FROM }}",
+        "toEmail": "={{ $env.NOTIFY_EMAIL_TO }}",
+        "subject": "=📡 Scanner: {{ $json.items_found }} signals — {{ new Date().toLocaleDateString() }}",
+        "emailType": "text",
+        "message": "={{ $json.summary }}"
+      },
+      "name": "→ Email",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [2440, 500]
+    },
+    {
+      "parameters": {},
+      "name": "On Error",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [0, 700]
+    },
+    {
+      "parameters": {
+        "channel": "={{ $env.SLACK_NOTIFY_CHANNEL || '#ai-scanner' }}",
+        "text": "=🚨 Scanner FAILED\\nError: {{ $json.execution.error.message }}\\nExecution: {{ $json.execution.id }}",
+        "otherOptions": {}
+      },
+      "name": "Error → Slack",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.2,
+      "position": [240, 700]
+    }
+  ],
+  "connections": {
+    "Daily 6AM CT": { "main": [[{ "node": "Feed Config", "type": "main", "index": 0 }]] },
+    "Manual Test": { "main": [[{ "node": "Feed Config", "type": "main", "index": 0 }]] },
+    "Feed Config": { "main": [[{ "node": "Loop Feeds", "type": "main", "index": 0 }]] },
+    "Loop Feeds": { "main": [
+      [{ "node": "Fetch Feed", "type": "main", "index": 0 }],
+      [{ "node": "Deduplicate", "type": "main", "index": 0 }]
+    ]},
+    "Fetch Feed": { "main": [[{ "node": "Parse Items", "type": "main", "index": 0 }]] },
+    "Parse Items": { "main": [[{ "node": "Loop Feeds", "type": "main", "index": 0 }]] },
+    "Deduplicate": { "main": [[{ "node": "Claude Score", "type": "main", "index": 0 }]] },
+    "Claude Score": { "main": [[{ "node": "Merge Scores", "type": "main", "index": 0 }]] },
+    "Merge Scores": { "main": [[{ "node": "Score >= 7", "type": "main", "index": 0 }]] },
+    "Score >= 7": { "main": [[{ "node": "→ Notion", "type": "main", "index": 0 }]] },
+    "→ Notion": { "main": [[{ "node": "Daily Digest", "type": "main", "index": 0 }]] },
+    "Daily Digest": { "main": [[
+      { "node": "→ Slack", "type": "main", "index": 0 },
+      { "node": "→ Email", "type": "main", "index": 0 }
+    ]]},
+    "On Error": { "main": [[{ "node": "Error → Slack", "type": "main", "index": 0 }]] }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "saveDataSuccessExecution": "all",
+    "saveDataErrorExecution": "all",
+    "executionTimeout": 900,
+    "timezone": "America/Chicago"
+  },
+  "tags": [{ "name": "the-prompt" }, { "name": "content-engine" }, { "name": "daily" }]
+}

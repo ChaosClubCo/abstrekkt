@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kyle Rosebrook</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600&family=IBM+Plex+Mono:wght@400;500&family=Epilogue:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0d0c0b;
+  --bg2: #131210;
+  --bg3: #1a1916;
+  --ember: #c8602a;
+  --ember-dim: #7a3a1a;
+  --code-blue: #4a8fa8;
+  --cream: #f0ece4;
+  --muted: #7a756e;
+  --border: rgba(240,236,228,0.08);
+  --border-hot: rgba(200,96,42,0.3);
+  --font-display: 'Cormorant Garamond', Georgia, serif;
+  --font-mono: 'IBM Plex Mono', 'Courier New', monospace;
+  --font-body: 'Epilogue', system-ui, sans-serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 16px; scroll-behavior: smooth; }
+
+body {
+  font-family: var(--font-body);
+  background: var(--bg);
+  color: var(--cream);
+  line-height: 1.65;
+  overflow-x: hidden;
+}
+
+/* Grain overlay */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 1000;
+  opacity: 0.4;
+}
+
+/* ─── NAV ─── */
+nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  padding: 20px 48px;
+  display: flex; align-items: center; justify-content: space-between;
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.3s, background 0.3s;
+}
+nav.scrolled {
+  background: rgba(13,12,11,0.92);
+  backdrop-filter: blur(12px);
+  border-bottom-color: var(--border);
+}
+.nav-logo {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--cream);
+  text-decoration: none;
+  letter-spacing: -0.01em;
+}
+.nav-logo span { color: var(--ember); }
+.nav-links { display: flex; gap: 36px; list-style: none; align-items: center; }
+.nav-links a {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--muted);
+  text-decoration: none;
+  letter-spacing: 0.06em;
+  transition: color 0.2s;
+}
+.nav-links a:hover { color: var(--cream); }
+.nav-cta {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ember) !important;
+  border: 1px solid var(--border-hot);
+  padding: 7px 16px;
+  border-radius: 2px;
+  transition: background 0.2s, color 0.2s !important;
+}
+.nav-cta:hover { background: var(--ember) !important; color: var(--bg) !important; }
+
+/* ─── HERO ─── */
+.hero {
+  min-height: 100vh;
+  display: flex; flex-direction: column; justify-content: flex-end;
+  padding: 0 48px 80px;
+  position: relative;
+  overflow: hidden;
+}
+
+.hero-bg-text {
+  position: absolute;
+  top: 50%; left: -20px;
+  transform: translateY(-50%);
+  font-family: var(--font-display);
+  font-size: clamp(120px, 18vw, 240px);
+  font-weight: 700;
+  color: rgba(240,236,228,0.02);
+  white-space: nowrap;
+  pointer-events: none;
+  user-select: none;
+  line-height: 1;
+  letter-spacing: -0.04em;
+}
+
+.hero-eyebrow {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ember);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  margin-bottom: 20px;
+  opacity: 0;
+  animation: fadeUp 0.8s ease 0.2s forwards;
+}
+
+.hero-name {
+  font-family: var(--font-display);
+  font-size: clamp(56px, 9vw, 120px);
+  font-weight: 700;
+  line-height: 0.92;
+  letter-spacing: -0.03em;
+  color: var(--cream);
+  margin-bottom: 32px;
+  opacity: 0;
+  animation: fadeUp 0.9s ease 0.35s forwards;
+}
+.hero-name em {
+  font-style: italic;
+  font-weight: 400;
+  color: rgba(240,236,228,0.5);
+}
+
+.hero-rule {
+  width: 60px; height: 1px;
+  background: var(--ember);
+  margin-bottom: 28px;
+  opacity: 0;
+  animation: expandRule 0.8s ease 0.55s forwards;
+}
+
+.hero-bio {
+  max-width: 620px;
+  font-size: 19px;
+  line-height: 1.7;
+  color: rgba(240,236,228,0.7);
+  margin-bottom: 40px;
+  opacity: 0;
+  animation: fadeUp 0.8s ease 0.65s forwards;
+}
+.hero-bio strong { color: var(--cream); font-weight: 500; }
+
+.hero-actions {
+  display: flex; gap: 16px; flex-wrap: wrap;
+  opacity: 0;
+  animation: fadeUp 0.8s ease 0.8s forwards;
+}
+.btn-primary {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  padding: 14px 28px;
+  background: var(--ember);
+  color: var(--bg);
+  border: none;
+  border-radius: 2px;
+  text-decoration: none;
+  font-weight: 500;
+  transition: background 0.2s, transform 0.15s;
+  letter-spacing: 0.03em;
+}
+.btn-primary:hover { background: #d97040; transform: translateY(-1px); }
+.btn-ghost {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  padding: 13px 28px;
+  background: transparent;
+  color: var(--cream);
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  text-decoration: none;
+  transition: border-color 0.2s, color 0.2s;
+  letter-spacing: 0.03em;
+}
+.btn-ghost:hover { border-color: rgba(240,236,228,0.3); }
+
+.hero-scroll {
+  position: absolute; bottom: 32px; right: 48px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--muted);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  writing-mode: vertical-rl;
+  opacity: 0;
+  animation: fadeIn 1s ease 1.2s forwards;
+}
+.hero-scroll::before {
+  content: '';
+  display: block;
+  width: 1px; height: 48px;
+  background: var(--muted);
+  margin: 0 auto 8px;
+  animation: growLine 1s ease 1.4s both;
+}
+
+/* ─── STATS BAR ─── */
+.stats-bar {
+  background: var(--bg2);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  padding: 28px 48px;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0;
+}
+.stat {
+  padding: 0 32px 0 0;
+  border-right: 1px solid var(--border);
+}
+.stat:last-child { border-right: none; padding-left: 32px; }
+.stat:first-child { padding-left: 0; }
+.stat-num {
+  font-family: var(--font-display);
+  font-size: 42px;
+  font-weight: 700;
+  color: var(--cream);
+  line-height: 1;
+  margin-bottom: 4px;
+}
+.stat-num span { color: var(--ember); font-size: 28px; }
+.stat-label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--muted);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* ─── SECTIONS ─── */
+.section { padding: 96px 48px; }
+.section-sm { padding: 64px 48px; }
+
+.section-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--ember);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  margin-bottom: 20px;
+  display: flex; align-items: center; gap: 12px;
+}
+.section-label::after {
+  content: '';
+  flex: 1; height: 1px;
+  background: var(--border-hot);
+  max-width: 60px;
+}
+
+.section-title {
+  font-family: var(--font-display);
+  font-size: clamp(38px, 5vw, 64px);
+  font-weight: 700;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  color: var(--cream);
+  margin-bottom: 24px;
+}
+.section-title em {
+  font-style: italic;
+  font-weight: 400;
+  color: rgba(240,236,228,0.5);
+}
+
+.section-body {
+  font-size: 18px;
+  line-height: 1.75;
+  color: rgba(240,236,228,0.65);
+  max-width: 600px;
+}
+
+/* ─── STORY SECTION ─── */
+.story-section {
+  background: var(--bg);
+  padding: 96px 48px;
+}
+.story-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 80px;
+  align-items: start;
+  max-width: 1280px;
+  margin: 0 auto;
+}
+.story-left {}
+.story-right {}
+
+.story-text {
+  font-family: var(--font-display);
+  font-size: clamp(20px, 2.2vw, 28px);
+  font-weight: 400;
+  line-height: 1.6;
+  color: rgba(240,236,228,0.85);
+  margin-bottom: 28px;
+}
+.story-text strong {
+  font-weight: 600;
+  color: var(--cream);
+}
+
+.pull-quote {
+  border-left: 2px solid var(--ember);
+  padding-left: 24px;
+  margin: 40px 0;
+}
+.pull-quote p {
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 600;
+  font-style: italic;
+  color: var(--cream);
+  line-height: 1.4;
+}
+
+/* ─── WHO THIS IS FOR ─── */
+.who-section {
+  background: var(--bg2);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  padding: 80px 48px;
+}
+.who-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2px;
+  margin-top: 48px;
+  max-width: 1280px;
+  margin-left: auto; margin-right: auto;
+}
+.who-card {
+  background: var(--bg3);
+  padding: 40px 36px;
+  position: relative;
+  border: 1px solid var(--border);
+  transition: border-color 0.25s, background 0.25s;
+  cursor: default;
+}
+.who-card:hover {
+  border-color: var(--border-hot);
+  background: rgba(200,96,42,0.04);
+}
+.who-card::before {
+  content: attr(data-num);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--ember);
+  letter-spacing: 0.15em;
+  display: block;
+  margin-bottom: 20px;
+}
+.who-card h3 {
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 600;
+  color: var(--cream);
+  margin-bottom: 16px;
+  line-height: 1.2;
+}
+.who-card p {
+  font-size: 15px;
+  color: var(--muted);
+  line-height: 1.7;
+}
+.who-card .who-gap {
+  margin-top: 20px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--ember);
+  border-top: 1px solid var(--border);
+  padding-top: 16px;
+  line-height: 1.5;
+}
+
+/* ─── OFFER ─── */
+.offer-section {
+  background: var(--bg);
+  padding: 96px 48px;
+  max-width: 1280px;
+  margin: 0 auto;
+}
+.offer-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 2px;
+  margin-top: 56px;
+  border: 1px solid var(--border);
+}
+.offer-card {
+  padding: 40px 32px;
+  border-right: 1px solid var(--border);
+  position: relative;
+}
+.offer-card:last-child { border-right: none; }
+.offer-tag {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--muted);
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  padding: 4px 10px;
+  border-radius: 2px;
+  display: inline-block;
+  margin-bottom: 20px;
+}
+.offer-card h3 {
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 600;
+  color: var(--cream);
+  margin-bottom: 14px;
+}
+.offer-card p {
+  font-size: 15px;
+  color: var(--muted);
+  line-height: 1.7;
+}
+
+/* ─── CTA SECTION ─── */
+.cta-section {
+  background: var(--bg2);
+  border-top: 1px solid var(--border);
+  padding: 96px 48px;
+  text-align: center;
+}
+.cta-section .section-title {
+  max-width: 700px;
+  margin: 0 auto 20px;
+}
+.cta-section .section-body {
+  max-width: 480px;
+  margin: 0 auto 40px;
+  text-align: center;
+}
+
+/* ─── FOOTER ─── */
+footer {
+  background: var(--bg);
+  border-top: 1px solid var(--border);
+  padding: 48px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.footer-left {
+  font-family: var(--font-display);
+  font-size: 18px;
+  color: var(--muted);
+}
+.footer-links {
+  display: flex; gap: 32px; list-style: none;
+}
+.footer-links a {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--muted);
+  text-decoration: none;
+  letter-spacing: 0.06em;
+  transition: color 0.2s;
+}
+.footer-links a:hover { color: var(--ember); }
+
+/* ─── ANIMATIONS ─── */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(24px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes expandRule {
+  from { opacity: 0; width: 0; }
+  to { opacity: 1; width: 60px; }
+}
+@keyframes growLine {
+  from { transform: scaleY(0); transform-origin: top; }
+  to { transform: scaleY(1); transform-origin: top; }
+}
+
+/* scroll reveal */
+.reveal {
+  opacity: 0;
+  transform: translateY(32px);
+  transition: opacity 0.7s ease, transform 0.7s ease;
+}
+.reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+.reveal-delay-1 { transition-delay: 0.1s; }
+.reveal-delay-2 { transition-delay: 0.2s; }
+.reveal-delay-3 { transition-delay: 0.3s; }
+
+/* ─── RESPONSIVE ─── */
+@media (max-width: 900px) {
+  nav { padding: 20px 24px; }
+  .nav-links { display: none; }
+  .hero { padding: 0 24px 64px; }
+  .hero-scroll { display: none; }
+  .stats-bar { grid-template-columns: 1fr 1fr; padding: 24px; gap: 24px; }
+  .stat { border: none; padding: 0; }
+  .section, .section-sm, .story-section, .who-section, .offer-section, .cta-section { padding: 64px 24px; }
+  .story-grid { grid-template-columns: 1fr; gap: 48px; }
+  .who-grid { grid-template-columns: 1fr; }
+  .offer-grid { grid-template-columns: 1fr; }
+  .offer-card { border-right: none; border-bottom: 1px solid var(--border); }
+  .offer-card:last-child { border-bottom: none; }
+  footer { flex-direction: column; gap: 24px; text-align: center; padding: 32px 24px; }
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav id="nav">
+  <a href="#" class="nav-logo">KR<span>.</span></a>
+  <ul class="nav-links">
+    <li><a href="#story">Story</a></li>
+    <li><a href="#work">Work</a></li>
+    <li><a href="https://flashfusion.co" target="_blank">FlashFusion</a></li>
+    <li><a href="https://linkedin.com/in/kylerosebrook" target="_blank">LinkedIn</a></li>
+    <li><a href="#score" class="nav-cta">AI Setup Score →</a></li>
+  </ul>
+</nav>
+
+<!-- HERO -->
+<section class="hero" id="top">
+  <div class="hero-bg-text" aria-hidden="true">DIAGNOSTICIAN</div>
+
+  <div class="hero-eyebrow">Self-taught · Builder · Founder · Grayslake, IL</div>
+
+  <h1 class="hero-name">
+    Kyle<br>
+    Rose<em>brook</em>
+  </h1>
+
+  <div class="hero-rule"></div>
+
+  <p class="hero-bio">
+    I went from a homeless shelter, 4 overdoses, a TBI that should have killed me, and 16 years of heavy addiction —
+    to <strong>building production-grade AI systems and security infrastructure</strong> for engineering teams.
+    Self-taught. No CS degree. Building in public now after years of building alone.
+  </p>
+
+  <div class="hero-actions">
+    <a href="#score" class="btn-primary">Get Your AI Setup Score</a>
+    <a href="https://flashfusion.co" target="_blank" class="btn-ghost">FlashFusion →</a>
+    <a href="mailto:kylerosebrook@gmail.com" class="btn-ghost">Email →</a>
+  </div>
+
+  <div class="hero-scroll" aria-hidden="true">Scroll</div>
+</section>
+
+<!-- STATS -->
+<div class="stats-bar">
+  <div class="stat">
+    <div class="stat-num">35</div>
+    <div class="stat-label">Apps shipped across Base44, Vercel &amp; GitHub</div>
+  </div>
+  <div class="stat">
+    <div class="stat-num">30<span>+</span></div>
+    <div class="stat-label">AI tools mastered across major ecosystems</div>
+  </div>
+  <div class="stat">
+    <div class="stat-num">16<span>yr</span></div>
+    <div class="stat-label">From first build to staff level</div>
+  </div>
+  <div class="stat">
+    <div class="stat-num">0</div>
+    <div class="stat-label">CS degrees. Zero.</div>
+  </div>
+</div>
+
+<!-- STORY -->
+<section class="story-section" id="story">
+  <div class="story-grid">
+    <div class="story-left">
+      <div class="section-label reveal">Origin</div>
+      <h2 class="section-title reveal">The diagnostic instinct survives everything.</h2>
+
+      <div class="pull-quote reveal">
+        <p>"I built all of this the same way I survived: alone, quietly, one thing at a time, not sure if any of it was good enough."</p>
+      </div>
+    </div>
+    <div class="story-right">
+      <p class="story-text reveal">
+        It started at <strong>O'Toole's</strong> — reading the room. Who's about to cause trouble. Who needs a drink before they ask. What the actual problem is underneath the stated one. That instinct didn't come from engineering school. It came from a bar at 2am.
+      </p>
+      <p class="story-text reveal reveal-delay-1">
+        It carried through quality control, into systems work, into AppSec and AI infrastructure. <strong>The thing that survived cognitive disruption was the ability to diagnose.</strong> The tools changed. The instinct didn't.
+      </p>
+      <p class="story-text reveal reveal-delay-2">
+        The MCP configurations and tool stacks aren't a productivity flex. They're prosthetics. External cognition for a brain that was rebuilt from scratch and needed scaffolding to function.
+      </p>
+      <div style="margin-top: 32px;" class="reveal reveal-delay-3">
+        <a href="https://kylerosebrook.com/about-2/" class="btn-primary">Full story →</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- WHO -->
+<section class="who-section" id="work">
+  <div style="max-width:1280px;margin:0 auto">
+    <div class="section-label reveal">Who this is for</div>
+    <h2 class="section-title reveal">AI gives everyone a superpower.<br><em>Most people just don't have it set up right.</em></h2>
+
+    <div class="who-grid">
+      <div class="who-card reveal" data-num="01 / MARKETING">
+        <h3>Marketing teams</h3>
+        <p>You're already using AI. You're still doing it in generic mode — no brand voice, no custom prompts, no memory of your audience. A tuned setup turns a good tool into a teammate that knows your business.</p>
+        <div class="who-gap">Gap: brand context, prompt library, memory setup</div>
+      </div>
+      <div class="who-card reveal reveal-delay-1" data-num="02 / ENGINEERING">
+        <h3>Developers</h3>
+        <p>You've pasted code into ChatGPT and gotten garbage back. The difference is workflow — how you frame problems, which tools handle which tasks, and how AI fits into your actual process.</p>
+        <div class="who-gap">Gap: context architecture, tool selection, debugging patterns</div>
+      </div>
+      <div class="who-card reveal reveal-delay-2" data-num="03 / EVERYONE ELSE">
+        <h3>Operations. Sales. Founders.</h3>
+        <p>If your job involves thinking, writing, or deciding — AI can multiply your output. Not someday. Right now, with a setup built around your role and your tools.</p>
+        <div class="who-gap">Gap: role profile, integrations, automation layer</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- OFFER -->
+<section style="padding: 96px 48px; background: var(--bg);" id="offer">
+  <div style="max-width:1280px;margin:0 auto">
+    <div class="section-label reveal">What I do with people</div>
+    <h2 class="section-title reveal">A 90-minute session. Your AI setup, rebuilt from scratch.</h2>
+    <p class="section-body reveal" style="margin-bottom:0">Profiled to your role. Configured for your workflow. Scored so you know exactly where you started and what changed.</p>
+
+    <div class="offer-grid reveal" style="margin-top:48px">
+      <div class="offer-card">
+        <div class="offer-tag">Step 01</div>
+        <h3>Custom Profile</h3>
+        <p>Role context, communication style, goals, constraints. Every AI tool you use starts conversations already knowing who you are.</p>
+      </div>
+      <div class="offer-card">
+        <div class="offer-tag">Step 02</div>
+        <h3>Skills &amp; Plugins</h3>
+        <p>The right extensions for your workflow — writing, research, code, automation — configured to work together. No more switching mid-thought.</p>
+      </div>
+      <div class="offer-card">
+        <div class="offer-tag">Step 03</div>
+        <h3>Setup Score</h3>
+        <p>Before and after. 10-question audit across 5 dimensions. You'll see exactly what changed and what to maintain.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta-section" id="score">
+  <div class="section-label reveal" style="justify-content:center">Free · 3 minutes · No pitch deck</div>
+  <h2 class="section-title reveal" style="text-align:center;max-width:700px;margin:0 auto 20px">Get your AI Setup Score.</h2>
+  <p class="section-body reveal" style="text-align:center;margin:0 auto 40px">10 questions. A score across 5 dimensions — profile, tools, workflow, prompting, integrations. Plus a plain-English breakdown of what to fix first.</p>
+  <div class="reveal" style="display:flex;justify-content:center;gap:16px;flex-wrap:wrap">
+    <a href="https://kylerosebrook.com/?page_id=15" class="btn-primary">Take the free assessment →</a>
+    <a href="https://flashfusion.co" target="_blank" class="btn-ghost">FlashFusion services →</a>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-left">Kyle Rosebrook · 2026</div>
+  <ul class="footer-links">
+    <li><a href="https://linkedin.com/in/kylerosebrook" target="_blank">LinkedIn</a></li>
+    <li><a href="https://github.com/Krosebrook" target="_blank">GitHub</a></li>
+    <li><a href="https://flashfusion.co" target="_blank">FlashFusion</a></li>
+    <li><a href="mailto:kylerosebrook@gmail.com">Email</a></li>
+  </ul>
+</footer>
+
+<script>
+// Nav scroll effect
+const nav = document.getElementById('nav');
+window.addEventListener('scroll', () => {
+  nav.classList.toggle('scrolled', window.scrollY > 40);
+}, { passive: true });
+
+// Scroll reveal
+const reveals = document.querySelectorAll('.reveal');
+const observer = new Intersecti

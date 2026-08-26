@@ -1,0 +1,1593 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Symphony Fable — Audio-Reactive Fluid Visualizer</title>
+<style>
+  :root {
+    --bg: #07060f;
+    --violet: #8b5cf6;
+    --magenta: #e545c8;
+    --ice: #6ee7f0;
+    --text: #ece9f7;
+    --dim: #9d93c4;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; overflow: hidden; background: var(--bg); }
+  body {
+    font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+    color: var(--text);
+  }
+  canvas#stage {
+    position: fixed; inset: 0; width: 100%; height: 100%; display: block; z-index: 1;
+  }
+  /* ---------- UI layer ---------- */
+  .ui {
+    position: fixed; inset: 0; z-index: 10;
+    display: flex; flex-direction: column; align-items: center;
+    justify-content: space-between; padding: 28px 20px;
+    pointer-events: none;
+    transition: opacity .8s ease;
+  }
+  .ui.faded { opacity: 0; pointer-events: none; }
+  .ui.faded .panel, .ui.faded header { pointer-events: none !important; }
+  header { text-align: center; pointer-events: auto; user-select: none; }
+  h1 {
+    font-size: clamp(20px, 3.4vw, 34px);
+    font-weight: 800; letter-spacing: .28em; text-transform: uppercase;
+    background: linear-gradient(90deg, var(--violet), var(--magenta) 55%, var(--ice));
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    filter: drop-shadow(0 0 18px rgba(139,92,246,.45));
+    outline: none;
+  }
+  h1[contenteditable]:focus { border-bottom: 1px dashed rgba(139,92,246,.5); }
+  header small {
+    display: block; margin-top: 6px; font-size: 10px; letter-spacing: .35em;
+    text-transform: uppercase; color: var(--dim);
+  }
+  .panel {
+    pointer-events: auto;
+    width: min(420px, 92vw);
+    background: rgba(16, 13, 36, .55);
+    backdrop-filter: blur(14px);
+    border: 1px solid rgba(139,92,246,.22);
+    border-radius: 18px;
+    padding: 20px;
+    box-shadow: 0 20px 60px rgba(0,0,0,.5);
+    display: flex; flex-direction: column; gap: 14px;
+  }
+  .dropzone {
+    border: 2px dashed rgba(139,92,246,.35);
+    border-radius: 12px;
+    padding: 26px 16px;
+    text-align: center; cursor: pointer;
+    transition: border-color .25s, background .25s;
+    font-size: 13px; color: var(--dim);
+  }
+  .dropzone strong { color: var(--text); }
+  .dropzone.hover { border-color: var(--ice); background: rgba(110,231,240,.06); }
+  .dropzone.error { border-color: #f87171; }
+  #status { font-size: 12px; min-height: 16px; text-align: center; color: var(--dim); }
+  #status.err { color: #f87171; }
+  #status.ok { color: #6ee7b7; }
+  .controls { display: none; flex-direction: column; gap: 10px; align-items: center; }
+  .controls.active { display: flex; }
+  #track { font-size: 13px; color: var(--text); max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  button#play {
+    border: 0; border-radius: 10px; cursor: pointer;
+    padding: 11px 34px; font-size: 14px; font-weight: 700; letter-spacing: .06em;
+    color: #fff; background: linear-gradient(90deg, var(--violet), var(--magenta));
+    box-shadow: 0 6px 24px rgba(139,92,246,.35);
+    transition: transform .12s, filter .2s;
+  }
+  button#play:hover { filter: brightness(1.15); }
+  button#play:active { transform: scale(.96); }
+  button#play:focus-visible { outline: 2px solid var(--ice); outline-offset: 3px; }
+  button.demo-btn {
+    border: 1px solid rgba(110,231,240,.45); border-radius: 10px; cursor: pointer;
+    padding: 10px 18px; font-size: 13px; font-weight: 600; letter-spacing: .04em;
+    color: var(--ice); background: rgba(110,231,240,.08); width: 100%;
+    transition: background .2s, transform .12s;
+  }
+  button.demo-btn:hover { background: rgba(110,231,240,.18); }
+  button.demo-btn:active { transform: scale(.97); }
+  button.demo-btn:focus-visible { outline: 2px solid var(--ice); outline-offset: 3px; }
+  button.demo-btn.live {
+    color: #0b0a1a; background: var(--ice); border-color: var(--ice);
+    box-shadow: 0 6px 24px rgba(110,231,240,.35);
+  }
+  input[type=range] {
+    width: 100%; accent-color: var(--magenta); cursor: pointer; height: 4px;
+  }
+  .mode-row {
+    display: flex; gap: 6px; width: 100%;
+    background: rgba(139,92,246,.08);
+    border: 1px solid rgba(139,92,246,.22);
+    border-radius: 10px; padding: 4px;
+  }
+  button.mode-btn {
+    flex: 1; border: 0; border-radius: 7px; cursor: pointer;
+    padding: 8px 0; font-size: 12px; font-weight: 600; letter-spacing: .08em;
+    text-transform: uppercase; color: var(--dim); background: transparent;
+    transition: background .2s, color .2s;
+  }
+  button.mode-btn:hover { color: var(--text); }
+  button.mode-btn:focus-visible { outline: 2px solid var(--ice); outline-offset: 2px; }
+  button.mode-btn.active {
+    color: #fff;
+    background: linear-gradient(90deg, rgba(139,92,246,.55), rgba(229,69,200,.55));
+  }
+  .style-row {
+    display: flex; gap: 4px; width: 100%;
+    background: rgba(110,231,240,.06);
+    border: 1px solid rgba(110,231,240,.18);
+    border-radius: 10px; padding: 4px;
+  }
+  button.style-btn {
+    flex: 1; border: 0; border-radius: 7px; cursor: pointer;
+    padding: 7px 0; font-size: 11px; font-weight: 600; letter-spacing: .03em;
+    color: var(--dim); background: transparent;
+    transition: background .2s, color .2s;
+  }
+  button.style-btn:hover { color: var(--text); }
+  button.style-btn:focus-visible { outline: 2px solid var(--ice); outline-offset: 2px; }
+  button.style-btn.active {
+    color: #0b0a1a;
+    background: linear-gradient(90deg, rgba(110,231,240,.85), rgba(139,92,246,.7));
+  }
+  #styleBadge {
+    font-size: 10px; letter-spacing: .18em; text-transform: uppercase;
+    color: var(--ice); text-align: center; min-height: 12px; opacity: .8;
+  }
+  .hint { font-size: 10px; letter-spacing: .12em; color: var(--dim); text-transform: uppercase; }
+  input[type=file] { display: none; }
+  @media (prefers-reduced-motion: reduce) {
+    .ui { transition: none; }
+  }
+</style>
+</head>
+<body>
+
+<canvas id="stage" aria-hidden="true"></canvas>
+
+<div class="ui" id="ui">
+  <header>
+    <h1 id="title" contenteditable="true" spellcheck="false" title="Click to rename">SYMPHONY FABLE</h1>
+    <small>Universal Audio-Reactive Fluid Simulation</small>
+  </header>
+
+  <div class="panel">
+    <label class="dropzone" id="dropzone" for="file">
+      <strong>Click to upload</strong> or drag a song here<br>
+      <span style="font-size:11px">MP3 · WAV · M4A · FLAC · OGG</span>
+    </label>
+    <input type="file" id="file" accept="audio/*">
+    <button class="demo-btn" id="demo5" data-track="fifth">▶ Demo: Fifth Symphony (EDM)</button>
+    <button class="demo-btn" id="demoNuv" data-track="nuvole">▶ Demo: Nuvole-style Ambient</button>
+    <div class="mode-row" role="group" aria-label="Visual mode">
+      <button class="mode-btn active" data-mode="nebula">Nebula</button>
+      <button class="mode-btn" data-mode="figure">Figure</button>
+    </div>
+    <div class="style-row" role="group" aria-label="Dance style">
+      <button class="style-btn active" data-style="auto">Auto</button>
+      <button class="style-btn" data-style="metal">🤘 Metal</button>
+      <button class="style-btn" data-style="salsa">💃 Salsa</button>
+      <button class="style-btn" data-style="groove">🕺 Groove</button>
+      <button class="style-btn" data-style="flow">🌊 Flow</button>
+    </div>
+    <div id="styleBadge"></div>
+    <button class="demo-btn" id="record">● Record WebM</button>
+    <div id="status" role="status" aria-live="polite"></div>
+
+    <div class="controls" id="controls">
+      <div id="track"></div>
+      <button id="play">Play</button>
+      <input type="range" id="seek" min="0" max="1000" value="0" aria-label="Seek">
+      <div class="hint">Tap the stage to hide/show this panel · auto-hides during playback</div>
+    </div>
+  </div>
+</div>
+
+<audio id="audio"></audio>
+
+<script>
+(() => {
+  "use strict";
+
+  /* =========================================================
+     CONFIG — tune the whole template from one place
+  ========================================================= */
+  const CFG = {
+    baseParticles: 900,          // persistent nebula particles
+    maxParticles: 1700,          // hard cap incl. transient filaments
+    trailFade: 0.16,             // lower = longer trails
+    nebulaHueBase: 268,          // violet
+    nebulaHueSwing: 60,          // toward magenta with mids
+    filamentHue: 186,            // ice blue
+    vortexForce: 0.055,          // tangential pull scaled by bass
+    beatSensitivity: 1.5,        // instant bass vs rolling avg multiplier
+    beatFloor: 0.18,             // ignore beats below this normalized energy
+    beatRefractoryMs: 230,       // min gap between detected beats
+    shockwaveImpulse: 3.2,       // radial kick on beat
+    flowStrength: 0.55,          // curl-noise field strength
+    mode: "nebula",              // 'nebula' | 'figure' — live-switchable
+    uiFadeAfterMs: 3000
+  };
+  const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (reducedMotion) {
+    CFG.baseParticles = 400;
+    CFG.maxParticles = 600;
+    CFG.shockwaveImpulse = 1.2;
+  }
+
+  /* =========================================================
+     DOM
+  ========================================================= */
+  const $ = id => document.getElementById(id);
+  const canvas = $("stage"), audio = $("audio"), fileInput = $("file");
+  const dropzone = $("dropzone"), statusEl = $("status");
+  const controls = $("controls"), trackEl = $("track");
+  const playBtn = $("play"), seek = $("seek"), ui = $("ui"), titleEl = $("title");
+  const ctx = canvas.getContext("2d");
+
+  /* =========================================================
+     Canvas sizing (DPR-aware)
+  ========================================================= */
+  let W = 0, H = 0, DPR = 1;
+  function resize() {
+    DPR = Math.min(window.devicePixelRatio || 1, 2);
+    W = window.innerWidth; H = window.innerHeight;
+    canvas.width = W * DPR; canvas.height = H * DPR;
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  }
+  window.addEventListener("resize", resize);
+  resize();
+
+  /* =========================================================
+     Audio pipeline
+  ========================================================= */
+  let audioCtx = null, analyser = null, freqData = null;
+  let pipelineReady = false, mediaSourceReady = false;
+
+  function ensurePipeline() {
+    if (pipelineReady) return;
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    analyser = audioCtx.createAnalyser();
+    analyser.fftSize = 1024;
+    analyser.smoothingTimeConstant = 0.72;
+    freqData = new Uint8Array(analyser.frequencyBinCount);
+    analyser.connect(audioCtx.destination);
+    pipelineReady = true;
+  }
+
+  function ensureMediaSource() {
+    if (mediaSourceReady) return;
+    // NOTE: createMediaElementSource may only be called ONCE per element.
+    const src = audioCtx.createMediaElementSource(audio);
+    src.connect(analyser);
+    mediaSourceReady = true;
+  }
+
+  /* =========================================================
+     Demo engine — two built-in synthesized tracks, no file.
+     Track 1: Beethoven's Fifth motif (public domain) as a
+              16-bar EDM arrangement: intro → build → drop.
+     Track 2: ORIGINAL Einaudi-style ambient piece (the real
+              Nuvole Bianche composition is copyrighted; this
+              uses the same non-protectable vi–IV–I–V mood
+              with an original arpeggio + melody).
+  ========================================================= */
+  const demoBtns = [...document.querySelectorAll(".demo-btn")];
+  let demoActive = false, demoTimer = null, demoGain = null;
+  let noiseBuf = null, nextNoteTime = 0, stepIdx = 0;
+  let currentTrack = null, trackSix = 0;
+  const M = n => 440 * Math.pow(2, (n - 69) / 12); // MIDI → Hz
+
+  function getNoiseBuf() {
+    if (noiseBuf) return noiseBuf;
+    const len = Math.floor(audioCtx.sampleRate * 0.25);
+    noiseBuf = audioCtx.createBuffer(1, len, audioCtx.sampleRate);
+    const d = noiseBuf.getChannelData(0);
+    for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+    return noiseBuf;
+  }
+
+  /* ---------- voices ---------- */
+  function playKick(t, vol = 1.0) {
+    const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+    o.type = "sine";
+    o.frequency.setValueAtTime(150, t);
+    o.frequency.exponentialRampToValueAtTime(45, t + 0.12);
+    g.gain.setValueAtTime(vol, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.28);
+    o.connect(g); g.connect(demoGain);
+    o.start(t); o.stop(t + 0.3);
+  }
+  function playBassM(t, midi, dur) {
+    const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+    const f = audioCtx.createBiquadFilter();
+    f.type = "lowpass"; f.frequency.value = 340; f.Q.value = 6;
+    o.type = "sawtooth"; o.frequency.value = M(midi);
+    g.gain.setValueAtTime(0.34, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+    o.connect(f); f.connect(g); g.connect(demoGain);
+    o.start(t); o.stop(t + dur + 0.05);
+  }
+  function playHat(t, accent) {
+    const s = audioCtx.createBufferSource(), g = audioCtx.createGain();
+    const f = audioCtx.createBiquadFilter();
+    s.buffer = getNoiseBuf();
+    f.type = "highpass"; f.frequency.value = 7000;
+    g.gain.setValueAtTime(accent ? 0.28 : 0.12, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.05);
+    s.connect(f); f.connect(g); g.connect(demoGain);
+    s.start(t); s.stop(t + 0.06);
+  }
+  function playCrash(t, vol = 0.35) {
+    const s = audioCtx.createBufferSource(), g = audioCtx.createGain();
+    const f = audioCtx.createBiquadFilter();
+    s.buffer = getNoiseBuf(); s.loop = true;
+    f.type = "highpass"; f.frequency.value = 4500;
+    g.gain.setValueAtTime(vol, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 1.1);
+    s.connect(f); f.connect(g); g.connect(demoGain);
+    s.start(t); s.stop(t + 1.15);
+  }
+  function playPluckM(t, midi, dur = 0.18) {
+    const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+    o.type = "triangle"; o.frequency.value = M(midi);
+    g.gain.setValueAtTime(0.2, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+    o.connect(g); g.connect(demoGain);
+    o.start(t); o.stop(t + dur + 0.05);
+  }
+  function playLead(t, midi, dur) {
+    const g = audioCtx.createGain();
+    const f = audioCtx.createBiquadFilter();
+    f.type = "lowpass"; f.frequency.value = 1900;
+    g.gain.setValueAtTime(0.2, t);
+    g.gain.setTargetAtTime(0.0001, t + dur, 0.07);
+    [0, 7].forEach(detune => {
+      const o = audioCtx.createOscillator();
+      o.type = "sawtooth"; o.frequency.value = M(midi); o.detune.value = detune - 3.5;
+      o.connect(f); o.start(t); o.stop(t + dur + 0.5);
+    });
+    f.connect(g); g.connect(demoGain);
+  }
+  function playPiano(t, midi, vol = 0.16) {
+    const g = audioCtx.createGain();
+    const f = audioCtx.createBiquadFilter();
+    f.type = "lowpass"; f.frequency.value = 2400;
+    g.gain.setValueAtTime(vol, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 1.5);
+    const o1 = audioCtx.createOscillator();
+    o1.type = "triangle"; o1.frequency.value = M(midi);
+    const o2 = audioCtx.createOscillator();
+    o2.type = "sine"; o2.frequency.value = M(midi) * 2;
+    const g2 = audioCtx.createGain(); g2.gain.value = 0.25;
+    o1.connect(f); o2.connect(g2); g2.connect(f);
+    f.connect(g); g.connect(demoGain);
+    o1.start(t); o1.stop(t + 1.6); o2.start(t); o2.stop(t + 1.6);
+  }
+  function playPad(t, midis, dur) {
+    const g = audioCtx.createGain();
+    const f = audioCtx.createBiquadFilter();
+    f.type = "lowpass"; f.frequency.value = 750;
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.linearRampToValueAtTime(0.07, t + 0.7);
+    g.gain.setTargetAtTime(0.0001, t + dur, 0.3);
+    midis.forEach((m, i) => {
+      const o = audioCtx.createOscillator();
+      o.type = "sawtooth"; o.frequency.value = M(m);
+      o.detune.value = (i - 1) * 5;
+      o.connect(f); o.start(t); o.stop(t + dur + 1);
+    });
+    f.connect(g); g.connect(demoGain);
+  }
+  function playSub(t, midi, dur) {
+    const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+    o.type = "sine"; o.frequency.value = M(midi);
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.linearRampToValueAtTime(0.28, t + 0.1);
+    g.gain.setTargetAtTime(0.0001, t + dur * 0.9, 0.15);
+    o.connect(g); g.connect(demoGain);
+    o.start(t); o.stop(t + dur + 0.5);
+  }
+
+  /* ---------- track arrangements ---------- */
+  const SPB = 16; // sixteenth steps per bar
+  const TRACKS = {
+    fifth: {
+      label: "Fifth Symphony Fable",
+      bpm: 128, bars: 16,
+      schedule(step, t, six) {
+        const bar = Math.floor(step / SPB) % this.bars;
+        const s = step % SPB;
+        const intro = bar < 4, build = bar >= 4 && bar < 8, drop = bar >= 8;
+        // The famous motif: G G G E♭ (even bars) / F F F D (odd bars), C minor
+        const A = bar % 2 === 0;
+        const note = A ? 67 : 65, end = A ? 63 : 62;
+        if (intro || drop) {
+          const oct = drop ? 12 : 0;
+          if (s === 2 || s === 4 || s === 6) {
+            drop ? playLead(t, note + oct, six * 1.6) : playPluckM(t, note, 0.14);
+          }
+          if (s === 8) {
+            drop ? playLead(t, end + oct, six * 7) : playPluckM(t, end, 0.5);
+          }
+        }
+        if (build || drop) {
+          if (s % 4 === 0) playKick(t, drop ? 1.0 : 0.75);
+          const roots = [36, 36, 32, 31]; // C2 C2 A♭1 G1
+          if (s % 2 === 0) playBassM(t, roots[bar % 4] + (s === 14 ? 12 : 0), six * 1.8);
+        }
+        if (drop) playHat(t, s % 4 === 2);
+        else if (s % 2 === 0) playHat(t, s % 8 === 4);
+        if (s === 0 && (bar === 4 || bar === 8)) playCrash(t, bar === 8 ? 0.4 : 0.18);
+      }
+    },
+    nuvole: {
+      label: "Nuvole-Style Ambient",
+      bpm: 88, bars: 8,
+      schedule(step, t, six) {
+        const bar = Math.floor(step / SPB) % this.bars;
+        const s = step % SPB;
+        // vi–IV–I–V in C: Am, F, C, G — progression itself isn't protectable
+        const CHORDS = [[57, 60, 64], [53, 57, 60], [48, 52, 55], [55, 59, 62]];
+        const chord = CHORDS[bar % 4];
+        const barDur = six * SPB;
+        if (s === 0) {
+          playPad(t, chord, barDur);
+          playSub(t, chord[0] - 24, barDur);
+          playKick(t, 0.26); // soft heartbeat pulse
+        }
+        if (s === 8) playKick(t, 0.18);
+        // broken-chord arpeggio on eighths, octave lift on the 4th
+        if (s % 2 === 0) {
+          const arp = [0, 2, 1, 2, 0, 2, 1, 2];
+          const idx = (s / 2) | 0;
+          playPiano(t, chord[arp[idx]] + (idx % 4 === 3 ? 12 : 0), 0.14);
+        }
+        // sparse ORIGINAL top melody in the back half (not the Nuvole melody)
+        if (bar >= 4 && (s === 4 || s === 12)) {
+          const mel = [76, 74, 72, 71, 69, 67, 71, 72];
+          playPiano(t, mel[((bar - 4) * 2 + (s === 12 ? 1 : 0)) % 8], 0.11);
+        }
+      }
+    }
+  };
+
+  function scheduleDemo() {
+    while (nextNoteTime < audioCtx.currentTime + 0.12) {
+      currentTrack.schedule(stepIdx, nextNoteTime, trackSix);
+      nextNoteTime += trackSix;
+      stepIdx++;
+    }
+  }
+
+  function startDemo(key) {
+    ensurePipeline();
+    if (audioCtx.state === "suspended") audioCtx.resume();
+    if (!audio.paused) { audio.pause(); playBtn.textContent = "Play"; }
+    if (demoActive) stopDemo(true);
+    currentTrack = TRACKS[key];
+    trackSix = 60 / currentTrack.bpm / 4;
+    demoGain = audioCtx.createGain();
+    demoGain.gain.value = 0.8;
+    demoGain.connect(analyser);
+    nextNoteTime = audioCtx.currentTime + 0.05;
+    stepIdx = 0;
+    beatCount = 0; lastPhrase = -1; dance.beatTimes.length = 0; // replay the boot sequence
+    demoTimer = setInterval(scheduleDemo, 25);
+    demoActive = true;
+    titleEl.textContent = currentTrack.label.toUpperCase();
+    demoBtns.forEach(b => {
+      const live = b.dataset.track === key;
+      b.classList.toggle("live", live);
+      b.textContent = live ? "■ Stop Demo" : b.dataset.label;
+    });
+    setStatus("Built-in synth playing — no file needed.", "ok");
+    showUI();
+  }
+
+  function stopDemo(switching = false) {
+    clearInterval(demoTimer);
+    demoTimer = null;
+    if (demoGain) {
+      demoGain.gain.setTargetAtTime(0, audioCtx.currentTime, 0.05);
+      const g = demoGain;
+      setTimeout(() => g.disconnect(), 400);
+      demoGain = null;
+    }
+    demoActive = false;
+    demoBtns.forEach(b => {
+      b.classList.remove("live");
+      b.textContent = b.dataset.label;
+    });
+    if (!switching) { setStatus(""); showUI(); }
+  }
+
+  demoBtns.forEach(b => {
+    b.dataset.label = b.textContent;
+    b.addEventListener("click", () => {
+      if (demoActive && b.classList.contains("live")) stopDemo();
+      else startDemo(b.dataset.track);
+    });
+  });
+
+  /* =========================================================
+     WebM recording — canvas video + live audio, downloads on stop
+  ========================================================= */
+  const recBtn = $("record");
+  let recorder = null, recChunks = [], recDest = null;
+  recBtn.addEventListener("click", () => {
+    if (recorder) { recorder.stop(); return; }
+    try {
+      ensurePipeline();
+      if (!recDest) {
+        recDest = audioCtx.createMediaStreamDestination();
+        analyser.connect(recDest); // second sink alongside speakers
+      }
+      const stream = canvas.captureStream(30);
+      recDest.stream.getAudioTracks().forEach(t => stream.addTrack(t));
+      const mime = MediaRecorder.isTypeSupported("video/webm;codecs=vp9,opus")
+        ? "video/webm;codecs=vp9,opus" : "video/webm";
+      recorder = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 6000000 });
+      recChunks = [];
+      recorder.ondataavailable = e => { if (e.data.size) recChunks.push(e.data); };
+      recorder.onstop = () => {
+        const blob = new Blob(recChunks, { type: "video/webm" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url; a.download = "symphony-fable.webm"; a.click();
+        setTimeout(() => URL.revokeObjectURL(url), 5000);
+        recorder = null;
+        recBtn.textContent = "● Record WebM";
+        recBtn.classList.remove("live");
+        setStatus("Saved symphony-fable.webm", "ok");
+      };
+      recorder.start();
+      recBtn.textContent = "■ Stop & Save";
+      recBtn.classList.add("live");
+      setStatus("Recording…", "ok");
+    } catch (err) {
+      setStatus("Recording unsupported here: " + err.message, "err");
+      recorder = null;
+    }
+  });
+
+  // Band edges in Hz → bin indices, computed from real sample rate (not guessed)
+  function bandBins() {
+    const nyquist = audioCtx.sampleRate / 2;
+    const bins = analyser.frequencyBinCount;
+    const hzToBin = hz => Math.min(bins - 1, Math.max(0, Math.round(hz / nyquist * bins)));
+    return {
+      bassEnd: hzToBin(150),
+      midEnd: hzToBin(2200),
+      highEnd: hzToBin(9000)
+    };
+  }
+
+  function setStatus(msg, cls = "") {
+    statusEl.textContent = msg;
+    statusEl.className = cls;
+  }
+
+  function loadFile(file) {
+    if (!file) return;
+    if (!file.type.startsWith("audio/") && !/\.(mp3|wav|m4a|flac|ogg|aac)$/i.test(file.name)) {
+      dropzone.classList.add("error");
+      setStatus("That doesn't look like an audio file.", "err");
+      return;
+    }
+    dropzone.classList.remove("error");
+    if (audio.src) URL.revokeObjectURL(audio.src);
+    audio.src = URL.createObjectURL(file);
+    trackEl.textContent = file.name;
+    titleEl.textContent = file.name.replace(/\.[^.]+$/, "").toUpperCase();
+    controls.classList.add("active");
+    beatCount = 0; lastPhrase = -1; dance.beatTimes.length = 0; // replay the boot sequence
+    setStatus("Loaded — press Play.", "ok");
+    playBtn.textContent = "Play";
+  }
+
+  audio.addEventListener("error", () => {
+    setStatus("Browser couldn't decode this file. Try MP3 or WAV.", "err");
+    controls.classList.remove("active");
+  });
+  audio.addEventListener("ended", () => { playBtn.textContent = "Play"; showUI(); });
+
+  fileInput.addEventListener("change", e => loadFile(e.target.files[0]));
+  ["dragover", "dragenter"].forEach(ev =>
+    dropzone.addEventListener(ev, e => { e.preventDefault(); dropzone.classList.add("hover"); }));
+  ["dragleave", "drop"].forEach(ev =>
+    dropzone.addEventListener(ev, e => { e.preventDefault(); dropzone.classList.remove("hover"); }));
+  dropzone.addEventListener("drop", e => loadFile(e.dataTransfer.files[0]));
+
+  playBtn.addEventListener("click", async () => {
+    try {
+      ensurePipeline();
+      ensureMediaSource();
+      if (demoActive) stopDemo();
+      if (audioCtx.state === "suspended") await audioCtx.resume();
+      if (audio.paused) { await audio.play(); playBtn.textContent = "Pause"; }
+      else { audio.pause(); playBtn.textContent = "Play"; showUI(); }
+    } catch (err) {
+      setStatus("Playback failed: " + err.message, "err");
+    }
+  });
+
+  // Seek bar
+  let seeking = false;
+  seek.addEventListener("input", () => { seeking = true; });
+  seek.addEventListener("change", () => {
+    if (audio.duration) audio.currentTime = (seek.value / 1000) * audio.duration;
+    seeking = false;
+  });
+  audio.addEventListener("timeupdate", () => {
+    if (!seeking && audio.duration) seek.value = (audio.currentTime / audio.duration) * 1000;
+  });
+
+  /* =========================================================
+     UI auto-hide
+  ========================================================= */
+  let hideTimer = null, manualHide = false;
+  function showUI() {
+    if (manualHide) return;
+    ui.classList.remove("faded");
+    clearTimeout(hideTimer);
+    if (!audio.paused || demoActive) hideTimer = setTimeout(() => ui.classList.add("faded"), CFG.uiFadeAfterMs);
+  }
+  // tap the stage to hide/show the panel (it covers the figure at idle, esp. on phones)
+  canvas.addEventListener("pointerdown", () => {
+    manualHide = !manualHide;
+    ui.classList.toggle("faded", manualHide);
+    if (!manualHide) showUI();
+  });
+  ["mousemove", "touchstart", "keydown"].forEach(ev =>
+    window.addEventListener(ev, showUI, { passive: true }));
+  audio.addEventListener("play", showUI);
+
+  /* =========================================================
+     Visual mode switcher — Nebula ↔ Figure, live, no restart
+  ========================================================= */
+  const modeBtns = [...document.querySelectorAll(".mode-btn")];
+  modeBtns.forEach(b => b.addEventListener("click", () => {
+    if (CFG.mode === b.dataset.mode) return;
+    CFG.mode = b.dataset.mode;
+    modeBtns.forEach(x => x.classList.toggle("active", x.dataset.mode === CFG.mode));
+    showUI();
+  }));
+
+  const styleBtns = [...document.querySelectorAll(".style-btn")];
+  styleBtns.forEach(b => b.addEventListener("click", () => {
+    danceStyle = b.dataset.style;
+    styleBtns.forEach(x => x.classList.toggle("active", x === b));
+    if (CFG.mode !== "figure") {
+      CFG.mode = "figure";
+      modeBtns.forEach(x => x.classList.toggle("active", x.dataset.mode === "figure"));
+    }
+    updateStyleBadge();
+    showUI();
+  }));
+
+  /* =========================================================
+     Beat detection — spectral flux on the bass band
+  ========================================================= */
+  const energyHistory = new Float32Array(43); // ~0.7s @ 60fps
+  let energyIdx = 0, lastBeatAt = 0;
+  function detectBeat(bass, now) {
+    let sum = 0;
+    for (let i = 0; i < energyHistory.length; i++) sum += energyHistory[i];
+    const avg = sum / energyHistory.length;
+    energyHistory[energyIdx] = bass;
+    energyIdx = (energyIdx + 1) % energyHistory.length;
+    if (
+      bass > CFG.beatFloor &&
+      bass > avg * CFG.beatSensitivity &&
+      now - lastBeatAt > CFG.beatRefractoryMs
+    ) { lastBeatAt = now; return true; }
+    return false;
+  }
+
+  /* =========================================================
+     Curl-noise-ish flow field (cheap trig field, time-evolving)
+  ========================================================= */
+  let fieldT = 0;
+  function flow(x, y) {
+    const s = 0.0016;
+    const a = Math.sin(x * s + fieldT) * Math.cos(y * s * 1.3 - fieldT * 0.7);
+    const b = Math.cos(x * s * 0.8 - fieldT * 0.5) * Math.sin(y * s + fieldT * 1.1);
+    return { fx: a, fy: b };
+  }
+
+  /* =========================================================
+     "Human Abstract" figure — parametric attractor cloud.
+     ~140 normalized points sampling head / torso / arms / legs.
+     No image data; rebuilt purely from math, scaled per frame.
+  ========================================================= */
+  const ATTR = [];        // { nx, ny, part, t }  normalized: x ±0.26, y 0(head)→1(feet)
+  const EXTREMITY = [];   // indices of hands / feet / head-top for high-freq sparks
+  (function buildFigure() {
+    const push = (nx, ny, part, t) => {
+      ATTR.push({ nx, ny, part, t });
+      if ((part === "head" && t > 0.6) ||
+          ((part === "armL" || part === "armR" || part === "legL" || part === "legR") && t > 0.85)) {
+        EXTREMITY.push(ATTR.length - 1);
+      }
+    };
+    // head: circle at (0, 0.10), r 0.065
+    for (let i = 0; i < 18; i++) {
+      const a = (i / 18) * Math.PI * 2;
+      push(Math.cos(a) * 0.065, 0.10 + Math.sin(a) * 0.065, "head", a < Math.PI ? 0.3 : 0.8);
+    }
+    // torso: tapered column (0,0.19)→(0,0.52), half-width .10→.05, 3 columns × 12 rows
+    for (let r = 0; r < 12; r++) {
+      const t = r / 11, ny = 0.19 + t * 0.33, hw = 0.10 - t * 0.05;
+      for (let c = -1; c <= 1; c++) push(c * hw, ny, "torso", t);
+    }
+    // arms: shoulder (±0.10,0.21) → hand (±0.26,0.48), slight outward bow, 14 pts each
+    for (const side of [-1, 1]) {
+      for (let i = 0; i < 14; i++) {
+        const t = i / 13;
+        const nx = side * (0.10 + t * 0.16 + Math.sin(t * Math.PI) * 0.02);
+        const ny = 0.21 + t * 0.27;
+        push(nx, ny, side < 0 ? "armL" : "armR", t);
+      }
+    }
+    // legs: hip (±0.045,0.53) → foot (±0.10,0.97), 18 pts each
+    for (const side of [-1, 1]) {
+      for (let i = 0; i < 18; i++) {
+        const t = i / 17;
+        push(side * (0.045 + t * 0.055), 0.53 + t * 0.44, side < 0 ? "legL" : "legR", t);
+      }
+    }
+  })();
+  const ATTR_N = ATTR.length;            // ≈140
+  const attrX = new Float32Array(ATTR_N); // animated screen positions, refreshed per frame
+  const attrY = new Float32Array(ATTR_N);
+  const attrS = new Float32Array(ATTR_N).fill(1); // perspective depth scale per point
+  let attrInit = false;                            // first pose snaps, then smooths
+
+  /* ---- explicit skeleton joints for the neon-bone render ----
+     0 head · 1 neck · 2 chest · 3 pelvis · 4-6 L shoulder/elbow/hand
+     7-9 R arm · 10-12 L hip/knee/foot · 13-15 R leg */
+  const JN = 16;
+  const jx = new Float32Array(JN), jy = new Float32Array(JN), jsc = new Float32Array(JN).fill(1);
+  const jPrev1 = new Float32Array(JN * 2), jPrev2 = new Float32Array(JN * 2);
+  // follow-through: head & hands lag the torso (veteran touch — secondary motion)
+  const LAGK = [0.55, 1, 1, 1, 1, 0.85, 0.60, 1, 0.85, 0.60, 1, 0.92, 0.85, 1, 0.92, 0.85];
+  const BONES = [[1,2],[2,3],[1,4],[4,5],[5,6],[1,7],[7,8],[8,9],[3,10],[10,11],[11,12],[3,13],[13,14],[14,15]];
+  let figGroundY = 0, figGroundX = 0, headRpx = 12;
+  const floorRipples = [];
+  let bpmShow = 0;
+  let figCx = 0, figCy = 0;               // figure center (beat-kick / ring origin in figure mode)
+  let nextHome = 0;                       // round-robin home assignment for base particles
+
+  /* =========================================================
+     Dance engine — poses the figure's skeleton to the music.
+     - BPM estimated from median beat interval (snaps phase on beat)
+     - "hype" 0..1 = bass envelope + beat density → blends:
+         calm  (≈0): slow sway, flowing arms  (ambient / piano)
+         hype  (≈1): beat bounce, pumping arms (EDM drop)
+  ========================================================= */
+  const dance = { phase: 0, hype: 0, bounce: 0, bpm: 120, beatTimes: [], lastTs: 0 };
+
+  /* ---- dance style state: auto-detected or user-forced ---- */
+  const STYLE_KEYS = ["metal", "salsa", "groove", "flow"];
+  const styleW = { metal: 0, salsa: 0, groove: 0, flow: 1 };  // smoothed blend weights
+  let danceStyle = "auto", detectedStyle = "flow";
+  let styleCand = "flow", styleCandFrames = 0;
+  const feat = { bass: 0, mid: 0, high: 0 };                  // slow-smoothed spectrum features
+  function updateStyleBadge() {
+    const el = document.getElementById("styleBadge");
+    if (el) el.textContent = danceStyle === "auto" ? `auto · ${detectedStyle}` : danceStyle;
+  }
+
+  /* ---- anti-loop system: choreography evolves every 32 beats (~8 bars) ----
+     Each phrase gets a seeded move variant + amplitude so no two phrases repeat. */
+  let beatCount = 0, lastPhrase = -1, phraseVariant = 0, phraseAmp = 1;
+  const hash01 = n => { const x = Math.sin(n * 127.1) * 43758.5453; return x - Math.floor(x); };
+
+  /* ---- cinematic camera: energy zoom, beat punch-ins, per-phrase reframing ---- */
+  const cam = { z: 1, tz: 1.04, px: 0, tpx: 0, punch: 0 };
+  function camReframe(p) {
+    cam.tz = 1.02 + hash01(p + 7) * 0.10;          // new shot scale each phrase
+    cam.tpx = (hash01(p + 13) - 0.5) * 0.10;       // slight lateral reframe (fraction of W)
+  }
+
+  function danceOnBeat(ts) {
+    const bt = dance.beatTimes;
+    bt.push(ts);
+    while (bt.length > 9) bt.shift();
+    if (bt.length >= 4) {
+      const iv = [];
+      for (let i = 1; i < bt.length; i++) iv.push(bt[i] - bt[i - 1]);
+      iv.sort((a, b) => a - b);
+      const med = iv[(iv.length / 2) | 0];
+      if (med > 240 && med < 1200) {
+        let b = 60000 / med;
+        while (b > 170) b /= 2;   // fold eighth-note detections down an octave
+        while (b < 55) b *= 2;
+        dance.bpm = b;
+      }
+    }
+    dance.bounce = 1;
+    beatCount++;
+    dance.phase = Math.round(dance.phase / Math.PI) * Math.PI; // re-lock to beat grid
+  }
+
+  // point at parameter t (0..1) along a two-segment limb; angles from straight-down
+  function limbPoint(rx, ry, a1, l1, a2, l2, t) {
+    const kx = rx + Math.sin(a1) * l1, ky = ry + Math.cos(a1) * l1;
+    if (t <= 0.5) {
+      const u = t * 2;
+      return [rx + (kx - rx) * u, ry + (ky - ry) * u];
+    }
+    const fx = kx + Math.sin(a1 + a2) * l2, fy = ky + Math.cos(a1 + a2) * l2;
+    const u = (t - 0.5) * 2;
+    return [kx + (fx - kx) * u, ky + (fy - ky) * u];
+  }
+  const lerp = (a, b, k) => a + (b - a) * k;
+
+  function updateAttractors(bassEnv, mids, ts = 0, playing = false) {
+    // ---- advance dance state ----
+    const dt = dance.lastTs ? Math.min((ts - dance.lastTs) / 1000, 0.05) : 0.016;
+    dance.lastTs = ts;
+    dance.phase += dt * (dance.bpm / 60) * Math.PI;       // π per beat → alternate sides
+    dance.bounce *= Math.exp(-dt * 7);
+    dance.beatTimes = dance.beatTimes.filter(t => ts - t < 2500);
+    const target = playing
+      ? Math.min(1, bassEnv * 0.9 + (dance.beatTimes.length / 2.5) / 3.2)
+      : 0;
+    dance.hype += (target - dance.hype) * (target > dance.hype ? 0.06 : 0.02);
+    if (reducedMotion) dance.hype = Math.min(dance.hype, 0.25);
+
+    const hy = dance.hype, ph = dance.phase, bn = dance.bounce;
+    const swing = Math.sin(ph);
+    const beat1 = 0.5 - 0.5 * Math.cos(ph * 2);           // 0→1→0 once per beat
+    const whip = beat1 * beat1;                            // sharpened — headbang shape
+
+    // anti-loop: roll a new movement phrase every 32 beats
+    const phrase = Math.floor(beatCount / 32);
+    if (phrase !== lastPhrase) {
+      lastPhrase = phrase;
+      phraseVariant = Math.floor(hash01(phrase) * 3);      // 0..2 move variant per style
+      phraseAmp = 0.85 + hash01(phrase + 99) * 0.35;       // amplitude character
+      camReframe(phrase);
+    }
+    const pvar = phraseVariant, pamp = phraseAmp;
+
+    /* ---- per-style choreography parameters ----
+       arm/leg entries are [a1Magnitude, a2orBend, zReach]; side sign applied at use.
+       yaw rotates the whole body in 3D; z is depth toward the viewer (negative = closer). */
+    function styleParams(key) {
+      switch (key) {
+        case "flow": return {
+          sway: swing * 0.045 * pamp, swayY: Math.sin(fieldT * 0.6) * 0.006,
+          crouch: 0, pop: 0, lean: swing * 0.020,
+          torsoPitch: 0.03 + Math.sin(fieldT * 0.5) * 0.015, headPitch: 0.02, headSway: 0,
+          yaw: Math.sin(fieldT * 0.3) * 0.35, hipTwist: Math.sin(fieldT * 0.4) * 0.10,
+          armL: [0.35 + Math.sin(fieldT * 1.1 - 1) * 0.18 + mids * 0.45, 0.45 + Math.sin(fieldT * 1.4 - 2) * 0.25, -0.02],
+          armR: [0.35 + Math.sin(fieldT * 1.1 + 1) * 0.18 + mids * 0.45, 0.45 + Math.sin(fieldT * 1.4 + 2) * 0.25, -0.02],
+          legL: [0.10 + swing * 0.05, 0.10, 0], legR: [0.10 - swing * 0.05, 0.10, 0],
+          smooth: 0.14
+        };
+        case "groove": {
+          // variants: 0 = alternating pump · 1 = synced overhead claps · 2 = low bounce
+          const sync = pvar === 1;
+          const liftL = Math.max(0, swing), liftR = Math.max(0, -swing);
+          const pumpL = sync ? beat1 : 0.5 + 0.5 * Math.sin(ph);
+          const pumpR = sync ? beat1 : 0.5 + 0.5 * Math.sin(ph + Math.PI);
+          const ampF = (pvar === 2 ? 0.7 : 1) * pamp;
+          return {
+            sway: swing * (sync ? 0.040 : 0.022) * pamp, swayY: 0,
+            crouch: beat1 * (pvar === 2 ? 0.050 : 0.030) + bn * 0.022, pop: -bn * 0.030,
+            lean: swing * 0.055,
+            torsoPitch: 0.05 + beat1 * 0.09 + bn * 0.06,           // chest bounce-rock
+            headPitch: bn * 0.20 + beat1 * 0.12, headSway: 0,
+            yaw: Math.sin(ph * 0.25) * 0.25, hipTwist: swing * 0.12,
+            armL: [0.9 + pumpL * 1.7 * ampF + bn * 0.35, 0.9 - pumpL * 0.55, -0.04],
+            armR: [0.9 + pumpR * 1.7 * ampF + bn * 0.35, 0.9 - pumpR * 0.55, -0.04],
+            legL: [0.12 + liftL * 0.38, 0.28 + bn * 0.5 + liftL * 0.45, 0],
+            legR: [0.12 + liftR * 0.38, 0.28 + bn * 0.5 + liftR * 0.45, 0],
+            smooth: 0.38
+          };
+        }
+        case "metal": {
+          // research-grounded headbang styles: 0 = classic up-down whip + horns/air guitar
+          // 1 = windmill (head traces a circle, arms braced low)
+          // 2 = half-circle pendulum, hands-on-knees stance
+          if (pvar === 1) {
+            const ang = ph * 2; // one rotation per beat
+            return {
+              sway: swing * 0.006, swayY: 0,
+              crouch: 0.035, pop: -bn * 0.008, lean: 0.01,
+              torsoPitch: 0.48 * pamp,
+              headPitch: (0.50 + 0.42 * Math.cos(ang)) * pamp,
+              headSway: Math.sin(ang) * 0.105 * pamp,
+              yaw: 0.18, hipTwist: 0.04,
+              armL: [0.40, 0.35, -0.02], armR: [0.40, 0.35, -0.02], // braced low
+              legL: [0.26, 0.22, 0], legR: [0.26, 0.22, 0],
+              smooth: 0.55
+            };
+          }
+          if (pvar === 2) {
+            return {
+              sway: swing * 0.010, swayY: 0,
+              crouch: 0.045, pop: 0, lean: 0.01,
+              torsoPitch: 0.55 * pamp,
+              headPitch: (0.42 + 0.30 * (1 - swing * swing)) * pamp, // arc dips at center
+              headSway: swing * 0.13 * pamp,                          // pendulum side-to-side
+              yaw: 0.12, hipTwist: 0.03,
+              armL: [0.42, 0.95, -0.03], armR: [0.42, 0.95, -0.03],   // hands toward knees
+              legL: [0.27, 0.30, 0], legR: [0.27, 0.30, 0],
+              smooth: 0.50
+            };
+          }
+          return {
+            sway: swing * 0.008, swayY: 0,
+            crouch: 0.02 + whip * 0.045, pop: -bn * 0.010, lean: 0.01,
+            torsoPitch: 0.15 + whip * 0.55 * pamp,
+            headPitch: whip * 1.05 * pamp + bn * 0.15, headSway: 0,
+            yaw: 0.32 + Math.sin(ph * 0.5) * 0.08, hipTwist: 0.05,
+            armL: [2.55 + Math.sin(ph * 2) * 0.07 + bn * 0.1, 0.25, -0.04],
+            armR: [0.48, 0.72 + Math.sin(ph * 2) * 0.45, -0.11],
+            legL: [0.24, 0.18 + whip * 0.22, 0], legR: [0.24, 0.18 + whip * 0.22, 0],
+            smooth: 0.50
+          };
+        }
+        case "salsa": {
+          // On1 timing: 3 steps over 4 beats, pause on 4 & 8; break fwd on 1, back on 5
+          const b = ph / Math.PI, pos = ((b % 4) + 4) % 4;
+          const gate = pos < 3 ? 1 : 0.15;                      // freeze on the unstepped beat
+          const brk = (Math.floor(b / 4) % 2 === 0) ? 1 : -1;   // alternating break direction
+          const dbl = Math.sin(ph * 2), dblL = Math.max(0, dbl), dblR = Math.max(0, -dbl);
+          const armLift = pvar === 2 ? 0.5 : 0;
+          return {
+            sway: (dbl * 0.030 + swing * 0.012) * pamp * gate, swayY: 0,
+            crouch: (0.5 - 0.5 * Math.cos(ph * 4)) * 0.008 * gate, pop: 0,
+            lean: swing * 0.014 + brk * 0.022 * gate,
+            torsoPitch: 0.04, headPitch: 0.02 + Math.sin(ph) * 0.03, headSway: 0,
+            yaw: pvar === 1 ? ph * 0.19635 : Math.sin(ph * 0.5) * 0.55, // 2π turn per 32 beats
+            hipTwist: Math.sin(ph * 2 + 0.6) * 0.50 * pamp * gate,
+            armL: [0.95 + armLift + dbl * 0.12, 1.45 + dbl * 0.50, dbl * 0.10],
+            armR: [0.95 + armLift - dbl * 0.12, 1.45 - dbl * 0.50, -dbl * 0.10],
+            legL: [0.10 + dblL * 0.22 * gate, 0.15 + dblL * 0.30 * gate, (dbl * 0.06 + brk * 0.05) * gate],
+            legR: [0.10 + dblR * 0.22 * gate, 0.15 + dblR * 0.30 * gate, (-dbl * 0.06 + brk * 0.05) * gate],
+            smooth: 0.32
+          };
+        }
+      }
+    }
+
+    // ---- blend active styles by smoothed weights ----
+    const P = {
+      sway: 0, swayY: 0, crouch: 0, pop: 0, lean: 0, torsoPitch: 0, headPitch: 0,
+      headSway: 0, yaw: 0, hipTwist: 0,
+      armL: [0, 0, 0], armR: [0, 0, 0], legL: [0, 0, 0], legR: [0, 0, 0], smooth: 0
+    };
+    let wTotal = 0;
+    for (const k of STYLE_KEYS) wTotal += styleW[k];
+    for (const k of STYLE_KEYS) {
+      const w = styleW[k] / (wTotal || 1);
+      if (w < 0.002) continue;
+      const s = styleParams(k);
+      P.sway += s.sway * w; P.swayY += s.swayY * w; P.crouch += s.crouch * w;
+      P.pop += s.pop * w; P.lean += s.lean * w;
+      P.torsoPitch += s.torsoPitch * w; P.headPitch += s.headPitch * w;
+      P.headSway += (s.headSway || 0) * w;
+      P.yaw += s.yaw * w; P.hipTwist += s.hipTwist * w; P.smooth += s.smooth * w;
+      for (let j = 0; j < 3; j++) {
+        P.armL[j] += s.armL[j] * w; P.armR[j] += s.armR[j] * w;
+        P.legL[j] += s.legL[j] * w; P.legR[j] += s.legR[j] * w;
+      }
+    }
+    /* ---- boot sequence: idle stand → tentative motion → full performance
+       performance level rises as the BPM lock builds (beats heard) ---- */
+    const perf = playing ? Math.min(1, beatCount / 12) : 0.15;
+    const qd = 0.12 + 0.88 * perf;
+    P.sway *= qd; P.crouch *= qd; P.pop *= qd; P.lean *= qd;
+    P.headPitch *= qd; P.headSway *= qd; P.hipTwist *= qd;
+    P.yaw *= 0.25 + 0.75 * perf;
+    P.torsoPitch = lerp(0.03, P.torsoPitch, perf);
+    const REST_A = [0.34, 0.50, -0.02], REST_L = [0.09, 0.10, 0];
+    for (let j = 0; j < 3; j++) {
+      P.armL[j] = lerp(REST_A[j], P.armL[j], perf);
+      P.armR[j] = lerp(REST_A[j], P.armR[j], perf);
+      P.legL[j] = lerp(REST_L[j], P.legL[j], perf);
+      P.legR[j] = lerp(REST_L[j], P.legR[j], perf);
+    }
+
+    /* ---- anticipation: micro-dip ~100ms before the predicted next beat ---- */
+    const bt = dance.beatTimes;
+    if (playing && bt.length >= 2) {
+      const eta = (bt[bt.length - 1] + 60000 / dance.bpm) - ts;
+      if (eta > 0 && eta < 110) P.crouch += (1 - eta / 110) * 0.012 * perf;
+    }
+
+    if (reducedMotion) {
+      P.headPitch *= 0.3; P.headSway *= 0.3;
+      P.torsoPitch = Math.min(P.torsoPitch, 0.12);
+      P.smooth = Math.min(P.smooth, 0.20);
+    }
+
+    // ---- skeleton in 3D (x lateral, y 0 head→1 feet, z depth; -z toward viewer) ----
+    const pelvis = { x: P.sway, y: 0.53 + P.crouch + P.pop + P.swayY };
+    const neck = {
+      x: pelvis.x + P.lean,
+      y: pelvis.y - 0.34 * Math.cos(P.torsoPitch),
+      z: -0.34 * Math.sin(P.torsoPitch)
+    };
+    const hp = Math.min(P.torsoPitch + P.headPitch, 1.45);
+    const headC = {
+      x: neck.x + P.lean * 0.7 + P.headSway,
+      y: neck.y - 0.095 * Math.cos(hp),
+      z: neck.z - 0.095 * Math.sin(hp)
+    };
+
+    let tdx = neck.x - pelvis.x, tdy = neck.y - pelvis.y;
+    const tl = Math.hypot(tdx, tdy) || 1; tdx /= tl; tdy /= tl;
+    const px2 = -tdy, py2 = tdx;
+
+    const SHW = 0.10, HIPW = 0.045;
+    const shL = { x: neck.x - px2 * SHW, y: neck.y - py2 * SHW, z: neck.z };
+    const shR = { x: neck.x + px2 * SHW, y: neck.y + py2 * SHW, z: neck.z };
+    const cT = Math.cos(P.hipTwist), sT = Math.sin(P.hipTwist);
+    const hipL = { x: pelvis.x - HIPW * cT, y: pelvis.y, z: HIPW * sT };
+    const hipR = { x: pelvis.x + HIPW * cT, y: pelvis.y, z: -HIPW * sT };
+
+    const aL1 = P.armL[0] * -1, aL2 = P.armL[1] * -1;
+    const aR1 = P.armR[0], aR2 = P.armR[1];
+    const lL1 = P.legL[0] * -1, lR1 = P.legR[0];
+    const lL2 = -lL1 * 1.15 - P.legL[1] * -1 * 0.4;
+    const lR2 = -lR1 * 1.15 - P.legR[1] * 1 * 0.4;
+    const UARM = 0.145, FARM = 0.13, THIGH = 0.205, SHIN = 0.215;
+
+    // ---- pose, rotate (yaw), project, smooth ----
+    const figH = H * 0.62, cx = W / 2, topY = H * 0.17;
+    const pulse = (1 + bassEnv * 0.10) * (1 + Math.sin(fieldT * 0.6) * 0.012);
+    const chestX = (neck.x + pelvis.x) / 2, chestY = (neck.y + pelvis.y) / 2;
+    figCx = cx + chestX * figH;
+    figCy = topY + ((chestY - 0.5) * pulse + 0.5) * figH;
+
+    const cyaw = Math.cos(P.yaw), syaw = Math.sin(P.yaw);
+    const smoothK = attrInit ? P.smooth : 1;
+    // squash on impact: compress vertically, spread laterally, anchored at the ground
+    const sqY = 1 - bn * 0.05, sqX = 1 + bn * 0.032;
+    figGroundY = topY + ((0.985 - 0.5) * pulse + 0.5) * figH;
+    figGroundX = cx + pelvis.x * figH;
+
+    for (let i = 0; i < ATTR_N; i++) {
+      const a = ATTR[i];
+      let X = 0, Y = 0, Z = 0;
+      switch (a.part) {
+        case "head":
+          X = headC.x + a.nx;
+          Y = headC.y + (a.ny - 0.10);
+          Z = headC.z;
+          break;
+        case "torso":
+          X = lerp(neck.x, pelvis.x, a.t) + px2 * a.nx;
+          Y = lerp(neck.y, pelvis.y, a.t) + py2 * a.nx;
+          Z = lerp(neck.z, 0, a.t);
+          break;
+        case "armL": {
+          const p = limbPoint(shL.x, shL.y, aL1, UARM, aL2, FARM, a.t);
+          X = p[0]; Y = p[1]; Z = shL.z + a.t * P.armL[2];
+          break;
+        }
+        case "armR": {
+          const p = limbPoint(shR.x, shR.y, aR1, UARM, aR2, FARM, a.t);
+          X = p[0]; Y = p[1]; Z = shR.z + a.t * P.armR[2];
+          break;
+        }
+        case "legL": {
+          const p = limbPoint(hipL.x, hipL.y, lL1, THIGH, lL2, SHIN, a.t);
+          X = p[0]; Y = p[1]; Z = hipL.z + a.t * P.legL[2];
+          break;
+        }
+        case "legR": {
+          const p = limbPoint(hipR.x, hipR.y, lR1, THIGH, lR2, SHIN, a.t);
+          X = p[0]; Y = p[1]; Z = hipR.z + a.t * P.legR[2];
+          break;
+        }
+      }
+      // yaw rotation around the vertical axis through the pelvis
+      const lx = X - pelvis.x;
+      const xr = lx * cyaw - Z * syaw;
+      const zr = lx * syaw + Z * cyaw;
+      // perspective: closer (zr<0) = larger/brighter
+      const persp = Math.max(0.6, Math.min(1.45, 1 / (1 + zr * 0.9)));
+      const fX = pelvis.x + xr * persp;
+      const fY = chestY + (Y - chestY) * persp;
+
+      let tx = cx + fX * figH * pulse;
+      let ty = topY + ((fY - 0.5) * pulse + 0.5) * figH;
+      // squash & stretch on beat impact (veteran touch — weight)
+      ty = figGroundY + (ty - figGroundY) * sqY;
+      tx = figGroundX + (tx - figGroundX) * sqX;
+      attrX[i] += (tx - attrX[i]) * smoothK;
+      attrY[i] += (ty - attrY[i]) * smoothK;
+      attrS[i] += (persp - attrS[i]) * smoothK;
+    }
+
+    /* ---- explicit joints for the neon skeleton render ---- */
+    const elL = limbPoint(shL.x, shL.y, aL1, UARM, aL2, FARM, 0.5);
+    const haL = limbPoint(shL.x, shL.y, aL1, UARM, aL2, FARM, 1);
+    const elR = limbPoint(shR.x, shR.y, aR1, UARM, aR2, FARM, 0.5);
+    const haR = limbPoint(shR.x, shR.y, aR1, UARM, aR2, FARM, 1);
+    const knL = limbPoint(hipL.x, hipL.y, lL1, THIGH, lL2, SHIN, 0.5);
+    const ftL = limbPoint(hipL.x, hipL.y, lL1, THIGH, lL2, SHIN, 1);
+    const knR = limbPoint(hipR.x, hipR.y, lR1, THIGH, lR2, SHIN, 0.5);
+    const ftR = limbPoint(hipR.x, hipR.y, lR1, THIGH, lR2, SHIN, 1);
+    const JOINTS = [
+      [headC.x, headC.y, headC.z],
+      [neck.x, neck.y, neck.z],
+      [lerp(neck.x, pelvis.x, 0.45), lerp(neck.y, pelvis.y, 0.45), lerp(neck.z, 0, 0.45)],
+      [pelvis.x, pelvis.y, 0],
+      [shL.x, shL.y, shL.z], [elL[0], elL[1], shL.z + 0.5 * P.armL[2]], [haL[0], haL[1], shL.z + P.armL[2]],
+      [shR.x, shR.y, shR.z], [elR[0], elR[1], shR.z + 0.5 * P.armR[2]], [haR[0], haR[1], shR.z + P.armR[2]],
+      [hipL.x, hipL.y, hipL.z], [knL[0], knL[1], hipL.z + 0.5 * P.legL[2]], [ftL[0], ftL[1], hipL.z + P.legL[2]],
+      [hipR.x, hipR.y, hipR.z], [knR[0], knR[1], hipR.z + 0.5 * P.legR[2]], [ftR[0], ftR[1], hipR.z + P.legR[2]]
+    ];
+    // history snapshot for motion blur / chromatic smears
+    jPrev2.set(jPrev1);
+    for (let i = 0; i < JN; i++) { jPrev1[i * 2] = jx[i]; jPrev1[i * 2 + 1] = jy[i]; }
+    let headPersp = 1;
+    for (let i = 0; i < JN; i++) {
+      const [X, Y, Z] = JOINTS[i];
+      const lx = X - pelvis.x;
+      const xr = lx * cyaw - Z * syaw;
+      const zr = lx * syaw + Z * cyaw;
+      const persp = Math.max(0.6, Math.min(1.45, 1 / (1 + zr * 0.9)));
+      if (i === 0) headPersp = persp;
+      let tx = cx + (pelvis.x + xr * persp) * figH * pulse;
+      let ty = topY + (((chestY + (Y - chestY) * persp) - 0.5) * pulse + 0.5) * figH;
+      ty = figGroundY + (ty - figGroundY) * sqY;
+      tx = figGroundX + (tx - figGroundX) * sqX;
+      const k = smoothK * LAGK[i];
+      jx[i] += (tx - jx[i]) * (attrInit ? k : 1);
+      jy[i] += (ty - jy[i]) * (attrInit ? k : 1);
+      jsc[i] += (persp - jsc[i]) * (attrInit ? k : 1);
+    }
+    headRpx = 0.062 * figH * pulse * headPersp;
+    attrInit = true;
+  }
+  updateAttractors(0, 0); // prime positions so first figure frame has a valid center
+
+  /* =========================================================
+     Particles
+  ========================================================= */
+  class P {
+    constructor(filament = false, x = Math.random() * W, y = Math.random() * H) {
+      this.fil = filament;
+      this.x = x; this.y = y; this.px = x; this.py = y;
+      const sp = filament ? 4 : 1;
+      this.vx = (Math.random() - 0.5) * sp;
+      this.vy = (Math.random() - 0.5) * sp;
+      this.size = filament ? Math.random() * 1.2 + 0.6 : Math.random() * 2.4 + 0.8;
+      this.life = filament ? 70 + Math.random() * 50 : Infinity;
+      this.maxLife = this.life;
+      this.hueJit = Math.random() * 22;
+      // round-robin home on the figure; bursts get demoted to haze (home=-1) after construction
+      this.home = filament ? -1 : (nextHome++ % ATTR_N);
+    }
+    step(bass, mids, beatKick) {
+      this.px = this.x; this.py = this.y;
+      const figureHomed = CFG.mode === "figure" && this.home >= 0 && !this.fil;
+
+      if (figureHomed) {
+        // spring toward animated attractor; springs weaken on beat (dissolve), recover (recohere)
+        this.vx *= 0.88; this.vy *= 0.88;
+        const k = 0.016 * (1 - springRelease * 0.97);
+        this.vx += (attrX[this.home] - this.x) * k;
+        this.vy += (attrY[this.home] - this.y) * k;
+        const f = flow(this.x, this.y);
+        const fs = 0.10 + mids * 0.12; // shimmer jitter only
+        this.vx += f.fx * fs;
+        this.vy += f.fy * fs;
+      } else {
+        this.vx *= 0.965; this.vy *= 0.965;
+        const f = flow(this.x, this.y);
+        const fs = CFG.flowStrength * (0.4 + mids * 1.4) * (CFG.mode === "figure" ? 0.5 : 1);
+        this.vx += f.fx * fs;
+        this.vy += f.fy * fs;
+        // vortex (nebula behavior) — suppressed for haze in figure mode
+        if (CFG.mode === "nebula") {
+          const dx = this.x - W / 2, dy = this.y - H / 2;
+          const d = Math.hypot(dx, dy) || 1;
+          const vf = CFG.vortexForce * bass;
+          this.vx += (-dy / d) * vf;
+          this.vy += (dx / d) * vf;
+        }
+      }
+
+      // beat shockwave: radial kick outward from the active center
+      if (beatKick > 0) {
+        const dx = this.x - kickCx, dy = this.y - kickCy;
+        const d = Math.hypot(dx, dy) || 1;
+        this.vx += (dx / d) * beatKick;
+        this.vy += (dy / d) * beatKick;
+      }
+
+      this.x += this.vx; this.y += this.vy;
+
+      // toroidal wrap (reset prev pos so streaks don't smear across screen)
+      if (this.x < -20) { this.x = W + 20; this.px = this.x; }
+      if (this.x > W + 20) { this.x = -20; this.px = this.x; }
+      if (this.y < -20) { this.y = H + 20; this.py = this.y; }
+      if (this.y > H + 20) { this.y = -20; this.py = this.y; }
+    }
+    draw(bass, mids, highs) {
+      if (this.fil) {
+        // filaments render as streaks — the "aurora" look
+        const a = Math.max(this.life / this.maxLife, 0) * 0.9;
+        ctx.strokeStyle = `hsla(${CFG.filamentHue + this.hueJit}, 95%, 72%, ${a})`;
+        ctx.lineWidth = this.size;
+        ctx.beginPath();
+        ctx.moveTo(this.px, this.py);
+        ctx.lineTo(this.x, this.y);
+        ctx.stroke();
+        return;
+      }
+      const figureHomed = CFG.mode === "figure" && this.home >= 0;
+      if (figureHomed) {
+        const depth = attrS[this.home]; // 0.6 (far) … 1.45 (near)
+        const isExt = EXT_SET.has(this.home);
+        const hue = isExt
+          ? CFG.filamentHue + this.hueJit * 0.5
+          : (CFG.nebulaHueBase + mids * CFG.nebulaHueSwing * 0.6 + this.hueJit) % 360;
+        const flick = highs > 0.25 ? Math.random() * highs * 0.5 : 0;
+        const a = Math.min((0.34 + bass * 0.18 + flick) * (0.45 + depth * 0.55), 0.62);
+        const r = this.size * (0.9 + bass * 0.9 + flick) * depth;
+        ctx.fillStyle = `hsla(${hue}, 90%, ${isExt ? 72 : 62}%, ${a})`;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, r, 0, Math.PI * 2);
+        ctx.fill();
+      } else {
+        const haze = CFG.mode === "figure"; // unhomed drifters fade back
+        const hue = (CFG.nebulaHueBase + mids * CFG.nebulaHueSwing + this.hueJit) % 360;
+        const r = this.size * (1 + bass * 1.6);
+        ctx.fillStyle = `hsla(${hue}, 85%, 62%, ${haze ? 0.16 : 0.55})`;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, r, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+  }
+  const EXT_SET = new Set(EXTREMITY);
+
+  const particles = [];
+  for (let i = 0; i < CFG.baseParticles; i++) particles.push(new P(false));
+
+  /* =========================================================
+     Shockwave rings (visual beat marker)
+  ========================================================= */
+  const rings = [];
+  function spawnRing() { rings.push({ r: 10, a: 0.6 }); }
+
+  /* =========================================================
+     Figure-mode renderers: environment, neon skeleton, HUD
+  ========================================================= */
+  function drawEnvironment(beatGlow) {
+    // blueprint wall grid
+    ctx.strokeStyle = "rgba(110,180,220,0.04)";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    for (let x = 0; x <= W; x += 64) { ctx.moveTo(x, 0); ctx.lineTo(x, H); }
+    for (let y = 0; y <= H; y += 64) { ctx.moveTo(0, y); ctx.lineTo(W, y); }
+    ctx.stroke();
+    // perspective floor
+    const hzn = H * 0.47;
+    ctx.strokeStyle = "rgba(110,200,235,0.10)";
+    ctx.beginPath();
+    for (let i = 0; i < 10; i++) {
+      const y = hzn + (H - hzn) * Math.pow(i / 9, 1.8);
+      ctx.moveTo(0, y); ctx.lineTo(W, y);
+    }
+    const vpx = W / 2;
+    for (let i = -8; i <= 8; i++) {
+      const xb = vpx + i * (W * 0.09);
+      ctx.moveTo(xb, H); ctx.lineTo(vpx + (xb - vpx) * 0.18, hzn);
+    }
+    ctx.stroke();
+    ctx.strokeStyle = `rgba(110,231,240,${0.08 + beatGlow * 0.20})`;
+    ctx.beginPath(); ctx.moveTo(0, hzn); ctx.lineTo(W, hzn); ctx.stroke();
+  }
+
+  function strokeBones(getX, getY, width, style) {
+    ctx.strokeStyle = style;
+    ctx.lineWidth = width;
+    ctx.beginPath();
+    for (const [a, b] of BONES) {
+      ctx.moveTo(getX(a), getY(a));
+      ctx.lineTo(getX(b), getY(b));
+    }
+    ctx.stroke();
+  }
+
+  function drawSkeleton() {
+    if (!attrInit) return;
+    ctx.lineCap = "round"; ctx.lineJoin = "round";
+
+    // foot contact glow pools (veteran touch — weight & ground contact)
+    for (const fi of [12, 15]) {
+      const h = Math.max(0, figGroundY - jy[fi]);
+      const a = Math.max(0, 1 - h / 46) * 0.35;
+      if (a > 0.02) {
+        ctx.fillStyle = `rgba(110,231,240,${a})`;
+        ctx.beginPath();
+        ctx.ellipse(jx[fi], figGroundY + 4, 24 * jsc[fi], 6, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    // motion blur: ghost skeletons from history, only for fast bones,
+    // with chromatic split on extreme speed (veteran touches)
+    const speed = i => Math.hypot(jx[i] - jPrev1[i * 2], jy[i] - jPrev1[i * 2 + 1]);
+    for (const [a, b] of BONES) {
+      const sp = Math.max(speed(a), speed(b));
+      if (sp < 9) continue;
+      const al = Math.min(0.30, sp * 0.012);
+      if (sp > 22) { // chromatic smear
+        ctx.strokeStyle = `hsla(315,95%,65%,${al * 0.6})`; ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.moveTo(jPrev1[a * 2] + 2.5, jPrev1[a * 2 + 1]); ctx.lineTo(jx[b] + 2.5, jy[b]);
+        ctx.stroke();
+        ctx.strokeStyle = `hsla(175,95%,65%,${al * 0.6})`;
+        ctx.beginPath();
+        ctx.moveTo(jPrev1[a * 2] - 2.5, jPrev1[a * 2 + 1]); ctx.lineTo(jx[b] - 2.5, jy[b]);
+        ctx.stroke();
+      }
+      ctx.strokeStyle = `hsla(190,100%,70%,${al})`;
+      ctx.lineWidth = 5;
+      ctx.beginPath();
+      ctx.moveTo(jPrev2[a * 2], jPrev2[a * 2 + 1]); ctx.lineTo(jPrev2[b * 2], jPrev2[b * 2 + 1]);
+      ctx.stroke();
+      ctx.strokeStyle = `hsla(190,100%,75%,${al * 1.6})`;
+      ctx.beginPath();
+      ctx.moveTo(jPrev1[a * 2], jPrev1[a * 2 + 1]); ctx.lineTo(jPrev1[b * 2], jPrev1[b * 2 + 1]);
+      ctx.stroke();
+    }
+
+    // neon bones: halo → tube → hot core
+    strokeBones(i => jx[i], i => jy[i], 7.5, "hsla(192,95%,62%,0.22)");
+    strokeBones(i => jx[i], i => jy[i], 3.2, "hsla(190,100%,72%,0.85)");
+    strokeBones(i => jx[i], i => jy[i], 1.3, "hsla(190,100%,94%,0.95)");
+
+    // joint nodes
+    for (let i = 1; i < JN; i++) {
+      const r = 3.4 * jsc[i];
+      ctx.fillStyle = "hsla(190,100%,75%,0.30)";
+      ctx.beginPath(); ctx.arc(jx[i], jy[i], r * 2.2, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = "hsla(190,100%,96%,0.95)";
+      ctx.beginPath(); ctx.arc(jx[i], jy[i], r, 0, Math.PI * 2); ctx.fill();
+    }
+
+    // head ring
+    ctx.strokeStyle = "hsla(190,100%,72%,0.9)";
+    ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.arc(jx[0], jy[0], headRpx, 0, Math.PI * 2); ctx.stroke();
+    ctx.strokeStyle = "hsla(192,95%,62%,0.25)";
+    ctx.lineWidth = 7;
+    ctx.beginPath(); ctx.arc(jx[0], jy[0], headRpx, 0, Math.PI * 2); ctx.stroke();
+  }
+
+  function drawHUD() {
+    ctx.globalCompositeOperation = "source-over";
+    const x0 = W - 252, y0 = 18;
+    if (freqData) {
+      for (let i = 0; i < 36; i++) {
+        const bin = Math.floor(Math.pow(i / 36, 1.4) * 200);
+        const v = (freqData[bin] || 0) / 255;
+        const bh = 2 + v * 30;
+        ctx.fillStyle = `rgba(220,240,250,${0.22 + v * 0.6})`;
+        ctx.fillRect(x0 + i * 4.6, y0 + 32 - bh, 3.2, bh);
+      }
+      ctx.fillStyle = "rgba(150,180,200,0.5)";
+      ctx.fillRect(x0, y0 + 34, 166, 1);
+    }
+    const cxd = W - 38, cyd = y0 + 18, r = 15;
+    const conf = Math.min(1, dance.beatTimes.length / 6);
+    const tgt = conf > 0.34 ? Math.round(dance.bpm) : 0;
+    bpmShow += (tgt - bpmShow) * 0.06;
+    ctx.strokeStyle = "rgba(140,170,190,0.35)"; ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.arc(cxd, cyd, r, 0, Math.PI * 2); ctx.stroke();
+    ctx.strokeStyle = "rgba(110,231,240,0.95)";
+    ctx.beginPath(); ctx.arc(cxd, cyd, r, -Math.PI / 2, -Math.PI / 2 + conf * Math.PI * 2); ctx.stroke();
+    ctx.fillStyle = "#eaf6fb"; ctx.font = "700 11px ui-monospace,monospace";
+    ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillText(String(Math.round(bpmShow)).padStart(2, "0"), cxd, cyd - 3);
+    ctx.fillStyle = "rgba(160,200,215,0.8)"; ctx.font = "600 7px ui-monospace,monospace";
+    ctx.fillText("BPM", cxd, cyd + 7);
+  }
+
+  /* =========================================================
+     Main loop
+  ========================================================= */
+  let bands = null;
+  let springRelease = 0;       // 1 on beat (figure dissolves), decays → springs recohere
+  let bassEnv = 0;             // smoothed bass envelope for figure pulse / glow
+  let shortE = 0, longE = 0, lastDrop = 0; // section/drop detection envelopes
+  let kickCx = 0, kickCy = 0;  // shockwave origin (screen center or figure center)
+  function frame(ts) {
+    requestAnimationFrame(frame);
+
+    let bass = 0, mids = 0, highs = 0, beatKick = 0;
+    const figureMode = CFG.mode === "figure";
+    kickCx = figureMode ? figCx : W / 2;
+    kickCy = figureMode ? figCy : H / 2;
+
+    if (pipelineReady && (!audio.paused || demoActive)) {
+      if (!bands) bands = bandBins();
+      analyser.getByteFrequencyData(freqData);
+
+      let s = 0, n = 0;
+      for (let i = 0; i < bands.bassEnd; i++) { s += freqData[i]; n++; }
+      bass = n ? s / n / 255 : 0;
+      s = 0; n = 0;
+      for (let i = bands.bassEnd; i < bands.midEnd; i++) { s += freqData[i]; n++; }
+      mids = n ? s / n / 255 : 0;
+      s = 0; n = 0;
+      for (let i = bands.midEnd; i < bands.highEnd; i++) { s += freqData[i]; n++; }
+      highs = n ? s / n / 255 : 0;
+
+      if (!reducedMotion && detectBeat(bass, ts)) {
+        danceOnBeat(ts);
+        cam.punch = Math.max(cam.punch, 0.030 + bass * 0.02);
+        if (figureMode) floorRipples.push({ r: 16, a: 0.40 });
+        beatKick = CFG.shockwaveImpulse * (0.6 + bass) * (figureMode ? 0.8 : 1);
+        spawnRing();
+        if (figureMode) springRelease = 1; // dissolve — springs recover as this decays
+        // beat = burst of haze density from the active center
+        const burstN = figureMode ? 12 : 24;
+        for (let j = 0; j < burstN && particles.length < CFG.maxParticles; j++) {
+          const p = new P(false, kickCx + (Math.random() - 0.5) * 60, kickCy + (Math.random() - 0.5) * 60);
+          p.vx = (Math.random() - 0.5) * 9;
+          p.vy = (Math.random() - 0.5) * 9;
+          p.life = 280; p.maxLife = 280; p.fil = false; p.home = -1;
+          particles.push(p);
+        }
+      }
+      // highs inject ice filaments — from extremities (hands/feet/head) in figure mode
+      if (highs > 0.32 && particles.length < CFG.maxParticles) {
+        const count = Math.floor(highs * 8);
+        for (let j = 0; j < count; j++) {
+          if (figureMode && EXTREMITY.length) {
+            const e = EXTREMITY[(Math.random() * EXTREMITY.length) | 0];
+            const f = new P(true, attrX[e], attrY[e]);
+            f.vx = (Math.random() - 0.5) * 5;
+            f.vy = (Math.random() - 0.5) * 5 - 1.5;
+            particles.push(f);
+          } else {
+            particles.push(new P(true));
+          }
+        }
+      }
+    }
+
+    bassEnv = Math.max(bassEnv * 0.92, bass);
+    springRelease *= 0.95; if (springRelease < 0.01) springRelease = 0;
+    fieldT += 0.004 + mids * 0.01;
+
+    /* ---- auto style classification (slow features + 1.5s hysteresis) ----
+       Heuristic, not ML: metal = sustained broadband wall of sound;
+       salsa = busy bright percussion over a light low end; quiet/sparse = flow.
+       Manual style buttons override entirely. */
+    feat.bass += (bass - feat.bass) * 0.02;
+    feat.mid += (mids - feat.mid) * 0.02;
+    feat.high += (highs - feat.high) * 0.02;
+    const energyAvg = (feat.bass + feat.mid + feat.high) / 3;
+    const brate = dance.beatTimes.filter(t => ts - t < 2500).length / 2.5;
+    let cand;
+    if (energyAvg < 0.10 || brate < 0.6) cand = "flow";
+    else if (feat.mid > 0.38 && feat.high > 0.27 && energyAvg > 0.40) cand = "metal";
+    else if (feat.high > 0.22 && feat.bass < 0.42 && brate >= 1.6) cand = "salsa";
+    else cand = "groove";
+    if (cand === styleCand) styleCandFrames++;
+    else { styleCand = cand; styleCandFrames = 0; }
+    if (styleCandFrames > 90 && detectedStyle !== styleCand) {
+      detectedStyle = styleCand;
+      updateStyleBadge();
+    }
+    const activeStyle = danceStyle === "auto" ? detectedStyle : danceStyle;
+    for (const k of STYLE_KEYS) {
+      styleW[k] += ((k === activeStyle ? 1 : 0) - styleW[k]) * 0.035; // fluid cross-fade
+    }
+
+    /* ---- drop / section detection: short energy spiking over the long envelope ---- */
+    const instE = (bass + mids + highs) / 3;
+    shortE += (instE - shortE) * 0.08;
+    longE += (instE - longE) * 0.004;
+    if (shortE > longE * 1.7 && shortE > 0.28 && ts - lastDrop > 4000 &&
+        pipelineReady && (!audio.paused || demoActive)) {
+      lastDrop = ts;
+      springRelease = 1;                         // full dissolve on the drop
+      rings.push({ r: 10, a: 0.8 });
+      cam.punch = Math.max(cam.punch, 0.12);     // hero punch-in
+      for (let j = 0; j < 30 && particles.length < CFG.maxParticles; j++) {
+        const p = new P(false, kickCx + (Math.random() - 0.5) * 90, kickCy + (Math.random() - 0.5) * 90);
+        p.vx = (Math.random() - 0.5) * 12; p.vy = (Math.random() - 0.5) * 12;
+        p.life = 320; p.maxLife = 320; p.home = -1;
+        particles.push(p);
+      }
+    }
+
+    /* ---- cinematic camera: smooth toward phrase framing + energy zoom ---- */
+    cam.punch *= 0.88;
+    cam.z += ((cam.tz + shortE * 0.10) - cam.z) * 0.03;
+    cam.px += ((cam.tpx * W) - cam.px) * 0.02;
+
+    if (figureMode) updateAttractors(bassEnv, mids, ts, pipelineReady && (!audio.paused || demoActive));
+
+    // trail fade
+    ctx.globalCompositeOperation = "source-over";
+    ctx.fillStyle = `rgba(7, 6, 15, ${CFG.trailFade})`;
+    ctx.fillRect(0, 0, W, H);
+
+    // camera transform: environment in source-over, then additive glow
+    const camScale = reducedMotion ? 1 : cam.z + cam.punch;
+    ctx.save();
+    ctx.translate(W / 2, H / 2);
+    ctx.scale(camScale, camScale);
+    ctx.translate(-W / 2 - (reducedMotion ? 0 : cam.px), -H / 2);
+    if (figureMode) drawEnvironment(bassEnv);
+    ctx.globalCompositeOperation = "lighter";
+
+    // figure core glow — throbs with the bass envelope
+    if (figureMode && bassEnv > 0.02) {
+      const gr = H * 0.34 * (1 + bassEnv * 0.3);
+      const grad = ctx.createRadialGradient(figCx, figCy, 0, figCx, figCy, gr);
+      grad.addColorStop(0, `hsla(282, 85%, 60%, ${0.05 + bassEnv * 0.10})`);
+      grad.addColorStop(1, "hsla(282, 85%, 60%, 0)");
+      ctx.fillStyle = grad;
+      ctx.fillRect(figCx - gr, figCy - gr, gr * 2, gr * 2);
+    }
+
+    // shockwave rings — centered on the active origin
+    for (let i = rings.length - 1; i >= 0; i--) {
+      const r = rings[i];
+      r.r += 14; r.a *= 0.92;
+      ctx.strokeStyle = `hsla(282, 90%, 70%, ${r.a})`;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(kickCx, kickCy, r.r, 0, Math.PI * 2);
+      ctx.stroke();
+      if (r.a < 0.02) rings.splice(i, 1);
+    }
+
+    // particles
+    for (let i = particles.length - 1; i >= 0; i--) {
+      const p = particles[i];
+      p.step(bass, mids, beatKick);
+      p.draw(bass, mids, highs);
+      if (p.life !== Infinity && --p.life <= 0) particles.splice(i, 1);
+    }
+
+    if (figureMode) {
+      // floor ripples expanding from under the figure on each beat
+      for (let i = floorRipples.length - 1; i >= 0; i--) {
+        const fr = floorRipples[i];
+        fr.r += 9; fr.a *= 0.90;
+        ctx.strokeStyle = `hsla(190,90%,70%,${fr.a})`;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.ellipse(figGroundX, figGroundY + 4, fr.r, fr.r * 0.22, 0, 0, Math.PI * 2);
+        ctx.stroke();
+        if (fr.a < 0.02) floorRipples.splice(i, 1);
+      }
+      drawSkeleton();
+    }
+    ctx.restore(); // end camera transform
+    if (figureMode) drawHUD();
+
+    // keep the base pool topped up if bursts decayed below baseline
+    while (particles.length < CFG.baseParticles) particles.push(new P(false));
+  }
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

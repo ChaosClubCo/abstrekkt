@@ -1,0 +1,1018 @@
+{
+  "name": "Portfolio Command Center — Live Sync",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "portfolio-sync",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "id": "6658e13b-535b-4e6a-bde0-28047534880f",
+      "name": "Portfolio Sync Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -1104,
+        168
+      ],
+      "webhookId": "portfolio-sync"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ─────────────────────────────────────────────\n// STEP 1 — PARSE & VALIDATE INCOMING PAYLOAD\n// ─────────────────────────────────────────────\n// Expected body: { projects: [...], githubToken: 'ghp_xxx', meta: {...} }\n\nconst raw = $input.first().json;\n// n8n puts POST body under .body when webhook receives JSON\nconst body = raw.body || raw;\n\nconst projects = Array.isArray(body?.projects) ? body.projects : [];\nconst githubToken = typeof body?.githubToken === 'string' ? body.githubToken.trim() : '';\nconst requestedAt = body?.meta?.requestedAt || new Date().toISOString();\n\nif (!projects.length) {\n  return [{\n    json: {\n      _valid: false,\n      error: 'No projects array in request body',\n      success: false,\n      summary: { total: 0, avgHealth: 0, totalMonthlyCost: 0, needsMigration: 0 },\n      enrichedProjects: []\n    }\n  }];\n}\n\nreturn [{\n  json: {\n    _valid: true,\n    projects,\n    githubToken,\n    requestedAt,\n    projectCount: projects.length\n  }\n}];"
+      },
+      "id": "c48a9dc7-afe2-46b5-b150-dd9a62ebd68d",
+      "name": "Parse Input",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -880,
+        168
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "check-valid",
+              "leftValue": "={{ $json._valid }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "593787f7-60d3-437a-8dc3-d10fd4a29a05",
+      "name": "Valid Input",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        -656,
+        168
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ─────────────────────────────────────────────────────────────────\n// STEP 2 — GITHUB ENRICHMENT + HEALTH CALCULATION\n// ─────────────────────────────────────────────────────────────────\n// For each project with a GitHub repo URL, we:\n//   1. Fetch repo metadata (stars, forks, open issues, language)\n//   2. Fetch last commit date + message\n//   3. Update lastActivity if commit is more recent\n// Then calculate health scores and aggregate summary stats.\n// ─────────────────────────────────────────────────────────────────\n\nconst { projects, githubToken, requestedAt } = $json;\n\n// ── Health Calculation (mirrors frontend logic exactly) ──────────\nconst calcHealth = (project, overrideActivity) => {\n  const activity = overrideActivity || project.lastActivity;\n  const days = activity\n    ? Math.floor((Date.now() - new Date(activity)) / 86400000)\n    : 999;\n\n  let s = 100;\n  if (days > 180)      s -= 40;\n  else if (days > 90)  s -= 25;\n  else if (days > 30)  s -= 10;\n\n  s -= ((project.techDebt    || 3) - 1) * 8;\n  if (project.status === 'Blocked')                          s -= 20;\n  if (project.status === 'Archived' || project.status === 'Sunset') s -= 30;\n  s += ((project.businessValue || 3) - 3) * 5;\n\n  const auditPassed = Object.values(project.auditChecks || {}).filter(Boolean).length;\n  s += auditPassed * 2;\n\n  return Math.max(0, Math.min(100, Math.round(s)));\n};\n\n// ── GitHub Enrichment ────────────────────────────────────────────\nconst enrichedProjects = [];\nlet githubEnrichedCount = 0;\nconst errors = [];\n\nfor (const project of projects) {\n  let githubData = project.githubData || null;\n  let updatedActivity = project.lastActivity;\n\n  if (project.repo && project.repo.includes('github.com') && githubToken) {\n    const match = project.repo.match(/github\\.com\\/([^\\/]+)\\/([^\\/]+)/);\n    if (match) {\n      const owner   = match[1];\n      const repoRaw = match[2];\n      const repo    = repoRaw.replace('.git', '').split('?')[0];\n\n      const headers = {\n        'Authorization': `token ${githubToken}`,\n        'Accept':        'application/vnd.github.v3+json',\n        'User-Agent':    'Portfolio-Command-Center/1.0'\n      };\n\n      try {\n        // Throttle: 300ms between GitHub calls to respect rate limits\n        await new Promise(r => setTimeout(r, 300));\n\n        const [repoRes, commitsRes] = await Promise.all([\n          fetch(`https://api.github.com/repos/${owner}/${repo}`,                   { headers }),\n          fetch(`https://api.github.com/repos/${owner}/${repo}/commits?per_page=1`, { headers })\n        ]);\n\n        if (repoRes.ok) {\n          const repoData    = await repoRes.json();\n          const commitsData = commitsRes.ok ? await commitsRes.json() : [];\n\n          const lastCommitObj = Array.isArray(commitsData) && commitsData[0]\n            ? commitsData[0] : null;\n          const lastCommit    = lastCommitObj?.commit?.committer?.date || null;\n          const lastCommitMsg = lastCommitObj?.commit?.message?.split('\\n')[0] || null;\n\n          githubData = {\n            stars:         repoData.stargazers_count  || 0,\n            forks:         repoData.forks_count       || 0,\n            openIssues:    repoData.open_issues_count || 0,\n            lastCommit,\n            lastCommitMsg,\n            language:      repoData.language          || null,\n            size:          repoData.size              || 0,\n            defaultBranch: repoData.default_branch    || 'main',\n            private:       repoData.private           || false,\n            updatedAt:     repoData.updated_at        || null\n          };\n\n          // Update activity from commit if more recent than stored value\n          if (lastCommit) {\n            const commitDay = lastCommit.split('T')[0];\n            if (!updatedActivity || commitDay > updatedActivity) {\n              updatedActivity = commitDay;\n            }\n          }\n\n          githubEnrichedCount++;\n        } else {\n          const errBody = await repoRes.text();\n          errors.push({ project: project.name, status: repoRes.status, detail: errBody.slice(0, 100) });\n        }\n      } catch (err) {\n        // Network or fetch error — keep existing data, don't abort\n        errors.push({ project: project.name, error: err.message });\n      }\n    }\n  }\n\n  enrichedProjects.push({\n    id:           project.id,\n    githubData,\n    lastActivity: updatedActivity\n  });\n}\n\n// ── Build Enrichment Map ─────────────────────────────────────────\nconst enrichMap = Object.fromEntries(\n  enrichedProjects.map(e => [e.id, e])\n);\n\n// ── Calculate Health for All Projects ───────────────────────────\nconst healthScores = projects.map(p => {\n  const enriched          = enrichMap[p.id];\n  const effectiveActivity = enriched?.lastActivity || p.lastActivity;\n  return calcHealth(p, effectiveActivity);\n});\n\nconst avgHealth = healthScores.length\n  ? Math.round(healthScores.reduce((a, b) => a + b, 0) / healthScores.length)\n  : 0;\n\n// ── Identify Critical Projects (for optional Slack alert) ────────\nconst criticalProjects = projects\n  .map((p, i) => ({ ...p, health: healthScores[i] }))\n  .filter(p => p.health < 40 || p.status === 'Blocked')\n  .map(p => ({ id: p.id, name: p.name, health: p.health, status: p.status, platform: p.platform }));\n\n// ── Build Summary ────────────────────────────────────────────────\nconst summary = {\n  total:             projects.length,\n  avgHealth,\n  totalMonthlyCost:  projects.reduce((s, p) => s + (p.monthlyCost || 0), 0),\n  needsMigration:    projects.filter(p => p.platform === 'Base44' || p.platform === 'Bolt').length,\n  activeCount:       projects.filter(p => p.status === 'Active').length,\n  blockedCount:      projects.filter(p => p.status === 'Blocked').length,\n  unhealthyCount:    healthScores.filter(h => h < 40).length,\n  githubEnriched:    githubEnrichedCount,\n  enrichErrors:      errors.length\n};\n\nreturn [{\n  json: {\n    success:         true,\n    summary,\n    enrichedProjects,\n    criticalProjects,\n    errors:          errors.length ? errors : undefined,\n    processedAt:     new Date().toISOString(),\n    requestedAt\n  }\n}];"
+      },
+      "id": "2bfd9805-3d4b-451f-bf78-3fa3dd712bd2",
+      "name": "Enrich and Calculate",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -432,
+        72
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "check-critical",
+              "leftValue": "={{ $json.summary.unhealthyCount + $json.summary.blockedCount }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "8b4c6f31-a598-4ef5-8798-b8fb38575fc0",
+      "name": "Critical Issues",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        -208,
+        72
+      ]
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "#ops-alerts"
+        },
+        "text": "=:warning: *Portfolio Health Alert*\n{{ $json.summary.total }} projects · Avg health: {{ $json.summary.avgHealth }}\nBlocked: {{ $json.summary.blockedCount }} · Unhealthy: {{ $json.summary.unhealthyCount }}\nCritical projects:\n{{ $json.criticalProjects.map(p => '• ' + p.name + ' — health ' + p.health + ' (' + p.status + ')').join('\\n') }}",
+        "otherOptions": {
+          "mrkdwn": true
+        }
+      },
+      "id": "d5171d0b-5a4b-4a12-8e58-a0aa35c3b415",
+      "name": "Slack Alert",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        16,
+        0
+      ],
+      "webhookId": "2aa0365d-27bf-4dd1-a9f6-f90562050c9d",
+      "disabled": true,
+      "notes": "SETUP REQUIRED: Add your Slack credential in n8n Credentials → Slack OAuth2. Then enable this node and set your channel. Runs only when unhealthy or blocked projects are detected."
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              }
+            ]
+          }
+        }
+      },
+      "id": "d10770cc-ed7f-49b1-b5a5-541bc55035d2",
+      "name": "Respond Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        240,
+        72
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ success: false, error: $json.error || 'Invalid request', summary: $json.summary || { total: 0, avgHealth: 0, totalMonthlyCost: 0, needsMigration: 0 }, enrichedProjects: [] }) }}",
+        "options": {
+          "responseCode": 400,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              }
+            ]
+          }
+        }
+      },
+      "id": "a5ad086b-2158-4dbf-ac51-131e24603aec",
+      "name": "Respond Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        -432,
+        264
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "ba30f1d6-7ba5-4613-b843-ddc554413dbc",
+      "name": "Workflow Error Trigger",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        -1104,
+        712
+      ]
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "#ops-alerts"
+        },
+        "text": "=:x: *Portfolio Sync Workflow Error*\n\nWorkflow: {{ $workflow.name }}\nExecution ID: {{ $execution.id }}\nError: {{ $json.error.message }}\n\nTimestamp: {{ new Date().toISOString() }}",
+        "otherOptions": {}
+      },
+      "id": "9e62ae6a-e4bd-4702-8f62-4867bdca923d",
+      "name": "Error Alert to Slack",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.4,
+      "position": [
+        -880,
+        712
+      ],
+      "webhookId": "09a39f0c-1f78-4c26-b72c-a1e810745268"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ \"success\": false, \"error\": $json.error.message }) }}",
+        "options": {
+          "responseCode": 500,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              }
+            ]
+          }
+        }
+      },
+      "id": "a7977c24-f028-40e6-8472-012fac1b0e4e",
+      "name": "Respond Error from Trigger",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        -656,
+        712
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 7
+            }
+          ]
+        }
+      },
+      "id": "e07f87a9-3452-4001-bc03-dd486eea37f2",
+      "name": "Daily 7AM Schedule",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -1104,
+        1032
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "portfolio-sync-scheduled",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "afd4ba99-30a9-4094-855c-b55b1b658e60",
+      "name": "Manual Trigger Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -1104,
+        1224
+      ],
+      "webhookId": "d6d6cbe3-9f98-4240-9ba0-3a7ed215a4cf"
+    },
+    {
+      "parameters": {},
+      "id": "23a474c2-357a-4b8d-9e3b-593e30bb9926",
+      "name": "Merge Triggers",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        -880,
+        1128
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://krosebrook.app.n8n.cloud/webhook/portfolio-sync",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"projects\": [\n    {\n      \"id\": \"webnflow\",\n      \"name\": \"WebnfloW\",\n      \"platform\": \"Base44\",\n      \"status\": \"Active\",\n      \"lastActivity\": \"2026-03-21\",\n      \"techDebt\": 2,\n      \"businessValue\": 5,\n      \"monthlyCost\": 0,\n      \"repo\": \"\",\n      \"auditChecks\": {}\n    },\n    {\n      \"id\": \"continuum\",\n      \"name\": \"Continuum\",\n      \"platform\": \"Vercel\",\n      \"status\": \"Active\",\n      \"lastActivity\": \"2026-03-18\",\n      \"techDebt\": 2,\n      \"businessValue\": 4,\n      \"monthlyCost\": 20,\n      \"repo\": \"https://github.com/Krosebrook/continuum\",\n      \"auditChecks\": {}\n    },\n    {\n      \"id\": \"flashfusion\",\n      \"name\": \"FlashFusion\",\n      \"platform\": \"Base44\",\n      \"status\": \"Active\",\n      \"lastActivity\": \"2026-03-21\",\n      \"techDebt\": 3,\n      \"businessValue\": 5,\n      \"monthlyCost\": 0,\n      \"repo\": \"\",\n      \"auditChecks\": {}\n    },\n    {\n      \"id\": \"kylerosebrook\",\n      \"name\": \"kylerosebrook.com\",\n      \"platform\": \"WordPress\",\n      \"status\": \"Active\",\n      \"lastActivity\": \"2026-03-21\",\n      \"techDebt\": 1,\n      \"businessValue\": 3,\n      \"monthlyCost\": 25,\n      \"repo\": \"\",\n      \"auditChecks\": {}\n    },\n    {\n      \"id\": \"skydda\",\n      \"name\": \"Skydda Sentinel\",\n      \"platform\": \"Vercel\",\n      \"status\": \"Active\",\n      \"lastActivity\": \"2026-03-21\",\n      \"techDebt\": 2,\n      \"businessValue\": 4,\n      \"monthlyCost\": 0,\n      \"repo\": \"\",\n      \"auditChecks\": {}\n    },\n    {\n      \"id\": \"chaosclub\",\n      \"name\": \"Chaos Club\",\n      \"platform\": \"Base44\",\n      \"status\": \"Active\",\n      \"lastActivity\": \"2026-03-21\",\n      \"techDebt\": 2,\n      \"businessValue\": 5,\n      \"monthlyCost\": 0,\n      \"repo\": \"\",\n      \"auditChecks\": {}\n    }\n  ],\n  \"githubToken\": {{ $credentials.githubToken }},\n  \"meta\": {\n    \"requestedAt\": {{ new Date().toISOString() }}\n  }\n}",
+        "options": {}
+      },
+      "id": "9bba5ea3-016b-4673-85fc-23d940ca8c8b",
+      "name": "Call Phase 1 Webhook",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -656,
+        1128
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "snapshot_date",
+              "value": "={{ new Date().toISOString().split('T')[0] }}",
+              "type": "string"
+            },
+            {
+              "id": "id-2",
+              "name": "avg_health",
+              "value": "={{ $json.summary.avgHealth }}",
+              "type": "number"
+            },
+            {
+              "id": "id-3",
+              "name": "total_projects",
+              "value": "={{ $json.summary.total }}",
+              "type": "number"
+            },
+            {
+              "id": "id-4",
+              "name": "active_count",
+              "value": "={{ $json.summary.activeCount }}",
+              "type": "number"
+            },
+            {
+              "id": "id-5",
+              "name": "blocked_count",
+              "value": "={{ $json.summary.blockedCount }}",
+              "type": "number"
+            },
+            {
+              "id": "id-6",
+              "name": "unhealthy_count",
+              "value": "={{ $json.summary.unhealthyCount }}",
+              "type": "number"
+            },
+            {
+              "id": "id-7",
+              "name": "total_monthly_cost",
+              "value": "={{ $json.summary.totalMonthlyCost }}",
+              "type": "number"
+            },
+            {
+              "id": "id-8",
+              "name": "needs_migration",
+              "value": "={{ $json.summary.needsMigration }}",
+              "type": "number"
+            },
+            {
+              "id": "id-9",
+              "name": "critical_projects",
+              "value": "={{ JSON.stringify($json.criticalProjects) }}",
+              "type": "string"
+            },
+            {
+              "id": "id-10",
+              "name": "full_summary",
+              "value": "={{ JSON.stringify($json.summary) }}",
+              "type": "string"
+            },
+            {
+              "id": "id-11",
+              "name": "created_at",
+              "value": "={{ new Date().toISOString() }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "ca6c69b4-ffb4-4228-acb1-8fa1a8aacbf8",
+      "name": "Prepare Snapshot Data",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -432,
+        1032
+      ]
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "enrichedProjects",
+        "options": {}
+      },
+      "id": "f3a3fd70-6cee-45b6-9fb9-8f6d5b95a672",
+      "name": "Split Projects",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        -432,
+        1320
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "project_id",
+              "value": "={{ $json.id }}",
+              "type": "string"
+            },
+            {
+              "id": "id-2",
+              "name": "project_name",
+              "value": "={{ $json.name }}",
+              "type": "string"
+            },
+            {
+              "id": "id-3",
+              "name": "health_score",
+              "value": "={{ $json.health }}",
+              "type": "number"
+            },
+            {
+              "id": "id-4",
+              "name": "status",
+              "value": "={{ $json.status }}",
+              "type": "string"
+            },
+            {
+              "id": "id-5",
+              "name": "github_data",
+              "value": "={{ JSON.stringify($json.githubData) }}",
+              "type": "string"
+            },
+            {
+              "id": "id-6",
+              "name": "snapshot_date",
+              "value": "={{ new Date().toISOString().split('T')[0] }}",
+              "type": "string"
+            },
+            {
+              "id": "id-7",
+              "name": "created_at",
+              "value": "={{ new Date().toISOString() }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "00f8b987-7900-4933-b245-1f327dbf44e8",
+      "name": "Prepare Project Health Data",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -208,
+        1320
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "id-1",
+              "leftValue": "={{ $json.summary.unhealthyCount + $json.summary.blockedCount }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "33efc75f-8462-4637-9a83-d1d4ff7ae545",
+      "name": "Check Critical Issues",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        16,
+        936
+      ]
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "#ops-alerts"
+        },
+        "text": "=⚡ *Portfolio Health Report — {{ new Date().toISOString().split('T')[0] }}*\n\n📊 {{ $json.summary.total }} projects · Avg health: {{ $json.summary.avgHealth }}/100\n🔴 Blocked: {{ $json.summary.blockedCount }} · ⚠️ Unhealthy: {{ $json.summary.unhealthyCount }}\n💰 Monthly cost: ${{ $json.summary.totalMonthlyCost }} · 🔄 Need migration: {{ $json.summary.needsMigration }}\n\n*Critical projects:*\n{{ $json.criticalProjects.map(p => '• ' + p.name + ' — health ' + p.health + ' (' + p.status + ')').join('\\n') }}\n\n_View full dashboard → https://kylerosebrook.com_",
+        "otherOptions": {
+          "mrkdwn": true
+        }
+      },
+      "id": "2f2ac417-8f85-4754-bcd7-a4ede022c4c1",
+      "name": "Send Health Alert",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.4,
+      "position": [
+        240,
+        936
+      ],
+      "webhookId": "36a6a41b-c27a-4616-ace1-acac71dbbf07"
+    },
+    {
+      "parameters": {
+        "jsCode": "const isMonday = new Date().getDay() === 1;\nreturn [{ json: { ...$input.first().json, isMonday } }];"
+      },
+      "id": "e22c1976-11c7-42a9-b2ca-2db9e3ebb97c",
+      "name": "Check If Monday",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        16,
+        1128
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://suihrwqpljkswdbhekms.supabase.co/rest/v1/portfolio_snapshots",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "select",
+              "value": "*"
+            },
+            {
+              "name": "order",
+              "value": "snapshot_date.desc"
+            },
+            {
+              "name": "limit",
+              "value": "7"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "45e2a0f9-cf12-4122-8028-8979f17966af",
+      "name": "Query Weekly Snapshots",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        464,
+        1128
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const snapshots = items.map(i => i.json); const current = snapshots[0]; const weekAgo = snapshots[6] || snapshots[snapshots.length - 1]; const healthDelta = current.avg_health - weekAgo.avg_health; const costDelta = current.total_monthly_cost - weekAgo.total_monthly_cost; const trend = healthDelta > 0 ? 'up' : healthDelta < 0 ? 'down' : 'flat'; return [{ json: { current, weekAgo, healthDelta, costDelta, trend } }];"
+      },
+      "id": "6c5b348e-de24-4350-bb3e-fc90ad75ec06",
+      "name": "Calculate Trends",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        688,
+        1128
+      ]
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "#ops-alerts"
+        },
+        "text": "=📈 *Weekly Portfolio Trend*\nHealth: {{ $json.current.avg_health }} (was {{ $json.weekAgo.avg_health }}, {{ $json.healthDelta > 0 ? '+' : '' }}{{ $json.healthDelta }})\nCost: ${{ $json.current.total_monthly_cost }}/mo\nProjects tracked: {{ $json.current.total_projects }}",
+        "otherOptions": {
+          "mrkdwn": true
+        }
+      },
+      "id": "13d90c66-6bd2-430e-ba2f-e00eee9847c1",
+      "name": "Send Weekly Trend",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.4,
+      "position": [
+        912,
+        1128
+      ],
+      "webhookId": "8429c442-ac3b-4411-bd73-77ba82578705"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "id-1",
+              "leftValue": "={{ $json.isMonday }}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "5fde183c-375f-40ec-b3e8-f6d71ed2f9c6",
+      "name": "Is Monday",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        240,
+        1128
+      ]
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "#ops-alerts"
+        },
+        "text": "=:x: *Portfolio Sync Error*\n\nWorkflow: {{ $workflow.name }}\nExecution ID: {{ $execution.id }}\nError: {{ $json.error.message }}\n\nTimestamp: {{ new Date().toISOString() }}",
+        "otherOptions": {}
+      },
+      "id": "081b06d5-ae52-4bdc-8190-2ec194d27c3c",
+      "name": "Send Error Alert",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.4,
+      "position": [
+        -1104,
+        488
+      ],
+      "webhookId": "424304bc-48f1-49af-b1da-4b51caacb895"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\n  \"success\": true,\n  \"message\": \"Portfolio sync completed\"\n}",
+        "options": {}
+      },
+      "id": "72136758-89ab-4668-9e72-a1a1d0562969",
+      "name": "Respond to Manual Trigger",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        240,
+        1320
+      ]
+    },
+    {
+      "parameters": {
+        "tableId": "portfolio_snapshots",
+        "dataToSend": "autoMapInputData"
+      },
+      "id": "2221f144-343f-4569-8bdf-175fe3046594",
+      "name": "Insert Portfolio Snapshot1",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -208,
+        1032
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "project_health_history",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "project_id",
+              "condition": "eq",
+              "keyValue": "={{ $json.project_id }}"
+            },
+            {
+              "keyName": "snapshot_date",
+              "condition": "eq",
+              "keyValue": "={{ $json.snapshot_date }}"
+            }
+          ]
+        },
+        "dataToSend": "autoMapInputData"
+      },
+      "id": "81d41c81-c2af-4509-8fa6-2cea841067cc",
+      "name": "Upsert Project Health1",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        16,
+        1320
+      ],
+      "onError": "continueErrorOutput"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Portfolio Sync Webhook": {
+      "main": [
+        [
+          {
+            "node": "Parse Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Input": {
+      "main": [
+        [
+          {
+            "node": "Valid Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Valid Input": {
+      "main": [
+        [
+          {
+            "node": "Enrich and Calculate",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enrich and Calculate": {
+      "main": [
+        [
+          {
+            "node": "Critical Issues",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Critical Issues": {
+      "main": [
+        [
+          {
+            "node": "Slack Alert",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Slack Alert": {
+      "main": [
+        [
+          {
+            "node": "Respond Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Workflow Error Trigger": {
+      "main": [
+        [
+          {
+            "node": "Error Alert to Slack",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Error Alert to Slack": {
+      "main": [
+        [
+          {
+            "node": "Respond Error from Trigger",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Daily 7AM Schedule": {
+      "main": [
+        [
+          {
+            "node": "Merge Triggers",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Manual Trigger Webhook": {
+      "main": [
+        [
+          {
+            "node": "Merge Triggers",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge Triggers": {
+      "main": [
+        [
+          {
+            "node": "Call Phase 1 Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call Phase 1 Webhook": {
+      "main": [
+        [
+          {
+            "node": "Prepare Snapshot Data",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Split Projects",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Snapshot Data": {
+      "main": [
+        [
+          {
+            "node": "Insert Portfolio Snapshot1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Projects": {
+      "main": [
+        [
+          {
+            "node": "Prepare Project Health Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Project Health Data": {
+      "main": [
+        [
+          {
+            "node": "Upsert Project Health1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Critical Issues": {
+      "main": [
+        [
+          {
+            "node": "Send Health Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check If Monday": {
+      "main": [
+        [
+          {
+            "node": "Is Monday",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Monday": {
+      "main": [
+        [
+          {
+            "node": "Query Weekly Snapshots",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Weekly Snapshots": {
+      "main": [
+        [
+          {
+            "node": "Calculate Trends",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculate Trends": {
+      "main": [
+        [
+          {
+            "node": "Send Weekly Trend",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert Portfolio Snapshot1": {
+      "main": [
+        [
+          {
+            "node": "Check Critical Issues",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Check If Monday",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upsert Project Health1": {
+      "main": [
+        [
+          {
+            "node": "Respond to Manual Trigger",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "timeSavedMode": "fixed",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": true
+  },
+  "versionId": "23b250fc-0f77-4c00-bd0d-be8dc9fca0f3",
+  "meta": {
+    "instanceId": "bf0dcf7f9c3c7deb3b66bf4f832cb6c072cdd7fed3c7a29a3366156c2ba01a45"
+  },
+  "id": "JPSVa3cLtQPi8NKF",
+  "tags": [
+    {
+      "updatedAt": "2026-03-24T21:35:17.045Z",
+      "createdAt": "2026-03-24T21:35:17.045Z",
+      "id": "plB4IWIoQjP44KXy",
+      "name": "portfolio"
+    }
+  ]
+}

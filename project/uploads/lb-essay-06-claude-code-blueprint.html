@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Claude Code Blueprint Nobody Posts — Load-Bearing</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,400&family=Crimson+Pro:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d0d0f;
+    --surface: #141417;
+    --border: rgba(255,255,255,0.07);
+    --text-primary: #f0ede8;
+    --text-secondary: #8a8680;
+    --text-tertiary: #52504e;
+    --accent: #c9a96e;
+    --accent-dim: rgba(201,169,110,0.12);
+    --green: #6db87a;
+    --red: #c75c5c;
+    --orange: #d4944a;
+    --font-serif: 'Fraunces', Georgia, serif;
+    --font-body: 'Crimson Pro', Georgia, serif;
+    --font-mono: 'JetBrains Mono', monospace;
+  }
+  *, *::before, *::after { box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text-primary);
+    font-family: var(--font-body);
+    font-size: 1.05rem;
+    line-height: 1.75;
+    margin: 0;
+    -webkit-font-smoothing: antialiased;
+  }
+  .page { max-width: 680px; margin: 0 auto; padding: 64px 24px 96px; }
+
+  .masthead {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 64px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--border);
+  }
+  .masthead-name {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--text-tertiary);
+  }
+  .masthead-tag {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--accent);
+    letter-spacing: 0.06em;
+    padding: 4px 10px;
+    border: 1px solid rgba(201,169,110,0.25);
+    border-radius: 4px;
+  }
+
+  .series-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text-tertiary);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 32px;
+    padding: 6px 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+  }
+  .series-badge span { color: var(--accent); }
+
+  .essay-meta {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-tertiary);
+    letter-spacing: 0.06em;
+    display: flex;
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+
+  h1 {
+    font-family: var(--font-serif);
+    font-size: clamp(2rem, 5vw, 2.6rem);
+    font-weight: 700;
+    color: var(--text-primary);
+    line-height: 1.15;
+    margin: 0 0 16px;
+  }
+  .deck {
+    font-family: var(--font-body);
+    font-size: 1.15rem;
+    font-style: italic;
+    color: var(--text-secondary);
+    line-height: 1.6;
+    margin-bottom: 48px;
+    padding-bottom: 48px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  h2 {
+    font-family: var(--font-serif);
+    font-size: 1.35rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 48px 0 16px;
+  }
+
+  p { margin: 0 0 20px; }
+  strong { color: var(--text-primary); }
+  em { color: var(--accent); font-style: italic; }
+
+  .pull {
+    border-left: 2px solid var(--accent);
+    margin: 40px 0;
+    padding: 4px 0 4px 24px;
+    font-family: var(--font-serif);
+    font-size: 1.2rem;
+    font-style: italic;
+    color: var(--text-primary);
+    line-height: 1.5;
+  }
+
+  .callout {
+    background: var(--accent-dim);
+    border: 1px solid rgba(201,169,110,0.18);
+    border-radius: 6px;
+    padding: 20px 24px;
+    margin: 32px 0;
+  }
+  .callout-label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 8px;
+    display: block;
+  }
+  .callout p { margin-bottom: 0; color: var(--text-secondary); }
+
+  .callout.disagree { background: rgba(212,148,74,0.08); border-color: rgba(212,148,74,0.18); }
+  .callout.disagree .callout-label { color: var(--orange); }
+  .callout.agree { background: rgba(109,184,122,0.08); border-color: rgba(109,184,122,0.18); }
+  .callout.agree .callout-label { color: var(--green); }
+
+  pre {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 20px;
+    overflow-x: auto;
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    line-height: 1.6;
+    color: var(--text-secondary);
+    margin: 24px 0;
+  }
+  code {
+    font-family: var(--font-mono);
+    font-size: 0.85em;
+    background: var(--surface);
+    padding: 0.15em 0.4em;
+    border-radius: 3px;
+    color: var(--accent);
+  }
+  pre code { background: none; padding: 0; color: var(--text-secondary); }
+
+  .separator { text-align: center; color: var(--text-tertiary); margin: 40px 0; letter-spacing: 0.3em; font-size: 0.8rem; }
+
+  .essay-footer {
+    margin-top: 72px;
+    padding-top: 32px;
+    border-top: 1px solid var(--border);
+  }
+  .footer-meta {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-tertiary);
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .footer-note {
+    margin-top: 20px;
+    font-size: 13px;
+    color: var(--text-tertiary);
+    line-height: 1.6;
+  }
+  .footer-note a { color: var(--accent); text-decoration: none; }
+
+  .claims { margin-top: 48px; padding-top: 24px; border-top: 1px solid var(--border); }
+  .claims h4 {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 12px;
+  }
+  .claims p { font-size: 0.85rem; color: var(--text-tertiary); margin-bottom: 6px; }
+  .tag {
+    display: inline-block;
+    font-family: var(--font-mono);
+    font-size: 9px;
+    padding: 2px 6px;
+    border-radius: 3px;
+    margin-right: 4px;
+  }
+  .tag-g { background: var(--accent-dim); color: var(--accent); }
+  .tag-s { background: rgba(109,184,122,0.12); color: var(--green); }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="masthead">
+    <div class="masthead-name">Load-Bearing</div>
+    <div class="masthead-tag">AI tools, tested under load</div>
+  </div>
+
+  <div class="series-badge">Essay <span>06 of 08</span> — Foundation Series</div>
+
+  <div class="essay-meta">
+    <span>May 2026</span>
+    <span>Claude Code</span>
+    <span>~1,400 words</span>
+  </div>
+
+  <h1>The Claude Code Blueprint Nobody Posts</h1>
+
+  <div class="deck">Five cheatsheets went viral this month. Here's what they get right, what they skip, and what my actual project structure looks like after 50 skills and six months of production use.</div>
+
+  <p>Every week, a new Claude Code infographic hits LinkedIn. Perfect folder trees. Color-coded architecture diagrams. Clean terminal screenshots where nothing is broken.</p>
+
+  <p>They're not wrong. Most of them are describing real features — CLAUDE.md, skills, hooks, MCP configs, agents. The problem is they're describing the <em>menu</em>, not the <em>meal</em>. The distance between "here's the folder structure" and "here's what happens when you actually use it for six months" is where every interesting lesson lives.</p>
+
+  <p>I've been running Claude Code across multiple projects since late 2025. I have 50 skills in active rotation. I've broken things that the cheatsheets don't warn you about.</p>
+
+  <h2>CLAUDE.md: Keep It Under 200 Lines Is Wrong</h2>
+
+  <p>The most common advice: keep your CLAUDE.md short. Under 200 lines. "Claude loads it at session start, so keep it lean."</p>
+
+  <div class="callout disagree">
+    <span class="callout-label">Where I disagree</span>
+    <p>The 200-line rule optimizes for the wrong thing. It treats CLAUDE.md like a config file instead of what it actually is: <strong>persistent memory for an agent that forgets everything between sessions</strong>. If your CLAUDE.md is short, your sessions start cold every time. You re-explain the stack, re-explain the conventions, re-explain the gotchas. That's not efficiency. That's amnesia tax.</p>
+  </div>
+
+  <p>What actually matters is <strong>information density per line</strong>, not line count. A 400-line CLAUDE.md that prevents five minutes of re-prompting per session pays for itself in the first week. A 50-line CLAUDE.md that reads like a README helps nobody.</p>
+
+  <p>My approach: CLAUDE.md carries the hard rules — stack, conventions, security constraints, testing patterns, and the things Claude gets wrong repeatedly. Everything else goes into skills, which load on-demand and don't burn context until triggered.</p>
+
+  <h2>Skills Are the Actual Superpower</h2>
+
+  <div class="callout agree">
+    <span class="callout-label">What the guides get right</span>
+    <p>The description field is critical for auto-activation. If your description is vague, the skill won't fire when it should. Pushy, specific descriptions with trigger phrases make skills reliable.</p>
+  </div>
+
+  <p>What they miss: <strong>skills encode your mistakes, not just your process.</strong> Every time Claude gets something wrong and I correct it, the fix goes into a skill — not as a positive instruction, but as a gotcha with a FAIL condition. "If the output contains X, the skill failed." That's what makes the system learn.</p>
+
+  <p>After 50 skills, the pattern is clear: the best skills aren't the ones I planned. They're the ones I captured retroactively after watching Claude make the same mistake three times.</p>
+
+  <h2>The Compliance Gap Nobody Warns About</h2>
+
+  <p>Hooks are the enforcement mechanism. PreToolUse hooks block dangerous operations. PostToolUse hooks auto-lint after writes. But here's the gap in every cheatsheet: <strong>none of them address the environment split</strong>.</p>
+
+  <div class="callout">
+    <span class="callout-label">The gap</span>
+    <p>Hooks designed for Claude Code — which runs in a terminal with real shell access — don't work the same way in claude.ai's skill system. Skills that "worked" in testing silently skip enforcement in production. Your safety net has holes you can't see.</p>
+  </div>
+
+  <p>I learned this by deploying skills that passed every test in Claude Code and silently failed to enforce in Cowork. Four compliance gaps currently gate my next deployment. The fix: separate your skill library into "Claude Code native" and "claude.ai portable" categories. Test each in its target environment.</p>
+
+  <h2>Project Structure: What You Actually Need</h2>
+
+  <pre><code>project/
+├── CLAUDE.md              # Hard rules, >200 lines
+├── .claude/
+│   ├── settings.json      # Permissions, hooks, model
+│   ├── settings.local.json # Personal overrides (.gitignored)
+│   ├── skills/
+│   │   └── skill-name/
+│   │       ├── SKILL.md
+│   │       └── references/
+│   ├── commands/
+│   └── agents/
+├── .mcp.json              # Root only. Never nested.
+└── src/</code></pre>
+
+  <p>The key differences from the poster versions:</p>
+
+  <p><strong><code>settings.local.json</code> is non-negotiable.</strong> Personal overrides that never touch git. Different developers, different permission levels, no merge conflicts. Every cheatsheet mentions .gitignore. Almost none mention this file specifically.</p>
+
+  <p><strong>Skills get <code>references/</code> subdirectories.</strong> A skill that needs a 3-page API reference shouldn't embed it inline. Supporting docs stay accessible but out of the critical path. The SKILL.md stays focused on decision logic.</p>
+
+  <p><strong><code>.mcp.json</code> stays at root.</strong> One file, one place. The moment you split MCP configs across directories, you introduce a debugging nightmare where Claude connects to the wrong server. I learned this the hard way — Claude hit a staging database because the config inherited from a parent directory I'd forgotten about.</p>
+
+  <h2>The Self-Improvement Loop Is the Whole Point</h2>
+
+  <p>Boris Cherny nails this and most guides miss it entirely. After any correction: update a lessons file. Write rules that prevent the same mistake. Review lessons at session start.</p>
+
+  <div class="pull">This is the only thing that separates Claude Code from a chatbot. Without the correction loop, you have a very fast typer. With it, you have a system that gets measurably better over weeks.</div>
+
+  <p>My implementation: every skill has an implicit fail condition. When Claude produces output that trips it, I don't just fix the output — I update the skill with a new GOTCHA entry. The next time the skill fires, the gotcha is in context. The mistake rate on that specific pattern drops to near-zero.</p>
+
+  <p>The cheatsheets show you the architecture. The correction loop is the engine.</p>
+
+  <div class="separator">· · ·</div>
+
+  <p>Five viral infographics, and the most important lesson isn't in any of them: <strong>Claude Code's value isn't in the folder structure. It's in the judgment you encode into it over time.</strong> The structure is scaffolding. The skills, hooks, and correction loops are the building.</p>
+
+  <p>If your Claude Code setup looks exactly like the cheatsheet, you've built the scaffolding. The question is whether you've started building yet.</p>
+
+  <div class="claims">
+    <h4>Claims</h4>
+    <p><span class="tag tag-g">[GENERATED]</span> "200-line rule optimizes for the wrong thing" — personal experience across 50 skills, not a controlled study.</p>
+    <p><span class="tag tag-g">[GENERATED]</span> Correction loop as primary differentiator — experiential claim, not benchmarked.</p>
+    <p><span class="tag tag-s">[SOURCED]</span> Boris Cherny's self-improvement loop — visible in uploaded infographic.</p>
+  </div>
+
+  <div class="claims">
+    <h4>Gaps</h4>
+    <p>• No data on how many Claude Code users actually configure hooks.</p>
+    <p>• All observations are solo-practitioner. Team setups may differ.</p>
+    <p>• Skills compliance gap between Claude Code and claude.ai is from personal testing; Anthropic's position may differ.</p>
+  </div>
+
+  <div class="essay-footer">
+    <div class="footer-meta">
+      <span>Load-Bearing · flashfusion.co</span>
+      <span>Essay 6/8 · Foundation Series</span>
+    </div>
+    <p class="footer-note">
+      Load-Bearing covers AI tools tested in real use — no hype, no sales pitch, just what holds.
+      Essays ship when the backlog hits 8. <a href="https://flashfusion.co">flashfusion.co</a>
+    </p>
+  </div>
+
+</div>
+</body>
+</html>

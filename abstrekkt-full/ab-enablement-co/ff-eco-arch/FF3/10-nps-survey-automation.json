@@ -1,0 +1,321 @@
+{
+  "name": "NPS Survey Automation & Sentiment Analysis",
+  "description": "Automated quarterly NPS surveys, AI sentiment analysis, and intelligent follow-up workflows",
+  "trigger": {
+    "type": "schedule",
+    "config": {
+      "frequency": "quarterly",
+      "months": [3, 6, 9, 12],
+      "day": 1,
+      "time": "10:00 CT",
+      "timezone": "America/Chicago"
+    }
+  },
+  "steps": [
+    {
+      "step": 1,
+      "action": "Fetch Survey-Eligible Clients",
+      "app": "Supabase",
+      "config": {
+        "operation": "select",
+        "table": "clients",
+        "filters": {
+          "status": "active",
+          "last_nps_survey_sent": "< NOW() - INTERVAL '90 days' OR last_nps_survey_sent IS NULL"
+        },
+        "select": "id, name, primary_contact_name, primary_contact_email, account_manager_id, health_score, start_date"
+      }
+    },
+    {
+      "step": 2,
+      "action": "Generate Personalized Survey (Loop)",
+      "app": "Looping by Zapier",
+      "config": {
+        "items": "{{step_1.clients}}",
+        "loop_actions": [
+          {
+            "step": "2a",
+            "action": "Create Survey Link",
+            "app": "Typeform",
+            "config": {
+              "operation": "create_response_link",
+              "form_id": "{{NPS_SURVEY_FORM_ID}}",
+              "hidden_fields": {
+                "client_id": "{{loop.item.id}}",
+                "client_name": "{{loop.item.name}}",
+                "account_manager_id": "{{loop.item.account_manager_id}}"
+              }
+            }
+          },
+          {
+            "step": "2b",
+            "action": "Personalize Email Content",
+            "app": "Anthropic Claude",
+            "config": {
+              "model": "claude-sonnet-4-5-20250929",
+              "max_tokens": 600,
+              "temperature": 0.5,
+              "system_prompt": "Write warm, personalized B2B survey invitation emails.",
+              "messages": [
+                {
+                  "role": "user",
+                  "content": "Write a personalized NPS survey email for:\n\nClient: {{loop.item.name}}\nContact: {{loop.item.primary_contact_name}}\nRelationship Length: {{days_since(loop.item.start_date)}} days\nCurrent Health: {{loop.item.health_score}}/100\n\nTone: Professional, appreciative, concise\nLength: 3 short paragraphs\nInclude: Thank them for partnership, explain NPS purpose (2-min survey), emphasize their feedback matters"
+                }
+              ]
+            }
+          },
+          {
+            "step": "2c",
+            "action": "Send Survey Email",
+            "app": "Gmail",
+            "config": {
+              "action": "send_email",
+              "from": "{{loop.item.account_manager_email}}",
+              "to": "{{loop.item.primary_contact_email}}",
+              "subject": "Quick question: How likely are you to recommend INTINC?",
+              "body_html": "{{step_2b.response}}\n\n<p><a href='{{step_2a.survey_link}}' style='background:#0066cc;color:white;padding:12px 24px;text-decoration:none;display:inline-block;margin-top:20px;'>Take 2-Minute Survey</a></p>\n\n<p style='color:#666;font-size:12px;margin-top:30px;'>Your feedback is confidential and helps us serve you better.</p>"
+            }
+          },
+          {
+            "step": "2d",
+            "action": "Log Survey Sent",
+            "app": "Supabase",
+            "config": {
+              "operation": "insert",
+              "table": "nps_surveys_sent",
+              "record": {
+                "client_id": "{{loop.item.id}}",
+                "survey_link": "{{step_2a.survey_link}}",
+                "sent_to": "{{loop.item.primary_contact_email}}",
+                "sent_at": "{{zap.meta.timestamp}}",
+                "quarter": "{{current_quarter}}",
+                "year": "{{current_year}}"
+              }
+            }
+          },
+          {
+            "step": "2e",
+            "action": "Update Client Record",
+            "app": "Supabase",
+            "config": {
+              "operation": "update",
+              "table": "clients",
+              "filters": {
+                "id": "{{loop.item.id}}"
+              },
+              "record": {
+                "last_nps_survey_sent": "{{zap.meta.timestamp}}"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "step": 3,
+      "action": "Post Summary to Slack",
+      "app": "Slack",
+      "config": {
+        "channel": "#nps-surveys",
+        "text": "📊 *Quarterly NPS Survey Launched*\n\nSurveys sent: {{step_1.count}}\nQuarter: Q{{current_quarter}} {{current_year}}\nResponse tracking: https://intinc.com/nps/{{current_quarter}}-{{current_year}}\n\nReminder emails scheduled for non-respondents in 7 days."
+      }
+    }
+  ],
+  "response_handling_workflow": {
+    "name": "NPS Response Handler (Separate Zap)",
+    "trigger": {
+      "type": "webhook",
+      "app": "Typeform",
+      "event": "form_response"
+    },
+    "steps": [
+      {
+        "step": 1,
+        "action": "Extract Response Data",
+        "app": "Code by Zapier",
+        "code": "const response = inputData;\nconst npsScore = parseInt(response.answers.find(a => a.field.ref === 'nps_score')?.number);\nconst feedback = response.answers.find(a => a.field.ref === 'feedback')?.text || '';\nconst clientId = response.hidden.client_id;\n\n// Classify NPS\nlet category = '';\nif (npsScore >= 9) category = 'promoter';\nelse if (npsScore >= 7) category = 'passive';\nelse category = 'detractor';\n\nreturn {\n  client_id: clientId,\n  client_name: response.hidden.client_name,\n  account_manager_id: response.hidden.account_manager_id,\n  nps_score: npsScore,\n  category: category,\n  feedback: feedback,\n  response_id: response.response_id,\n  submitted_at: response.submitted_at\n};"
+      },
+      {
+        "step": 2,
+        "action": "AI Sentiment Analysis",
+        "app": "Anthropic Claude",
+        "config": {
+          "model": "claude-sonnet-4-5-20250929",
+          "max_tokens": 800,
+          "temperature": 0.2,
+          "system_prompt": "Analyze NPS feedback for sentiment, themes, and actionable insights.",
+          "messages": [
+            {
+              "role": "user",
+              "content": "Analyze this NPS response:\n\nClient: {{step_1.client_name}}\nScore: {{step_1.nps_score}}/10 ({{step_1.category}})\nFeedback: {{step_1.feedback}}\n\nProvide:\n1. **Sentiment** (positive/neutral/negative + confidence %)\n2. **Key Themes** (3-5 topics mentioned)\n3. **Action Items** (specific steps to address concerns or leverage praise)\n4. **Urgency Level** (low/medium/high + reasoning)\n5. **Follow-up Recommendation** (call, email, or no action needed)"
+            }
+          ]
+        },
+        "filter": {
+          "continue_if": "{{step_1.feedback}} != ''"
+        }
+      },
+      {
+        "step": 3,
+        "action": "Store Response",
+        "app": "Supabase",
+        "config": {
+          "operation": "insert",
+          "table": "nps_responses",
+          "record": {
+            "client_id": "{{step_1.client_id}}",
+            "nps_score": "{{step_1.nps_score}}",
+            "category": "{{step_1.category}}",
+            "feedback": "{{step_1.feedback}}",
+            "ai_sentiment_analysis": "{{step_2.response}}",
+            "response_id": "{{step_1.response_id}}",
+            "submitted_at": "{{step_1.submitted_at}}",
+            "quarter": "{{current_quarter}}",
+            "year": "{{current_year}}"
+          }
+        }
+      },
+      {
+        "step": 4,
+        "action": "Update Client NPS",
+        "app": "Supabase",
+        "config": {
+          "operation": "update",
+          "table": "clients",
+          "filters": {
+            "id": "{{step_1.client_id}}"
+          },
+          "record": {
+            "latest_nps_score": "{{step_1.nps_score}}",
+            "latest_nps_category": "{{step_1.category}}",
+            "last_nps_response_date": "{{step_1.submitted_at}}"
+          }
+        }
+      },
+      {
+        "step": 5,
+        "action": "Alert for Detractors",
+        "app": "Slack",
+        "config": {
+          "channel": "#nps-alerts",
+          "blocks": [
+            {
+              "type": "header",
+              "text": {
+                "type": "plain_text",
+                "text": "🚨 NPS Detractor Alert"
+              }
+            },
+            {
+              "type": "section",
+              "fields": [
+                {"type": "mrkdwn", "text": "*Client:*\n{{step_1.client_name}}"},
+                {"type": "mrkdwn", "text": "*Score:*\n{{step_1.nps_score}}/10"},
+                {"type": "mrkdwn", "text": "*Category:*\nDetractor"},
+                {"type": "mrkdwn", "text": "*Urgency:*\n{{extract_urgency(step_2.response)}}"}
+              ]
+            },
+            {
+              "type": "section",
+              "text": {
+                "type": "mrkdwn",
+                "text": "*Feedback:*\n{{step_1.feedback}}"
+              }
+            },
+            {
+              "type": "section",
+              "text": {
+                "type": "mrkdwn",
+                "text": "*AI Analysis:*\n{{step_2.response}}"
+              }
+            },
+            {
+              "type": "actions",
+              "elements": [
+                {
+                  "type": "button",
+                  "text": {"type": "plain_text", "text": "Schedule Call"},
+                  "url": "https://calendly.com/intinc/nps-followup",
+                  "style": "danger"
+                },
+                {
+                  "type": "button",
+                  "text": {"type": "plain_text", "text": "View Client Profile"},
+                  "url": "https://intinc.com/clients/{{step_1.client_id}}"
+                }
+              ]
+            }
+          ]
+        },
+        "filter": {
+          "continue_if": "{{step_1.category}} == 'detractor'"
+        }
+      },
+      {
+        "step": 6,
+        "action": "Create Follow-up Task",
+        "app": "Linear",
+        "config": {
+          "operation": "create_issue",
+          "teamId": "{{INTINC_CS_TEAM_ID}}",
+          "title": "NPS Follow-up: {{step_1.client_name}} (Score: {{step_1.nps_score}})",
+          "description": "**NPS Score:** {{step_1.nps_score}}/10 ({{step_1.category}})\n**Feedback:** {{step_1.feedback}}\n\n**AI Analysis:**\n{{step_2.response}}\n\n**Recommended Actions:**\n- Schedule call within 48 hours\n- Address concerns raised in feedback\n- Document resolution plan",
+          "priority": "{{step_1.category == 'detractor' ? 1 : 3}}",
+          "labelIds": ["{{LABEL_NPS}}", "{{LABEL_CS}}"],
+          "assigneeId": "{{step_1.account_manager_id}}",
+          "dueDate": "{{step_1.category == 'detractor' ? '2_days_from_now' : '7_days_from_now'}}"
+        },
+        "filter": {
+          "continue_if": "{{step_1.category}} in ['detractor', 'passive']"
+        }
+      },
+      {
+        "step": 7,
+        "action": "Thank Promoters",
+        "app": "Gmail",
+        "config": {
+          "action": "send_email",
+          "from": "{{step_1.account_manager_email}}",
+          "to": "{{step_1.primary_contact_email}}",
+          "subject": "Thank you for your feedback!",
+          "body_html": "<p>Hi {{step_1.primary_contact_name}},</p>\n\n<p>Thank you so much for your outstanding feedback! We're thrilled to hear that you'd recommend INTINC to others.</p>\n\n<p>Your success is our success, and we're committed to continuing to deliver exceptional service.</p>\n\n<p>If there's anything we can do to make your experience even better, please don't hesitate to reach out.</p>\n\n<p>Best regards,<br>Your INTINC Team</p>"
+        },
+        "filter": {
+          "continue_if": "{{step_1.category}} == 'promoter'"
+        }
+      }
+    ]
+  },
+  "cost_estimate": {
+    "survey_distribution": {
+      "per_client": {
+        "typeform": 0.02,
+        "claude_personalization": 0.004,
+        "gmail": 0.01,
+        "supabase": 0.002,
+        "zapier_tasks": 0.15,
+        "total": 0.186
+      },
+      "quarterly_100_clients": 18.6
+    },
+    "response_processing": {
+      "per_response": {
+        "claude_analysis": 0.005,
+        "supabase": 0.002,
+        "slack_linear": 0.025,
+        "zapier_tasks": 0.12,
+        "total": 0.152
+      },
+      "assuming_70_percent_response": 10.64
+    },
+    "total_quarterly_estimate_100_clients": 29.24,
+    "annual_estimate": 116.96
+  },
+  "testing": {
+    "scenarios": [
+      {"nps_score": 10, "feedback": "Amazing service!", "expected": "Thank you email, no task"},
+      {"nps_score": 7, "feedback": "Good but could improve X", "expected": "Passive follow-up task"},
+      {"nps_score": 3, "feedback": "Very disappointed with Y", "expected": "Urgent Slack alert, high-priority Linear task, immediate follow-up"}
+    ]
+  }
+}
