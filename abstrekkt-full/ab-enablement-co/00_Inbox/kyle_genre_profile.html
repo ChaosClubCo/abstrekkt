@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kyle Rosebrook — Genre Writer Profile</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: #0d1117;
+    color: #e6edf3;
+    min-height: 100vh;
+    padding: 28px 20px 48px;
+  }
+  .header {
+    text-align: center;
+    margin-bottom: 32px;
+  }
+  .badge {
+    display: inline-block;
+    background: linear-gradient(135deg, #1f6feb44, #388bfd22);
+    border: 1px solid #1f6feb88;
+    border-radius: 20px;
+    font-size: 0.68rem;
+    font-weight: 700;
+    color: #79c0ff;
+    padding: 4px 14px;
+    margin-bottom: 10px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+  }
+  .header h1 {
+    font-size: 1.65rem;
+    font-weight: 800;
+    letter-spacing: -0.8px;
+    color: #f0f6fc;
+    margin-bottom: 6px;
+  }
+  .header p {
+    font-size: 0.82rem;
+    color: #8b949e;
+    max-width: 500px;
+    margin: 0 auto;
+  }
+
+  .layout {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    gap: 20px;
+    max-width: 960px;
+    margin: 0 auto;
+  }
+
+  /* LEFT COLUMN */
+  .left-col { display: flex; flex-direction: column; gap: 16px; }
+
+  .card {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 12px;
+    padding: 18px;
+  }
+  .card-title {
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    color: #8b949e;
+    margin-bottom: 14px;
+  }
+
+  /* RADAR */
+  .radar-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  /* DNA bars */
+  .dna-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 9px;
+  }
+  .dna-label {
+    font-size: 0.72rem;
+    color: #c9d1d9;
+    min-width: 100px;
+    white-space: nowrap;
+  }
+  .dna-track {
+    flex: 1;
+    height: 5px;
+    background: #21262d;
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .dna-fill {
+    height: 100%;
+    border-radius: 3px;
+    background: linear-gradient(90deg, #388bfd, #79c0ff);
+  }
+  .dna-pct {
+    font-size: 0.68rem;
+    color: #8b949e;
+    min-width: 30px;
+    text-align: right;
+  }
+
+  /* RIGHT COLUMN */
+  .right-col { display: flex; flex-direction: column; gap: 12px; }
+
+  .genre-card {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 12px;
+    padding: 16px 18px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+    overflow: hidden;
+  }
+  .genre-card:hover { transform: translateX(4px); background: #1c2128; }
+  .genre-card.active { background: #1c2128; border-color: var(--ac); }
+  .genre-card .side-bar {
+    position: absolute;
+    left: 0; top: 0; bottom: 0; width: 3px;
+    background: var(--ac);
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+  .genre-card:hover .side-bar, .genre-card.active .side-bar { opacity: 1; }
+
+  .genre-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+  .genre-name {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #f0f6fc;
+  }
+  .genre-tag {
+    font-size: 0.62rem;
+    font-weight: 700;
+    padding: 3px 9px;
+    border-radius: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    background: var(--ac-bg);
+    color: var(--ac);
+    white-space: nowrap;
+  }
+  .fit-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+  .fit-track {
+    flex: 1;
+    height: 4px;
+    background: #21262d;
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .fit-fill {
+    height: 100%;
+    background: var(--ac);
+    border-radius: 2px;
+  }
+  .fit-pct {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--ac);
+    min-width: 34px;
+    text-align: right;
+  }
+  .genre-summary {
+    font-size: 0.78rem;
+    color: #8b949e;
+    line-height: 1.55;
+    margin-bottom: 0;
+  }
+  .genre-detail {
+    display: none;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid #30363d;
+  }
+  .genre-card.active .genre-detail { display: block; }
+  .dl { font-size: 0.62rem; text-transform: uppercase; letter-spacing: 1px; color: #6e7681; margin-bottom: 5px; margin-top: 10px; }
+  .dl:first-child { margin-top: 0; }
+  .chips { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 4px; }
+  .chip {
+    font-size: 0.67rem;
+    background: #21262d;
+    border: 1px solid #30363d;
+    border-radius: 6px;
+    padding: 2px 8px;
+    color: #8b949e;
+  }
+  .comp-text {
+    font-size: 0.77rem;
+    color: #8b949e;
+    line-height: 1.5;
+  }
+  .comp-text strong { color: #c9d1d9; }
+
+  @media (max-width: 680px) {
+    .layout { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="badge">Genre Writer Profile · March 2026</div>
+  <h1>Kyle Rosebrook — Genre Writer DNA</h1>
+  <p>Fingerprinted from your Drive docs, newsletter voice, strategic frameworks, and thematic obsessions</p>
+</div>
+
+<div class="layout">
+  <!-- LEFT -->
+  <div class="left-col">
+    <div class="card">
+      <div class="card-title">Writing DNA</div>
+      <div id="dna-bars"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Pattern Snapshot</div>
+      <div style="font-size:0.77rem;color:#8b949e;line-height:1.65">
+        Your writing consistently moves between <strong style="color:#c9d1d9">high-altitude systems thinking</strong> and <strong style="color:#c9d1d9">ground-level human stakes</strong>. You build frameworks the way thriller writers build tension — methodically, then explosively.
+        <br><br>
+        The recurring obsession: <strong style="color:#79c0ff">what happens to humans when the machine becomes more capable than them.</strong> That's not a business question. That's a genre.
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Untapped Signal</div>
+      <div style="font-size:0.77rem;color:#8b949e;line-height:1.65">
+        Your <strong style="color:#c9d1d9">songwriting + hospitality past</strong> gives you something most tech writers lack: <em>granular human observation</em>. The person behind the desk. The moment a system fails a real person. That's the secret weapon of literary fiction.
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT -->
+  <div class="right-col" id="genres"></div>
+</div>
+
+<script>
+const dna = [
+  { label: "Systems Thinking",   pct: 95 },
+  { label: "Strategic Framework",pct: 92 },
+  { label: "Tech Depth",         pct: 90 },
+  { label: "Human Psychology",   pct: 88 },
+  { label: "Speculative Tension",pct: 85 },
+  { label: "Emotional Urgency",  pct: 80 },
+  { label: "Narrative Drive",    pct: 75 },
+  { label: "Lyrical Voice",      pct: 65 },
+];
+
+const genres = [
+  {
+    name: "Near-Future Tech Thriller",
+    tag: "Primary Match",
+    pct: 94,
+    ac: "#388bfd",
+    acBg: "#388bfd22",
+    summary: "You live inside the systems, protocols, and failure modes that most thriller writers have to invent. Your writing already has the velocity of someone counting down to something.",
+    signals: ["AI agent architecture knowledge", "Security audit work (RLS, HTTP)", "Agentic economy urgency in docs", "Obsession motif (Whiplash / Black Swan refs)", "Classical music thriller mentioned"],
+    comp: "Think <strong>Daniel Suarez</strong> (Daemon, Kill Decision) meets <strong>Michael Crichton</strong> — but written from <em>inside</em> the machine room, not from a reporter's desk."
+  },
+  {
+    name: "Strategic Narrative Nonfiction",
+    tag: "Strong Match",
+    pct: 88,
+    ac: "#3fb950",
+    acBg: "#3fb95022",
+    summary: "Your documents already read this way. Dense frameworks wrapped in muscular prose. You explain the stakes as clearly as you explain the mechanics — and you know the difference.",
+    signals: ["Ecosystem intelligence briefs", "The Prompt newsletter (3-tier structure)", "Institutional Partnership Playbook voice", "Framework + metaphor blending", "Flash-n-Frame due diligence docs"],
+    comp: "Think <strong>Michael Lewis</strong> + <strong>Brad Stone</strong> — the business of transformation, told at the speed of a pivot, with source-level access."
+  },
+  {
+    name: "Speculative / Techno-Dystopian Fiction",
+    tag: "Strong Match",
+    pct: 82,
+    ac: "#bc8cff",
+    acBg: "#bc8cff22",
+    summary: "Your framing of human vs. AI isn't academic — it's existential. 'Civilization-threatening challenges', 'cognitive atrophy', 'deception vulnerability.' That's spec-fic's DNA.",
+    signals: ["Cognitive Fitness doc themes", "Meaning Maker vs Pattern Matcher framework", "Human agency obsession across all docs", "The 'Shortcut Trap' as dystopian warning", "AI as civilization-scale risk framing"],
+    comp: "Think <strong>Dave Eggers</strong> (The Circle) + <strong>William Gibson</strong> — with the credibility of someone who actually built the systems they're warning about."
+  },
+  {
+    name: "High-Stakes Manifesto / Prescriptive Nonfiction",
+    tag: "Medium Match",
+    pct: 76,
+    ac: "#e3b341",
+    acBg: "#e3b34122",
+    summary: "Your voice is authoritative and directional. 'Stop being a solo creator. Start designing industries.' That's not an essay — that's a thesis statement for a movement.",
+    signals: ["Creative Sovereignty conclusion style", "Bold claim + framework + payoff structure", "The '1% diamond' motif", "Strategic call-to-action closes on every doc", "R-I-S-E / F-L-O-W framework obsession"],
+    comp: "Think <strong>Peter Thiel</strong> (Zero to One) + <strong>Seth Godin</strong> — entrepreneurial urgency with a systems engineer's rigor and a founder's scar tissue."
+  },
+  {
+    name: "Literary Thriller (Sleeper Pick)",
+    tag: "Sleeper",
+    pct: 68,
+    ac: "#f47067",
+    acBg: "#f4706722",
+    summary: "Songwriting + hospitality/retail past gives you something rare: granular human observation. You notice when systems fail people. That's a literary thriller's core mechanic.",
+    signals: ["Songwriting / personal theme processing", "Obsession as recurring structural motif", "Hospitality & retail human-scale observation", "Workplace friction as narrative material", "Identity-in-transition arc (founder → engineer)"],
+    comp: "Think <strong>Donna Tartt</strong> + <strong>Tana French</strong> — character-driven, atmosphere-heavy, with a protagonist trapped inside a system they helped design."
+  },
+];
+
+// Build DNA bars
+const dnaEl = document.getElementById('dna-bars');
+dna.forEach(d => {
+  dnaEl.innerHTML += `
+    <div class="dna-item">
+      <div class="dna-label">${d.label}</div>
+      <div class="dna-track"><div class="dna-fill" style="width:${d.pct}%"></div></div>
+      <div class="dna-pct">${d.pct}%</div>
+    </div>`;
+});
+
+// Build genre cards
+const genreEl = document.getElementById('genres');
+genres.forEach((g, i) => {
+  const card = document.createElement('div');
+  card.className = 'genre-card' + (i === 0 ? ' active' : '');
+  card.style.cssText = `--ac:${g.ac};--ac-bg:${g.acBg}`;
+  card.innerHTML = `
+    <div class="side-bar"></div>
+    <div class="genre-top">
+      <div class="genre-name">${g.name}</div>
+      <div class="genre-tag">${g.tag}</div>
+    </div>
+    <div class="fit-row">
+      <div class="fit-track"><div class="fit-fill" style="width:${g.pct}%"></div></div>
+      <div class="fit-pct">${g.pct}%</div>
+    </div>
+    <div class="genre-summary">${g.summary}</div>
+    <div class="genre-detail">
+      <div class="dl">Signal Sources from Your Docs</div>
+      <div class="chips">${g.signals.map(s=>`<div class="chip">${s}</div>`).join('')}</div>
+      <div class="dl">Comparable Authors / Titles</div>
+      <div class="comp-text">${g.comp}</div>
+    </div>
+  `;
+  card.addEventListener('click', () => {
+    document.querySelectorAll('.genre-card').forEach(c => c.classList.remove('active'));
+    card.classList.add('active');
+  });
+  genreEl.appendChild(card);
+});
+</script>
+</body>
+</html>

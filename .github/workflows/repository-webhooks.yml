@@ -1,0 +1,145 @@
+name: Repository Webhooks
+
+on:
+  push:
+    branches:
+      - main
+  pull_request_target:
+    types: [opened, synchronize, reopened, closed]
+  issues:
+    types: [opened, closed, reopened, labeled, unlabeled]
+  workflow_run:
+    workflows:
+      - Abstrekkt CI
+      - Repository Integrity
+      - Abstrekkt Cloudflare Pages Release
+    types: [completed]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: repository-webhook-${{ github.event_name }}-${{ github.run_id }}
+  cancel-in-progress: false
+
+jobs:
+  dispatch:
+    name: Dispatch signed event
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      WEBHOOK_URL: ${{ secrets.ABSTREKKT_WEBHOOK_URL }}
+      WEBHOOK_SECRET: ${{ secrets.ABSTREKKT_WEBHOOK_SECRET }}
+
+    steps:
+      - name: Check webhook configuration
+        id: gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -z "${WEBHOOK_URL:-}" || -z "${WEBHOOK_SECRET:-}" ]]; then
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "Webhook dispatch skipped: ABSTREKKT_WEBHOOK_URL and/or ABSTREKKT_WEBHOOK_SECRET is not configured."
+          else
+            case "$WEBHOOK_URL" in
+              https://*) ;;
+              *) echo "STOP: ABSTREKKT_WEBHOOK_URL must use https://"; exit 1 ;;
+            esac
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build minimal signed envelope
+        if: steps.gate.outputs.enabled == 'true'
+        id: envelope
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import hashlib
+          import hmac
+          import json
+          import os
+          from datetime import datetime, timezone
+          from pathlib import Path
+
+          event = json.loads(Path(os.environ['GITHUB_EVENT_PATH']).read_text(encoding='utf-8'))
+          workflow_run = event.get('workflow_run') or {}
+          issue = event.get('issue') or {}
+          pull_request = event.get('pull_request') or {}
+          pull_request_head = pull_request.get('head') or {}
+
+          delivery_id = os.environ['GITHUB_RUN_ID']
+          delivery_attempt = int(os.environ['GITHUB_RUN_ATTEMPT'])
+          event_ref = pull_request_head.get('ref') or os.environ.get('GITHUB_REF')
+          event_sha = pull_request_head.get('sha') or os.environ.get('GITHUB_SHA')
+
+          envelope = {
+              'schema_version': '1.0',
+              'delivery_id': delivery_id,
+              'delivery_attempt': delivery_attempt,
+              'emitted_at': datetime.now(timezone.utc).isoformat(),
+              'repository': os.environ['GITHUB_REPOSITORY'],
+              'repository_id': (event.get('repository') or {}).get('id'),
+              'event_name': os.environ['GITHUB_EVENT_NAME'],
+              'action': event.get('action'),
+              'actor': os.environ['GITHUB_ACTOR'],
+              'ref': event_ref,
+              'sha': event_sha,
+              'workflow': os.environ.get('GITHUB_WORKFLOW'),
+              'workflow_run': {
+                  'id': workflow_run.get('id'),
+                  'name': workflow_run.get('name'),
+                  'event': workflow_run.get('event'),
+                  'status': workflow_run.get('status'),
+                  'conclusion': workflow_run.get('conclusion'),
+                  'head_sha': workflow_run.get('head_sha'),
+              } if workflow_run else None,
+              'issue_number': issue.get('number'),
+              'pull_request_number': pull_request.get('number'),
+          }
+
+          raw = json.dumps(envelope, separators=(',', ':'), sort_keys=True).encode('utf-8')
+          Path('/tmp/abstrekkt-webhook.json').write_bytes(raw)
+          signature = hmac.new(
+              os.environ['WEBHOOK_SECRET'].encode('utf-8'),
+              raw,
+              hashlib.sha256,
+          ).hexdigest()
+
+          output = Path(os.environ['GITHUB_OUTPUT'])
+          with output.open('a', encoding='utf-8') as handle:
+              handle.write(f"signature=sha256={signature}\n")
+              handle.write(f"delivery_id={delivery_id}\n")
+          PY
+
+      - name: Deliver webhook
+        if: steps.gate.outputs.enabled == 'true'
+        shell: bash
+        env:
+          SIGNATURE: ${{ steps.envelope.outputs.signature }}
+          DELIVERY_ID: ${{ steps.envelope.outputs.delivery_id }}
+        run: |
+          set -euo pipefail
+          STATUS="$(curl \
+            --fail-with-body \
+            --silent \
+            --show-error \
+            --retry 3 \
+            --retry-all-errors \
+            --connect-timeout 10 \
+            --max-time 30 \
+            --request POST \
+            --header 'Content-Type: application/json' \
+            --header "X-Abstrekkt-Event: ${GITHUB_EVENT_NAME}" \
+            --header "X-Abstrekkt-Delivery: ${DELIVERY_ID}" \
+            --header "X-Abstrekkt-Signature-256: ${SIGNATURE}" \
+            --data-binary @/tmp/abstrekkt-webhook.json \
+            --output /tmp/abstrekkt-webhook-response.txt \
+            --write-out '%{http_code}' \
+            "$WEBHOOK_URL")"
+
+          case "$STATUS" in
+            2??) ;;
+            *) echo "STOP: webhook receiver returned HTTP $STATUS; redirects are not accepted"; exit 1 ;;
+          esac

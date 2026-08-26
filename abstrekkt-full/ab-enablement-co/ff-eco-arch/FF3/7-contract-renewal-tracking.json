@@ -1,0 +1,201 @@
+{
+  "name": "Contract Renewal Tracking & Automation",
+  "description": "Automated renewal reminders, AI-generated renewal proposals, and upsell opportunities",
+  "trigger": {
+    "type": "schedule",
+    "config": {
+      "frequency": "daily",
+      "time": "09:00 CT",
+      "timezone": "America/Chicago"
+    }
+  },
+  "steps": [
+    {
+      "step": 1,
+      "action": "Fetch Upcoming Renewals",
+      "app": "Supabase",
+      "config": {
+        "operation": "select",
+        "table": "clients",
+        "filters": {
+          "status": "active",
+          "renewal_date": "BETWEEN NOW() AND NOW() + INTERVAL '120 days'"
+        },
+        "select": "id, name, renewal_date, contract_value, account_manager_id, health_score, services"
+      }
+    },
+    {
+      "step": 2,
+      "action": "Classify Renewal Stage (Loop)",
+      "app": "Looping by Zapier",
+      "config": {
+        "items": "{{step_1.clients}}",
+        "loop_actions": [
+          {
+            "step": "2a",
+            "action": "Calculate Days Until Renewal",
+            "app": "Code by Zapier",
+            "code": "const renewalDate = new Date(inputData.renewal_date);\nconst today = new Date();\nconst daysUntil = Math.ceil((renewalDate - today) / (1000 * 60 * 60 * 24));\n\nlet stage = '';\nlet actions = [];\nlet priority = 'low';\n\nif (daysUntil <= 30) {\n  stage = 'critical';\n  priority = 'urgent';\n  actions = ['Send renewal contract', 'Schedule signature call', 'Executive check-in'];\n} else if (daysUntil <= 60) {\n  stage = 'active_renewal';\n  priority = 'high';\n  actions = ['Present renewal proposal', 'Discuss expansion opportunities', 'Address concerns'];\n} else if (daysUntil <= 90) {\n  stage = 'pre_renewal';\n  priority = 'medium';\n  actions = ['Schedule renewal planning call', 'Gather usage data', 'Prepare proposal'];\n} else {\n  stage = 'early_planning';\n  priority = 'low';\n  actions = ['Monitor health score', 'Track feature requests', 'Build relationship'];\n}\n\nreturn {\n  client_id: inputData.id,\n  client_name: inputData.name,\n  days_until_renewal: daysUntil,\n  renewal_stage: stage,\n  priority: priority,\n  recommended_actions: actions,\n  contract_value: inputData.contract_value,\n  health_score: inputData.health_score || 75\n};"
+          },
+          {
+            "step": "2b",
+            "action": "Fetch Usage Analytics",
+            "app": "Supabase",
+            "config": {
+              "operation": "rpc",
+              "function_name": "get_client_usage_stats",
+              "params": {
+                "client_id": "{{loop.item.id}}",
+                "months": 12
+              }
+            }
+          },
+          {
+            "step": "2c",
+            "action": "Generate Renewal Strategy",
+            "app": "Anthropic Claude",
+            "config": {
+              "model": "claude-sonnet-4-5-20250929",
+              "max_tokens": 1200,
+              "temperature": 0.4,
+              "system_prompt": "You are a B2B SaaS renewal specialist. Generate renewal strategies based on client data.",
+              "messages": [
+                {
+                  "role": "user",
+                  "content": "Generate a renewal strategy for this client:\n\nClient: {{step_2a.client_name}}\nDays Until Renewal: {{step_2a.days_until_renewal}}\nCurrent Contract: ${{step_2a.contract_value}}/year\nHealth Score: {{step_2a.health_score}}/100\n\nUsage Data (last 12 months):\n{{step_2b}}\n\nProvide:\n1. Renewal risk assessment (Low/Medium/High + reasoning)\n2. Recommended renewal value ($)\n3. Upsell opportunities (features/services)\n4. Talking points for renewal conversation\n5. Timeline for next 30-60-90 days"
+                }
+              ]
+            },
+            "filter": {
+              "continue_if": "{{step_2a.renewal_stage}} in ['pre_renewal', 'active_renewal', 'critical']"
+            }
+          },
+          {
+            "step": "2d",
+            "action": "Store Renewal Plan",
+            "app": "Supabase",
+            "config": {
+              "operation": "upsert",
+              "table": "renewal_plans",
+              "record": {
+                "client_id": "{{loop.item.id}}",
+                "renewal_date": "{{loop.item.renewal_date}}",
+                "days_until_renewal": "{{step_2a.days_until_renewal}}",
+                "renewal_stage": "{{step_2a.renewal_stage}}",
+                "current_value": "{{step_2a.contract_value}}",
+                "recommended_value": "{{extract_recommended_value(step_2c.response)}}",
+                "risk_level": "{{extract_risk_level(step_2c.response)}}",
+                "upsell_opportunities": "{{extract_upsells(step_2c.response)}}",
+                "ai_strategy": "{{step_2c.response}}",
+                "last_updated": "{{zap.meta.timestamp}}"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "step": 3,
+      "action": "Send Critical Renewal Alerts",
+      "app": "Slack",
+      "config": {
+        "channel": "#renewals-urgent",
+        "blocks": [
+          {
+            "type": "header",
+            "text": {
+              "type": "plain_text",
+              "text": "⏰ CRITICAL: Renewal in {{step_2a.days_until_renewal}} Days"
+            }
+          },
+          {
+            "type": "section",
+            "fields": [
+              {"type": "mrkdwn", "text": "*Client:*\n{{step_2a.client_name}}"},
+              {"type": "mrkdwn", "text": "*Contract Value:*\n${{step_2a.contract_value}}"},
+              {"type": "mrkdwn", "text": "*Health Score:*\n{{step_2a.health_score}}/100"},
+              {"type": "mrkdwn", "text": "*Days Left:*\n{{step_2a.days_until_renewal}}"}
+            ]
+          },
+          {
+            "type": "section",
+            "text": {
+              "type": "mrkdwn",
+              "text": "*AI Renewal Strategy:*\n{{step_2c.response}}"
+            }
+          },
+          {
+            "type": "actions",
+            "elements": [
+              {
+                "type": "button",
+                "text": {"type": "plain_text", "text": "View Renewal Plan"},
+                "url": "https://intinc.com/renewals/{{loop.item.id}}",
+                "style": "primary"
+              },
+              {
+                "type": "button",
+                "text": {"type": "plain_text", "text": "Generate Contract"},
+                "url": "https://intinc.com/contracts/generate/{{loop.item.id}}"
+              }
+            ]
+          }
+        ]
+      },
+      "filter": {
+        "continue_if": "{{step_2a.renewal_stage}} == 'critical'"
+      }
+    },
+    {
+      "step": 4,
+      "action": "Create Renewal Tasks in Linear",
+      "app": "Linear",
+      "config": {
+        "operation": "create_issue",
+        "teamId": "{{INTINC_CS_TEAM_ID}}",
+        "title": "Renewal: {{step_2a.client_name}} ({{step_2a.days_until_renewal}}d)",
+        "description": "**Renewal Date:** {{loop.item.renewal_date}}\n**Contract Value:** ${{step_2a.contract_value}}\n**Health Score:** {{step_2a.health_score}}/100\n**Stage:** {{step_2a.renewal_stage}}\n\n**AI Renewal Strategy:**\n{{step_2c.response}}\n\n**Next Actions:**\n{{step_2a.recommended_actions}}",
+        "priority": "{{step_2a.priority == 'urgent' ? 1 : (step_2a.priority == 'high' ? 2 : 3)}}",
+        "labelIds": ["{{LABEL_RENEWAL}}", "{{LABEL_CS}}"],
+        "assigneeId": "{{loop.item.account_manager_linear_id}}",
+        "dueDate": "{{calculate_due_date(step_2a.renewal_stage)}}"
+      },
+      "filter": {
+        "continue_if": "{{step_2a.renewal_stage}} in ['active_renewal', 'critical']"
+      }
+    },
+    {
+      "step": 5,
+      "action": "Email Account Manager (Weekly Digest)",
+      "app": "Gmail",
+      "config": {
+        "action": "send_email",
+        "to": "{{loop.item.account_manager_email}}",
+        "subject": "Renewal Planning: {{step_2a.client_name}} ({{step_2a.renewal_stage}})",
+        "body_html": "<h2>Renewal Update: {{step_2a.client_name}}</h2>\n<p><strong>Renewal Date:</strong> {{loop.item.renewal_date}} ({{step_2a.days_until_renewal}} days)</p>\n<p><strong>Current Contract:</strong> ${{step_2a.contract_value}}/year</p>\n<p><strong>Health Score:</strong> {{step_2a.health_score}}/100</p>\n\n<h3>AI-Generated Renewal Strategy</h3>\n<pre>{{step_2c.response}}</pre>\n\n<h3>Recommended Actions</h3>\n<ul>\n{{step_2a.recommended_actions}}\n</ul>\n\n<p><a href='https://intinc.com/renewals/{{loop.item.id}}'>View Full Renewal Plan</a></p>"
+      },
+      "filter": {
+        "continue_if": "{{day_of_week}} == 'Monday'"
+      }
+    }
+  ],
+  "cost_estimate": {
+    "per_renewal_processed": {
+      "supabase": 0.002,
+      "claude_strategy": 0.007,
+      "slack": 0.01,
+      "linear": 0.015,
+      "zapier_tasks": 0.18,
+      "total": 0.214
+    },
+    "monthly_estimate_20_renewals": 128.4,
+    "monthly_estimate_50_renewals": 321.0
+  },
+  "testing": {
+    "scenarios": [
+      {"days_until_renewal": 15, "expected_stage": "critical", "expected_alerts": ["Slack", "Linear task", "Email"]},
+      {"days_until_renewal": 45, "expected_stage": "active_renewal", "expected_alerts": ["Linear task", "Email"]},
+      {"days_until_renewal": 75, "expected_stage": "pre_renewal", "expected_alerts": ["Email only"]}
+    ]
+  }
+}

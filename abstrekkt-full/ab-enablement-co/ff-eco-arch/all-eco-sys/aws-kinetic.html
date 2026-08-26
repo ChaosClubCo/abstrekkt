@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AWS Kinetic Terminal | Monitoring Dash</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-deep: #0a0c0f;
+            --bg-surface: #161b22;
+            --aws-orange: #ff9900;
+            --aws-blue: #00a4d3;
+            --cyber-green: #00ff66;
+            --alert-red: #ff4d4d;
+            --text-main: #e6edf3;
+            --text-muted: #8b949e;
+            --border-color: #30363d;
+            --sidebar-width: 240px;
+            --glow-color: rgba(0, 164, 211, 0.2);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: var(--bg-deep);
+            color: var(--text-main);
+            font-family: 'JetBrains Mono', monospace;
+            overflow: hidden;
+            font-size: 13px;
+            background-image: 
+                linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%),
+                linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            background-size: 100% 2px, 3px 100%;
+        }
+
+        /* Layout Structure */
+        .app-container {
+            display: flex;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: var(--sidebar-width);
+            background: var(--bg-surface);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            z-index: 10;
+        }
+
+        .logo-section {
+            padding: 24px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .logo-icon {
+            width: 24px;
+            height: 24px;
+            background: var(--aws-orange);
+            clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+        }
+
+        .logo-text {
+            font-weight: 700;
+            letter-spacing: 1px;
+            color: var(--aws-orange);
+        }
+
+        .nav-links {
+            flex: 1;
+            padding: 20px 0;
+        }
+
+        .nav-item {
+            padding: 12px 24px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            color: var(--text-muted);
+            text-decoration: none;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            border-left: 3px solid transparent;
+        }
+
+        .nav-item:hover {
+            color: var(--text-main);
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .nav-item.active {
+            color: var(--aws-blue);
+            background: rgba(0, 164, 211, 0.05);
+            border-left-color: var(--aws-blue);
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        header {
+            height: 64px;
+            background: rgba(22, 27, 34, 0.8);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 30px;
+            position: sticky;
+            top: 0;
+            z-index: 5;
+        }
+
+        .status-badge {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 11px;
+            background: rgba(0, 255, 102, 0.1);
+            color: var(--cyber-green);
+            padding: 4px 10px;
+            border: 1px solid var(--cyber-green);
+            border-radius: 4px;
+            text-transform: uppercase;
+        }
+
+        .pulse-dot {
+            width: 6px;
+            height: 6px;
+            background: var(--cyber-green);
+            border-radius: 50%;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(0, 255, 102, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(0, 255, 102, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(0, 255, 102, 0); }
+        }
+
+        /* Dashboard Grid */
+        .content-padding {
+            padding: 30px;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+        }
+
+        /* KPI Cards */
+        .stat-card {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-color);
+            padding: 20px;
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.2s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+            border-color: var(--aws-blue);
+        }
+
+        .stat-label {
+            color: var(--text-muted);
+            font-size: 11px;
+            text-transform: uppercase;
+            margin-bottom: 10px;
+            display: block;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        .stat-trend {
+            font-size: 11px;
+            margin-top: 8px;
+        }
+
+        .up { color: var(--cyber-green); }
+        .down { color: var(--alert-red); }
+
+        /* Charts Section */
+        .visual-row {
+            grid-column: span 4;
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 20px;
+        }
+
+        .chart-container {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-color);
+            padding: 20px;
+            min-height: 300px;
+        }
+
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+
+        /* CSS Bar Chart */
+        .bar-chart {
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+            height: 200px;
+            padding-top: 20px;
+            gap: 8px;
+        }
+
+        .bar-wrapper {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .bar {
+            width: 100%;
+            background: linear-gradient(to top, var(--aws-blue), #5fcfff);
+            transition: height 1s ease-in-out;
+            position: relative;
+            min-height: 2px;
+        }
+
+        .bar:hover {
+            filter: brightness(1.2);
+            box-shadow: 0 0 15px var(--aws-blue);
+        }
+
+        .bar-label {
+            font-size: 9px;
+            color: var(--text-muted);
+        }
+
+        /* Instance Table */
+        .table-section {
+            grid-column: span 4;
+            background: var(--bg-surface);
+            border: 1px solid var(--border-color);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+        }
+
+        thead {
+            background: rgba(255, 255, 255, 0.02);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        th {
+            padding: 15px 20px;
+            font-size: 11px;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            letter-spacing: 0.5px;
+        }
+
+        td {
+            padding: 15px 20px;
+            border-bottom: 1px solid rgba(48, 54, 61, 0.5);
+            font-size: 12px;
+        }
+
+        tr:hover td {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .status-pill {
+            padding: 2px 8px;
+            border-radius: 2px;
+            font-size: 10px;
+            font-weight: 700;
+        }
+
+        .pill-running { background: rgba(0, 255, 102, 0.1); color: var(--cyber-green); border: 1px solid var(--cyber-green); }
+        .pill-stopped { background: rgba(255, 77, 77, 0.1); color: var(--alert-red); border: 1px solid var(--alert-red); }
+
+        /* Real-time Log Feed */
+        .terminal-feed {
+            grid-column: span 4;
+            background: #000;
+            border: 1px solid var(--border-color);
+            height: 150px;
+            padding: 15px;
+            font-family: 'JetBrains Mono', monospace;
+            overflow-y: hidden;
+            position: relative;
+        }
+
+        .terminal-feed::before {
+            content: "SYSTEM LOGS";
+            position: absolute;
+            top: 0;
+            right: 20px;
+            font-size: 9px;
+            background: var(--border-color);
+            padding: 2px 8px;
+            color: var(--text-muted);
+        }
+
+        .log-line {
+            margin-bottom: 5px;
+            font-size: 11px;
+            color: #00ff66;
+            opacity: 0.8;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        .log-ts { color: var(--text-muted); margin-right: 10px; }
+        .log-lvl { color: var(--aws-orange); margin-right: 10px; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateX(-10px); }
+            to { opacity: 0.8; transform: translateX(0); }
+        }
+
+        /* Utilities */
+        .scanline {
+            width: 100%;
+            height: 2px;
+            background: rgba(0, 164, 211, 0.1);
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 100;
+            pointer-events: none;
+            animation: scan 8s linear infinite;
+        }
+
+        @keyframes scan {
+            0% { top: 0; }
+            100% { top: 100%; }
+        }
+
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: var(--bg-deep); }
+        ::-webkit-scrollbar-thumb { background: var(--border-color); }
+        ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+    </style>
+</head>
+<body>
+
+    <div class="scanline"></div>
+
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="logo-section">
+                <div class="logo-icon"></div>
+                <div class="logo-text">AWS KINETIC</div>
+            </div>
+            <nav class="nav-links">
+                <a class="nav-item active">
+                    <span>▣</span> Dashboard
+                </a>
+                <a class="nav-item">
+                    <span>◈</span> EC2 Instances
+                </a>
+                <a class="nav-item">
+                    <span>⚙</span> Lambda Functions
+                </a>
+                <a class="nav-item">
+                    <span>⌬</span> S3 Buckets
+                </a>
+                <a class="nav-item">
+                    <span>☊</span> CloudWatch
+                </a>
+                <a class="nav-item">
+                    <span>🛡</span> IAM Security
+                </a>
+            </nav>
+            <div style="padding: 20px; border-top: 1px solid var(--border-color);">
+                <div style="font-size: 10px; color: var(--text-muted);">REGION</div>
+                <div style="color: var(--aws-orange); font-size: 12px; margin-top: 5px;">us-east-1 (N. Virginia)</div>
+            </div>
+        </aside>
+
+        <!-- Main Workspace -->
+        <main class="main-content">
+            <header>
+                <div style="display: flex; align-items: center; gap: 20px;">
+                    <h2 style="font-size: 16px; font-weight: 400; letter-spacing: 1px;">SYSTEM_OVERVIEW</h2>
+                    <div class="status-badge">
+                        <div class="pulse-dot"></div>
+                        Operational
+                    </div>
+                </div>
+                <div style="display: flex; gap: 20px; align-items: center;">
+                    <div id="clock" style="color: var(--text-muted); font-size: 12px;"></div>
+                    <div style="width: 32px; height: 32px; border-radius: 50%; background: #30363d; border: 1px solid var(--aws-blue);"></div>
+                </div>
+            </header>
+
+            <div class="content-padding">
+                <!-- Stats Cards -->
+                <div class="stat-card">
+                    <span class="stat-label">CPU Utilization (Avg)</span>
+                    <div class="stat-value" id="cpu-val">24.8%</div>
+                    <div class="stat-trend up">▲ 1.2% from last hr</div>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-label">Network Outbound</span>
+                    <div class="stat-value" id="net-val">1.2 GB/s</div>
+                    <div class="stat-trend down">▼ 0.4% from last hr</div>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-label">Active Alarms</span>
+                    <div class="stat-value" style="color: var(--alert-red);">02</div>
+                    <div class="stat-trend">System check: Passed</div>
+                </div>
+                <div class="stat-card" style="border-right: 2px solid var(--aws-orange);">
+                    <span class="stat-label">Est. Monthly Cost</span>
+                    <div class="stat-value">$4,290.55</div>
+                    <div class="stat-trend up">▲ $12.40 today</div>
+                </div>
+
+                <!-- Visualization Row -->
+                <div class="visual-row">
+                    <div class="chart-container">
+                        <div class="chart-header">
+                            <div>INSTANCE LOAD DISTRIBUTION</div>
+                            <div style="font-size: 10px; color: var(--aws-blue);">LIVE_TELEMETRY</div>
+                        </div>
+                        <div class="bar-chart" id="load-chart">
+                            <!-- Bars generated by JS -->
+                        </div>
+                    </div>
+                    <div class="chart-container" style="display: flex; flex-direction: column; justify-content: center; align-items: center; background: radial-gradient(circle, rgba(0,164,211,0.05) 0%, rgba(0,0,0,0) 70%);">
+                        <div class="stat-label">Global Latency</div>
+                        <div style="font-size: 48px; color: var(--aws-blue); font-weight: 300;">18<span style="font-size: 14px;">ms</span></div>
+                        <div style="width: 100%; height: 100px; margin-top: 20px; border: 1px dashed var(--border-color); display: flex; align-items: center; justify-content: center; font-size: 10px; color: var(--text-muted);">
+                            [ GEOSPATIAL MAP PLACEHOLDER ]
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Data Table -->
+                <div class="table-section">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Instance ID</th>
+                                <th>Type</th>
+                                <th>IPv4 Address</th>
+                                <th>Status</th>
+                                <th>CPU Usage</th>
+                                <th>Uptime</th>
+                            </tr>
+                        </thead>
+                        <tbody id="instance-table-body">
+                            <!-- Table rows generated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Log Feed -->
+                <div class="terminal-feed" id="log-feed">
+                    <!-- Logs generated by JS -->
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Real-time Clock
+        function updateClock() {
+            const now = new Date();
+            document.getElementById('clock').innerText = now.toISOString().replace('T', ' ').substring(0, 19) + ' UTC';
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        // Simulate Bar Chart Data
+        const chart = document.getElementById('load-chart');
+        for (let i = 0; i < 20; i++) {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'bar-wrapper';
+            const bar = document.createElement('div');
+            bar.className = 'bar';
+            const height = Math.floor(Math.random() * 80) + 10;
+            bar.style.height = height + '%';
+            
+            const label = document.createElement('div');
+            label.className = 'bar-label';
+            label.innerText = 'n' + (i+1);
+            
+            wrapper.appendChild(bar);
+            wrapper.appendChild(label);
+            chart.appendChild(wrapper);
+        }
+
+        function updateBars() {
+            const bars = document.querySelectorAll('.bar');
+            bars.forEach(bar => {
+                const height = Math.floor(Math.random() * 80) + 10;
+                bar.style.height = height + '%';
+                if(height > 70) bar.style.background = 'var(--alert-red)';
+                else bar.style.background = 'linear-gradient(to top, var(--aws-blue), #5fcfff)';
+            });
+        }
+        setInterval(updateBars, 3000);
+
+        // Populate Table
+        const instances = [
+            { id: 'i-0a2b3c4d5e', type: 't3.large', ip: '10.0.1.45', status: 'Running', cpu: '12%', uptime: '14d 2h' },
+            { id: 'i-9f8e7d6c5b', type: 'm5.xlarge', ip: '10.0.1.89', status: 'Running', cpu: '45%', uptime: '2d 18h' },
+            { id: 'i-1122334455', type: 't3.micro', ip: '10.0.2.12', status: 'Stopped', cpu: '0%', uptime: '0d 0h' },
+            { id: 'i-aabbccddee', type: 'c5.2xlarge', ip: '10.0.1.102', status: 'Running', cpu: '88%', uptime: '45d 9h' },
+            { id: 'i-5544332211', type: 't3.medium', ip: '10.0.4.55', status: 'Running', cpu: '21%', uptime: '122d 4h' }
+        ];
+
+        const tbody = document.getElementById('instance-table-body');
+        instances.forEach(inst => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td style="color: var(--aws-blue)">${inst.id}</td>
+                <td>${inst.type}</td>
+                <td>${inst.ip}</td>
+                <td><span class="status-pill ${inst.status === 'Running' ? 'pill-running' : 'pill-stopped'}">${inst.status}</span></td>
+                <td class="inst-cpu">${inst.cpu}</td>
+                <td>${inst.uptime}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+
+        // Real-time Number Updates
+        setInterval(() => {
+            document.getElementById('cpu-val').innerText = (Math.random() * 15 + 20).toFixed(1) + '%';
+            document.getElementById('net-val').innerText = (Math.random() * 0.5 + 1.0).toFixed(2) + ' GB/s';
+            
+            // Randomly update table CPU values
+            const cpuCells = document.querySelectorAll('.inst-cpu');
+            cpuCells.forEach(cell => {
+                if(cell.innerText !== '0%') {
+                    cell.innerText = Math.floor(Math.random() * 90) + '%';
+                }
+            });
+        }, 2000);
+
+        // Terminal Log Feed
+        const logFeed = document.getElementById('log-feed');
+        const logMessages = [
+            "Connection established to us-east-1a",
+            "Auto-scaling group triggered: +1 instance",
+            "CloudWatch Alarm: High CPU on i-aabbccddee",
+            "S3 Bucket 'prod-assets' policy updated",
+            "IAM User 'admin_dev' logged in from 192.168.1.1",
+            "Snapshot created for volume vol-09923",
+            "Kernel patch applied to instance cluster-B",
+            "Route53 health check passed for primary endpoint"
+        ];
+
+        function addLog() {
+            const line = document.createElement('div');
+            line.className = 'log-line';
+            const ts = new Date().toLocaleTimeString();
+            const msg = logMessages[Math.floor(Math.random() * logMessages.length)];
+            line.innerHTML = `<span class="log-ts">[${ts}]</span><span class="log-lvl">SYS_INFO:</span> ${msg}`;
+            logFeed.prepend(line);
+            
+            if (logFeed.children.length > 8) {
+                logFeed.removeChild(logFeed.lastChild);
+            }
+        }
+        setInterval(addLog, 4000);
+        addLog(); // Initial logs
+        addLog();
+    </script>
+</body>
+</html>

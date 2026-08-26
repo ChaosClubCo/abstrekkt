@@ -1,0 +1,78 @@
+openapi: 3.1.0
+info:
+  title: FlashFusion Core API
+  version: 0.1.0
+  description: API contract for lead intake, audits, agents, artifacts, and reviews.
+servers:
+  - url: https://api.flashfusion.co
+paths:
+  /leads:
+    post:
+      summary: Create a public lead intake record
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LeadIntake'
+      responses:
+        '201': { description: Created }
+        '400': { description: Invalid input }
+  /agent-runs:
+    post:
+      summary: Run a scoped agent task
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AgentRunRequest'
+      responses:
+        '202': { description: Accepted for execution or review }
+        '401': { description: Unauthorized }
+        '403': { description: Forbidden }
+  /artifacts/{artifactId}/approve:
+    post:
+      summary: Approve a generated artifact after human review
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: artifactId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200': { description: Approved }
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+  schemas:
+    LeadIntake:
+      type: object
+      required: [name, email, organizationName, primaryPain, budgetRange, urgency, consentToContact]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 120 }
+        email: { type: string, format: email }
+        organizationName: { type: string, minLength: 1, maxLength: 160 }
+        role: { type: string, maxLength: 120 }
+        primaryPain: { type: string, minLength: 10, maxLength: 2000 }
+        budgetRange: { type: string, enum: [unknown, under_4500, 4500_10000, 10000_25000, 25000_plus] }
+        urgency: { type: string, enum: [low, medium, high] }
+        consentToContact: { type: boolean, const: true }
+    AgentRunRequest:
+      type: object
+      required: [organizationId, taskType, prompt, contextSourceIds]
+      properties:
+        organizationId: { type: string, format: uuid }
+        taskType: { type: string, enum: [strategy, architecture, security, product, revenue, delivery, research] }
+        prompt: { type: string, minLength: 20, maxLength: 20000 }
+        contextSourceIds:
+          type: array
+          items: { type: string, format: uuid }
+          maxItems: 50
+        requiresHumanReview: { type: boolean, default: true }

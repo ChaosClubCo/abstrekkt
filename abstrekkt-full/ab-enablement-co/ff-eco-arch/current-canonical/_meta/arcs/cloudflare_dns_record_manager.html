@@ -1,0 +1,278 @@
+<h2 class="sr-only">Cloudflare DNS Record Manager — add A/CNAME/AAAA records with proxy toggle</h2>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font-sans)}
+.wrap{padding:1.5rem 0}
+.section-label{font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.06em;color:var(--color-text-tertiary);margin-bottom:.75rem}
+.card{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:1.25rem;margin-bottom:1rem}
+.row{display:grid;grid-template-columns:1fr 2fr;gap:12px;margin-bottom:12px;align-items:start}
+.row.three{grid-template-columns:1fr 1.5fr 1fr}
+label{font-size:13px;color:var(--color-text-secondary);padding-top:8px}
+input,select{width:100%;font-size:14px}
+.proxy-row{display:flex;align-items:center;gap:12px;padding:10px 0;border-top:0.5px solid var(--color-border-tertiary);margin-top:4px}
+.proxy-toggle{position:relative;width:42px;height:24px;cursor:pointer;flex-shrink:0}
+.proxy-toggle input{opacity:0;width:0;height:0;position:absolute}
+.slider{position:absolute;inset:0;background:var(--color-border-secondary);border-radius:24px;transition:.2s}
+.slider:before{content:'';position:absolute;width:18px;height:18px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.2s}
+input:checked+.slider{background:#f6821f}
+input:checked+.slider:before{transform:translateX(18px)}
+.proxy-label{font-size:14px;font-weight:500}
+.proxy-sub{font-size:12px;color:var(--color-text-tertiary)}
+.badge{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:500;padding:3px 8px;border-radius:var(--border-radius-md)}
+.badge-orange{background:#fff3e8;color:#a05000}
+.badge-gray{background:var(--color-background-secondary);color:var(--color-text-secondary)}
+.actions{display:flex;gap:8px;margin-top:1rem}
+.btn-primary{background:#f6821f;color:#fff;border:none;border-radius:var(--border-radius-md);padding:8px 20px;font-size:14px;font-weight:500;cursor:pointer;transition:.15s}
+.btn-primary:hover{background:#d97010}
+.btn-primary:disabled{opacity:.5;cursor:not-allowed}
+.btn-sec{border-radius:var(--border-radius-md);padding:8px 16px;font-size:14px;cursor:pointer}
+.hint{font-size:12px;color:var(--color-text-tertiary);margin-top:4px}
+.status{border-radius:var(--border-radius-md);padding:.75rem 1rem;font-size:13px;margin-top:1rem;display:none}
+.status.ok{background:var(--color-background-success);color:var(--color-text-success);display:block}
+.status.err{background:var(--color-background-danger);color:var(--color-text-danger);display:block}
+.status.loading{background:var(--color-background-secondary);color:var(--color-text-secondary);display:block}
+.record-list{display:flex;flex-direction:column;gap:8px}
+.record-item{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--color-background-secondary);border-radius:var(--border-radius-md);font-size:13px}
+.record-item .type-pill{font-size:11px;font-weight:500;padding:2px 7px;border-radius:4px;flex-shrink:0;background:#e8f0fe;color:#1a4fa0}
+.record-item .name{font-weight:500;min-width:80px}
+.record-item .value{color:var(--color-text-secondary);flex:1;word-break:break-all}
+.record-item .proxy-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.dot-orange{background:#f6821f}
+.dot-gray{background:var(--color-border-secondary)}
+.divider{height:0.5px;background:var(--color-border-tertiary);margin:1rem 0}
+.ttl-row{display:flex;gap:8px;align-items:center}
+.ttl-row select{width:auto}
+</style>
+<div class="wrap">
+  <p class="section-label">Add DNS record</p>
+  <div class="card">
+    <div class="row three">
+      <div>
+        <label for="rtype">Type</label>
+        <select id="rtype" onchange="onTypeChange()">
+          <option value="A">A</option>
+          <option value="AAAA">AAAA</option>
+          <option value="CNAME">CNAME</option>
+          <option value="ANAME">ANAME / ALIAS</option>
+          <option value="MX">MX</option>
+          <option value="TXT">TXT</option>
+        </select>
+      </div>
+      <div>
+        <label for="rname">Name (host)</label>
+        <input type="text" id="rname" placeholder="@ or subdomain" />
+        <p class="hint">@ = root domain</p>
+      </div>
+      <div id="prio-col" style="display:none">
+        <label for="rprio">Priority</label>
+        <input type="number" id="rprio" placeholder="10" min="0" max="65535" />
+      </div>
+    </div>
+    <div class="row">
+      <label id="val-label" for="rvalue">IPv4 address</label>
+      <div>
+        <input type="text" id="rvalue" placeholder="203.0.113.1" />
+        <p id="val-hint" class="hint">Points to this IPv4 address</p>
+      </div>
+    </div>
+    <div class="row">
+      <label>TTL</label>
+      <div class="ttl-row">
+        <select id="rttl">
+          <option value="1">Auto</option>
+          <option value="60">1 min</option>
+          <option value="300">5 min</option>
+          <option value="3600">1 hr</option>
+          <option value="86400">24 hr</option>
+        </select>
+      </div>
+    </div>
+    <div class="proxy-row">
+      <label class="proxy-toggle">
+        <input type="checkbox" id="proxied" checked />
+        <span class="slider"></span>
+      </label>
+      <div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span class="proxy-label" id="proxy-label-text">Proxied</span>
+          <span class="badge badge-orange" id="proxy-badge"><i class="ti ti-cloud" aria-hidden="true" style="font-size:11px"></i> Proxied</span>
+        </div>
+        <p class="proxy-sub" id="proxy-sub">Traffic flows through Cloudflare — DDoS protection, caching, and analytics active.</p>
+      </div>
+    </div>
+    <div class="actions">
+      <button class="btn-primary" id="save-btn" onclick="saveRecord()"><i class="ti ti-plus" aria-hidden="true"></i> Add record</button>
+      <button class="btn-sec" onclick="clearForm()">Clear</button>
+    </div>
+    <div id="status-msg" class="status"></div>
+  </div>
+
+  <div id="quick-setup" class="card" style="border-color:#f6821f22">
+    <p class="section-label" style="color:#a05000">Base44 quick-fill</p>
+    <p style="font-size:13px;color:var(--color-text-secondary);margin-bottom:.75rem">Fill records from the Base44 Render deployment instructions above.</p>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn-sec" onclick="fillBase44Root()"><i class="ti ti-at" aria-hidden="true"></i> @ → ANAME (base44.onrender.com)</button>
+      <button class="btn-sec" onclick="fillBase44WWW()"><i class="ti ti-world" aria-hidden="true"></i> www → CNAME (base44.onrender.com)</button>
+    </div>
+  </div>
+
+  <div id="records-section" style="display:none">
+    <div class="divider"></div>
+    <p class="section-label">Pending records (not yet saved to Cloudflare)</p>
+    <div id="record-list" class="record-list"></div>
+    <div style="margin-top:1rem;display:flex;gap:8px">
+      <button class="btn-primary" onclick="commitAll()"><i class="ti ti-device-floppy" aria-hidden="true"></i> Save all to Agentrus ↗</button>
+      <button class="btn-sec" onclick="clearAll()">Clear all</button>
+    </div>
+    <div id="commit-status" class="status"></div>
+  </div>
+</div>
+
+<script>
+const APP_ID = '69bc83651c6a5b423a8da1fd';
+let pending = [];
+
+function onTypeChange(){
+  const t = document.getElementById('rtype').value;
+  const vl = document.getElementById('val-label');
+  const vh = document.getElementById('val-hint');
+  const rv = document.getElementById('rvalue');
+  const pc = document.getElementById('prio-col');
+  const px = document.getElementById('proxied');
+  const pxRow = px.parentElement.parentElement;
+  if(t==='A'){vl.textContent='IPv4 address';rv.placeholder='203.0.113.1';vh.textContent='Points to this IPv4 address';pc.style.display='none';pxRow.style.display='flex';}
+  else if(t==='AAAA'){vl.textContent='IPv6 address';rv.placeholder='2001:db8::1';vh.textContent='Points to this IPv6 address';pc.style.display='none';pxRow.style.display='flex';}
+  else if(t==='CNAME'||t==='ANAME'){vl.textContent='Target';rv.placeholder='example.onrender.com';vh.textContent='Canonical hostname to point to';pc.style.display='none';pxRow.style.display='flex';}
+  else if(t==='MX'){vl.textContent='Mail server';rv.placeholder='mail.example.com';vh.textContent='Receiving mail server hostname';pc.style.display='flex';pxRow.style.display='none';}
+  else if(t==='TXT'){vl.textContent='Content';rv.placeholder='"v=spf1 include:..."';vh.textContent='TXT record value (quote if needed)';pc.style.display='none';pxRow.style.display='none';}
+}
+
+document.getElementById('proxied').addEventListener('change',function(){
+  const on=this.checked;
+  document.getElementById('proxy-badge').className='badge '+(on?'badge-orange':'badge-gray');
+  document.getElementById('proxy-badge').innerHTML=(on?'<i class="ti ti-cloud" aria-hidden="true" style="font-size:11px"></i> Proxied':'<i class="ti ti-cloud-off" aria-hidden="true" style="font-size:11px"></i> DNS only');
+  document.getElementById('proxy-sub').textContent=on?'Traffic flows through Cloudflare — DDoS protection, caching, and analytics active.':'Traffic goes directly to origin. Real IP exposed. No Cloudflare proxy benefits.';
+});
+
+function fillBase44Root(){
+  document.getElementById('rtype').value='ANAME';
+  document.getElementById('rname').value='@';
+  document.getElementById('rvalue').value='base44.onrender.com';
+  document.getElementById('proxied').checked=true;
+  document.getElementById('proxied').dispatchEvent(new Event('change'));
+  onTypeChange();
+}
+function fillBase44WWW(){
+  document.getElementById('rtype').value='CNAME';
+  document.getElementById('rname').value='www';
+  document.getElementById('rvalue').value='base44.onrender.com';
+  document.getElementById('proxied').checked=true;
+  document.getElementById('proxied').dispatchEvent(new Event('change'));
+  onTypeChange();
+}
+
+function showStatus(id,type,msg){
+  const el=document.getElementById(id);
+  el.className='status '+type;
+  el.textContent=msg;
+  if(type==='ok')setTimeout(()=>{el.className='status';},4000);
+}
+
+function saveRecord(){
+  const type=document.getElementById('rtype').value;
+  const name=document.getElementById('rname').value.trim();
+  const value=document.getElementById('rvalue').value.trim();
+  const ttl=parseInt(document.getElementById('rttl').value);
+  const proxied=document.getElementById('proxied').checked;
+  const prio=document.getElementById('rprio').value;
+  if(!name){showStatus('status-msg','err','Name is required.');return;}
+  if(!value){showStatus('status-msg','err','Value / address is required.');return;}
+  const rec={type,name,value,ttl,proxied};
+  if(type==='MX'&&prio)rec.priority=parseInt(prio);
+  pending.push(rec);
+  renderPending();
+  clearForm();
+  showStatus('status-msg','ok','Record staged. Add more or save all to Agentrus.');
+}
+
+function renderPending(){
+  const section=document.getElementById('records-section');
+  const list=document.getElementById('record-list');
+  if(!pending.length){section.style.display='none';return;}
+  section.style.display='block';
+  list.innerHTML=pending.map((r,i)=>`
+    <div class="record-item">
+      <span class="type-pill">${r.type}</span>
+      <span class="name">${r.name}</span>
+      <span class="value">${r.value}${r.priority!==undefined?' (priority '+r.priority+')':''}</span>
+      <span class="proxy-dot ${r.proxied?'dot-orange':'dot-gray'}" title="${r.proxied?'Proxied':'DNS only'}"></span>
+      <span style="font-size:11px;color:var(--color-text-tertiary)">${r.ttl===1?'Auto':r.ttl+'s'}</span>
+      <button onclick="removeRecord(${i})" style="margin-left:auto;border:none;background:none;cursor:pointer;color:var(--color-text-tertiary);font-size:16px" aria-label="Remove record"><i class="ti ti-x"></i></button>
+    </div>`).join('');
+}
+
+function removeRecord(i){pending.splice(i,1);renderPending();}
+function clearAll(){pending=[];renderPending();}
+
+function clearForm(){
+  document.getElementById('rname').value='';
+  document.getElementById('rvalue').value='';
+  document.getElementById('rprio').value='';
+  document.getElementById('rttl').value='1';
+  document.getElementById('rtype').value='A';
+  document.getElementById('proxied').checked=true;
+  document.getElementById('proxied').dispatchEvent(new Event('change'));
+  onTypeChange();
+}
+
+async function commitAll(){
+  if(!pending.length)return;
+  const btn=document.querySelector('[onclick="commitAll()"]');
+  btn.disabled=true;
+  showStatus('commit-status','loading','Saving to Agentrus via Anthropic API...');
+  try{
+    const records=pending.map(r=>({
+      name:r.name+'_dns_'+r.type.toLowerCase()+'_'+Date.now(),
+      endpoint_url:'https://api.cloudflare.com/client/v4/zones/{{ZONE_ID}}/dns_records',
+      method:'POST',
+      description:`DNS ${r.type} record: ${r.name} → ${r.value} | proxied:${r.proxied}`,
+      tags:[r.type,'dns','cloudflare',r.proxied?'proxied':'dns-only'],
+      is_active:true,
+      headers:[
+        {key:'Authorization',value:'Bearer {{CF_API_TOKEN}}',is_secret:true},
+        {key:'Content-Type',value:'application/json',is_secret:false}
+      ],
+      parameters:[
+        {name:'type',type:'string',required:true,description:'DNS record type',location:'body',default_value:r.type},
+        {name:'name',type:'string',required:true,description:'Host/name',location:'body',default_value:r.name},
+        {name:'content',type:'string',required:true,description:'Record value',location:'body',default_value:r.value},
+        {name:'ttl',type:'number',required:false,description:'TTL',location:'body',default_value:String(r.ttl)},
+        {name:'proxied',type:'boolean',required:false,description:'Cloudflare proxy',location:'body',default_value:String(r.proxied)}
+      ]
+    }));
+
+    const resp=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens:1000,
+        mcp_servers:[{type:'url',url:'https://app.base44.com/mcp',name:'base44-mcp'}],
+        messages:[{role:'user',content:`Create ${records.length} AgentTool records in Base44 app ID "${APP_ID}". Use the create_entities tool with this exact records array:\n${JSON.stringify(records,null,2)}\n\nConfirm how many were created successfully.`}]
+      })
+    });
+    const data=await resp.json();
+    const textBlock=data.content?.filter(b=>b.type==='text').map(b=>b.text).join(' ')||'';
+    const toolResult=data.content?.filter(b=>b.type==='mcp_tool_result').map(b=>b.content?.[0]?.text||'').join(' ')||'';
+    const combined=(textBlock+' '+toolResult).trim();
+    const created=pending.length;
+    pending=[];
+    renderPending();
+    showStatus('commit-status','ok',`✓ ${created} record(s) saved as AgentTools in Agentrus. ${combined.slice(0,120)}`);
+  }catch(e){
+    showStatus('commit-status','err','API error: '+e.message);
+  }finally{
+    btn.disabled=false;
+  }
+}
+</script>

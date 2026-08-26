@@ -1,0 +1,110 @@
+name: Multi-Repo Project Ranking
+
+# Run from a control repo. Clones each repo (read-only), runs the evaluator,
+# parses the composite out of the ranking row, sorts, and prints one table.
+#
+# Private / cross-org repos: replace GITHUB_TOKEN with a fine-scoped PAT secret
+# named GH_PAT (the default token cannot clone other-org private repos).
+
+on:
+  workflow_dispatch:
+    inputs:
+      repos:
+        description: "Comma-separated owner/repo list (e.g. myorg/repo1, myorg/repo2)"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  aggregate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install GH CLI
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq gh
+
+      - name: Rank all repos
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
+          REPOS: ${{ inputs.repos }}
+        run: |
+          node - <<'NODE'
+          const { execSync } = require("node:child_process");
+          const fs = require("node:fs");
+
+          const repos = process.env.REPOS.split(",").map(s => s.trim()).filter(Boolean);
+          if (!repos.length) { console.error("No repos provided."); process.exit(1); }
+
+          const rows = [];
+          for (const r of repos) {
+            const dir = r.replace(/\//g, "__");
+            try {
+              execSync(`rm -rf "${dir}" 2>/dev/null || true`, { stdio: "pipe" });
+              console.error(`Cloning ${r}...`);
+              execSync(`gh repo clone ${r} "${dir}" -- --depth 50`, { stdio: ["pipe", "pipe", "pipe"] });
+            } catch (e) {
+              rows.push({ repo: r, composite: -1, line: `| ${r} | ERROR | - | - | - | - | - | - | Clone failed | Check repo access |` });
+              continue;
+            }
+
+            let md = "";
+            const evalPath = `${dir}/.github/scripts/evaluate-project.mjs`;
+            if (fs.existsSync(evalPath)) {
+              try {
+                md = execSync(`node "${evalPath}"`, { cwd: dir, encoding: "utf8", stdio: ["pipe", "pipe", "pipe"] });
+              } catch (e) {
+                md = `| ${r} | ERROR | 0/100 | - | - | - | - | 0/9 | Eval script error | Check syntax |`;
+              }
+            } else {
+              md = `| ${r} | NOT READY | 0/100 | -/5 | - | 200/200 | -% | 0/9 | No evaluator script | Add .github/scripts/evaluate-project.mjs |`;
+            }
+
+            const line = md.split("\n").find(l =>
+              l.trim().startsWith("| ") && l.includes(" | ") &&
+              (l.includes("SHIP") || l.includes("CONSIDER") || l.includes("NOT READY"))
+            );
+            if (!line) { rows.push({ repo: r, composite: -1, line: `| ${r} | ERROR | ? | - | - | - | - | - | Parsing failed | Check evaluator output |` }); continue; }
+
+            const parts = line.split("|").map(s => s.trim());
+            let composite = -1;
+            if (parts.length > 2) composite = Number(String(parts[3] || parts[2] || "0/100").split("/")[0]) || -1;
+            rows.push({ repo: r, composite, line });
+          }
+
+          const statusOrder = { "SHIP FIRST": 0, SHIP: 0, CONSIDER: 1, "NOT READY": 2, ERROR: 3 };
+          const statusOf = (l) => l.includes("SHIP") ? "SHIP" : l.includes("CONSIDER") ? "CONSIDER" : l.includes("NOT READY") ? "NOT READY" : "ERROR";
+          rows.sort((a, b) => {
+            const cmp = statusOrder[statusOf(a.line)] - statusOrder[statusOf(b.line)];
+            return cmp !== 0 ? cmp : b.composite - a.composite;
+          });
+
+          const header =
+            "| Project | Status | Composite | Pain (/5) | Days | Risk (/200) | Fit % | Gates (/9) | Top Risks | Next Actions |\n" +
+            "|---|---|---:|---:|---:|---:|---:|---:|---|---|";
+          const out = [
+            "# Multi-Repo Project Ranking",
+            "",
+            header,
+            ...rows.map(r => r.line),
+            "",
+            "## Legend",
+            "- SHIP: ship first (high confidence)",
+            "- CONSIDER: shippable with known gaps",
+            "- NOT READY: needs more work",
+            "- ERROR: evaluator failed (syntax/permissions)",
+            "",
+          ].join("\n");
+          console.log(out);
+          fs.writeFileSync("ranking.md", out);
+          NODE
+
+      - name: Publish to workflow summary
+        run: cat ranking.md >> "$GITHUB_STEP_SUMMARY"

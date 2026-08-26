@@ -1,0 +1,138 @@
+{
+  "name": "OAI Execution Queue Expiry",
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "nodes": [
+    {
+      "id": "n1-que",
+      "name": "Schedule Every Hour",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        100,
+        300
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 1
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "n2-que",
+      "name": "Get Queued Items",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        300,
+        300
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "",
+          "name": "Base44 API Key"
+        }
+      },
+      "parameters": {
+        "method": "GET",
+        "url": "https://api.base44.com/apps/694c756124d640756ea9ba23/entities/WorkflowExecutionQueue",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "status",
+              "value": "queued"
+            },
+            {
+              "name": "_limit",
+              "value": "500"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "n3-que",
+      "name": "Find Expired or Due",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        500,
+        300
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const items=($input.first().json.items||[]);const now=new Date();const out=[];for(const i of items){if(i.expiry_at&&new Date(i.expiry_at)<=now)out.push({json:{id:i._id||i.id,action:'expire',workspace_id:i.workspace_id}});else if(i.scheduled_release_at&&new Date(i.scheduled_release_at)<=now)out.push({json:{id:i._id||i.id,action:'release',workflow_id:i.workflow_id,workspace_id:i.workspace_id}});}return out.length?out:[{json:{skip:true}}];"
+      }
+    },
+    {
+      "id": "n4-que",
+      "name": "Update Queue Item",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        700,
+        300
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "",
+          "name": "Base44 API Key"
+        }
+      },
+      "parameters": {
+        "method": "PUT",
+        "url": "=https://api.base44.com/apps/694c756124d640756ea9ba23/entities/WorkflowExecutionQueue/{{$json.id}}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={\"status\":\"{{$json.action==='expire'?'expired':'released'}}\",\"released_at\":\"{{$now.toISO()}}\",\"released_by\":\"system\"}"
+      }
+    }
+  ],
+  "connections": {
+    "Schedule Every Hour": {
+      "main": [
+        [
+          {
+            "node": "Get Queued Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Queued Items": {
+      "main": [
+        [
+          {
+            "node": "Find Expired or Due",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find Expired or Due": {
+      "main": [
+        [
+          {
+            "node": "Update Queue Item",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

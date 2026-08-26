@@ -1,0 +1,926 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Evidence Board — Kyle Rosebrook</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=IBM+Plex+Mono:wght@300;400;500&family=Source+Serif+4:ital,wght@0,300;0,400;0,600;1,300;1,400&display=swap');
+
+:root {
+  --bg: #0a0a0c;
+  --surface: #111114;
+  --surface-2: #18181c;
+  --surface-3: #1f1f25;
+  --border: #2a2a32;
+  --border-active: #4a4a58;
+  --text: #e8e6e3;
+  --text-secondary: #9a9898;
+  --text-dim: #666;
+  --accent-scan: #00c8ff;
+  --accent-warm: #ff6b35;
+  --accent-purple: #a855f7;
+  --accent-green: #22c55e;
+  --accent-red: #ef4444;
+  --accent-gold: #f59e0b;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Source Serif 4', Georgia, serif;
+  line-height: 1.7;
+  -webkit-font-smoothing: antialiased;
+}
+
+.container { max-width: 920px; margin: 0 auto; padding: 0 24px; }
+
+/* HEADER */
+header {
+  padding: 80px 0 40px;
+  border-bottom: 1px solid var(--border);
+}
+header .label {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--accent-scan);
+  margin-bottom: 16px;
+}
+header h1 {
+  font-family: 'DM Serif Display', serif;
+  font-size: clamp(32px, 5vw, 48px);
+  font-weight: 400;
+  line-height: 1.2;
+  margin-bottom: 20px;
+}
+header h1 span { color: var(--accent-scan); }
+header .subtitle {
+  font-size: 18px;
+  color: var(--text-secondary);
+  font-style: italic;
+  max-width: 700px;
+}
+
+/* NAV */
+nav {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: rgba(10,10,12,0.92);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  padding: 0;
+  margin-top: 0;
+}
+nav .container {
+  display: flex;
+  gap: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+nav .container::-webkit-scrollbar { display: none; }
+nav button {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  padding: 16px 20px;
+  cursor: pointer;
+  white-space: nowrap;
+  border-bottom: 2px solid transparent;
+  transition: all 0.3s;
+}
+nav button:hover { color: var(--text-secondary); }
+nav button.active {
+  color: var(--accent-scan);
+  border-bottom-color: var(--accent-scan);
+}
+
+/* SECTIONS */
+section {
+  display: none;
+  padding: 60px 0;
+  animation: fadeIn 0.4s ease;
+}
+section.active { display: block; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+section h2 {
+  font-family: 'DM Serif Display', serif;
+  font-size: 28px;
+  font-weight: 400;
+  margin-bottom: 8px;
+}
+section .section-sub {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12px;
+  color: var(--text-dim);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin-bottom: 32px;
+}
+section p { margin-bottom: 20px; max-width: 720px; }
+section p.callout {
+  background: var(--surface-2);
+  border-left: 3px solid var(--accent-scan);
+  padding: 20px 24px;
+  margin: 28px 0;
+  max-width: 100%;
+  font-style: italic;
+  color: var(--text-secondary);
+}
+section p.callout.warm { border-left-color: var(--accent-warm); }
+section p.callout.red { border-left-color: var(--accent-red); }
+section p.callout.green { border-left-color: var(--accent-green); }
+section p.callout.gold { border-left-color: var(--accent-gold); }
+section p.callout.purple { border-left-color: var(--accent-purple); }
+
+/* DATA CARDS */
+.data-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin: 32px 0;
+}
+.data-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 20px;
+}
+.data-card .metric-label {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin-bottom: 6px;
+}
+.data-card .metric-value {
+  font-family: 'DM Serif Display', serif;
+  font-size: 36px;
+  line-height: 1;
+}
+.data-card .metric-context {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-top: 6px;
+}
+.metric-value.high { color: var(--accent-green); }
+.metric-value.low { color: var(--accent-red); }
+.metric-value.mid { color: var(--accent-gold); }
+.metric-value.elite { color: var(--accent-scan); }
+
+/* TIMELINE */
+.timeline { margin: 32px 0; }
+.timeline-item {
+  position: relative;
+  padding: 0 0 32px 36px;
+  border-left: 1px solid var(--border);
+}
+.timeline-item:last-child { border-left-color: transparent; padding-bottom: 0; }
+.timeline-item::before {
+  content: '';
+  position: absolute;
+  left: -5px;
+  top: 6px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--surface);
+  border: 2px solid var(--accent-scan);
+}
+.timeline-item.crisis::before { border-color: var(--accent-red); background: var(--accent-red); }
+.timeline-item.turn::before { border-color: var(--accent-gold); background: var(--accent-gold); }
+.timeline-item.build::before { border-color: var(--accent-green); background: var(--accent-green); }
+.timeline-item .tl-date {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  color: var(--text-dim);
+  letter-spacing: 1px;
+}
+.timeline-item .tl-title {
+  font-weight: 600;
+  margin: 4px 0;
+}
+.timeline-item .tl-body {
+  font-size: 15px;
+  color: var(--text-secondary);
+}
+
+/* CONNECTION MAP */
+.connection {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin: 20px 0;
+  overflow: hidden;
+}
+.connection-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.connection-header:hover { background: var(--surface-2); }
+.connection-header h3 {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+}
+.connection-header .arrow {
+  color: var(--text-dim);
+  transition: transform 0.3s;
+  font-size: 18px;
+}
+.connection.open .arrow { transform: rotate(90deg); }
+.connection-body {
+  display: none;
+  padding: 0 20px 20px;
+  border-top: 1px solid var(--border);
+}
+.connection.open .connection-body { display: block; }
+.connection-body p { font-size: 15px; color: var(--text-secondary); }
+
+.flow-chain {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 16px 0;
+}
+.flow-node {
+  background: var(--surface-3);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 14px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12px;
+}
+.flow-arrow { color: var(--text-dim); font-size: 18px; }
+
+/* BRAIN REGIONS */
+.region-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin: 32px 0;
+}
+@media (max-width: 600px) { .region-grid { grid-template-columns: 1fr; } }
+.region-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 20px;
+}
+.region-card h4 {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+.region-card .status {
+  display: inline-block;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: 3px;
+  margin-bottom: 10px;
+}
+.status.decreased { background: rgba(239,68,68,0.15); color: var(--accent-red); }
+.status.increased { background: rgba(245,158,11,0.15); color: var(--accent-gold); }
+.status.severe { background: rgba(239,68,68,0.3); color: #ff8a8a; }
+.region-card .governs { font-size: 14px; color: var(--text-secondary); }
+.region-card .implication {
+  margin-top: 10px;
+  font-size: 13px;
+  color: var(--text);
+  font-style: italic;
+}
+
+/* QUOTE */
+.kyle-quote {
+  margin: 40px 0;
+  padding: 32px;
+  background: var(--surface);
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  position: relative;
+}
+.kyle-quote::before {
+  content: '"';
+  font-family: 'DM Serif Display', serif;
+  font-size: 72px;
+  color: var(--accent-scan);
+  opacity: 0.3;
+  position: absolute;
+  top: 8px;
+  left: 20px;
+  line-height: 1;
+}
+.kyle-quote p {
+  font-size: 20px;
+  font-style: italic;
+  padding-left: 24px;
+  line-height: 1.6;
+}
+.kyle-quote .attr {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-top: 16px;
+  padding-left: 24px;
+  letter-spacing: 1px;
+}
+
+strong { color: var(--text); font-weight: 600; }
+
+.divider {
+  height: 1px;
+  background: var(--border);
+  margin: 48px 0;
+}
+
+footer {
+  padding: 40px 0 80px;
+  border-top: 1px solid var(--border);
+  text-align: center;
+}
+footer p {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  color: var(--text-dim);
+  letter-spacing: 1px;
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+<header>
+  <div class="label">Primary Source Document — Literary Memoir</div>
+  <h1>The <span>Evidence</span> Board</h1>
+  <div class="subtitle">How a SPECT scan taken at Amen Clinics Chicago on July 7–11, 2022 connects to every system, every tool, every construction, and every person in Kyle Rosebrook's life.</div>
+</header>
+</div>
+
+<nav>
+  <div class="container">
+    <button class="active" onclick="showSection('thesis')">Thesis</button>
+    <button onclick="showSection('clinical')">Clinical</button>
+    <button onclick="showSection('cognitive')">Cognitive Profile</button>
+    <button onclick="showSection('timeline')">Timeline</button>
+    <button onclick="showSection('connections')">Connections</button>
+    <button onclick="showSection('constructions')">Constructions</button>
+    <button onclick="showSection('kinsley')">Kinsley</button>
+    <button onclick="showSection('raw')">Raw Material</button>
+  </div>
+</nav>
+
+<div class="container">
+
+<!-- ============ THESIS ============ -->
+<section id="thesis" class="active">
+  <h2>The Grand Explanation</h2>
+  <div class="section-sub">How one scan connects everything</div>
+
+  <p>On July 7, 2022, a 36-year-old bartender named Kyle Rosebrook sat in a dimly lit room at Amen Clinics Chicago while a radioactive tracer mapped the blood flow in his brain. Four days later, he came back for a second scan at rest. He was there because his mother, Phyllis, had found the clinic. His chief complaint was two words: <strong>"Addiction, depression."</strong></p>
+
+  <p>What the scan revealed was a map of damage — decreased perfusion across the temporal lobes, prefrontal cortex, parietal cortex, occipital lobes, and cerebellum. Scalloping on the surface consistent with toxic exposure and oxygen deprivation. A thalamus running severely hot. The clinical summary: <strong>evidence of past brain injury and encephalopathic process.</strong></p>
+
+  <p>The cause was not a car accident. Not a fall. Not a blow to the head. Kyle's brain was injured by his own medications — a Xanax and Ambien overdose in the summer of 2020 that deprived his brain of oxygen. The addiction didn't just coexist with the brain injury. <strong>The addiction caused the brain injury. And then the brain injury made escape harder</strong>, because the prefrontal cortex that handles impulse control was now running at reduced capacity. A recursive trap.</p>
+
+  <p class="callout">The memoir's thesis in one sentence: Recovery assumes returning to a previous state. Kyle can't return — the hardware is changed. So he built a new architecture from non-standard materials, using a brain that processes at the 99th percentile but recalls at the 12th.</p>
+
+  <p>This document maps how every construction in Kyle's life — the 240+ tools, the engineering career, Chaos Club Co., the memoir itself — traces back to what those four images showed. Not as metaphor. As engineering response to a diagnosed system failure.</p>
+
+  <div class="kyle-quote">
+    <p>Among the living dead, I was king.</p>
+    <div class="attr">— Kyle, on being the model resident at Roger's Behavioral Health, summer 2020</div>
+  </div>
+</section>
+
+<!-- ============ CLINICAL ============ -->
+<section id="clinical">
+  <h2>The Clinical Evidence</h2>
+  <div class="section-sub">SPECT Scan Findings — Amen Clinics Chicago, July 2022</div>
+
+  <p>Two SPECT scans using 99m Technetium HMPAO tracer. The <strong>concentration study</strong> (July 7) captured brain activity during a task. The <strong>baseline study</strong> (July 11) captured the brain at rest. Both revealed widespread decreased perfusion — areas where blood isn't flowing the way it should.</p>
+
+  <p><strong>The surface renders</strong> show the brain's exterior, where dents and holes represent areas of low blood flow. <strong>The active renders</strong> (blue wireframe with red clusters) show which regions activated during scanning. The gaps between clusters are the spaces Kyle's external systems were built to bridge.</p>
+
+  <h3 style="margin-top:40px; font-family: 'IBM Plex Mono', monospace; font-size: 13px; letter-spacing: 1px; text-transform: uppercase; color: var(--text-dim); margin-bottom: 16px;">Affected Brain Regions</h3>
+
+  <div class="region-grid">
+    <div class="region-card">
+      <h4>Temporal Lobes (L+R)</h4>
+      <span class="status decreased">Decreased — both studies</span>
+      <div class="governs">Memory, mood stability, emotional reactions, language processing, reading social cues</div>
+      <div class="implication">→ Memory problems. Mood instability. The age oscillation in the memoir ("I was 19 — or 21"). The bartender's diagnostic instinct — reading rooms — operating from a damaged region.</div>
+    </div>
+    <div class="region-card">
+      <h4>Prefrontal Cortex (Inferior Orbital + Dorsal)</h4>
+      <span class="status decreased">Decreased — worse at rest</span>
+      <div class="governs">Impulse control, judgment, planning, follow-through, attention, empathy</div>
+      <div class="implication">→ The recursive trap: addiction damages the region that controls impulse, making addiction harder to escape. Also: procrastination, task abandonment, FlashFusion at 60-70%.</div>
+    </div>
+    <div class="region-card">
+      <h4>Parietal Cortex (L+R)</h4>
+      <span class="status decreased">Decreased — worse at rest</span>
+      <div class="governs">Spatial processing, direction sense, complex task performance, orientation</div>
+      <div class="implication">→ Associated with toxic exposure and anoxia. The scalloping signature. Difficulty with complex multi-step tasks without external scaffolding.</div>
+    </div>
+    <div class="region-card">
+      <h4>Cerebellum (Internal)</h4>
+      <span class="status decreased">Decreased at rest</span>
+      <div class="governs">Motor control, executive function, speed of cognitive integration, conditioned learning</div>
+      <div class="implication">→ Usually the most active part of the brain. When low: impulsivity, slowed thinking. The cerebellum connects to PFC — it's the clock speed of the processor.</div>
+    </div>
+    <div class="region-card">
+      <h4>Thalamus</h4>
+      <span class="status severe">Severely Increased — both studies</span>
+      <div class="governs">Sensory relay, mood control, motivation, bonding, sleep, appetite</div>
+      <div class="implication">→ The emotional switchboard running hot. Depression, isolation, sleep disruption. The thalamus processes every sensory input before routing it — when it's overactive, everything feels louder.</div>
+    </div>
+    <div class="region-card">
+      <h4>Basal Ganglia + Insular Cortex</h4>
+      <span class="status increased">Mildly Increased with concentration</span>
+      <div class="governs">Anxiety regulation, sense of calm, motor control, pleasure/addiction circuits</div>
+      <div class="implication">→ Can indicate anxiety or high motivation. The nucleus accumbens mediates pleasure — the addiction circuit. Also: the insular cortex processes internal body awareness.</div>
+    </div>
+    <div class="region-card">
+      <h4>Occipital Lobe</h4>
+      <span class="status decreased">Decreased</span>
+      <div class="governs">Visual processing</div>
+      <div class="implication">→ Part of the overall decreased perfusion pattern. Contributes to the brain injury finding.</div>
+    </div>
+    <div class="region-card">
+      <h4>Surface Scalloping</h4>
+      <span class="status decreased">Mild — worse at rest</span>
+      <div class="governs">Overall brain surface integrity</div>
+      <div class="implication">→ The bumpy, irregular appearance = toxic exposure signature. Oxygen deprivation. Substance history. This is the visual fingerprint of what happened.</div>
+    </div>
+  </div>
+
+  <p class="callout red"><strong>Diagnoses (July 18, 2022):</strong> Abnormal brain scan. ADHD unspecified. Major depressive disorder, recurrent, moderate. Unspecified mood disorder. Sedative/hypnotic/anxiolytic dependence, in remission. Opioid dependence, in remission.</p>
+
+  <p class="callout"><strong>The document's own contradiction:</strong> Page 2 dates the hypoxia event to "summer of 2020." Page 3 dates it to "October 2021." The physician section says "October 2021." The clinical record itself demonstrates the same memory confusion the book is about. Even the doctors couldn't keep the timeline straight — or Kyle told it differently each time, because that's what damaged memory does.</p>
+</section>
+
+<!-- ============ COGNITIVE ============ -->
+<section id="cognitive">
+  <h2>The Cognitive Profile</h2>
+  <div class="section-sub">Total Brain Assessment — July 7, 2022</div>
+
+  <p>The same week as the SPECT scan, Kyle completed a standardized cognitive assessment. The results contain the memoir's thesis in two data points.</p>
+
+  <div class="data-grid">
+    <div class="data-card">
+      <div class="metric-label">Processing Speed</div>
+      <div class="metric-value elite">99th</div>
+      <div class="metric-context">Faster than 99% of the population. The engine is elite.</div>
+    </div>
+    <div class="data-card">
+      <div class="metric-label">Recall Memory</div>
+      <div class="metric-value low">12th</div>
+      <div class="metric-context">Bottom 12%. Storage is nearly empty.</div>
+    </div>
+    <div class="data-card">
+      <div class="metric-label">Flexibility</div>
+      <div class="metric-value low">17th</div>
+      <div class="metric-context">Difficulty shifting between tasks or approaches.</div>
+    </div>
+    <div class="data-card">
+      <div class="metric-label">Resilience</div>
+      <div class="metric-value low">2nd</div>
+      <div class="metric-context">2nd percentile. Forming recovery strategies.</div>
+    </div>
+  </div>
+
+  <div class="data-grid">
+    <div class="data-card">
+      <div class="metric-label">Focus</div>
+      <div class="metric-value mid">59th</div>
+      <div class="metric-context">Medium. The diagnostic instinct works.</div>
+    </div>
+    <div class="data-card">
+      <div class="metric-label">Planning</div>
+      <div class="metric-value mid">46th</div>
+      <div class="metric-context">Medium. Can organize when scaffolded.</div>
+    </div>
+    <div class="data-card">
+      <div class="metric-label">Stress Control</div>
+      <div class="metric-value low">27th</div>
+      <div class="metric-context">Low. The alarm system runs hot.</div>
+    </div>
+    <div class="data-card">
+      <div class="metric-label">Depression (PHQ-9)</div>
+      <div class="metric-value mid">10</div>
+      <div class="metric-context">Moderate. "Feeling bad about yourself" — more than half the days.</div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <h3 style="font-family: 'DM Serif Display', serif; font-size: 22px; margin-bottom: 16px;">What This Actually Means</h3>
+
+  <p>Kyle thought the 99th/12th split meant his brain was broken across the board. It means the opposite. <strong>The processing engine is elite. The storage system is devastated.</strong> His brain catches everything — patterns, systems, room dynamics, code architecture — and then can't hold it. The information arrives at full speed and evaporates.</p>
+
+  <p>This is why the 240+ tools work. He's not compensating for being slow. <strong>He's building an external hard drive for a processor that runs too fast for its own memory.</strong> The obsessive documentation, the systematic approaches, the Claude projects, the Notion databases, the n8n workflows — all of it is prosthetic recall for a brain that can process at the 99th percentile but store at the 12th.</p>
+
+  <p class="callout green"><strong>The Conners CPT3 finding:</strong> The attention test found NO pervasive ADHD pattern. Despite being diagnosed with ADHD in college and taking Adderall/Focalin for years, the computerized test couldn't confirm it. What it found instead: "Some Indication" of sustained attention difficulty. The attention problem isn't classical ADHD — it's the downstream effect of the brain injury itself.</p>
+
+  <p class="callout warm"><strong>Readiness to Change: 10 out of 10.</strong> The maximum score. Hope: 27 out of 64 — "slight." He was maximally ready to change and barely believed it was possible. That's the gap the construction project had to bridge.</p>
+
+  <div class="kyle-quote">
+    <p>I dont even know what that means, I assumed that it meant it was very slow, and that my memory recall was very bad, and that my brain was in very bad shape, causes me to get angry, sobbing sad, so much that I doubt I will ever have another partner again in my life...and that hurts ALMOST as much as knowing I'm missing out on something like 75+% of my daughter's life.</p>
+    <div class="attr">— Kyle, April 2026, reading his own cognitive scores for the first time in four years</div>
+  </div>
+</section>
+
+<!-- ============ TIMELINE ============ -->
+<section id="timeline">
+  <h2>The Timeline</h2>
+  <div class="section-sub">From first substance to staff engineer — what can be verified</div>
+
+  <div class="timeline">
+    <div class="timeline-item">
+      <div class="tl-date">2005</div>
+      <div class="tl-title">Nicotine begins. Vapes daily to present.</div>
+    </div>
+    <div class="timeline-item">
+      <div class="tl-date">2007</div>
+      <div class="tl-title">Alcohol and marijuana begin.</div>
+      <div class="tl-body">Marijuana: all day, every day for 11 years.</div>
+    </div>
+    <div class="timeline-item">
+      <div class="tl-date">~2008</div>
+      <div class="tl-title">Depression begins.</div>
+      <div class="tl-body">Triggers: comparing his life to others who had finished college, had families. Living with parents.</div>
+    </div>
+    <div class="timeline-item">
+      <div class="tl-date">2010</div>
+      <div class="tl-title">Lexapro prescribed. Still taking it in 2022.</div>
+    </div>
+    <div class="timeline-item">
+      <div class="tl-date">2014</div>
+      <div class="tl-title">Hit by a car while walking. No head injury.</div>
+    </div>
+    <div class="timeline-item crisis">
+      <div class="tl-date">2015</div>
+      <div class="tl-title">Xanax prescribed. Addiction begins.</div>
+      <div class="tl-body">Originally prescribed before leaving for college. Use became extreme — burning through prescriptions in days, buying off the street.</div>
+    </div>
+    <div class="timeline-item">
+      <div class="tl-date">~2016</div>
+      <div class="tl-title">College. Marijuana escalates to opiates and benzo abuse.</div>
+      <div class="tl-body">ADHD diagnosed in college.</div>
+    </div>
+    <div class="timeline-item">
+      <div class="tl-date">2017</div>
+      <div class="tl-title">Intermittent opiate use begins.</div>
+    </div>
+    <div class="timeline-item turn">
+      <div class="tl-date">2018</div>
+      <div class="tl-title">Kinsley is born.</div>
+      <div class="tl-body">Marijuana stops — "when my daughter was born." Cocaine use: ~20 times between 2018-2021.</div>
+    </div>
+    <div class="timeline-item crisis">
+      <div class="tl-date">Summer 2020</div>
+      <div class="tl-title">Hypoxia event. Accidental Xanax + Ambien overdose.</div>
+      <div class="tl-body">Loss of consciousness. Brain deprived of oxygen. This is the injury. Roger's Behavioral Health — 1.5 months residential. Model resident. "Among the living dead, I was king." Meets Mackenzie Campbell. Meets John, President of Herrington.</div>
+    </div>
+    <div class="timeline-item crisis">
+      <div class="tl-date">2021</div>
+      <div class="tl-title">Heroin begins. Four overdoses.</div>
+      <div class="tl-body">#1: OD'd while driving in Milwaukee, drug dealer's car. #2: Mackenzie climbed a roof in West Allis to save his life. #3-4: Including September 2021 — woke in hospital, piss-soaked pajamas, parents on either side, neither would look at him. Sober from hard drugs after.</div>
+    </div>
+    <div class="timeline-item">
+      <div class="tl-date">Oct 2021 – Mar 2025</div>
+      <div class="tl-title">Bartending at Timothy O'Tool's.</div>
+      <div class="tl-body">They never knew about the heroin. Walking five miles a shift, five days a week. The diagnostic instinct reading rooms from a damaged brain. Coworkers Fran, Stewart, Kylie, Tony. 2008 Honda Civic era.</div>
+    </div>
+    <div class="timeline-item turn">
+      <div class="tl-date">July 2022</div>
+      <div class="tl-title">Amen Clinics. Mom sends him.</div>
+      <div class="tl-body">SPECT scans. Cognitive testing. The brain's damage becomes visible. Occupation at intake: Bartender. Age: 36. Living with parents. Single. One child.</div>
+    </div>
+    <div class="timeline-item build">
+      <div class="tl-date">~2023-2024</div>
+      <div class="tl-title">The construction begins.</div>
+      <div class="tl-body">Self-teaching. FlashFusion. Tool accumulation. The external cognitive architecture starts taking shape. Sedona — meets Soaring Bear.</div>
+    </div>
+    <div class="timeline-item build">
+      <div class="tl-date">Mar – Aug 2025</div>
+      <div class="tl-title">Quality Control work.</div>
+    </div>
+    <div class="timeline-item build">
+      <div class="tl-date">2025 – Present</div>
+      <div class="tl-title">Staff Engineer. Intinc.</div>
+      <div class="tl-body">AppSec + Platform Engineering. 50-200 engineer organization. Teaching senior engineers. Enterprise-scale competence from a brain that recalls at the 12th percentile.</div>
+    </div>
+    <div class="timeline-item build">
+      <div class="tl-date">2025 – Present</div>
+      <div class="tl-title">Chaos Club Co. founded.</div>
+      <div class="tl-body">"Welcome to the Chaos Club: where no one has to pretend — but everyone understands."</div>
+    </div>
+    <div class="timeline-item build">
+      <div class="tl-date">Mar 2026 – Present</div>
+      <div class="tl-title">The memoir begins.</div>
+      <div class="tl-body">Working title TBD. Ghost-writing collaboration. Primary reader: Kinsley.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ CONNECTIONS ============ -->
+<section id="connections">
+  <h2>The Connections</h2>
+  <div class="section-sub">How every construction traces back to the scan</div>
+
+  <div class="connection" onclick="this.classList.toggle('open')">
+    <div class="connection-header">
+      <h3>Scan Finding → 240+ Tools as Prosthetic Memory</h3>
+      <span class="arrow">›</span>
+    </div>
+    <div class="connection-body">
+      <div class="flow-chain">
+        <span class="flow-node">Processing Speed: 99th</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-node">Recall Memory: 12th</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-node">Information arrives fast, evaporates</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-node">Build external storage</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-node">240+ tools catalogued</span>
+      </div>
+      <p>The tools aren't a productivity flex. They're a medical necessity. Notion, Claude, n8n, GitHub, Vercel, 50+ skills built — each one is a memory prosthetic for a brain that catches fire and then forgets it was burning. The obsessive documentation isn't organization. It's survival.</p>
+    </div>
+  </div>
+
+  <div class="connection" onclick="this.classList.toggle('open')">
+    <div class="connection-header">
+      <h3>Scan Finding → The Diagnostic Instinct Surviving Injury</h3>
+      <span class="arrow">›</span>
+    </div>
+    <div class="connection-body">
+      <div class="flow-chain">
+        <span class="flow-node">Focus: 59th percentile</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-node">Pattern recognition intact</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-node">Reading rooms at O'Tool's</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-node">Reading processes in QC</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-node">Reading systems as engineer</span>
+      </div>
+      <p>The diagnostic instinct is the memoir's spine — and the cognitive data explains why it survived. Focus and controlled attention are medium-range. The ability to detect patterns in real-time still works. What broke is the ability to store and retrieve what was detected. The instinct reads the room; the tools remember what it found.</p>
+    </div>
+  </div>
+
+  <div class="connection" onclick="this.classList.toggle('open')">
+    <div class="connection-header">
+      <h3>Scan Finding → The Recursive Trap of Addiction</h3>
+      <span class="arrow">›</span>
+    </div>
+    <div class="connection-body">
+      <div class="flow-chain">
+        <span class="flow-node">Xanax addiction</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-node">Hypoxia (summer 2020)</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-node">PFC damaged</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-node">Impulse control reduced</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-node">Heroin (2021)</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-node">More brain damage</span>
+      </div>
+      <p>The addiction caused the brain injury. The brain injury reduced the prefrontal cortex function that controls impulse. The reduced impulse control made escalation to heroin more likely. Four overdoses in 2021 — each one adding to the damage. The trap isn't metaphorical. It's visible on the scan. The PFC that should have said "stop" was already running at reduced capacity.</p>
+    </div>
+  </div>
+
+  <div class="connection" onclick="this.classList.toggle('open')">
+    <div class="connection-header">
+      <h3>Scan Finding → Bartender to Staff Engineer</h3>
+      <span class="arrow">›</span>
+    </div>
+    <div class="connection-body">
+      <div class="flow-chain">
+        <span class="flow-node">Processing Speed: 99th</span>
+        <span class="flow-arrow">+</span>
+        <span class="flow-node">External memory systems</span>
+        <span class="flow-arrow">=</span>
+        <span class="flow-node">Self-taught engineering</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-node">Enterprise-scale competence</span>
+      </div>
+      <p>The processing speed is the engine. The tools are the storage. Together, they create a synthetic cognitive architecture that can operate at Staff Engineer level — AppSec, platform engineering, teaching 50-200 engineer organizations — using hardware that a clinical eval said needed memory-enhancing medication. The career isn't despite the injury. It's a specific engineering response to it.</p>
+    </div>
+  </div>
+
+  <div class="connection" onclick="this.classList.toggle('open')">
+    <div class="connection-header">
+      <h3>Scan Finding → Chaos Club Co.</h3>
+      <span class="arrow">›</span>
+    </div>
+    <div class="connection-body">
+      <div class="flow-chain">
+        <span class="flow-node">ACE Score: 0/10</span>
+        <span class="flow-arrow">+</span>
+        <span class="flow-node">Resilience: 2nd percentile</span>
+        <span class="flow-arrow">+</span>
+        <span class="flow-node">4 overdoses survived</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-node">"No masks required"</span>
+      </div>
+      <p>Zero adverse childhood experiences. No abuse, no childhood trauma. The damage was self-inflicted in adulthood. Chaos Club's rejection of performative recovery — "no one has to pretend" — comes from someone who didn't fit the typical narrative. No childhood wound to point to. Just choices that cascaded into neurological damage. The crisis protocols that "connect rather than save" — informed by the trip to Sedona, reinforced by the four times someone had to save Kyle's life and he kept going back.</p>
+    </div>
+  </div>
+
+  <div class="connection" onclick="this.classList.toggle('open')">
+    <div class="connection-header">
+      <h3>Scan Finding → The Memoir Itself</h3>
+      <span class="arrow">›</span>
+    </div>
+    <div class="connection-body">
+      <div class="flow-chain">
+        <span class="flow-node">Recall Memory: 12th</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-node">Can't locate own beginning</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-node">"I was 19 — or 21"</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-node">AI writes wrong book</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-node">The inability IS the opening</span>
+      </div>
+      <p>The subject of the book is also the obstacle to writing it. Temporal lobe damage affects memory formation and retrieval. The eval's own internal date contradiction — "summer 2020" on one page, "October 2021" on another — proves the point. Even the clinical record can't keep Kyle's timeline straight, because Kyle told it differently each time, because that's what damaged memory does. The memoir has to sit in that uncertainty. It's not a flaw in the storytelling. It's the story.</p>
+    </div>
+  </div>
+
+  <div class="connection" onclick="this.classList.toggle('open')">
+    <div class="connection-header">
+      <h3>Scan Finding → FlashFusion at 60-70%</h3>
+      <span class="arrow">›</span>
+    </div>
+    <div class="connection-body">
+      <div class="flow-chain">
+        <span class="flow-node">PFC decreased</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-node">Follow-through impaired</span>
+        <span class="flow-arrow">+</span>
+        <span class="flow-node">Flexibility: 17th</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-node">Difficulty shifting when stuck</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-node">Projects archive before completion</span>
+      </div>
+      <p>The PFC governs planning and follow-through. The flexibility score measures the ability to shift approaches when one isn't working. Both are impaired. The character document says "the constructed self builds better than it maintains." That's not a personality trait. It's a neurological finding. The processing speed launches projects at elite velocity. The PFC and flexibility scores explain why they stall.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ CONSTRUCTIONS ============ -->
+<section id="constructions">
+  <h2>The Constructions</h2>
+  <div class="section-sub">What the damaged brain built</div>
+
+  <p>July 2022: Occupation listed as "Bartender." Living with parents. Single. One child, age 3. Hope score: 27 out of 64 — "slight." Readiness to change: 10 out of 10.</p>
+
+  <p>April 2026: Staff Engineer. Self-taught. No CS degree. 240+ tools catalogued. 50 Claude skills built. Chaos Club Co. founded. Literary memoir in progress. 630+ GitHub repos. FlashFusion enterprise platform with 67-entity schema. Base44 production apps. n8n automation workflows. Figma design systems. Enterprise-scale security architecture.</p>
+
+  <p class="callout green">The distance between those two paragraphs is the book. Not a recovery story — he didn't return to a prior state. A construction story — he built something that never existed before, using hardware that a clinical evaluation said was damaged across nearly every region.</p>
+
+  <p><strong>The construction wasn't rational.</strong> He didn't see the scan results and make a plan. He got the results weeks later, had already forgotten what they said, and it wasn't a subject of interest to him. The building started instinctively — the same way a damaged body compensates by shifting weight to the uninjured leg. The 99th-percentile processor began generating external systems to compensate for the 12th-percentile memory, without anyone explaining that's what was happening.</p>
+
+  <p>The tools arrived with Lovable.dev and Claude Code. But the pattern — systematize everything, document obsessively, build external rails — was already running. The technology just gave it scale.</p>
+
+  <div class="kyle-quote">
+    <p>I have never felt like a man.</p>
+    <div class="attr">— Kyle, April 2026</div>
+  </div>
+
+  <p>That sentence sits next to 630+ repositories, an enterprise engineering role, a mental health platform, and a literary memoir. The construction is visible to everyone except the builder.</p>
+</section>
+
+<!-- ============ KINSLEY ============ -->
+<section id="kinsley">
+  <h2>Kinsley</h2>
+  <div class="section-sub">The reader. The reason. Age 3 at scan. Age 8 now.</div>
+
+  <p>The eval lists one child. Significant life events: <strong>"Daughter born."</strong></p>
+
+  <p>Marijuana stopped in 2018 — "when my daughter was born." That's the first construction. Before the tools, before the engineering, before Chaos Club — there was the decision that Kinsley's existence required him to stop something he'd been doing all day, every day, for eleven years.</p>
+
+  <p>She knows he was sick. He told her it was his fault. He's cried to her, sobbing, apologizing for breaking up the family. She hugged him and put her head on his shoulder.</p>
+
+  <p>She was three when he walked into Amen Clinics. She won't remember that summer. But the book will.</p>
+
+  <p class="callout gold">The memoir is a letter to Kinsley. Not "here's what happened to daddy" — she'll learn that through life, in age-appropriate pieces, the way he's already started. The book is "here's what daddy built after it happened, and here's the brain that built it, and here's what I want you to know about construction when the world tells you recovery is the only story."</p>
+
+  <p><strong>The custody math:</strong> Friday pickup to Sunday return. That's roughly 25% of her childhood. He said it: "knowing I'm missing out on something like 75+% of my daughter's life." The book is one way to be present in the other 75%. A document that exists when he can't.</p>
+
+  <p>Processing Speed 99th. Recall Memory 12th. He processes their Fridays at elite speed. He can't always hold them. So he builds — StoryWeaver, KidCreator, the memoir itself — systems that capture what his brain won't retain. External memory for the most important memories he has.</p>
+</section>
+
+<!-- ============ RAW MATERIAL ============ -->
+<section id="raw">
+  <h2>Raw Material Bank</h2>
+  <div class="section-sub">Unprocessed memoir scenes from this session — verbatim and tagged</div>
+
+  <div class="kyle-quote">
+    <p>Among the living dead, I was king.</p>
+    <div class="attr">Roger's Behavioral Health, summer 2020 — on being a model resident, organizing bag tourneys, leading groups, shooting to the top privilege level in a week</div>
+  </div>
+
+  <div class="kyle-quote">
+    <p>I woke up in the hospital in my pajama bottoms, that I still have, still drenched in piss with both of my parents on either side of me. Neither would look at me.</p>
+    <div class="attr">September 2021, heroin overdose — the pajama bottoms still exist as physical artifact</div>
+  </div>
+
+  <div class="kyle-quote">
+    <p>I overdosed while driving down the road in Milwaukee. He had to pull me out of the front seat of the car.</p>
+    <div class="attr">First heroin OD — in the drug dealer's car, did a huge bump, came to in the back seat with a raging headache</div>
+  </div>
+
+  <div class="kyle-quote">
+    <p>She had to climb on the roof of the person who lived underneath me's roof and jimmy window open and called an ambulance.</p>
+    <div class="attr">Second heroin OD — West Allis apartment, leather couch. Mackenzie Campbell from Roger's saved his life. He's apologized 4-5 times since, sobbing at least once.</div>
+  </div>
+
+  <div class="kyle-quote">
+    <p>I remember the girl who came and stared out the window in the same back hallway and wouldn't say a word to anyone or participate... until I was her bartender one day when she came into O'Tool's... she had just got a hotel and didn't remember me... shit... right?</p>
+    <div class="attr">The Rogers window girl — later at O'Tool's. University of Miami graduate. She didn't remember him. The man with 12th-percentile recall remembers her. She doesn't remember him.</div>
+  </div>
+
+  <div class="kyle-quote">
+    <p>Thank you John. You made hell a little softer and easier to swallow.</p>
+    <div class="attr">John, President of Herrington — soft-spoken, words that cradled you, bonfire meetings, offered a letter of recommendation</div>
+  </div>
+
+  <div class="kyle-quote">
+    <p>I have NEVER, NOT ONCE, nor will I ever, tell anyone I think about how much better everyone's life would be without me, especially Kinsley. And that I should do it while she's young so she forgets.</p>
+    <div class="attr">First disclosure. Recorded here as memoir material. Held with the weight it carries.</div>
+  </div>
+
+  <div class="kyle-quote">
+    <p>She hugged me and put her head on my shoulders. I have never felt like a man.</p>
+    <div class="attr">Kinsley's response when Kyle apologized, sobbing, for breaking up the family</div>
+  </div>
+
+  <div class="divider"></div>
+
+  <h3 style="font-family: 'DM Serif Display', serif; font-size: 22px; margin-bottom: 16px;">Scenes That Need Development</h3>
+
+  <p><strong>The Rogers campus.</strong> Beautiful grounds, lake, daily walks with counselors. The privilege level system. The community of residents. Mackenzie Campbell — noted for later excavation. The window girl in the back hallway.</p>
+
+  <p><strong>The West Allis apartment.</strong> Leather couch. The OD. Mackenzie on the roof. The ambulance. The apologies that came later — four or five times, sobbing at least once.</p>
+
+  <p><strong>The Milwaukee drive.</strong> Drug dealer's car. The bump. Coming to in the back seat. The headache. Being pulled from the front seat while unconscious.</p>
+
+  <p><strong>The hospital bed.</strong> Pajama bottoms. Piss. Parents on either side. Neither looking. Those pajamas still exist.</p>
+
+  <p><strong>The allergic reaction.</strong> Chromium from the Amen supplements. 3-4 months of itching skin off his legs while bartending at O'Tool's. The reason he never went back for the follow-up scan. The treatment itself causing new suffering.</p>
+
+  <p><strong>August 2, 2022.</strong> The results review with Dr. Easton. Except Kyle got them weeks later and had already forgotten. The scan that proves memory damage was itself forgotten. This might be the most important non-scene in the book — the event that didn't register.</p>
+
+  <p class="callout purple"><strong>Open question for future sessions:</strong> The four heroin overdoses. The eval only records one (September 2021). Kyle disclosed four. The other three need excavation — dates, locations, who was there, what happened after. These are scenes the book needs, and the clinical record doesn't have them because the clinical record only captured what Kyle could recall and chose to share in a single intake interview.</p>
+</section>
+
+</div><!-- container -->
+
+<footer>
+  <div class="container">
+    <p>The Evidence Board — Primary Source Document for Kyle Rosebrook's Literary Memoir</p>
+    <p style="margin-top: 8px;">Clinical data: Amen Clinics Chicago, July 2022 &middot; Session material: April 16, 2026</p>
+    <p style="margin-top: 8px; color: var(--accent-scan);">Construction, not recovery.</p>
+  </div>
+</footer>
+
+<script>
+function showSection(id) {
+  document.querySelectorAll('section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+  window.scrollTo({ top: document.querySelector('nav').offsetTop - 20, behavior: 'smooth' });
+}
+</script>
+</body>
+</html>

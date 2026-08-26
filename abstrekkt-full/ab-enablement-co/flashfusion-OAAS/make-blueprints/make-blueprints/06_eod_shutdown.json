@@ -1,0 +1,55 @@
+{
+  "name": "EOD Shutdown — Daily Summary",
+  "flow": [
+    {
+      "id": 1,
+      "module": "http:ActionSendData",
+      "version": 3,
+      "parameters": {},
+      "mapper": {
+        "url": "https://api.notion.com/v1/databases/6c1e9ec5ad444fd3a9db7a3361c3aa6d/query",
+        "method": "POST",
+        "headers": [
+          {"name": "Authorization", "value": "Bearer {{CONNECTION_KEY:notion}}"},
+          {"name": "Notion-Version", "value": "2022-06-28"},
+          {"name": "Content-Type", "value": "application/json"}
+        ],
+        "body": "{\"filter\":{\"and\":[{\"property\":\"Status\",\"select\":{\"equals\":\"Done\"}},{\"property\":\"Due\",\"date\":{\"equals\":\"{{formatDate(now; \\\"YYYY-MM-DD\\\")}}\"}}]}}"
+      },
+      "metadata": {"designer": {"x": 0, "y": 0}, "label": "Get Completed Tasks Today"}
+    },
+    {
+      "id": 2,
+      "module": "http:ActionSendData",
+      "version": 3,
+      "parameters": {},
+      "mapper": {
+        "url": "https://api.resend.com/emails",
+        "method": "POST",
+        "headers": [
+          {"name": "Authorization", "value": "Bearer {{CONNECTION_KEY:resend}}"},
+          {"name": "Content-Type", "value": "application/json"}
+        ],
+        "body": "{\"from\":\"FlashFusion <kyle@flashfusion.co>\",\"to\":[\"kylerosebrook@gmail.com\"],\"subject\":\"🔒 EOD — {{formatDate(now; \\\"ddd MMM D\\\")}}\",\"text\":\"COMPLETED TODAY:\\n{{join(map(1.data.results; \\\"properties.Name.title[].plain_text\\\"); \\\"\\n\\\")}}\\n\\nSee you tomorrow.\"}"
+      },
+      "metadata": {"designer": {"x": 300, "y": 0}, "label": "Send EOD Summary"}
+    }
+  ],
+  "metadata": {
+    "instant": false,
+    "version": 1,
+    "scenario": {
+      "roundtrips": 1,
+      "maxErrors": 3,
+      "autoCommit": true,
+      "autoCommitTriggerLast": true,
+      "sequential": true,
+      "confidential": false,
+      "dataloss": false,
+      "dlq": false,
+      "freshVariables": false
+    },
+    "zone": "us1.make.com",
+    "notes": "Migrated from n8n fbPXkL3VwwBYL6kQ. Schedule: 5PM or 6PM CT weekdays. Requires: Notion API key, Resend API key."
+  }
+}

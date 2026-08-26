@@ -1,0 +1,60 @@
+name: LXH-E001 Custody Transport
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+env:
+  CORPUS_PATH: experiments/loxihart/LXH-E001/defect-corpus.encrypted.json
+  EXPECTED_BLOB_SHA: 755fd118688dd6e154d49122ee6ddaab5a550e26
+  EXPECTED_CIPHERTEXT_SHA256: 7a197de1691840e26f2b35d667e1a6d565d38c6fa920ee1676806c1b8b433ad0
+
+jobs:
+  package-frozen-corpus:
+    if: github.head_ref == 'loxihart/lxh-e001-preregistered-pilot'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: loxihart/lxh-e001-preregistered-pilot
+          fetch-depth: 1
+
+      - name: Verify frozen Git blob and ciphertext hash
+        shell: bash
+        run: |
+          set -euo pipefail
+          actual_blob="$(git hash-object "$CORPUS_PATH")"
+          test "$actual_blob" = "$EXPECTED_BLOB_SHA"
+          python - <<'PY'
+          import base64, hashlib, json, os, pathlib
+          p = pathlib.Path(os.environ['CORPUS_PATH'])
+          obj = json.loads(p.read_text(encoding='utf-8'))
+          ciphertext = base64.b64decode(obj['ciphertext'], validate=True)
+          actual = hashlib.sha256(ciphertext).hexdigest()
+          expected = os.environ['EXPECTED_CIPHERTEXT_SHA256']
+          if actual != expected:
+              raise SystemExit(f'ciphertext SHA-256 mismatch: {actual} != {expected}')
+          pathlib.Path('transport-verification.txt').write_text(
+              f'git_blob_sha={os.environ["EXPECTED_BLOB_SHA"]}\n'
+              f'ciphertext_sha256={actual}\n'
+              f'file_bytes={p.stat().st_size}\n',
+              encoding='utf-8'
+          )
+          print(f'ciphertext_sha256={actual}')
+          print(f'file_bytes={p.stat().st_size}')
+          PY
+
+      - name: Upload exact frozen corpus artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: lxh-e001-frozen-corpus-transport
+          path: |
+            ${{ env.CORPUS_PATH }}
+            transport-verification.txt
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 0

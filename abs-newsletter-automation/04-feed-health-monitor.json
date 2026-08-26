@@ -1,0 +1,118 @@
+{
+  "name": "04 — Feed Health Monitor (Daily)",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 7 * * *"
+            }
+          ]
+        }
+      },
+      "name": "Daily 7AM CT",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 300],
+      "notes": "Runs 1 hour after the scanner to check feed health."
+    },
+    {
+      "parameters": {},
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [0, 500]
+    },
+    {
+      "parameters": {
+        "jsCode": "const feeds = [\n  { name: 'Anthropic News', url: 'https://raw.githubusercontent.com/Olshansk/rss-feeds/main/feeds/feed_anthropic_news.xml' },\n  { name: 'Anthropic Engineering', url: 'https://raw.githubusercontent.com/Olshansk/rss-feeds/main/feeds/feed_anthropic_engineering.xml' },\n  { name: 'OpenAI Blog', url: 'https://raw.githubusercontent.com/Olshansk/rss-feeds/main/feeds/feed_openai_research.xml' },\n  { name: 'Google AI Blog', url: 'https://blog.google/technology/ai/rss/' },\n  { name: 'Microsoft AI Blog', url: 'https://blogs.microsoft.com/ai/feed/' },\n  { name: 'TechCrunch AI', url: 'https://techcrunch.com/category/artificial-intelligence/feed/' },\n  { name: 'The Verge AI', url: 'https://www.theverge.com/rss/ai-artificial-intelligence/index.xml' },\n  { name: 'VentureBeat AI', url: 'https://venturebeat.com/category/ai/feed/' },\n  { name: 'Techmeme', url: 'https://www.techmeme.com/feed.xml' },\n  { name: 'HN AI Filtered', url: 'https://hnrss.org/newest?q=AI+OR+LLM+OR+Claude+OR+GPT+OR+agent' },\n  { name: 'Simon Willison', url: 'https://simonwillison.net/atom/everything/' },\n  { name: 'Supabase Blog', url: 'https://supabase.com/blog/rss.xml' },\n  { name: 'Cloudflare Blog', url: 'https://blog.cloudflare.com/rss/' }\n];\n\nreturn feeds.map(f => ({ json: f }));"
+      },
+      "name": "Feed List",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [240, 400]
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.url }}",
+        "options": {}
+      },
+      "name": "Test Feed",
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1,
+      "position": [480, 400],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Check which feeds failed or returned 0 items\nconst items = $input.all();\nconst broken = [];\nconst healthy = [];\n\nfor (const item of items) {\n  const name = item.json.feed_name || item.json.name || 'Unknown';\n  if (item.json.error || !item.json.title) {\n    broken.push(name);\n  } else {\n    healthy.push(name);\n  }\n}\n\nif (broken.length === 0) {\n  return [{ json: { allHealthy: true, message: `All ${healthy.length} feeds healthy.` } }];\n}\n\nreturn [{\n  json: {\n    allHealthy: false,\n    brokenCount: broken.length,\n    healthyCount: healthy.length,\n    brokenFeeds: broken,\n    message: `${broken.length} feed(s) broken: ${broken.join(', ')}`\n  }\n}];"
+      },
+      "name": "Check Results",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [720, 400]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.allHealthy }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "name": "All Healthy?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [960, 400]
+    },
+    {
+      "parameters": {
+        "channel": "#ops-alerts",
+        "text": "=🔴 *Feed Health Alert*\\n\\n{{ $json.message }}\\n\\nBroken feeds:\\n{{ $json.brokenFeeds.map(f => '• ' + f).join('\\n') }}\\n\\n→ Check feed URLs and update in Workflow 01 Feed Config node.",
+        "otherOptions": {}
+      },
+      "name": "Slack — Broken Alert",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.2,
+      "position": [1200, 500]
+    }
+  ],
+  "connections": {
+    "Daily 7AM CT": {
+      "main": [[{ "node": "Feed List", "type": "main", "index": 0 }]]
+    },
+    "Manual Trigger": {
+      "main": [[{ "node": "Feed List", "type": "main", "index": 0 }]]
+    },
+    "Feed List": {
+      "main": [[{ "node": "Test Feed", "type": "main", "index": 0 }]]
+    },
+    "Test Feed": {
+      "main": [[{ "node": "Check Results", "type": "main", "index": 0 }]]
+    },
+    "Check Results": {
+      "main": [[{ "node": "All Healthy?", "type": "main", "index": 0 }]]
+    },
+    "All Healthy?": {
+      "main": [
+        [],
+        [{ "node": "Slack — Broken Alert", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "executionTimeout": 120
+  },
+  "tags": [
+    { "name": "ecosystem-scanner" },
+    { "name": "monitoring" },
+    { "name": "production" }
+  ]
+}

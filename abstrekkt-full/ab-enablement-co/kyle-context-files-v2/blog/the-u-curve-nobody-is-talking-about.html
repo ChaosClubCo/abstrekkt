@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The U-Curve Nobody's Talking About — Kyle Rosebrook</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=DM+Mono:wght@400;500&family=Figtree:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0e0e0e;
+    --surface: #161616;
+    --border: #2a2a2a;
+    --text: #e8e4dc;
+    --muted: #888480;
+    --accent: #c8f060;
+    --serif: 'Libre Baskerville', Georgia, serif;
+    --sans: 'Figtree', system-ui, sans-serif;
+    --mono: 'DM Mono', monospace;
+  }
+
+  html { font-size: 18px; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--serif);
+    line-height: 1.8;
+    padding: 0;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .masthead {
+    border-bottom: 1px solid var(--border);
+    padding: 1.2rem 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .masthead-name {
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .masthead-tag {
+    font-family: var(--mono);
+    font-size: 0.68rem;
+    color: var(--muted);
+    letter-spacing: 0.05em;
+  }
+
+  .hero {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 5rem 2rem 3rem;
+  }
+
+  .category {
+    font-family: var(--mono);
+    font-size: 0.68rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 1.5rem;
+    display: block;
+  }
+
+  h1 {
+    font-family: var(--serif);
+    font-size: clamp(2rem, 5vw, 3.2rem);
+    font-weight: 700;
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+    color: #f2ede4;
+    margin-bottom: 1.25rem;
+  }
+
+  .subtitle {
+    font-family: var(--sans);
+    font-size: 1.05rem;
+    font-weight: 300;
+    color: var(--muted);
+    line-height: 1.65;
+    max-width: 600px;
+    margin-bottom: 2.5rem;
+  }
+
+  .byline {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--border);
+  }
+
+  .byline-dot {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    font-weight: 500;
+    color: #0e0e0e;
+    flex-shrink: 0;
+  }
+
+  .byline-meta {
+    font-family: var(--sans);
+    font-size: 0.8rem;
+    color: var(--muted);
+  }
+
+  .byline-meta strong {
+    color: var(--text);
+    font-weight: 500;
+    display: block;
+    margin-bottom: 0.1rem;
+  }
+
+  .divider {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 0 2rem;
+    border-top: 1px solid var(--border);
+  }
+
+  article {
+    max-width: 680px;
+    margin: 0 auto;
+    padding: 3.5rem 2rem 6rem;
+  }
+
+  article p {
+    margin-bottom: 1.5rem;
+    font-size: 1rem;
+    color: #d8d3c8;
+  }
+
+  article p:first-of-type::first-letter {
+    font-family: var(--serif);
+    font-size: 4rem;
+    font-weight: 700;
+    line-height: 0.85;
+    float: left;
+    margin-right: 0.12em;
+    margin-top: 0.08em;
+    color: var(--accent);
+  }
+
+  h2 {
+    font-family: var(--serif);
+    font-size: 1.35rem;
+    font-weight: 700;
+    color: #f2ede4;
+    margin: 2.75rem 0 1rem;
+    letter-spacing: -0.01em;
+  }
+
+  .pullquote {
+    margin: 2.5rem 0;
+    padding: 1.5rem 1.75rem;
+    border-left: 3px solid var(--accent);
+    background: var(--surface);
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 1.15rem;
+    line-height: 1.65;
+    color: #e8e4dc;
+  }
+
+  .pullquote cite {
+    display: block;
+    margin-top: 0.75rem;
+    font-family: var(--mono);
+    font-size: 0.68rem;
+    font-style: normal;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .data-callout {
+    margin: 2.5rem 0;
+    padding: 1.5rem 1.75rem;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    border-radius: 4px;
+  }
+
+  .data-callout .stat {
+    font-family: var(--mono);
+    font-size: 2.25rem;
+    font-weight: 500;
+    color: var(--accent);
+    display: block;
+    margin-bottom: 0.3rem;
+  }
+
+  .data-callout .stat-label {
+    font-family: var(--sans);
+    font-size: 0.82rem;
+    color: var(--muted);
+    font-weight: 400;
+  }
+
+  .data-callout-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 1px;
+    margin: 2.5rem 0;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  .data-callout-grid .cell {
+    background: var(--surface);
+    padding: 1.25rem 1.25rem;
+  }
+
+  .data-callout-grid .cell .stat {
+    font-family: var(--mono);
+    font-size: 1.6rem;
+    font-weight: 500;
+    color: var(--accent);
+    display: block;
+    margin-bottom: 0.3rem;
+  }
+
+  .data-callout-grid .cell .label {
+    font-family: var(--sans);
+    font-size: 0.75rem;
+    color: var(--muted);
+    line-height: 1.45;
+  }
+
+  em {
+    font-style: italic;
+    color: #e8e4dc;
+  }
+
+  strong {
+    font-weight: 700;
+    color: #f2ede4;
+  }
+
+  .closing-rule {
+    margin: 3rem 0 2rem;
+    border: none;
+    border-top: 1px solid var(--border);
+  }
+
+  .closer {
+    font-family: var(--sans);
+    font-size: 0.82rem;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+
+  .source-note {
+    margin-top: 3rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--border);
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    color: var(--muted);
+    letter-spacing: 0.03em;
+    line-height: 1.7;
+  }
+
+  .source-note a {
+    color: var(--accent);
+    text-decoration: none;
+  }
+
+  @media (max-width: 600px) {
+    .data-callout-grid { grid-template-columns: 1fr; }
+    h1 { font-size: 1.85rem; }
+    article p:first-of-type::first-letter { font-size: 3rem; }
+    .pullquote { font-size: 1rem; }
+  }
+</style>
+</head>
+<body>
+
+<header class="masthead">
+  <span class="masthead-name">Kyle Rosebrook</span>
+  <span class="masthead-tag">Apr 25, 2026</span>
+</header>
+
+<div class="hero">
+  <span class="category">AI &amp; Work</span>
+  <h1>The U-Curve Nobody's Talking About</h1>
+  <p class="subtitle">Anthropic surveyed 81,000 Claude users and found the people most worried about displacement are the ones using it hardest. That's not irrational. That's math.</p>
+  <div class="byline">
+    <div class="byline-dot">KR</div>
+    <div class="byline-meta">
+      <strong>Kyle Rosebrook</strong>
+      8 min read · AI &amp; Automation
+    </div>
+  </div>
+</div>
+
+<div class="divider"></div>
+
+<article>
+
+  <p>Anthropic just published results from a survey of 81,000 Claude users. They asked people about productivity, about where the benefits go, about how AI has changed their work. The findings are interesting. One of them is genuinely important and I don't think people are landing on it correctly.</p>
+
+  <p>The finding: <strong>people experiencing the largest AI-driven speedups are more worried about job displacement — not less.</strong></p>
+
+  <p>Every LinkedIn post about AI adoption runs on the assumption that the relationship is inverse. Learn more, use it more, worry less. The data says the relationship is U-shaped. Light users and the people AI actually slows down worry about displacement. Moderate users are calm. Heavy users — the ones running the hardest — worry the most.</p>
+
+  <div class="pullquote">
+    "The people in the middle — moderate speedup, no ceiling movement — were the calmest in the data. I'd argue they're the most exposed."
+    <cite>The real read on the Anthropic Economic Index Survey</cite>
+  </div>
+
+  <p>Before unpacking why that's rational, here are the three numbers that frame the rest of this:</p>
+
+  <div class="data-callout-grid">
+    <div class="cell">
+      <span class="stat">48%</span>
+      <span class="label">of productivity gains were in scope — doing new things, not just faster things</span>
+    </div>
+    <div class="cell">
+      <span class="stat">40%</span>
+      <span class="label">reported speed as the primary gain — existing tasks, less time</span>
+    </div>
+    <div class="cell">
+      <span class="stat">5.1/7</span>
+      <span class="label">mean self-reported productivity score — "substantially more productive"</span>
+    </div>
+  </div>
+
+  <h2>Why the U-curve is rational</h2>
+
+  <p>If your 4-hour task now takes 45 minutes, a rational person starts doing the math their manager is about to do. You didn't just get more efficient. You made yourself legible as a variable. And legible variables get optimized.</p>
+
+  <p>This isn't paranoia. It's reading the room correctly. The survey captures this in the quote from a software developer: <em>"when AI arrived, the project managers started giving harder and harder tickets and bugs to solve."</em> That's not a worker being anxious — that's a worker accurately describing the dynamic that follows a speedup. You didn't get more time. You got a harder queue.</p>
+
+  <p>The people who aren't worried are the people who haven't clocked the math yet. The heavy users have. That's the U-curve.</p>
+
+  <h2>Scope versus speed — this is the actual split</h2>
+
+  <p>The more important finding in this data isn't the displacement numbers. It's the 48/40 split on how people describe their productivity gains.</p>
+
+  <p>Speed is a metric. Metrics get tracked, benchmarked, compared across headcount, and used to justify decisions. If you're using AI to go faster at the same tasks, you are making yourself measurable in a new way. Measured things get compared. Compared things get optimized. You know what "optimized" usually means in a spreadsheet context.</p>
+
+  <p>Scope is different. Scope expansion means you're doing things that weren't in your job description three months ago. Things no one budgeted for. Things that don't have a benchmark. If you're an L1 service desk tech who's also building production automation workflows, deploying agent platforms, writing security hardening documentation — not because anyone asked, but because AI made that ceiling reachable — that doesn't fit cleanly in a comparison model. Because there's nothing to compare it to.</p>
+
+  <div class="pullquote">
+    "Speed makes you faster at your lane. Scope changes which lane you're in."
+  </div>
+
+  <p>That's not a safety net. But it's a fundamentally different threat model than "this role will take fewer people because everyone's 30% faster." It's harder to quantify, harder to commoditize, and harder to replicate with a generic rollout.</p>
+
+  <h2>The delivery driver and the landscaper</h2>
+
+  <p>The study has a brief moment that deserves more attention than it gets in the summary. In the section on low-wage workers reporting high productivity gains, they note: a delivery driver using Claude to start an e-commerce business, and a landscaper building a music application.</p>
+
+  <p>The study frames these as evidence that "low-wage workers also report large productivity gains." That's technically true. But it's not quite right as a framing. These aren't people who got faster at their jobs. These are people whose ceiling moved. The job didn't change. The aperture did.</p>
+
+  <p>That distinction matters because the productivity gain isn't captured in their occupational output. You can't measure it in deliveries made or lawns cut. It's invisible to the metrics that matter in the speedup model. And that's precisely what makes it durable.</p>
+
+  <h2>The early-career squeeze</h2>
+
+  <p>One finding in the study that gets buried in the occupation analysis: early-career workers worry more about displacement <em>and</em> capture less of the productivity surplus. 60% of early-career respondents said the gains went to them personally. 80% of senior workers said the same.</p>
+
+  <p>That's a compound problem. You're more exposed to being automated out of the entry-level roles that would normally build your skills and career leverage. And when you do use AI, the value is more likely to flow to your employer or manager than to you. The senior workers who are most excited about AI gains are often excited because AI extends their reach — they get to do more with the same or fewer juniors underneath them.</p>
+
+  <p>The survey doesn't say this directly. But the numbers say it clearly enough.</p>
+
+  <h2>What the data misses</h2>
+
+  <p>The study is honest about its limitations. The sample is entirely personal-account Claude.ai users who chose to take the survey. Enterprise users — where employer capture of AI surplus is almost certainly higher — are invisible. The occupation data is inferred from free-form responses, which introduces real classifier noise. And the open-ended format means what people choose to mention shapes the results.</p>
+
+  <p>There's also a structural blind spot in the framing. The study treats productivity gain and displacement worry as two separate variables to correlate. But they're part of the same dynamic. The reason high-speedup users are more worried isn't irrational anxiety — it's that they have the most accurate read on what the speedup actually means for the people above them in the decision chain.</p>
+
+  <h2>The questions that matter</h2>
+
+  <p>The boring question is: how do I do this faster?</p>
+
+  <p>The faster you answer it, the more measurable you become. The more measurable you are, the more legible you are as a variable in someone else's model.</p>
+
+  <p>The durable question is: what can I do now that I couldn't do six months ago?</p>
+
+  <p>That question doesn't produce a benchmark. It produces a capability. And capabilities are harder to optimize out of a headcount model than throughput numbers.</p>
+
+  <p>The 48% who reported scope expansion — not speed — as their primary gain aren't just more productive. They're harder to compare. Which, in a spreadsheet, might be exactly the right place to be.</p>
+
+  <hr class="closing-rule">
+
+  <div class="source-note">
+    Source: Anthropic Economic Index Survey — "What 81,000 people told us about the economics of AI," April 22, 2026.<br>
+    Massenkoff, M. &amp; Huang, S. et al. Data reflects personal Claude.ai account users who opted in to the survey.
+  </div>
+
+</article>
+
+</body>
+</html>

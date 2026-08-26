@@ -1,0 +1,1259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Agent Factory — Client Tools</title>
+  <style>
+    :root {
+      --void: #0a0a0f;
+      --surface: #12121a;
+      --surface2: #1a1a26;
+      --surface3: #22223a;
+      --border: #2a2a42;
+      --violet: #7c5cfc;
+      --violet-dim: #4a3599;
+      --violet-glow: rgba(124, 92, 252, 0.15);
+      --green: #22c55e;
+      --green-dim: rgba(34, 197, 94, 0.12);
+      --red: #ef4444;
+      --red-dim: rgba(239, 68, 68, 0.12);
+      --amber: #f59e0b;
+      --amber-dim: rgba(245, 158, 11, 0.12);
+      --blue: #3b82f6;
+      --blue-dim: rgba(59, 130, 246, 0.12);
+      --text: #e2e2f0;
+      --text-muted: #8888aa;
+      --text-dim: #5555775;
+      --font: 'Inter', system-ui, -apple-system, sans-serif;
+      --mono: 'JetBrains Mono', 'Fira Code', monospace;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--void);
+      color: var(--text);
+      font-family: var(--font);
+      font-size: 14px;
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    /* ── Layout ── */
+    .app { max-width: 1100px; margin: 0 auto; padding: 48px 24px 80px; }
+
+    .header {
+      margin-bottom: 48px;
+      padding-bottom: 24px;
+      border-bottom: 1px solid var(--border);
+    }
+    .header-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--violet-glow);
+      border: 1px solid var(--violet-dim);
+      color: var(--violet);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 4px 10px;
+      border-radius: 4px;
+      margin-bottom: 16px;
+    }
+    .header h1 {
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 8px;
+    }
+    .header p {
+      color: var(--text-muted);
+      font-size: 14px;
+      max-width: 600px;
+    }
+
+    /* ── Tabs ── */
+    .tabs {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 32px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 4px;
+      width: fit-content;
+    }
+    .tab-btn {
+      padding: 8px 20px;
+      border: none;
+      border-radius: 6px;
+      background: transparent;
+      color: var(--text-muted);
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.15s;
+      font-family: var(--font);
+    }
+    .tab-btn:hover { color: var(--text); }
+    .tab-btn.active {
+      background: var(--violet);
+      color: #fff;
+    }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* ── Section header ── */
+    .section-header {
+      margin-bottom: 20px;
+    }
+    .section-header h2 {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+    .section-header p {
+      color: var(--text-muted);
+      font-size: 13px;
+    }
+
+    /* ── Anti-Pattern Cards ── */
+    .ap-grid {
+      display: grid;
+      gap: 16px;
+    }
+
+    .ap-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      transition: border-color 0.2s;
+    }
+    .ap-card:hover { border-color: var(--violet-dim); }
+
+    .ap-card-header {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      align-items: center;
+      gap: 12px;
+      padding: 16px 20px;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .ap-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      flex-shrink: 0;
+    }
+    .ap-icon.red { background: var(--red-dim); border: 1px solid rgba(239,68,68,0.2); }
+    .ap-icon.amber { background: var(--amber-dim); border: 1px solid rgba(245,158,11,0.2); }
+    .ap-icon.blue { background: var(--blue-dim); border: 1px solid rgba(59,130,246,0.2); }
+
+    .ap-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+    }
+    .ap-subtitle {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .ap-expand {
+      font-size: 18px;
+      color: var(--text-muted);
+      transition: transform 0.2s;
+    }
+    .ap-card.open .ap-expand { transform: rotate(180deg); }
+
+    .ap-body {
+      display: none;
+      border-top: 1px solid var(--border);
+      padding: 0;
+    }
+    .ap-card.open .ap-body { display: block; }
+
+    .ap-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 0;
+    }
+    .ap-col {
+      padding: 16px 20px;
+      border-right: 1px solid var(--border);
+    }
+    .ap-col:last-child { border-right: none; }
+    .ap-col-label {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+    .ap-col-content {
+      font-size: 13px;
+      color: var(--text);
+      line-height: 1.5;
+    }
+
+    .symptom-tag {
+      display: inline-block;
+      background: var(--red-dim);
+      border: 1px solid rgba(239,68,68,0.2);
+      color: var(--red);
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 4px;
+      margin-bottom: 6px;
+    }
+    .fix-tag {
+      display: inline-block;
+      background: var(--green-dim);
+      border: 1px solid rgba(34,197,94,0.2);
+      color: var(--green);
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 4px;
+      margin-bottom: 6px;
+    }
+
+    .principle-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: var(--violet-glow);
+      border: 1px solid var(--violet-dim);
+      color: var(--violet);
+      font-size: 11px;
+      padding: 3px 8px;
+      border-radius: 4px;
+      margin-top: 8px;
+    }
+
+    /* ── Checklist ── */
+    .checklist-meta {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 24px;
+      padding: 12px 16px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+    }
+    .progress-wrap {
+      flex: 1;
+    }
+    .progress-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+    .progress-bar {
+      height: 4px;
+      background: var(--surface3);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      background: var(--violet);
+      border-radius: 2px;
+      transition: width 0.3s ease;
+    }
+    .reset-btn {
+      padding: 6px 14px;
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text-muted);
+      font-size: 12px;
+      cursor: pointer;
+      font-family: var(--font);
+      transition: all 0.15s;
+    }
+    .reset-btn:hover {
+      border-color: var(--violet-dim);
+      color: var(--violet);
+    }
+
+    .checklist-section {
+      margin-bottom: 24px;
+    }
+    .checklist-section-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+    .section-icon {
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      flex-shrink: 0;
+    }
+    .section-icon.violet { background: var(--violet-glow); border: 1px solid var(--violet-dim); }
+    .section-icon.green { background: var(--green-dim); border: 1px solid rgba(34,197,94,0.2); }
+    .section-icon.amber { background: var(--amber-dim); border: 1px solid rgba(245,158,11,0.2); }
+    .section-icon.blue { background: var(--blue-dim); border: 1px solid rgba(59,130,246,0.2); }
+    .section-icon.red { background: var(--red-dim); border: 1px solid rgba(239,68,68,0.2); }
+
+    .checklist-section-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+    }
+    .checklist-section-sub {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-left: auto;
+    }
+
+    .checklist-items {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .checklist-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      cursor: pointer;
+      transition: background 0.1s;
+    }
+    .checklist-item:last-child { border-bottom: none; }
+    .checklist-item:hover { background: var(--surface2); }
+    .checklist-item.checked { background: rgba(34,197,94,0.04); }
+
+    .check-box {
+      width: 18px;
+      height: 18px;
+      border: 1.5px solid var(--border);
+      border-radius: 4px;
+      flex-shrink: 0;
+      margin-top: 1px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s;
+    }
+    .checklist-item.checked .check-box {
+      background: var(--green);
+      border-color: var(--green);
+    }
+    .check-mark {
+      display: none;
+      color: #000;
+      font-size: 11px;
+      font-weight: 700;
+    }
+    .checklist-item.checked .check-mark { display: block; }
+
+    .item-content { flex: 1; }
+    .item-label {
+      font-size: 13px;
+      color: var(--text);
+      line-height: 1.4;
+      transition: color 0.15s;
+    }
+    .checklist-item.checked .item-label {
+      color: var(--text-muted);
+      text-decoration: line-through;
+      text-decoration-color: rgba(255,255,255,0.2);
+    }
+    .item-note {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 3px;
+      line-height: 1.4;
+    }
+    .checklist-item.checked .item-note { display: none; }
+
+    .item-tag {
+      flex-shrink: 0;
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      padding: 2px 7px;
+      border-radius: 3px;
+      margin-top: 2px;
+    }
+    .item-tag.critical {
+      background: var(--red-dim);
+      color: var(--red);
+      border: 1px solid rgba(239,68,68,0.2);
+    }
+    .item-tag.required {
+      background: var(--amber-dim);
+      color: var(--amber);
+      border: 1px solid rgba(245,158,11,0.2);
+    }
+    .item-tag.optional {
+      background: var(--blue-dim);
+      color: var(--blue);
+      border: 1px solid rgba(59,130,246,0.2);
+    }
+
+    /* ── Client info section ── */
+    .client-fields {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+    .field-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .field-label {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+    .field-input {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 8px 12px;
+      color: var(--text);
+      font-size: 13px;
+      font-family: var(--font);
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .field-input:focus { border-color: var(--violet-dim); }
+    .field-input::placeholder { color: var(--text-muted); }
+
+    /* ── SNR quick-ref ── */
+    .snr-bar {
+      display: flex;
+      align-items: stretch;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+      margin-top: 24px;
+    }
+    .snr-zone {
+      flex: 1;
+      padding: 12px 16px;
+      text-align: center;
+    }
+    .snr-zone:not(:last-child) { border-right: 1px solid var(--border); }
+    .snr-range {
+      font-size: 16px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+    .snr-label {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+    }
+    .snr-action {
+      font-size: 11px;
+    }
+    .snr-zone.green-z { background: rgba(34,197,94,0.04); }
+    .snr-zone.amber-z { background: rgba(245,158,11,0.04); }
+    .snr-zone.orange-z { background: rgba(239,120,44,0.04); }
+    .snr-zone.red-z { background: rgba(239,68,68,0.04); }
+
+    /* ── Footer ── */
+    .footer {
+      margin-top: 48px;
+      padding-top: 20px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .footer-text { font-size: 11px; color: var(--text-muted); }
+    .footer-brand {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--violet);
+    }
+
+    @media (max-width: 680px) {
+      .ap-row { grid-template-columns: 1fr; }
+      .ap-col { border-right: none; border-bottom: 1px solid var(--border); }
+      .ap-col:last-child { border-bottom: none; }
+      .client-fields { grid-template-columns: 1fr; }
+      .snr-bar { flex-direction: column; }
+      .snr-zone:not(:last-child) { border-right: none; border-bottom: 1px solid var(--border); }
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="header-badge">⚙ INT Customization Service</div>
+    <h1>Agent Factory — Client Tools</h1>
+    <p>Anti-pattern reference and engagement customization checklist for client delivery of the Agent Factory blueprint.</p>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('antipatterns', this)">Anti-Pattern Reference</button>
+    <button class="tab-btn" onclick="switchTab('checklist', this)">Customization Checklist</button>
+  </div>
+
+  <!-- ══ Tab 1: Anti-Patterns ══ -->
+  <div id="tab-antipatterns" class="tab-panel active">
+    <div class="section-header">
+      <h2>8 Anti-Patterns This Architecture Prevents</h2>
+      <p>Expand each card to see: the failure mode, how to detect it, and the exact architectural decision that prevents it.</p>
+    </div>
+
+    <div class="ap-grid">
+
+      <!-- 1 -->
+      <div class="ap-card" onclick="toggleCard(this)">
+        <div class="ap-card-header">
+          <div class="ap-icon red">🧱</div>
+          <div>
+            <div class="ap-title">Monolithic AI</div>
+            <div class="ap-subtitle">One generalist agent doing everything poorly</div>
+          </div>
+          <div class="ap-expand">⌄</div>
+        </div>
+        <div class="ap-body">
+          <div class="ap-row">
+            <div class="ap-col">
+              <div class="ap-col-label">Why It Fails</div>
+              <div class="ap-col-content">Prompt bloat causes hallucinations on edge cases. Single point of failure — one bad output poisons trust across all tasks. Context window exhaustion degrades quality on complex tasks. Cannot be tuned per task domain.</div>
+              <div class="principle-badge">⚡ Specialization beats generality</div>
+            </div>
+            <div class="ap-col">
+              <div class="ap-col-label">Symptoms to Watch For</div>
+              <div class="ap-col-content">
+                <span class="symptom-tag">Inconsistent quality across task types</span><br>
+                <span class="symptom-tag">SNR varies wildly (80%+ some days, 40% others)</span><br>
+                <span class="symptom-tag">Engineers don't trust output without re-reading</span><br>
+                <span class="symptom-tag">Single agent's failure blocks all automation</span>
+              </div>
+            </div>
+            <div class="ap-col">
+              <div class="ap-col-label">How Blueprint Prevents It</div>
+              <div class="ap-col-content">
+                <span class="fix-tag">15 specialized agents, each with one job</span><br>
+                Each agent has a single Markdown definition with narrow, explicit scope. When a new task category emerges, a new agent is created — never expanding an existing one.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2 -->
+      <div class="ap-card" onclick="toggleCard(this)">
+        <div class="ap-card-header">
+          <div class="ap-icon red">🔓</div>
+          <div>
+            <div class="ap-title">Permission Creep</div>
+            <div class="ap-subtitle">Agents accumulate permissions over time</div>
+          </div>
+          <div class="ap-expand">⌄</div>
+        </div>
+        <div class="ap-body">
+          <div class="ap-row">
+            <div class="ap-col">
+              <div class="ap-col-label">Why It Fails</div>
+              <div class="ap-col-content">One hallucination or bad output with write access can corrupt the codebase. Security posture degrades silently — teams notice only after an incident. Violates the principle of least privilege that governs all enterprise security.</div>
+              <div class="principle-badge">🔒 Guardrails enable innovation</div>
+            </div>
+            <div class="ap-col">
+              <div class="ap-col-label">Symptoms to Watch For</div>
+              <div class="ap-col-content">
+                <span class="symptom-tag">Observer agents with contents:write</span><br>
+                <span class="symptom-tag">Agents granted admin scope "just in case"</span><br>
+                <span class="symptom-tag">No audit trail showing who granted what</span><br>
+                <span class="symptom-tag">>6 months since last permission review</span>
+              </div>
+            </div>
+            <div class="ap-col">
+              <div class="ap-col-label">How Blueprint Prevents It</div>
+              <div class="ap-col-content">
+                <span class="fix-tag">Hard permission ledger — 15-agent matrix</span><br>
+                <span class="fix-tag">Semi-annual permission audit required</span><br>
+                Three permission tiers (Observer / Proposer / Meta) with explicit YAML templates. Any deviation from least-privilege requires documented justification.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3 -->
+      <div class="ap-card" onclick="toggleCard(this)">
+        <div class="ap-card-header">
+          <div class="ap-icon red">📢</div>
+          <div>
+            <div class="ap-title">Output Fatigue</div>
+            <div class="ap-subtitle">Teams stop reading agent outputs because too many are low quality</div>
+          </div>
+          <div class="ap-expand">⌄</div>
+        </div>
+        <div class="ap-body">
+          <div class="ap-row">
+            <div class="ap-col">
+              <div class="ap-col-label">Why It Fails</div>
+              <div class="ap-col-content">When agent noise exceeds signal, engineers learn to ignore all agent outputs — including the important ones. Trust, once lost, is nearly impossible to rebuild. The factory becomes a spam factory.</div>
+              <div class="principle-badge">📊 Meta-agents are mandatory at scale</div>
+            </div>
+            <div class="ap-col">
+              <div class="ap-col-label">Symptoms to Watch For</div>
+              <div class="ap-col-content">
+                <span class="symptom-tag">Agent PRs sit unreviewed for >7 days</span><br>
+                <span class="symptom-tag">Low emoji reaction rates on agent comments</span><br>
+                <span class="symptom-tag">Engineers complain about notification volume</span><br>
+                <span class="symptom-tag">SNR falls below 70% for 2+ weeks</span>
+              </div>
+            </div>
+            <div class="ap-col">
+              <div class="ap-col-label">How Blueprint Prevents It</div>
+              <div class="ap-col-content">
+                <span class="fix-tag">Agent-15: Output Quality Auditor (weekly)</span><br>
+                <span class="fix-tag">SNR thresholds enforced: alert at &lt;70%</span><br>
+                Meta-agents triage all agent outputs and escalate only anomalous findings. New agent deployments are paused if factory SNR drops below threshold.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4 -->
+      <div class="ap-card" onclick="toggleCard(this)">
+        <div class="ap-card-header">
+          <div class="ap-icon amber">⬛</div>
+          <div>
+            <div class="ap-title">Black Box Logic</div>
+            <div class="ap-subtitle">Agent behavior not inspectable by the team</div>
+          </div>
+          <div class="ap-expand">⌄</div>
+        </div>
+        <div class="ap-body">
+          <div class="ap-row">
+            <div class="ap-col">
+              <div class="ap-col-label">Why It Fails</div>
+              <div class="ap-col-content">Teams can't trust automation they can't read. When something goes wrong, there's no source of truth to debug. Engineers can't remix or improve agent logic. Democratization of agent creation is impossible.</div>
+              <div class="principle-badge">📄 Markdown as source of truth</div>
+            </div>
+            <div class="ap-col">
+              <div class="ap-col-label">Symptoms to Watch For</div>
+              <div class="ap-col-content">
+                <span class="symptom-tag">Agent logic lives only in the LLM vendor UI</span><br>
+                <span class="symptom-tag">Can't explain why an agent made a decision</span><br>
+                <span class="symptom-tag">No audit log of agent actions</span><br>
+                <span class="symptom-tag">Only one person understands how agents work</span>
+              </div>
+            </div>
+            <div class="ap-col">
+              <div class="ap-col-label">How Blueprint Prevents It</div>
+              <div class="ap-col-content">
+                <span class="fix-tag">Markdown DSL — human-readable agent definitions</span><br>
+                <span class="fix-tag">Full audit logs via GitHub Actions</span><br>
+                Every agent's logic lives in `.github/agent-factory/agents/` as Markdown. Any engineer can read, audit, or fork an agent without ML expertise.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 5 -->
+      <div class="ap-card" onclick="toggleCard(this)">
+        <div class="ap-card-header">
+          <div class="ap-icon amber">✏️</div>
+          <div>
+            <div class="ap-title">Direct Commits</div>
+            <div class="ap-subtitle">Agents writing to main branch without human review</div>
+          </div>
+          <div class="ap-expand">⌄</div>
+        </div>
+        <div class="ap-body">
+          <div class="ap-row">
+            <div class="ap-col">
+              <div class="ap-col-label">Why It Fails</div>
+              <div class="ap-col-content">Removes the human as final authority on code integration. One hallucinated change can corrupt production code. No diff review means no learning signal — teams can't improve agent quality. Violates standard code review culture.</div>
+              <div class="principle-badge">👤 Human-in-the-loop via PRs</div>
+            </div>
+            <div class="ap-col">
+              <div class="ap-col-label">Symptoms to Watch For</div>
+              <div class="ap-col-content">
+                <span class="symptom-tag">Agents with direct push to main</span><br>
+                <span class="symptom-tag">No branch protection on key branches</span><br>
+                <span class="symptom-tag">Agent changes bypassing CODEOWNERS</span><br>
+                <span class="symptom-tag">Commits with no human review in history</span>
+              </div>
+            </div>
+            <div class="ap-col">
+              <div class="ap-col-label">How Blueprint Prevents It</div>
+              <div class="ap-col-content">
+                <span class="fix-tag">All Tier 2+ agents create branches + PRs only</span><br>
+                <span class="fix-tag">No agent granted direct push to main</span><br>
+                Tier 2 agents create a branch, commit changes, and open a draft PR with full rationale. Humans review and merge. This is non-negotiable in the permission model.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 6 -->
+      <div class="ap-card" onclick="toggleCard(this)">
+        <div class="ap-card-header">
+          <div class="ap-icon amber">💸</div>
+          <div>
+            <div class="ap-title">Cost Spiral</div>
+            <div class="ap-subtitle">API bills growing without proportional value</div>
+          </div>
+          <div class="ap-expand">⌄</div>
+        </div>
+        <div class="ap-body">
+          <div class="ap-row">
+            <div class="ap-col">
+              <div class="ap-col-label">Why It Fails</div>
+              <div class="ap-col-content">Longer analysis is not always better — there are real diminishing returns. Defaulting to the most capable (most expensive) model for every task destroys ROI. Without per-agent budgets, cost attribution is impossible.</div>
+              <div class="principle-badge">📉 Match compute energy to complexity</div>
+            </div>
+            <div class="ap-col">
+              <div class="ap-col-label">Symptoms to Watch For</div>
+              <div class="ap-col-content">
+                <span class="symptom-tag">All agents using deepest/most expensive model</span><br>
+                <span class="symptom-tag">No per-agent cost tracking</span><br>
+                <span class="symptom-tag">Monthly API bill growing >20%/month</span><br>
+                <span class="symptom-tag">Can't attribute spend to specific agents</span>
+              </div>
+            </div>
+            <div class="ap-col">
+              <div class="ap-col-label">How Blueprint Prevents It</div>
+              <div class="ap-col-content">
+                <span class="fix-tag">Per-agent monthly cost budgets defined</span><br>
+                <span class="fix-tag">Agent-14: Health Monitor tracks API cost</span><br>
+                Three model tiers: Fast (classification/labeling), Standard (analysis/generation), Deep (multi-phase only). Each agent assigned the minimum viable tier for its task.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 7 -->
+      <div class="ap-card" onclick="toggleCard(this)">
+        <div class="ap-card-header">
+          <div class="ap-icon blue">🌿</div>
+          <div>
+            <div class="ap-title">Automation Sprawl</div>
+            <div class="ap-subtitle">Disconnected agents generating noise with no documented purpose</div>
+          </div>
+          <div class="ap-expand">⌄</div>
+        </div>
+        <div class="ap-body">
+          <div class="ap-row">
+            <div class="ap-col">
+              <div class="ap-col-label">Why It Fails</div>
+              <div class="ap-col-content">Agents created ad hoc for one-off tasks proliferate without governance. No one knows what each agent does or why it exists. Duplication of effort, conflicting outputs, and unaccountable spend become the norm.</div>
+              <div class="principle-badge">📚 Living library as institutional memory</div>
+            </div>
+            <div class="ap-col">
+              <div class="ap-col-label">Symptoms to Watch For</div>
+              <div class="ap-col-content">
+                <span class="symptom-tag">Agents not documented in living library</span><br>
+                <span class="symptom-tag">Duplicate agents solving same problem</span><br>
+                <span class="symptom-tag">Team can't list all active agents</span><br>
+                <span class="symptom-tag">No friction-point mapping for any agent</span>
+              </div>
+            </div>
+            <div class="ap-col">
+              <div class="ap-col-label">How Blueprint Prevents It</div>
+              <div class="ap-col-content">
+                <span class="fix-tag">Every agent maps to a documented friction point</span><br>
+                <span class="fix-tag">Admission gate blocks undocumented agents</span><br>
+                The living library at `.github/agent-factory/` is the mandatory registry. The governance checklist requires a documented friction point before any agent can be deployed.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 8 -->
+      <div class="ap-card" onclick="toggleCard(this)">
+        <div class="ap-card-header">
+          <div class="ap-icon blue">🧟</div>
+          <div>
+            <div class="ap-title">Stale Agents</div>
+            <div class="ap-subtitle">Agents running on outdated logic long after their context has changed</div>
+          </div>
+          <div class="ap-expand">⌄</div>
+        </div>
+        <div class="ap-body">
+          <div class="ap-row">
+            <div class="ap-col">
+              <div class="ap-col-label">Why It Fails</div>
+              <div class="ap-col-content">Codebase evolves; agent Markdown definitions don't. Agents provide accurate-sounding but wrong analysis because they're working from stale assumptions. Teams lose trust as stale agents produce confident-but-incorrect outputs.</div>
+              <div class="principle-badge">🔄 Quarterly deprecation reviews</div>
+            </div>
+            <div class="ap-col">
+              <div class="ap-col-label">Symptoms to Watch For</div>
+              <div class="ap-col-content">
+                <span class="symptom-tag">Agent hasn't triggered in 30+ days</span><br>
+                <span class="symptom-tag">Markdown definition not updated in 6+ months</span><br>
+                <span class="symptom-tag">Agent references deprecated patterns/files</span><br>
+                <span class="symptom-tag">Low merge rate on agent PRs (&lt;40%)</span>
+              </div>
+            </div>
+            <div class="ap-col">
+              <div class="ap-col-label">How Blueprint Prevents It</div>
+              <div class="ap-col-content">
+                <span class="fix-tag">30-day inactivity alert via Agent-14</span><br>
+                <span class="fix-tag">Quarterly deprecation review (mandatory)</span><br>
+                <span class="fix-tag">Agent-15 SNR scoring catches degradation</span><br>
+                Agents with SNR &lt;70% for 2+ quarters are automatically flagged for retirement and moved to `.github/agent-factory/archive/`.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /ap-grid -->
+
+    <!-- SNR quick-ref -->
+    <div class="section-header" style="margin-top:32px">
+      <h2>Signal-to-Noise Ratio Quick Reference</h2>
+      <p>The factory's single most important health metric. If SNR drops below target, follow the action immediately.</p>
+    </div>
+    <div class="snr-bar">
+      <div class="snr-zone green-z">
+        <div class="snr-range" style="color:var(--green)">90–100%</div>
+        <div class="snr-label">Healthy</div>
+        <div class="snr-action" style="color:var(--green)">Keep deploying</div>
+      </div>
+      <div class="snr-zone amber-z">
+        <div class="snr-range" style="color:var(--amber)">80–90%</div>
+        <div class="snr-label">Watch Closely</div>
+        <div class="snr-action" style="color:var(--amber)">Tune before adding more</div>
+      </div>
+      <div class="snr-zone orange-z">
+        <div class="snr-range" style="color:#f97316">70–80%</div>
+        <div class="snr-label">Pause Deployments</div>
+        <div class="snr-action" style="color:#f97316">Fix existing first</div>
+      </div>
+      <div class="snr-zone red-z">
+        <div class="snr-range" style="color:var(--red)">&lt;70%</div>
+        <div class="snr-label">Red Alert</div>
+        <div class="snr-action" style="color:var(--red)">Meta-agent audit required</div>
+      </div>
+    </div>
+
+  </div><!-- /tab-antipatterns -->
+
+  <!-- ══ Tab 2: Customization Checklist ══ -->
+  <div id="tab-checklist" class="tab-panel">
+    <div class="section-header">
+      <h2>Client Delivery Customization Checklist</h2>
+      <p>Complete these steps before presenting the Agent Factory blueprint to a specific client. Checked items persist in your browser session.</p>
+    </div>
+
+    <!-- Client info fields -->
+    <div class="client-fields">
+      <div class="field-group">
+        <label class="field-label">Client / Org Name</label>
+        <input class="field-input" type="text" placeholder="e.g. Acme Corp" id="client-name" oninput="updateFooter()" />
+      </div>
+      <div class="field-group">
+        <label class="field-label">Engagement Type</label>
+        <input class="field-input" type="text" placeholder="e.g. 4-week POC, 12-week implementation" id="engagement-type" />
+      </div>
+      <div class="field-group">
+        <label class="field-label">Primary Contact</label>
+        <input class="field-input" type="text" placeholder="Name + title" id="primary-contact" />
+      </div>
+      <div class="field-group">
+        <label class="field-label">Delivery Date</label>
+        <input class="field-input" type="text" placeholder="e.g. 2026-04-15" id="delivery-date" />
+      </div>
+    </div>
+
+    <!-- Progress -->
+    <div class="checklist-meta">
+      <div class="progress-wrap">
+        <div class="progress-label">
+          <span>Customization progress</span>
+          <span id="progress-text">0 / 32 complete</span>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill" id="progress-fill" style="width:0%"></div>
+        </div>
+      </div>
+      <button class="reset-btn" onclick="resetChecklist()">Reset all</button>
+    </div>
+
+    <!-- Section 1: Repo & Tech Stack -->
+    <div class="checklist-section">
+      <div class="checklist-section-header">
+        <div class="section-icon violet">🗂</div>
+        <div class="checklist-section-title">1 — Repository & Tech Stack</div>
+        <div class="checklist-section-sub">Replace generic references with client specifics</div>
+      </div>
+      <div class="checklist-items">
+        <div class="checklist-item" onclick="toggleCheck(this)">
+          <div class="check-box"><span class="check-mark">✓</span></div>
+          <div class="item-content">
+            <div class="item-label">Replace all [your-repo] placeholders with actual repository names</div>
+            <div class="item-note">Include monorepo structure if applicable. Name every repo the factory will touch in Phase 1.</div>
+          </div>
+          <span class="item-tag critical">Critical</span>
+        </div>
+        <div class="checklist-item" onclick="toggleCheck(this)">
+          <div class="check-box"><span class="check-mark">✓</span></div>
+          <div class="item-content">
+            <div class="item-label">Confirm CI/CD platform — GitHub Actions, GitLab CI, Bitbucket Pipelines, or Azure DevOps</div>
+            <div class="item-note">Blueprint assumes GitHub Actions. Adapt trigger syntax and workflow YAML if client uses a different platform.</div>
+          </div>
+          <span class="item-tag critical">Critical</span>
+        </div>
+        <div class="checklist-item" onclick="toggleCheck(this)">
+          <div class="check-box"><span class="check-mark">✓</span></div>
+          <div class="item-content">
+            <div class="item-label">Map client's primary languages to agent scope (Python, TypeScript, Java, Go, etc.)</div>
+            <div class="item-note">Affects Continuous Style, Edge Case Validator, and Test Coverage agents — each needs language-specific context.</div>
+          </div>
+          <span class="item-tag required">Required</span>
+        </div>
+        <div class="checklist-item" onclick="toggleCheck(this)">
+          <div class="check-box"><span class="check-mark">✓</span></div>
+          <div class="item-content">
+            <div class="item-label">Identify existing tooling overlaps — Dependabot, CodeQL, Snyk, SonarQube, etc.</div>
+            <div class="item-note">Remove or scope agents that duplicate existing tools. Don't deploy Dependency Audit if Dependabot already covers it.</div>
+          </div>
+          <span class="item-tag required">Required</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Section 2: Team Structure -->
+    <div class="checklist-section">
+      <div class="checklist-section-header">
+        <div class="section-icon green">👥</div>
+        <div class="checklist-section-title">2 — Team Structure & Routing</div>
+        <div class="checklist-section-sub">Wire agents to the right humans</div>
+      </div>
+      <div class="checklist-items">
+        <div class="checklist-item" onclick="toggleCheck(this)">
+          <div class="check-box"><span class="check-mark">✓</span></div>
+          <div class="item-content">
+            <div class="item-label">Update Contributor Coordinator (Agent 03) with actual team area labels</div>
+            <div class="item-note">Replace generic labels like "auth, infra, frontend" with the client's actual CODEOWNERS areas and team names.</div>
+          </div>
+          <span class="item-tag critical">Critical</span>
+        </div>
+        <div class="checklist-item" onclick="toggleCheck(this)">
+          <div class="check-box"><span class="check-mark">✓</span></div>
+          <div class="item-content">
+            <div class="item-label">Identify the security lead who receives CRITICAL SECURITY issue notifications</div>
+            <div class="item-note">Required for Secret Leak Detector (Agent 11) and Dependency Audit (Agent 10) escalation paths.</div>
+          </div>
+          <span class="item-tag critical">Critical</span>
+        </div>
+        <div class="checklist-item" onclick="toggleCheck(this)">
+          <div class="check-box"><span class="check-mark">✓</span></div>
+          <div class="item-content">
+            <div class="item-label">Confirm the engineering lead who reviews weekly factory health reports</div>
+            <div class="item-note">Agent-14 (Health Monitor) assigns issues to this person. Must be someone who will actually review weekly.</div>
+          </div>
+          <span class="item-tag required">Required</span>
+        </div>
+        <div class="checklist-item" onclick="toggleCheck(this)">
+          <div class="check-box"><span class="check-mark">✓</span></div>
+          <div class="item-content">
+            <div class="item-label">Define PR review norms for agent-generated PRs (who reviews, turnaround SLA)</div>
+            <div class="item-note">Recommend: any team member can review Tier 2 agent PRs. Senior approval for Tier 3. Set a 48–72 hour review SLA.</div>
+          </div>
+          <span class="item-tag required">Required</span>
+        </div>
+        <div class="checklist-item" onclick="toggleCheck(this)">
+          <div class="check-box"><span class="check-mark">✓</span></div>
+          <div class="item-content">
+            <div class="item-label">Map the notification channel for agent alerts (Slack channel, email list, etc.)</div>
+            <div class="item-note">Secret scan alerts and cost alerts need an immediate-notification path. Don't rely on GitHub notifications alone.</div>
+          </div>
+          <span class="item-tag optional">Optional</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Section 3: Security & Compliance -->
+    <div class="checklist-section">
+      <div class="checklist-section-header">
+        <div class="section-icon red">🔒</div>
+        <div class="checklist-section-title">3 — Security & Compliance Requirements</div>
+        <div class="checklist-section-sub">Add regulated-client agents if applicable</div>
+      </div>
+      <div class="checklist-items">
+        <div class="checklist-item" onclick="toggleCheck(this)">
+          <div class="check-box"><span class="check-mark">✓</span></div>
+          <div class="item-content">
+            <div class="item-label">Confirm compliance posture — SOC2, HIPAA, PCI-DSS, GDPR, FedRAMP, or none</div>
+            <div class="item-note">Each framework requires additional specialized agents beyond the base 15. Document which apply before finalizing the agent catalog.</div>
+          </div>
+          <span class="item-tag critical">Critical</span>
+        </div>
+        <div class="checklist-item" onclick="toggleCheck(this)">
+          <div class="check-box"><span class="check-mark">✓</span></div>
+          <div class="item-content">
+            <div class="item-label">For SOC2 clients: add Continuous Compliance Monitor agent to catalog</div>
+            <div class="item-note">Scans PRs for hardcoded credentials, unencrypted PII handling, missing audit logging, and access control drift.</div>
+          </div>
+          <span class="item-tag required">Required</span>
+        </div>
+        <div class="checklist-item" onclick="toggleCheck(this)">
+          <div class="check-box"><span class="check-mark">✓</span></div>
+          <div class="item-content">
+            <div class="item-label">For HIPAA clients: add PHI Detection agent and configure Secret Scan for medical record patterns</div>
+            <div class="item-note">Standard secret patterns (API keys, passwords) must be extended with PHI patterns (SSNs, MRNs, DOBs in code/logs).</div>
+          </div>
+          <span class="item-tag required">Required</span>
+        </div>
+        <div class="checklist-item" onclick="toggleCheck(this)">
+          <div class="check-box"><span class="check-mark">✓</span></div>
+          <div class="item-content">
+            <div class="item-label">Confirm that LLM API calls do not send customer PII to external model providers</div>
+            <div class="item-note">For regulated clients, agent prompts must be sanitized. Code diffs sent to LLMs should exclude actual data values. Document this constraint.</div>
+          </div>
+          <span class="item-tag critical">Critical</span>
+        </div>
+        <div class="checklist-item" onclick="toggleCheck(this)">
+          <div class="check-box"><span class="check-mark">✓</span></div>
+          <div class="item-content">
+            <div class="item-label">Document which LLM provider will be used and confirm client's data processing agreement</div>
+            <div class="item-note">Anthropic, OpenAI, and Azure OpenAI have different data retention and processing policies. Regulated clients need explicit DPAs.</div>
+          </div>
+          <span class="item-tag required">Required</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Section 4: Cost & Budgets -->
+    <div class="checklist-section">
+      <div class="checklist-section-header">
+        <div class="section-icon amber">💰</div>
+        <div class="checklist-section-title">4 — Cost Calibration</div>
+        <div class="checklist-section-sub">Adjust budgets to client's actual volume</div>
+      </div>
+      <div class="checklist-items">
+        <div class="checklist-item" onclick="toggleCheck(this)">
+          <div class="check-box"><span class="check-mark">✓</span></div>
+          <div class="item-content">
+            <div class="item-label">Collect client's actual issue/PR/build volume (issues/month, PRs/month, CI runs/day)</div>
+            <div class="item-note">Blueprint uses 500 issues/month and 200 PRs/month as baseline. Adjust all cost estimates to actual client volume before presenting.</div>
+          </div>
+          <span class="item-tag critical">Critical</span>
+        </div>
+        <div class="checklist-item" onclick="toggleCheck(this)">
+          <div class="check-box"><span class="check-mark">✓</span></div>
+          <div class="item-content">
+            <div class="item-label">Recalculate Phase 1 and Phase 2 monthly cost estimates with client-specific volume</div>
+            <div class="item-note">Multiply per-trigger costs by actual trigger frequency. High-volume repos (>1K PRs/month) will see 5–10x cost increases.</div>
+          </div>
+          <span class="item-tag critical">Critical</span>
+        </div>
+        <div class="checklist-item" onclick="toggleCheck(this)">
+          <div class="check-box"><span class="check-mark">✓</span></div>
+          <div class="item-content">
+            <div class="item-label">Substitute client's preferred LLM provider if not using Anthropic Claude</div>
+            <div class="item-note">Cost model uses Anthropic claude-haiku (fast) and claude-sonnet (standard). Adjust if client prefers GPT-4o, Gemini, or self-hosted models.</div>
+          </div>
+          <span class="item-tag required">Required</span>
+        </div>
+        <div class="checklist-item" onclick="toggleCheck(this)">
+          <div class="check-box"><span class="check-mark">✓</span></div>
+          <div class="item-content">
+            <div class="item-label">Set per-agent monthly cost caps in the governance/cost-budgets.md file</div>
+            <div class="item-note">Recommend starting at 150% of estimated cost as the alert threshold. Adjust after first month of real data.</div>
+          </div>
+          <span class="item-tag required">Required</span>
+        </div>
+        <div class="checklist-item" onclick="toggleCheck(this)">
+          <div class="check-box"><span class="check-mark">✓</span></div>
+          <div class="item-content">
+            <div class="item-label">Build client-specific ROI calculation using their loaded engineer cost and hours-per-task data</div>
+            <div class="item-note">Blueprint uses $150/hr loaded cost. Adjust for client's geography and seniority mix. Quantify the 2–3 specific drudge tasks you'll eliminate.</div>
+          </div>
+          <span class="item-tag optional">Optional</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Section 5: Deployment Timeline -->
+    <div class="checklist-section">
+      <div class="checklist-section-header">
+        <div class="section-icon blue">📅</div>
+        <div class="checklist-section-title">5 — Deployment Timeline & Risk Tolerance</div>
+        <div class="checklist-section-sub">Adapt the 20-week rollout to client's pace</div>
+      </div>
+      <div class="checklist-items">
+        <div class="checklist-item" onclick="toggleCheck(this)">
+          <div class="check-box"><span class="check-mark">✓</span></div>
+          <div class="item-content">
+            <div class="item-label">Compress or extend phases based on client's risk tolerance and team velocity</div>
+            <div class="item-note">Startup with 10 engineers: compress to 8 weeks. Enterprise with change control: extend to 30+ weeks with CAB approval gates.</div>
+          </div>
+          <span class="item-tag critical">Critical</span>
+        </div>
+        <div class="checklist-item" onclick="toggleCheck(this)">
+          <div class="check-box"><span class="check-mark">✓</span></div>
+          <div class="item-content">
+            <div class="item-label">Identify any internal change management or CAB approval requirements for Phase 2+ agents</div>
+            <div class="item-note">Tier 2 agents that write to repos may require change management approval in regulated or enterprise environments.</div>
+          </div>
+          <span class="item-tag required">Required</span>
+        </div>
+        <div class="checklist-item" onclick="toggleCheck(this)">
+          <div class="check-box"><span class="check-mark">✓</span></div>
+          <div class="item-content">
+            <div class="item-label">Schedule a Week 4 checkpoint meeting for Phase 1 metrics review before proceeding to Phase 2</div>
+            <div class="item-note">This is the critical gate. If SNR &lt;85% or the team is uncomfortable, don't advance. This protects the client's trust in the factory.</div>
+          </div>
+          <span class="item-tag required">Required</span>
+        </div>
+        <div class="checklist-item" onclick="toggleCheck(this)">
+          <div class="check-box"><span class="check-mark">✓</span></div>
+          <div class="item-content">
+            <div class="item-label">Identify the client's first target repo for Phase 1 — highest issue volume or most senior team</div>
+            <div class="item-note">Start where the ROI is most visible. A repo with 500+ issues/month will show triage value in day 1. Avoid starting on low-activity repos.</div>
+          </div>
+          <span class="item-tag required">Required</span>
+        </div>
+        <div class="checklist-item" onclick="toggleCheck(this)">
+          <div class="check-box"><span class="check-mark">✓</span></div>
+          <div class="item-content">
+            <div class="item-label">Confirm rollback procedure with client — how to disable any agent within 5 minutes if needed</div>
+            <div class="item-note">Document the disable procedure for each agent before deploying. GitHub Actions can be disabled per-workflow. Verify the client's team knows how.</div>
+          </div>
+          <span class="item-tag required">Required</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Section 6: Living Library -->
+    <div class="checklist-section">
+      <div class="checklist-section-header">
+        <div class="section-icon violet">📖</div>
+        <div class="checklist-section-title">6 — Living Library Setup</div>
+        <div class="checklist-section-sub">Initialize the institutional memory correctly</div>
+      </div>
+      <div class="checklist-items">
+        <div class="checklist-item" onclick="toggleCheck(this)">
+          <div class="check-box"><span class="check-mark">✓</span></div>
+          <div class="item-content">
+            <div class="item-label">Create the .github/agent-factory/ directory structure in the target repository</div>
+            <div class="item-note">Scaffold the full directory tree from Part 4 of the blueprint. Commit it with a README before deploying any agents.</div>
+          </div>
+          <span class="item-tag critical">Critical</span>
+        </div>
+        <div class="checklist-item" onclick="toggleCheck(this)">
+          <div class="check-box"><span class="check-mark">✓</span></div>
+          <div class="item-content">
+            <div class="item-label">Write the first agent Markdown definition (Agent 01: Issue Triage) using the client's label taxonomy</div>
+            <div class="item-note">This is the "proof of concept" for the Markdown DSL. Make it client-specific with their actual area labels before deploying.</div>
+          </div>
+          <span class="item-tag critical">Critical</span>
+        </div>
+        <div class="checklist-item" onclick="toggleCheck(this)">
+          <div class="check-box"><span class="check-mark">✓</span></div>
+          <div class="item-content">
+            <div class="item-label">Populate governance/permissions.md with the client's specific GitHub org and repo names</div>
+            <div class="item-note">Generic permission YAML must be scoped to specific repos, not org-wide. Confirm with client's GitHub admin which scope is appropriate.</div>
+          </div>
+          <span class="item-tag required">Required</span>
+        </div>
+        <div class="checklist-item" onclick="toggleCheck(this)">
+          <div class="check-box"><span class="check-mark">✓</span></div>
+          <div class="item-content">
+            <div class="item-label">Run a 30-minute "living library orientation" session with at least 2 client engineers</div>
+            <div class="item-note">The goal: any engineer can write a new agent Markdown definition by the end of the session. This is the democratization milestone.</div>
+          </div>
+          <span class="item-tag optional">Optional</span>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /tab-checklist -->
+
+  <div class="footer">
+    <div class="footer-text" id="footer-client">Agent Factory Blueprint · INT Customization Service · 2026-03-25</div>
+    <div class="footer-brand">Based on Peli de Halleux's Agent Factory Pattern</div>
+  </div>
+
+</div><!-- /app -->
+
+<script>
+  function switchTab(id, btn) {
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('tab-' + id).classList.add('active');
+    btn.classList.add('active');
+  }
+
+  function toggleCard(card) {
+    card.classList.toggle('open');
+  }
+
+  function toggleCheck(item) {
+    item.classList.toggle('checked');
+    updateProgress();
+  }
+
+  function updateProgress() {
+    const items = document.querySelectorAll('.checklist-item');
+    const checked = document.querySelectorAll('.checklist-item.checked');
+    const pct = items.length ? Math.round((checked.length / items.length) * 100) : 0;
+    document.getElementById('progress-fill').style.width = pct + '%';
+    document.getElementById('progress-text').textContent = checked.length + ' / ' + items.length + ' complete';
+  }
+
+  function resetChecklist() {
+    document.querySelectorAll('.checklist-item').forEach(i => i.classList.remove('checked'));
+    updateProgress();
+  }
+
+  function updateFooter() {
+    const name = document.getElementById('client-name').value;
+    const footer = document.getElementById('footer-client');
+    if (name.trim()) {
+      footer.textContent = 'Agent Factory Blueprint · ' + name + ' · INT Customization Service · 2026-03-25';
+    } else {
+      footer.textContent = 'Agent Factory Blueprint · INT Customization Service · 2026-03-25';
+    }
+  }
+
+  // Expand first card by default
+  document.querySelector('.ap-card').classList.add('open');
+  updateProgress();
+</script>
+</body>
+</html>

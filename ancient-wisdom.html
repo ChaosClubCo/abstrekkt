@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Ancient Wisdom — A Reading</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT@0,9..144,300..900,0..100;1,9..144,300..900,0..100&family=Newsreader:ital,opsz,wght@0,6..72,200..800;1,6..72,200..800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --parchment: #f3ebd9;
+    --parchment-warm: #ede2c9;
+    --paper-edge: #e3d6b8;
+    --ink: #221912;
+    --ink-soft: #4a3a2b;
+    --ink-faded: #7a6651;
+    --gold: #a67632;
+    --gold-soft: #c79a5e;
+    --rule: #c9b896;
+    --rule-soft: #d8c9ad;
+    --shadow: rgba(34, 25, 18, 0.08);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: 'Newsreader', Georgia, serif;
+    font-weight: 400;
+    font-size: 18px;
+    line-height: 1.7;
+    color: var(--ink);
+    background: var(--parchment);
+    background-image:
+      radial-gradient(at 12% 18%, rgba(166, 118, 50, 0.06) 0%, transparent 45%),
+      radial-gradient(at 88% 75%, rgba(74, 58, 43, 0.05) 0%, transparent 50%);
+    min-height: 100vh;
+    position: relative;
+    overflow-x: hidden;
+  }
+
+  /* Paper grain overlay */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 1;
+    opacity: 0.5;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' seed='5'/><feColorMatrix values='0 0 0 0 0.13  0 0 0 0 0.10  0 0 0 0 0.07  0 0 0 0.08 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+    mix-blend-mode: multiply;
+  }
+
+  .container {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 80px 32px 120px;
+    position: relative;
+    z-index: 2;
+  }
+
+  /* ---------- Header ---------- */
+  .masthead {
+    text-align: center;
+    margin-bottom: 80px;
+    opacity: 0;
+    animation: fadeUp 1.2s ease-out 0.1s forwards;
+  }
+
+  .masthead .kicker {
+    font-family: 'Newsreader', serif;
+    font-style: italic;
+    font-weight: 300;
+    font-size: 14px;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    color: var(--ink-faded);
+    margin-bottom: 28px;
+    display: inline-flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .masthead .kicker::before,
+  .masthead .kicker::after {
+    content: "";
+    width: 32px;
+    height: 1px;
+    background: var(--gold);
+  }
+
+  .masthead h1 {
+    font-family: 'Fraunces', serif;
+    font-weight: 300;
+    font-variation-settings: 'opsz' 144, 'SOFT' 50;
+    font-size: clamp(48px, 9vw, 96px);
+    line-height: 0.95;
+    letter-spacing: -0.02em;
+    color: var(--ink);
+    margin-bottom: 24px;
+  }
+
+  .masthead h1 em {
+    font-style: italic;
+    font-weight: 300;
+    color: var(--gold);
+    font-variation-settings: 'opsz' 144, 'SOFT' 100;
+  }
+
+  .masthead .standfirst {
+    font-family: 'Newsreader', serif;
+    font-weight: 300;
+    font-style: italic;
+    font-size: clamp(18px, 2.4vw, 22px);
+    line-height: 1.55;
+    color: var(--ink-soft);
+    max-width: 560px;
+    margin: 0 auto;
+  }
+
+  .masthead .ornament {
+    margin: 40px auto 0;
+    width: 80px;
+    height: 1px;
+    background: var(--gold);
+    position: relative;
+  }
+
+  .masthead .ornament::after {
+    content: "❦";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    background: var(--parchment);
+    padding: 0 12px;
+    color: var(--gold);
+    font-size: 18px;
+  }
+
+  /* ---------- Filter ---------- */
+  .filter {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 6px;
+    margin-bottom: 72px;
+    padding: 14px 18px;
+    border-top: 1px solid var(--rule);
+    border-bottom: 1px solid var(--rule);
+    opacity: 0;
+    animation: fadeUp 1s ease-out 0.4s forwards;
+  }
+
+  .filter button {
+    font-family: 'Newsreader', serif;
+    font-style: italic;
+    font-size: 14px;
+    letter-spacing: 0.06em;
+    color: var(--ink-faded);
+    background: transparent;
+    border: none;
+    padding: 6px 14px;
+    cursor: pointer;
+    transition: color 0.3s ease;
+    border-radius: 2px;
+  }
+
+  .filter button:hover { color: var(--ink); }
+
+  .filter button.active {
+    color: var(--gold);
+    font-weight: 600;
+    font-style: normal;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    font-size: 11px;
+  }
+
+  /* ---------- Entry ---------- */
+  .entry {
+    position: relative;
+    padding: 48px 0;
+    border-bottom: 1px solid var(--rule-soft);
+    opacity: 0;
+    animation: fadeUp 1s ease-out forwards;
+    transition: opacity 0.4s ease, height 0.4s ease, padding 0.4s ease;
+  }
+
+  .entry.hidden {
+    display: none;
+  }
+
+  .entry:last-of-type { border-bottom: none; }
+
+  .entry-head {
+    cursor: pointer;
+    display: grid;
+    grid-template-columns: 80px 1fr auto;
+    gap: 24px;
+    align-items: baseline;
+    transition: opacity 0.3s ease;
+  }
+
+  .entry-head:hover { opacity: 0.75; }
+  .entry-head:hover .numeral { color: var(--gold); }
+
+  .numeral {
+    font-family: 'Fraunces', serif;
+    font-weight: 200;
+    font-variation-settings: 'opsz' 144, 'SOFT' 100;
+    font-size: 64px;
+    line-height: 1;
+    color: var(--ink-faded);
+    font-style: italic;
+    transition: color 0.4s ease;
+    user-select: none;
+  }
+
+  .titles h2 {
+    font-family: 'Fraunces', serif;
+    font-weight: 400;
+    font-variation-settings: 'opsz' 144, 'SOFT' 30;
+    font-size: clamp(28px, 4vw, 40px);
+    line-height: 1.05;
+    letter-spacing: -0.01em;
+    margin-bottom: 8px;
+    color: var(--ink);
+  }
+
+  .titles .meta {
+    font-family: 'Newsreader', serif;
+    font-style: italic;
+    font-size: 14px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--ink-faded);
+  }
+
+  .toggle {
+    font-family: 'Fraunces', serif;
+    font-size: 28px;
+    color: var(--gold);
+    line-height: 1;
+    transition: transform 0.4s ease;
+    margin-top: 12px;
+    user-select: none;
+  }
+
+  .entry.open .toggle { transform: rotate(45deg); }
+
+  .teaser {
+    margin-top: 18px;
+    margin-left: 104px;
+    font-style: italic;
+    color: var(--ink-soft);
+    font-size: 17px;
+    line-height: 1.6;
+  }
+
+  /* ---------- Body (expanded) ---------- */
+  .body-content {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    margin-left: 104px;
+  }
+
+  .entry.open .body-content {
+    max-height: 1600px;
+  }
+
+  .body-inner {
+    padding: 32px 0 8px;
+  }
+
+  .core {
+    font-size: 19px;
+    line-height: 1.75;
+    color: var(--ink);
+    margin-bottom: 36px;
+  }
+
+  .core::first-letter {
+    font-family: 'Fraunces', serif;
+    font-weight: 400;
+    font-variation-settings: 'opsz' 144, 'SOFT' 50;
+    font-size: 4.4em;
+    float: left;
+    line-height: 0.9;
+    margin: 0.05em 0.08em -0.05em 0;
+    color: var(--gold);
+  }
+
+  .pullquote {
+    margin: 36px 0;
+    padding: 28px 36px;
+    border-left: 2px solid var(--gold);
+    background: var(--parchment-warm);
+    position: relative;
+  }
+
+  .pullquote .mark {
+    position: absolute;
+    top: 8px;
+    left: 16px;
+    font-family: 'Fraunces', serif;
+    font-size: 64px;
+    line-height: 1;
+    color: var(--gold-soft);
+    font-style: italic;
+  }
+
+  .pullquote p {
+    font-family: 'Fraunces', serif;
+    font-weight: 300;
+    font-variation-settings: 'opsz' 72, 'SOFT' 100;
+    font-style: italic;
+    font-size: clamp(20px, 2.6vw, 26px);
+    line-height: 1.4;
+    color: var(--ink);
+    padding-left: 32px;
+  }
+
+  .pullquote cite {
+    display: block;
+    margin-top: 18px;
+    font-family: 'Newsreader', serif;
+    font-style: normal;
+    font-size: 13px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--ink-faded);
+    padding-left: 32px;
+  }
+
+  .practice {
+    margin-top: 36px;
+    padding: 24px 28px;
+    border: 1px solid var(--rule);
+    border-radius: 2px;
+    background: rgba(255, 255, 255, 0.3);
+  }
+
+  .practice .label {
+    font-family: 'Newsreader', serif;
+    font-weight: 600;
+    font-style: italic;
+    font-size: 12px;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 10px;
+    display: block;
+  }
+
+  .practice .text {
+    font-family: 'Fraunces', serif;
+    font-weight: 400;
+    font-variation-settings: 'opsz' 24, 'SOFT' 50;
+    font-size: 18px;
+    line-height: 1.55;
+    color: var(--ink);
+    font-style: italic;
+  }
+
+  /* ---------- Footer ---------- */
+  .footer {
+    margin-top: 96px;
+    text-align: center;
+    padding-top: 48px;
+    border-top: 1px solid var(--rule);
+  }
+
+  .footer .ornament {
+    margin: 0 auto 32px;
+    width: 60px;
+    height: 1px;
+    background: var(--gold);
+    position: relative;
+  }
+
+  .footer .ornament::after {
+    content: "❦";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    background: var(--parchment);
+    padding: 0 10px;
+    color: var(--gold);
+    font-size: 16px;
+  }
+
+  .footer p {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-weight: 300;
+    font-variation-settings: 'opsz' 72, 'SOFT' 100;
+    font-size: clamp(20px, 2.6vw, 26px);
+    line-height: 1.5;
+    color: var(--ink-soft);
+    max-width: 520px;
+    margin: 0 auto;
+  }
+
+  /* ---------- Animations ---------- */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Stagger entries */
+  .entry:nth-of-type(1)  { animation-delay: 0.55s; }
+  .entry:nth-of-type(2)  { animation-delay: 0.65s; }
+  .entry:nth-of-type(3)  { animation-delay: 0.75s; }
+  .entry:nth-of-type(4)  { animation-delay: 0.85s; }
+  .entry:nth-of-type(5)  { animation-delay: 0.95s; }
+  .entry:nth-of-type(6)  { animation-delay: 1.05s; }
+  .entry:nth-of-type(7)  { animation-delay: 1.15s; }
+  .entry:nth-of-type(8)  { animation-delay: 1.25s; }
+  .entry:nth-of-type(9)  { animation-delay: 1.35s; }
+  .entry:nth-of-type(10) { animation-delay: 1.45s; }
+
+  /* ---------- Mobile ---------- */
+  @media (max-width: 600px) {
+    .container { padding: 56px 22px 80px; }
+    .entry { padding: 36px 0; }
+    .entry-head {
+      grid-template-columns: 56px 1fr auto;
+      gap: 16px;
+    }
+    .numeral { font-size: 44px; }
+    .teaser { margin-left: 72px; font-size: 16px; }
+    .body-content { margin-left: 0; }
+    .pullquote { padding: 22px 22px 22px 28px; }
+    .pullquote p, .pullquote cite { padding-left: 20px; }
+    .practice { padding: 20px 22px; }
+  }
+</style>
+</head>
+<body>
+  <main class="container">
+
+    <header class="masthead">
+      <div class="kicker">A Reading Across Cultures</div>
+      <h1>Ancient <em>Wisdom</em></h1>
+      <p class="standfirst">Ten traditions, drawn from five thousand years of human attention. Each entry holds a core teaching, a voice from the lineage, and one practice to carry into the day.</p>
+      <div class="ornament"></div>
+    </header>
+
+    <nav class="filter" id="filter">
+      <button class="active" data-filter="all">All Ten</button>
+      <button data-filter="east">Eastern</button>
+      <button data-filter="west">Greco-Roman</button>
+      <button data-filter="abrahamic">Abrahamic</button>
+      <button data-filter="african">African</button>
+      <button data-filter="indigenous">Indigenous</button>
+      <button data-filter="mystical">Mystical</button>
+    </nav>
+
+    <!-- I. Stoicism -->
+    <article class="entry" data-tags="west">
+      <div class="entry-head">
+        <span class="numeral">I</span>
+        <div class="titles">
+          <h2>Stoicism</h2>
+          <div class="meta">Greco-Roman · 3rd c. BCE</div>
+        </div>
+        <span class="toggle">+</span>
+      </div>
+      <p class="teaser">The freedom that comes from knowing what you can — and cannot — control.</p>
+      <div class="body-content"><div class="body-inner">
+        <p class="core">Suffering, the Stoics observed, almost always comes from confusing what is in our power with what is not. Our judgments, intentions, and responses are ours. The weather, other people, the past, the body's eventual failure — these are not. The work of a life is to stop wasting it on the wrong column.</p>
+        <div class="pullquote">
+          <span class="mark">"</span>
+          <p>You have power over your mind — not outside events. Realize this, and you will find strength.</p>
+          <cite>— Marcus Aurelius, Meditations</cite>
+        </div>
+        <div class="practice">
+          <span class="label">Today's Practice</span>
+          <p class="text">Each morning, name one thing in your control. Each evening, examine where you were ruled by something that wasn't.</p>
+        </div>
+      </div></div>
+    </article>
+
+    <!-- II. Taoism -->
+    <article class="entry" data-tags="east">
+      <div class="entry-head">
+        <span class="numeral">II</span>
+        <div class="titles">
+          <h2>Taoism</h2>
+          <div class="meta">China · 6th c. BCE</div>
+        </div>
+        <span class="toggle">+</span>
+      </div>
+      <p class="teaser">Wu wei — the art of effortless action, of moving with the grain of things.</p>
+      <div class="body-content"><div class="body-inner">
+        <p class="core">The Tao is the way of things — water finding the lowest place, the seasons turning without effort, the body healing while you sleep. Taoism teaches that most of our failure is the failure to align with this current. We push when we should yield. We force when we should wait. Wisdom is the recovery of timing.</p>
+        <div class="pullquote">
+          <span class="mark">"</span>
+          <p>Nature does not hurry, yet everything is accomplished.</p>
+          <cite>— Lao Tzu, Tao Te Ching</cite>
+        </div>
+        <div class="practice">
+          <span class="label">Today's Practice</span>
+          <p class="text">When you feel stuck, stop pushing for ten minutes. Notice where the current already wants to move.</p>
+        </div>
+      </div></div>
+    </article>
+
+    <!-- III. Buddhism -->
+    <article class="entry" data-tags="east">
+      <div class="entry-head">
+        <span class="numeral">III</span>
+        <div class="titles">
+          <h2>Buddhism</h2>
+          <div class="meta">India · 5th c. BCE</div>
+        </div>
+        <span class="toggle">+</span>
+      </div>
+      <p class="teaser">Suffering arises from clinging. Liberation begins with seeing this clearly.</p>
+      <div class="body-content"><div class="body-inner">
+        <p class="core">The Buddha's first insight was diagnostic, not religious. He named a mechanism: we suffer not because life is hard, but because we grip what cannot be held — pleasure, status, even our own ideas about ourselves. The path he laid out — attention, ethics, meditation — is a slow loosening of that grip until the hand opens by itself.</p>
+        <div class="pullquote">
+          <span class="mark">"</span>
+          <p>You only lose what you cling to.</p>
+          <cite>— Attributed to the Buddha</cite>
+        </div>
+        <div class="practice">
+          <span class="label">Today's Practice</span>
+          <p class="text">Name three things you are gripping right now — an outcome, a grievance, an identity. Loosen one of them, just slightly, and see what happens.</p>
+        </div>
+      </div></div>
+    </article>
+
+    <!-- IV. Confucianism -->
+    <article class="entry" data-tags="east">
+      <div class="entry-head">
+        <span class="numeral">IV</span>
+        <div class="titles">
+          <h2>Confucianism</h2>
+          <div class="meta">China · 6th c. BCE</div>
+        </div>
+        <span class="toggle">+</span>
+      </div>
+      <p class="teaser">Character is built in small acts, repeated, in the company of others.</p>
+      <div class="body-content"><div class="body-inner">
+        <p class="core">Where the Buddha looked inward and the Stoics looked at the self, Confucius looked at the relationships between people — and found wisdom there. To be a good son, a good neighbor, a good citizen, a good friend was not separate from the spiritual life. It was the spiritual life. Society, tended carefully, was the practice itself.</p>
+        <div class="pullquote">
+          <span class="mark">"</span>
+          <p>The superior person, when at ease, does not forget that danger may come; when in possession, does not forget loss; when in order, does not forget chaos.</p>
+          <cite>— Confucius, Analects</cite>
+        </div>
+        <div class="practice">
+          <span class="label">Today's Practice</span>
+          <p class="text">Tend one relationship today the way you'd tend a garden. The work is small, daily, and never finished.</p>
+        </div>
+      </div></div>
+    </article>
+
+    <!-- V. Vedanta -->
+    <article class="entry" data-tags="east">
+      <div class="entry-head">
+        <span class="numeral">V</span>
+        <div class="titles">
+          <h2>Vedanta</h2>
+          <div class="meta">India · ~1500 BCE — onward</div>
+        </div>
+        <span class="toggle">+</span>
+      </div>
+      <p class="teaser">Act with full care. Release the result. The fruit is not yours to pluck.</p>
+      <div class="body-content"><div class="body-inner">
+        <p class="core">The Upanishads and the Bhagavad Gita ask the oldest questions: who is the one watching? What is real beneath the changing? Vedanta's answer is that the self (Atman) and the ground of being (Brahman) are not two things. From this comes its most practical teaching — karma yoga, the discipline of pouring yourself fully into the action while letting go of attachment to its outcome.</p>
+        <div class="pullquote">
+          <span class="mark">"</span>
+          <p>You have a right to action, but never to its fruits. Let not the fruits of action be your motive, nor let your attachment be to inaction.</p>
+          <cite>— Bhagavad Gita 2.47</cite>
+        </div>
+        <div class="practice">
+          <span class="label">Today's Practice</span>
+          <p class="text">Choose one task and do it as well as you can — without checking, even once, what reward might come.</p>
+        </div>
+      </div></div>
+    </article>
+
+    <!-- VI. Ma'at -->
+    <article class="entry" data-tags="african">
+      <div class="entry-head">
+        <span class="numeral">VI</span>
+        <div class="titles">
+          <h2>Ma'at</h2>
+          <div class="meta">Ancient Egypt · ~3000 BCE</div>
+        </div>
+        <span class="toggle">+</span>
+      </div>
+      <p class="teaser">From the world's oldest wisdom text: listen until the other is empty.</p>
+      <div class="body-content"><div class="body-inner">
+        <p class="core">Ma'at was the Egyptian principle of cosmic order — truth, balance, justice — held in the world by the daily conduct of human beings. The Maxims of Ptahhotep, written around 2375 BCE, are among the oldest surviving wisdom texts on Earth. Forty-five centuries later, their advice on how to listen, lead, and hold one's tongue still lands.</p>
+        <div class="pullquote">
+          <span class="mark">"</span>
+          <p>If you are a leader, be patient when listening to the words of a petitioner. Do not rebuff him until he has emptied himself of what he came to say.</p>
+          <cite>— The Maxims of Ptahhotep, c. 2375 BCE</cite>
+        </div>
+        <div class="practice">
+          <span class="label">Today's Practice</span>
+          <p class="text">In the next conversation that matters, do not speak until the other person has fully said their piece. Let the silence stretch a beat longer than feels comfortable.</p>
+        </div>
+      </div></div>
+    </article>
+
+    <!-- VII. Sufism -->
+    <article class="entry" data-tags="abrahamic mystical">
+      <div class="entry-head">
+        <span class="numeral">VII</span>
+        <div class="titles">
+          <h2>Sufism</h2>
+          <div class="meta">Islamic Mystical · 8th c. CE</div>
+        </div>
+        <span class="toggle">+</span>
+      </div>
+      <p class="teaser">The wound is not the obstacle. The wound is the doorway.</p>
+      <div class="body-content"><div class="body-inner">
+        <p class="core">Sufism is the inward path of Islam — a tradition of poets, dervishes, and lovers of the divine. Where law tells you what to do, the Sufi asks what you are made of underneath. Rumi, Hafiz, Ibn Arabi, Rabia: their writings circle one stubborn idea — that the small self must dissolve into something larger before love becomes possible, and that the dissolving usually happens through what hurts.</p>
+        <div class="pullquote">
+          <span class="mark">"</span>
+          <p>The wound is the place where the Light enters you.</p>
+          <cite>— Jalāl ad-Dīn Rumi</cite>
+        </div>
+        <div class="practice">
+          <span class="label">Today's Practice</span>
+          <p class="text">Stop hiding the wound — even from yourself. Sit with it for five minutes without trying to fix it. That, the Sufis say, is the door.</p>
+        </div>
+      </div></div>
+    </article>
+
+    <!-- VIII. Hebrew Wisdom -->
+    <article class="entry" data-tags="abrahamic">
+      <div class="entry-head">
+        <span class="numeral">VIII</span>
+        <div class="titles">
+          <h2>Hebrew Wisdom</h2>
+          <div class="meta">Levant · ~1000 BCE — onward</div>
+        </div>
+        <span class="toggle">+</span>
+      </div>
+      <p class="teaser">Who is wise? The one who learns from every person they meet.</p>
+      <div class="body-content"><div class="body-inner">
+        <p class="core">The Hebrew wisdom tradition — Proverbs, Ecclesiastes, Job, the rabbinic Pirkei Avot — is unusual among ancient texts for its plainness. It does not ask you to transcend the world. It asks you to live well within it. Pay your workers on time. Don't gossip. Find a teacher. Make a friend. Treat the stranger as yourself, because you remember being one.</p>
+        <div class="pullquote">
+          <span class="mark">"</span>
+          <p>Who is wise? One who learns from every person.</p>
+          <cite>— Pirkei Avot 4:1, Ben Zoma</cite>
+        </div>
+        <div class="practice">
+          <span class="label">Today's Practice</span>
+          <p class="text">Find the teacher in someone you would normally dismiss — the loud one, the slow one, the one who got it wrong. What is in their life that is not in yours?</p>
+        </div>
+      </div></div>
+    </article>
+
+    <!-- IX. Indigenous (Haudenosaunee) -->
+    <article class="entry" data-tags="indigenous">
+      <div class="entry-head">
+        <span class="numeral">IX</span>
+        <div class="titles">
+          <h2>The Seventh Generation</h2>
+          <div class="meta">Haudenosaunee · pre-contact</div>
+        </div>
+        <span class="toggle">+</span>
+      </div>
+      <p class="teaser">Every decision is weighed against the lives of those not yet born.</p>
+      <div class="body-content"><div class="body-inner">
+        <p class="core">The Haudenosaunee Confederacy — the Iroquois — codified one of the most demanding ethical principles ever recorded: that any decision made today must be considered in light of its impact seven generations into the future. Not the next quarter. Not the next election. Two centuries out, where you will not be alive to see the consequences. It is, among other things, the original sustainability ethic.</p>
+        <div class="pullquote">
+          <span class="mark">"</span>
+          <p>In every deliberation, we must consider the impact on the seventh generation.</p>
+          <cite>— Great Law of the Haudenosaunee</cite>
+        </div>
+        <div class="practice">
+          <span class="label">Today's Practice</span>
+          <p class="text">Before your next meaningful decision, ask: who pays the cost of this in two hundred years? If you can't see who, look harder.</p>
+        </div>
+      </div></div>
+    </article>
+
+    <!-- X. Yoruba / Ifá -->
+    <article class="entry" data-tags="african">
+      <div class="entry-head">
+        <span class="numeral">X</span>
+        <div class="titles">
+          <h2>Ifá</h2>
+          <div class="meta">Yoruba (West Africa) · ancient oral tradition</div>
+        </div>
+        <span class="toggle">+</span>
+      </div>
+      <p class="teaser">Character is the older claim. When it conflicts with convenience, character wins.</p>
+      <div class="body-content"><div class="body-inner">
+        <p class="core">The Yoruba philosophical tradition, transmitted through the Ifá oral corpus, holds that each person arrives in the world with an ori — an inner head, a destiny chosen before birth. But destiny alone is not enough. It must be carried by iwapele, gentle and steady character. Without character, even a good destiny unravels. With it, even a difficult fate becomes meaningful. Character, in this tradition, is not a feeling. It is a discipline.</p>
+        <div class="pullquote">
+          <span class="mark">"</span>
+          <p>Iwapele ni eso esin. — Gentle character is the fruit of true religion.</p>
+          <cite>— Yoruba proverb</cite>
+        </div>
+        <div class="practice">
+          <span class="label">Today's Practice</span>
+          <p class="text">When character and convenience pull in opposite directions today, side with character. It is the older claim, and it remembers.</p>
+        </div>
+      </div></div>
+    </article>
+
+    <footer class="footer">
+      <div class="ornament"></div>
+      <p>The traditions disagree about much. They agree, almost completely, that wisdom is something you do — not something you know.</p>
+    </footer>
+
+  </main>
+
+<script>
+  // Accordion expansion
+  document.querySelectorAll('.entry-head').forEach(head => {
+    head.addEventListener('click', () => {
+      const entry = head.closest('.entry');
+      entry.classList.toggle('open');
+    });
+  });
+
+  // Filtering
+  const filterBtns = document.querySelectorAll('#filter button');
+  const entries = document.querySelectorAll('.entry');
+
+  filterBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      filterBtns.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const filter = btn.dataset.filter;
+
+      entries.forEach(entry => {
+        const tags = entry.dataset.tags.split(' ');
+        if (filter === 'all' || tags.includes(filter)) {
+          entry.classList.remove('hidden');
+        } else {
+          entry.classList.add('hidden');
+        }
+      });
+    });
+  });
+</script>
+</body>
+</html>

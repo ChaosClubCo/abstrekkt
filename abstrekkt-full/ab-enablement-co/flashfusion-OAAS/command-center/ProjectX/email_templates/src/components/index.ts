@@ -1,0 +1,2 @@
+// Email template components
+export {};

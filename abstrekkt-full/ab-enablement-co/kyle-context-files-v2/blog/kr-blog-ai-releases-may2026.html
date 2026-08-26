@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>The Race Isn't the Benchmark — Kyle Rosebrook</title>
+<meta name="description" content="Three things dropped in AI this week. Codex, Claude, Gemini. None of them are competing on code quality anymore."/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,SOFT,WONK@9..144,300..900,0..100,0..1&family=Crimson+Pro:ital,wght@0,300..600;1,300..600&family=JetBrains+Mono:wght@300;400&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --ink:           #0d0c0a;
+  --ink-deep:      #080705;
+  --bg:            #1a1a1d;
+  --bg-2:          #232328;
+  --bg-3:          #2c2c33;
+  --paper:         #e8e0cc;
+  --paper-dim:     #94907e;
+  --paper-faint:   #5e5b50;
+  --border:        #2e2e35;
+  --border-bright: #3d3d44;
+  --brass:         #C8A86A;
+  --brass-soft:    #d9bd87;
+  --brass-deep:    #8B7548;
+  --brass-bg:      rgba(200,168,106,0.07);
+  --gate:          #e6cd9a;
+  --oxblood:       #7a3838;
+  --rule:          #252520;
+  --measure:       640px;
+  --measure-wide:  1080px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{
+  background:radial-gradient(ellipse 70% 40% at 50% -10%, rgba(200,168,106,0.06), transparent 60%), var(--ink);
+  color:var(--paper);
+  font-family:'Crimson Pro',Georgia,serif;
+  font-weight:380;
+  font-size:19px;
+  line-height:1.78;
+  min-height:100vh;
+  overflow-x:hidden;
+  -webkit-font-smoothing:antialiased;
+}
+body::before{
+  content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:
+    radial-gradient(ellipse at 20% 8%, rgba(196,147,90,0.05) 0%,transparent 45%),
+    radial-gradient(ellipse at 80% 92%, rgba(196,147,90,0.03) 0%,transparent 50%);
+}
+body::after{
+  content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opacity:0.35;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.1 0 0 0 0 0.08 0 0 0 0 0.05 0 0 0 0.5 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+a{color:var(--brass);text-decoration:none;border-bottom:1px solid rgba(196,147,90,0.2);transition:color .22s,border-color .22s;}
+a:hover{color:var(--paper);border-bottom-color:rgba(242,239,233,0.25);}
+
+/* PROGRESS */
+#progress-bar{position:fixed;top:0;left:0;height:2px;width:0%;background:var(--brass);z-index:200;transition:width .1s linear;pointer-events:none;}
+
+/* NAV */
+nav{
+  position:sticky;top:0;z-index:100;
+  background:rgba(10,9,7,0.9);
+  backdrop-filter:blur(14px);
+  border-bottom:1px solid var(--rule);
+}
+.nav-inner{
+  max-width:var(--measure-wide);margin:0 auto;
+  padding:.9rem clamp(1.25rem,4vw,2rem);
+  display:flex;justify-content:space-between;align-items:center;
+}
+.nav-name{
+  font-family:'Fraunces',serif;
+  font-variation-settings:'opsz' 24,'WONK' 1;
+  font-weight:350;font-size:.9rem;
+  color:var(--paper);letter-spacing:-.01em;
+}
+.nav-name em{font-style:italic;color:var(--brass);}
+.nav-links{
+  display:flex;gap:1.5rem;
+  font-family:'JetBrains Mono',monospace;
+  font-size:.58rem;font-weight:300;
+  color:var(--paper-faint);letter-spacing:.08em;text-transform:uppercase;
+}
+.nav-links a{color:var(--paper-faint);border:none;transition:color .2s;}
+.nav-links a:hover{color:var(--brass);}
+
+/* OUTER + GRID */
+.outer{max-width:var(--measure-wide);margin:0 auto;padding:0 clamp(1.5rem,4vw,2.5rem);position:relative;z-index:1;}
+.article-grid{display:grid;grid-template-columns:1fr 14rem;gap:4rem;padding:3.5rem 0 7rem;}
+@media(max-width:880px){.article-grid{grid-template-columns:1fr;}.toc-col{display:none;}.main-col{max-width:100%;}}
+
+/* MAIN */
+.main-col{max-width:var(--measure);}
+
+/* META */
+.meta{
+  font-family:'JetBrains Mono',monospace;
+  font-size:.58rem;font-weight:300;
+  color:var(--paper-faint);letter-spacing:.1em;text-transform:uppercase;
+  margin-bottom:1.75rem;
+  display:flex;gap:1.25rem;flex-wrap:wrap;align-items:center;
+}
+.meta-tag{
+  color:var(--brass);border:1px solid var(--brass-faint);
+  padding:.18em .65em;border-radius:2px;
+}
+
+/* H1 */
+h1{
+  font-family:'Fraunces',serif;
+  font-variation-settings:'opsz' 72,'WONK' 1,'SOFT' 20;
+  font-weight:600;
+  font-size:clamp(1.9rem,4.5vw,2.65rem);
+  line-height:1.14;letter-spacing:-.022em;
+  color:var(--paper);margin-bottom:1.1rem;
+}
+h1 em{
+  font-style:italic;color:var(--brass);
+  font-variation-settings:'opsz' 72,'WONK' 1,'SOFT' 60;
+}
+.deck{
+  font-style:italic;font-weight:380;font-size:1.12rem;
+  line-height:1.62;color:var(--paper-dim);
+  margin-bottom:1.75rem;padding-bottom:1.75rem;
+  border-bottom:1px solid var(--rule);
+}
+.byline{
+  font-family:'JetBrains Mono',monospace;
+  font-size:.6rem;font-weight:300;color:var(--paper-faint);
+  letter-spacing:.06em;margin-bottom:2rem;
+  display:flex;align-items:center;gap:.7rem;
+}
+.byline::before{content:'';display:block;width:1.75rem;height:1px;background:var(--brass);opacity:.5;}
+
+/* TL;DR */
+.tldr{
+  margin-bottom:2.25rem;
+  padding:1.25rem 1.5rem;
+  background:var(--brass-faint);
+  border:1px solid var(--rule-bright);
+  border-left:2px solid var(--brass);
+  border-radius:0 5px 5px 0;
+}
+.tldr-label{
+  font-family:'JetBrains Mono',monospace;
+  font-size:.56rem;font-weight:400;
+  letter-spacing:.12em;text-transform:uppercase;
+  color:var(--brass);margin-bottom:.55rem;
+}
+.tldr ul{padding-left:1.1rem;font-size:.88rem;line-height:1.65;color:var(--paper-dim);}
+.tldr ul li{margin-bottom:.3rem;}
+
+/* H2 */
+h2{
+  font-family:'Fraunces',serif;
+  font-variation-settings:'opsz' 36,'WONK' 0,'SOFT' 10;
+  font-weight:500;font-size:1.18rem;
+  line-height:1.3;letter-spacing:-.01em;
+  color:var(--paper);
+  margin:2.5rem 0 .9rem;
+  padding-top:.25rem;
+}
+
+/* NUMBERED SECTION HEADER */
+.section-num{
+  display:inline-block;
+  font-family:'JetBrains Mono',monospace;
+  font-size:.6rem;font-weight:400;
+  color:var(--brass);letter-spacing:.1em;
+  text-transform:uppercase;
+  margin-bottom:.4rem;
+  padding:.15em .6em;
+  border:1px solid var(--brass-faint);
+  border-radius:2px;
+}
+
+/* BODY */
+p{margin-bottom:1.35rem;color:var(--paper);}
+p:last-child{margin-bottom:0;}
+
+/* PULL QUOTE */
+.pull{
+  margin:2.25rem 0;
+  padding:1.35rem 1.75rem;
+  border-left:2px solid var(--brass);
+  background:var(--brass-faint);
+  font-family:'Fraunces',serif;
+  font-variation-settings:'opsz' 24,'WONK' 0,'SOFT' 40;
+  font-style:italic;font-weight:400;font-size:1.12rem;
+  line-height:1.55;color:var(--paper);
+}
+
+/* SOURCE NOTE */
+.source-note{
+  font-family:'JetBrains Mono',monospace;
+  font-size:.56rem;font-weight:300;
+  color:var(--paper-faint);
+  letter-spacing:.05em;
+  margin-top:-.8rem;
+  margin-bottom:1.35rem;
+}
+.source-note a{color:var(--paper-faint);border-bottom:1px solid rgba(107,101,87,0.3);font-size:.56rem;}
+.source-note a:hover{color:var(--brass);}
+
+/* DIVIDER */
+hr{border:none;border-top:1px solid var(--rule);margin:2.25rem 0;}
+
+/* CLOSING PUNCH */
+.closer{
+  margin-top:2.5rem;
+  padding:1.5rem 1.75rem;
+  background:rgba(196,147,90,0.06);
+  border:1px solid var(--rule-bright);
+  border-radius:4px;
+}
+.closer p{
+  font-family:'Fraunces',serif;
+  font-variation-settings:'opsz' 30,'WONK' 0,'SOFT' 20;
+  font-weight:500;font-size:1.05rem;
+  line-height:1.55;color:var(--paper);
+  margin-bottom:0;
+}
+
+/* SHARE */
+.share{
+  margin-top:2.75rem;padding-top:1.75rem;
+  border-top:1px solid var(--rule);
+  display:flex;align-items:center;gap:.85rem;flex-wrap:wrap;
+}
+.share-label{
+  font-family:'JetBrains Mono',monospace;
+  font-size:.56rem;font-weight:300;color:var(--paper-faint);
+  letter-spacing:.1em;text-transform:uppercase;
+}
+.share-btn{
+  font-family:'JetBrains Mono',monospace;
+  font-size:.58rem;font-weight:300;color:var(--paper-faint);
+  border:1px solid var(--rule);
+  padding:.28em .8em;border-radius:2px;
+  cursor:pointer;background:transparent;
+  transition:all .2s;
+}
+.share-btn:hover{color:var(--brass);border-color:var(--brass-faint);}
+
+/* AUTHOR BIO */
+.author-bio{
+  margin-top:2.25rem;
+  padding:1.4rem;
+  background:rgba(196,147,90,0.05);
+  border:1px solid var(--rule);
+  border-radius:3px;
+  display:flex;gap:1.1rem;align-items:flex-start;
+}
+.author-avatar{
+  width:42px;height:42px;border-radius:50%;
+  background:var(--brass-faint);border:1px solid var(--rule-bright);
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;
+  font-family:'Fraunces',serif;font-size:.95rem;
+  color:var(--brass);font-weight:500;
+}
+.author-name{
+  font-family:'Fraunces',serif;
+  font-variation-settings:'opsz' 18,'WONK' 0;
+  font-weight:500;font-size:.92rem;
+  color:var(--paper);margin-bottom:.2rem;
+}
+.author-desc{font-size:.82rem;line-height:1.6;color:var(--paper-faint);}
+
+/* TOC */
+.toc-col{position:sticky;top:5rem;align-self:start;}
+.toc-inner{
+  padding:1.1rem 1.25rem;
+  border:1px solid var(--rule);
+  border-radius:3px;
+}
+.toc-label{
+  font-family:'JetBrains Mono',monospace;
+  font-size:.54rem;font-weight:400;
+  color:var(--brass);letter-spacing:.12em;
+  text-transform:uppercase;margin-bottom:.9rem;
+}
+.toc-list{list-style:none;padding:0;}
+.toc-list li{margin-bottom:.5rem;}
+.toc-list a{
+  font-family:'JetBrains Mono',monospace;
+  font-size:.58rem;font-weight:300;
+  color:var(--paper-faint);letter-spacing:.02em;
+  border:none;transition:color .2s;
+  display:flex;align-items:baseline;gap:.45rem;
+}
+.toc-list a:hover{color:var(--brass);}
+.toc-num{color:var(--brass);opacity:.5;font-size:.5rem;}
+.toc-divider{border:none;border-top:1px solid var(--rule);margin:.9rem 0;}
+
+/* FOOTER */
+footer{
+  border-top:1px solid var(--rule);
+  padding:1.75rem clamp(1.5rem,4vw,2.5rem);
+  max-width:var(--measure-wide);margin:0 auto;
+  display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:.75rem;
+  font-family:'JetBrains Mono',monospace;
+  font-size:.56rem;font-weight:300;
+  color:var(--paper-faint);letter-spacing:.05em;
+  position:relative;z-index:1;
+}
+footer a{color:var(--paper-faint);border:none;font-size:.56rem;}
+footer a:hover{color:var(--brass);}
+</style>
+</head>
+<body>
+<div id="progress-bar" role="progressbar" aria-hidden="true"></div>
+
+<nav aria-label="Site navigation">
+  <div class="nav-inner">
+    <span class="nav-name">Kyle Rosebrook — <em>Notes</em></span>
+    <div class="nav-links">
+      <a href="https://kylerosebrook.com">Home</a>
+      <a href="https://kylerosebrook.com/writing">Writing</a>
+      <a href="https://kylerosebrook.com/about">Work</a>
+    </div>
+  </div>
+</nav>
+
+<div class="outer">
+  <div class="article-grid">
+
+    <main class="main-col" id="main-content">
+
+      <div class="meta">
+        <span class="meta-tag">AI / Industry</span>
+        <span>May 15, 2026</span>
+        <span>5 min read</span>
+      </div>
+
+      <h1>The Race Isn't the <em>Benchmark</em></h1>
+      <p class="deck">Three things dropped in AI this week — Codex, Claude, and Gemini. None of them are competing on code quality anymore. They're competing on something harder to unseat.</p>
+      <div class="byline">Kyle Rosebrook &nbsp;·&nbsp; Founder, Abstrekkt &amp; FlashFusion</div>
+
+      <div class="tldr" role="note">
+        <div class="tldr-label">TL;DR</div>
+        <ul>
+          <li>OpenAI shipped Codex a Chrome extension and a real-time model running on Cerebras hardware at 1,000+ tokens/sec.</li>
+          <li>Anthropic launched Claude for Small Business and shipped an Advisor tool — an Opus-class model that runs alongside Sonnet on complex coding tasks.</li>
+          <li>Google I/O is May 19. A new Gemini model is coming and Gemini is positioning as an operating layer, not a chatbot.</li>
+          <li>The race isn't who writes better code. It's who you keep open all day.</li>
+        </ul>
+      </div>
+
+      <p>Three things dropped in AI this week that are actually worth tracking — not because they're impressive, but because they're directional.</p>
+
+      <hr/>
+
+      <div id="codex">
+        <span class="section-num">01 — Codex</span>
+        <h2>Codex grew a Chrome extension and a fast model</h2>
+      </div>
+
+      <p>OpenAI shipped a Codex Chrome extension that works in parallel across tabs in the background, without taking over your browser, with per-site access controls you approve. Same week, they released GPT-5.3-Codex-Spark — a smaller, real-time coding model hitting more than 1,000 tokens per second, built on Cerebras hardware, in research preview for Pro users.</p>
+
+      <div class="source-note">Sources: <a href="https://releasebot.io/updates/openai/codex" target="_blank" rel="noopener">OpenAI Codex changelog</a> · <a href="https://developers.openai.com/codex/changelog" target="_blank" rel="noopener">developers.openai.com</a></div>
+
+      <p>That combination — browser-native plus near-instant — is a workflow play, not a benchmark play. Codex already reviewed the vast majority of OpenAI's own PRs daily before this. The Chrome extension means it's now inside the same surface where developers spend half their working hours anyway.</p>
+
+      <div class="pull">They're not competing on who writes better code. They're competing on who you keep open all day.
+      </div>
+
+      <hr/>
+
+      <div id="claude">
+        <span class="section-num">02 — Anthropic</span>
+        <h2>Claude for Small Business and the Advisor tool</h2>
+      </div>
+
+      <p>Anthropic launched Claude for Small Business — a package of connectors and ready-to-run workflows that puts Claude inside QuickBooks, PayPal, HubSpot, Canva, DocuSign, Google Workspace, and Microsoft 365. Toggle install. No configuration project. It runs on the Claude desktop app.</p>
+
+      <div class="source-note">Source: <a href="https://www.anthropic.com/news" target="_blank" rel="noopener">Anthropic announcements</a> · May 6–13, 2026</div>
+
+      <p>Separately, the Advisor tool is now in beta on the Claude Platform. Technically: an Opus 4.6 advisor model that sits alongside Sonnet executor for complex coding tasks. The internal framing is that Sonnet handles execution while Opus handles judgment. The benchmark improvement is measurable — they published SWE-bench Multilingual scores to back it.</p>
+
+      <p>One move is distribution. The other is depth. Both are deliberate. And they're not the same bet — which is the part worth paying attention to. You can land in every SMB tool stack through integrations and still lose the developer if your coding pipeline is slower to think.</p>
+
+      <p>Worth noting: Anthropic also signed a $200M partnership with the Gates Foundation the same week, and PwC announced they're deploying Claude across enterprise functions. The commercial layer is assembling faster than most people outside the space realize.</p>
+
+      <hr/>
+
+      <div id="gemini">
+        <span class="section-num">03 — Gemini</span>
+        <h2>Google I/O is next Tuesday. A new model is coming.</h2>
+      </div>
+
+      <p>Google I/O kicks off May 19. Sources say Google plans to release a new Gemini model — one that lands roughly in the class of GPT-5.5, and well short of Anthropic's Mythos, which despite not being widely available has reset how every lab talks about what "leading" means.</p>
+
+      <div class="source-note">Source: <a href="https://sources.news/p/google-about-to-release-new-gemini" target="_blank" rel="noopener">sources.news</a> · May 14, 2026</div>
+
+      <p>The model release isn't the headline. The headline is the positioning. Gemini is being built as the intelligence layer across search, phones (Gemini Intelligence launching on Galaxy and Pixel this summer), laptops (Googlebook was just announced), cars, and Chrome. Not a product you choose. A layer you're already inside.</p>
+
+      <p>The automotive rollout alone puts Gemini in front of purchase-intent queries at the exact moment someone is already moving through the world. That's not a chatbot. That's infrastructure.</p>
+
+      <hr/>
+
+      <div class="closer">
+        <p>The pattern across all three: every major lab is building toward being the thing you're already inside, not the thing you switch to. That's the race. Not the benchmark. The default.</p>
+      </div>
+
+      <div class="share" aria-label="Share options">
+        <span class="share-label">Share</span>
+        <button class="share-btn" onclick="navigator.clipboard.writeText(window.location.href)" aria-label="Copy link">Copy link</button>
+        <button class="share-btn" onclick="window.open('https://twitter.com/intent/tweet?text=The+Race+%E2%80%94+Kyle+Rosebrook&url='+encodeURIComponent(window.location.href),'_blank')" aria-label="Share on Twitter">Twitter / X</button>
+        <button class="share-btn" onclick="window.open('https://www.linkedin.com/sharing/share-offsite/?url='+encodeURIComponent(window.location.href),'_blank')" aria-label="Share on LinkedIn">LinkedIn</button>
+      </div>
+
+      <div class="author-bio" role="complementary" aria-label="About the author">
+        <div class="author-avatar" aria-hidden="true">KR</div>
+        <div>
+          <div class="author-name">Kyle Rosebrook</div>
+          <div class="author-desc">Founder, <a href="https://flashfusion.co">FlashFusion</a> (AI enablement) and <a href="https://kylerosebrook.com">Abstrekkt</a>. Self-taught. Grayslake, IL.</div>
+        </div>
+      </div>
+
+    </main>
+
+    <aside class="toc-col" aria-label="Table of contents">
+      <div class="toc-inner">
+        <div class="toc-label">In this piece</div>
+        <ul class="toc-list">
+          <li>
+            <a href="#codex">
+              <span class="toc-num">01</span>
+              Codex — browser &amp; speed
+            </a>
+          </li>
+          <li>
+            <a href="#claude">
+              <span class="toc-num">02</span>
+              Anthropic — SMB &amp; Advisor
+            </a>
+          </li>
+          <li>
+            <a href="#gemini">
+              <span class="toc-num">03</span>
+              Gemini — I/O incoming
+            </a>
+          </li>
+        </ul>
+        <hr class="toc-divider"/>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:.52rem;font-weight:300;color:var(--paper-faint);letter-spacing:.04em;line-height:1.7;">
+          Published May 15, 2026<br/>
+          5 min read
+        </div>
+      </div>
+    </aside>
+
+  </div>
+</div>
+
+<footer>
+  <span>© 2026 Kyle Rosebrook</span>
+  <span><a href="https://kylerosebrook.com">kylerosebrook.com</a> &nbsp;·&nbsp; <a href="#">FlashFusion.co</a></span>
+</footer>
+
+<script>
+  // Progress bar
+  const bar = document.getElementById('progress-bar');
+  window.addEventListener('scroll', () => {
+    const total = document.documentElement.scrollHeight - window.innerHeight;
+    const pct = total > 0 ? (window.scrollY / total) * 100 : 0;
+    bar.style.width = pct + '%';
+  }, { passive: true });
+</script>
+</body>
+</html>

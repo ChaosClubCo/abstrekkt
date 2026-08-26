@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fix Log — The 48 vs Current</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Literata:opsz,wght@7..72,400;7..72,500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0A0A0C; --panel:#131315; --low:#1c1b1d; --card:#201f21;
+    --ivory:#e5e1e4; --warm:#d4c5ab; --outline:#9c8f78; --ghost:rgba(80,69,50,.4);
+    --amber:#ffbf00; --amberSoft:#ffe2ab; --blue:#a9c7ff; --error:#ffb4ab; --errFill:#93000a;
+    --gar:'EB Garamond',Georgia,serif; --lit:'Literata',Georgia,serif; --mono:'JetBrains Mono',ui-monospace,monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html,body{background:var(--bg);color:var(--ivory);font-family:var(--lit);}
+  body{position:relative;}
+  .grain{position:fixed;inset:0;opacity:.04;pointer-events:none;mix-blend-mode:overlay;z-index:0;}
+  .wrap{position:relative;z-index:1;max-width:1040px;margin:0 auto;padding:64px 40px 120px;}
+  .kicker{font-family:var(--mono);font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--outline);}
+  h1{font-family:var(--gar);font-weight:500;font-size:46px;line-height:1.05;letter-spacing:-.02em;margin:16px 0 10px;}
+  .deck{font-family:var(--gar);font-style:italic;font-size:19px;color:var(--warm);max-width:660px;}
+  .meta{display:flex;gap:26px;flex-wrap:wrap;font-family:var(--mono);font-size:11px;color:var(--outline);margin-top:22px;padding-top:20px;border-top:1px solid var(--ghost);}
+  .meta b{color:var(--amber);font-weight:500;}
+  .cat{margin-top:48px;}
+  .cat-head{display:flex;align-items:baseline;gap:14px;border-bottom:1px solid var(--ghost);padding-bottom:12px;margin-bottom:6px;}
+  .cat-code{font-family:var(--mono);font-size:13px;font-weight:500;}
+  .cat-title{font-family:var(--gar);font-size:25px;font-weight:600;letter-spacing:-.01em;}
+  .cat-note{font-family:var(--lit);font-size:14px;color:var(--warm);margin:10px 0 4px;max-width:880px;line-height:1.6;}
+  .diff{border-bottom:1px solid var(--ghost);padding:18px 0;}
+  .diff-file{display:flex;justify-content:space-between;align-items:baseline;gap:16px;margin-bottom:10px;}
+  .diff-name{font-family:var(--gar);font-size:17px;color:var(--ivory);}
+  .diff-loc{font-family:var(--mono);font-size:10.5px;color:var(--outline);white-space:nowrap;}
+  .row{font-family:var(--mono);font-size:12.5px;line-height:1.55;display:grid;grid-template-columns:20px 1fr;gap:10px;padding:5px 12px;border-radius:3px;word-break:break-word;}
+  .row.del{background:rgba(147,0,10,.16);color:var(--error);}
+  .row.add{background:rgba(0,40,80,.22);color:var(--blue);margin-top:3px;}
+  .row .sign{color:inherit;opacity:.7;user-select:none;}
+  mark{background:rgba(255,191,0,.22);color:var(--amberSoft);border-radius:2px;padding:0 2px;}
+  .add mark{background:rgba(169,199,255,.22);color:#cfe0ff;}
+  .deferred{margin-top:56px;background:var(--low);border:1px solid var(--ghost);padding:30px 34px;}
+  .deferred h2{font-family:var(--gar);font-size:24px;font-weight:600;margin-bottom:6px;}
+  .deferred .lead{font-family:var(--lit);font-size:14.5px;color:var(--warm);line-height:1.6;max-width:840px;margin-bottom:18px;}
+  .dlist{display:flex;flex-direction:column;gap:14px;}
+  .ditem{display:grid;grid-template-columns:130px 1fr;gap:18px;padding-top:14px;border-top:1px solid var(--ghost);}
+  .ditem .t{font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;color:var(--amber);padding-top:2px;}
+  .ditem .b{font-family:var(--lit);font-size:14px;line-height:1.6;color:var(--ivory);}
+  .ditem .b em{color:var(--warm);}
+  nav.top{position:sticky;top:0;z-index:9;display:flex;justify-content:space-between;align-items:center;padding:13px 40px;background:rgba(10,9,7,.9);backdrop-filter:blur(12px);border-bottom:1px solid var(--ghost);}
+  nav.top a{font-family:var(--mono);font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--outline);text-decoration:none;}
+  nav.top a:hover{color:var(--amber);}
+  nav.top .b{font-family:var(--gar);font-size:15px;color:var(--ivory);}
+  @media(max-width:680px){.wrap{padding:40px 22px 80px;}h1{font-size:34px;}.ditem{grid-template-columns:1fr;gap:4px;}}
+</style>
+</head>
+<body>
+<svg class="grain" aria-hidden="true"><filter id="g"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" stitchTiles="stitch"/></filter><rect width="100%" height="100%" filter="url(#g)"/></svg>
+
+<nav class="top">
+  <span class="b">Abstrekkt&nbsp;<em style="font-style:italic;color:var(--amber)">Audit</em></span>
+  <a href="Audit - 48 vs Current.html">← Back to audit board</a>
+</nav>
+
+<div class="wrap">
+  <div class="kicker">Remediation · Fix Log</div>
+  <h1>What got fixed.</h1>
+  <div class="deck">Every edit applied to the 48-page corpus against the June 6 state sweep — before and after, page by page.</div>
+  <div class="meta">
+    <span>RUN · <b>2026-06-23</b></span>
+    <span>EDITS · <b id="m-edits">—</b></span>
+    <span>FILES · <b id="m-files">—</b></span>
+    <span>DEFERRED · <b>F-02 · LLC kit only</b></span>
+  </div>
+
+  <div id="log"></div>
+
+  <div class="deferred">
+    <div class="kicker" style="color:var(--amber)">Chaos Club shelved · cleanup</div>
+    <h2>F-02 · Chaos Club shelved</h2>
+    <p class="lead">Update: Chaos&nbsp;Club is shelved, so the “peer support” framing is no longer current — two of these are now resolved. The legal toolkit is the one call left.</p>
+    <div class="dlist">
+      <div class="ditem">
+        <div class="t">LLC FORMATION KIT</div>
+        <div class="b">With Chaos&nbsp;Club shelved, don't gut the file — mark the entire <em>"Chaos Club Co. LLC"</em> track as <em>shelved / deferred</em> and proceed with FlashFusion only. The peer-support classification is legally load-bearing, so archive it intact rather than deleting, in case the project un-shelves.</div>
+      </div>
+      <div class="ditem">
+        <div class="t" style="color:var(--blue)">✓ RESOLVED · LOGIC YOU OUTSOURCE</div>
+        <div class="b">Bio's <em>"and peer support"</em> clause removed — now reads <em>"Side projects in AI enablement."</em> (Its dead link was already fixed under F-01.)</div>
+      </div>
+      <div class="ditem">
+        <div class="t" style="color:var(--blue)">✓ RESOLVED · TOOL</div>
+        <div class="b"><em>tools/11-client-dashboard.html</em> no longer names <em>Chris Butler</em> as an active client — relabeled to a clearly-marked <em>template</em>.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const DIFF = [{"file":"Essay - Augmentors.html","code":"F-01","line":641,"before":"<a href=\"mailto:hello@kylerosebrook.com\">Contact</a>","after":"<a href=\"mailto:hello@abstrekkt.com\">Contact</a>"},{"file":"Essay - Best Code Never Wrote.html","code":"F-01","line":474,"before":"<a href=\"mailto:hello@kylerosebrook.com\">Contact</a>","after":"<a href=\"mailto:hello@abstrekkt.com\">Contact</a>"},{"file":"Essay - Knowledge Worker Reclassified.html","code":"F-01","line":858,"before":"<div class=\"author-bio\">AI automation, B2B enablement, FlashFusion · kylerosebrook.com</div>","after":"<div class=\"author-bio\">AI automation, B2B enablement, FlashFusion · abstrekkt.com</div>"},{"file":"Essay - Moving to Base44.html","code":"F-01","line":496,"before":"<a href=\"mailto:hello@kylerosebrook.com\">Contact</a>","after":"<a href=\"mailto:hello@abstrekkt.com\">Contact</a>"},{"file":"Essay - Pre-Flight Checklist.html","code":"F-01","line":576,"before":"<a href=\"mailto:hello@kylerosebrook.com\">Contact</a>","after":"<a href=\"mailto:hello@abstrekkt.com\">Contact</a>"},{"file":"Essay - Reading the Org.html","code":"F-01","line":265,"before":"<span>kylerosebrook.com</span>","after":"<span>abstrekkt.com</span>"},{"file":"Essay - Reading the Pattern.html","code":"F-01","line":254,"before":"<span>kylerosebrook.com</span>","after":"<span>abstrekkt.com</span>"},{"file":"Essay - Reading the Process.html","code":"F-01","line":252,"before":"<span>kylerosebrook.com</span>","after":"<span>abstrekkt.com</span>"},{"file":"Essay - Reading the Room.html","code":"F-01","line":269,"before":"<span>kylerosebrook.com</span>","after":"<span>abstrekkt.com</span>"},{"file":"Essay - Reading the System.html","code":"F-01","line":254,"before":"<span>kylerosebrook.com</span>","after":"<span>abstrekkt.com</span>"},{"file":"Essay - Security Checklist.html","code":"F-01","line":383,"before":"<p>The list is at <a href=\"/preflight\">kylerosebrook.com/preflight</a>. It covers Row Level Security on Supabase tables…</p>","after":"<p>The list is at <a href=\"/preflight\">abstrekkt.com/preflight</a>. It covers Row Level Security on Supabase tables…</p>"},{"file":"Essay - Security Checklist.html","code":"F-01","line":417,"before":"<a href=\"mailto:hello@kylerosebrook.com\">Contact</a>","after":"<a href=\"mailto:hello@abstrekkt.com\">Contact</a>"},{"file":"Essay - Seven Hidden Gems.html","code":"F-01","line":487,"before":"<a href=\"mailto:hello@kylerosebrook.com\">Contact</a>","after":"<a href=\"mailto:hello@abstrekkt.com\">Contact</a>"},{"file":"Essay - Shipping in Public.html","code":"F-01","line":411,"before":"<a href=\"mailto:hello@kylerosebrook.com\">Contact</a>","after":"<a href=\"mailto:hello@abstrekkt.com\">Contact</a>"},{"file":"Essay - Still Behind in AI.html","code":"F-01","line":915,"before":"<div class=\"author-bio\">AI automation, B2B enablement, FlashFusion · kylerosebrook.com</div>","after":"<div class=\"author-bio\">AI automation, B2B enablement, FlashFusion · abstrekkt.com</div>"},{"file":"Essay - The AI Race.html","code":"F-01","line":465,"before":"<span><a href=\"#\">kylerosebrook.com</a> &nbsp;·&nbsp; <a href=\"#\">FlashFusion.co</a></span>","after":"<span><a href=\"#\">abstrekkt.com</a> &nbsp;·&nbsp; <a href=\"#\">FlashFusion.co</a></span>"},{"file":"Essay - The Logic You Outsource.html","code":"F-01","line":278,"before":"…Father to Kinsley. Writing at <a href=\"https://kylerosebrook.com\">kylerosebrook.com</a>.","after":"…Father to Kinsley. Writing at <a href=\"https://abstrekkt.com\">abstrekkt.com</a>."},{"file":"Essay - Three Small Habits.html","code":"F-01","line":428,"before":"<a href=\"mailto:hello@kylerosebrook.com\">Contact</a>","after":"<a href=\"mailto:hello@abstrekkt.com\">Contact</a>"},{"file":"Essay - Your AI Problem Isnt the Model.html","code":"F-01","line":364,"before":"<a href=\"https://kylerosebrook.com\" class=\"related-card\">","after":"<a href=\"https://abstrekkt.com\" class=\"related-card\">"},{"file":"Essay - Your AI Problem Isnt the Model.html","code":"F-01","line":365,"before":"<div class=\"rc-tag\">Hot Take · kylerosebrook.com</div>","after":"<div class=\"rc-tag\">Hot Take · abstrekkt.com</div>"},{"file":"Regeneration Era Article.html","code":"F-01","line":340,"before":"…and Abstrekkt Co. Writes at <a href=\"https://kylerosebrook.com\">kylerosebrook.com</a>.","after":"…and Abstrekkt Co. Writes at <a href=\"https://abstrekkt.com\">abstrekkt.com</a>."},{"file":"Kyle Rosebrook Contact.html","code":"F-01","line":58,"before":"<span class=\"k\">Email</span><span class=\"v\">hello@kylerosebrook.com</span>","after":"<span class=\"k\">Email</span><span class=\"v\">hello@abstrekkt.com</span>"},{"file":"FlashFusion - Anthropic Partner Narrative.html","code":"F-03","line":353,"before":"<td>Sales team (Kelan) fully trained — E1 through E8 curriculum complete.</td>","after":"<td>Enablement curriculum (E1–E8) authored and ready to deliver.</td>"},{"file":"Essay - Claude Code Blueprint.html","code":"F-04","line":222,"before":"…what my actual project structure looks like after 50 skills and six months of production use.","after":"…what my actual project structure looks like after 50+ skills and six months of production use."},{"file":"Essay - Claude Code Blueprint.html","code":"F-04","line":228,"before":"I have 50 skills in active rotation.","after":"I have 50+ skills in active rotation."},{"file":"Essay - Claude Code Blueprint.html","code":"F-04","line":254,"before":"After 50 skills, the pattern is clear…","after":"After 50+ skills, the pattern is clear…"},{"file":"Essay - Claude Code Blueprint.html","code":"F-04","line":337,"before":"…based on personal experience across 50 skills, not a controlled study.","after":"…based on personal experience across 50+ skills, not a controlled study."}];
+
+const CAT = {
+  'F-01':{c:'var(--error)', title:'Dead domain — kylerosebrook.com → abstrekkt.com', note:'Confirmed gone Jun 3. Every URL, email, and label swapped to the live domain.'},
+  'F-03':{c:'var(--amber)', title:'Stale claim — "Sales team (Kelan) fully trained"', note:'Dropped the named, unverified person and the "trained team" claim; states actual readiness.'},
+  'F-04':{c:'var(--blue)', title:'Uncanonical count — "50 skills"', note:'Softened to "50+" so a point-in-time personal figure isn\u2019t cited as fact-of-record.'},
+};
+const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+function hl(s, on){ // highlight the swapped token
+  s = esc(s);
+  if(on==='F-01') s = s.replace(/kylerosebrook\.com/g,'<mark>kylerosebrook.com</mark>').replace(/abstrekkt\.com/g,'<mark>abstrekkt.com</mark>');
+  return s;
+}
+const log = document.getElementById('log');
+const order = ['F-01','F-03','F-04'];
+let files = new Set();
+for(const code of order){
+  const rows = DIFF.filter(d=>d.code===code);
+  rows.forEach(r=>files.add(r.file));
+  const cat = CAT[code];
+  const sec = document.createElement('div'); sec.className='cat';
+  sec.innerHTML = `<div class="cat-head"><span class="cat-code" style="color:${cat.c}">${code}</span>`
+    + `<span class="cat-title">${cat.title}</span></div><div class="cat-note">${cat.note}</div>`;
+  rows.forEach(r=>{
+    const d=document.createElement('div'); d.className='diff';
+    d.innerHTML = `<div class="diff-file"><span class="diff-name">${esc(r.file.replace(/\.html$/,''))}</span>`
+      + `<span class="diff-loc">line ${r.line}</span></div>`
+      + `<div class="row del"><span class="sign">−</span><span>${hl(r.before,code)}</span></div>`
+      + `<div class="row add"><span class="sign">+</span><span>${hl(r.after,code)}</span></div>`;
+    sec.appendChild(d);
+  });
+  log.appendChild(sec);
+}
+document.getElementById('m-edits').textContent = DIFF.length;
+document.getElementById('m-files').textContent = files.size;
+</script>
+</body>
+</html>

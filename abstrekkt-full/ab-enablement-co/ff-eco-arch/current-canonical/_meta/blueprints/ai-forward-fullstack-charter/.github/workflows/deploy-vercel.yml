@@ -1,0 +1,32 @@
+# Deploy frontend to Vercel. Staging auto; production gated (Zone 2).
+name: deploy-vercel
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      target:
+        description: "staging | production"
+        required: true
+        default: staging
+
+permissions:
+  contents: read
+  deployments: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.target || 'staging' }}  # 'production' requires approval
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20, cache: npm }
+      - run: npm ci && npm run build
+      - name: Pull secrets from Vault (no long-lived keys in repo)
+        run: ./infra/vault/scripts/inject-env.sh
+      - name: Deploy
+        run: npx vercel deploy --prebuilt ${{ (github.event.inputs.target == 'production') && '--prod' || '' }}
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}

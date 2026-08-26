@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tool Stack Map — What's Actually Running</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Geist+Mono&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:#0c0c0f; --surface:#141418; --surface-2:#1c1c24;
+    --border:#262630; --brass:#c9a84c; --brass-dim:rgba(201,168,76,0.2);
+    --text:#d4d0c8; --text-dim:#8a8678; --text-bright:#f2efe6;
+    --green:#4ade80; --red:#f87171; --orange:#fb923c; --purple:#a78bfa;
+    --cyan:#67e8f9;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:var(--bg); color:var(--text); font-family:'DM Sans',sans-serif; -webkit-font-smoothing:antialiased; }
+
+  .header {
+    padding:2rem 1.5rem;
+    border-bottom:1px solid var(--border);
+    text-align:center;
+  }
+  .header-meta {
+    font-family:'Geist Mono',monospace;
+    font-size:0.65rem;
+    color:var(--brass);
+    text-transform:uppercase;
+    letter-spacing:0.1em;
+    margin-bottom:0.5rem;
+  }
+  .header h1 {
+    font-family:'Fraunces',serif;
+    font-size:clamp(1.4rem,4vw,2rem);
+    color:var(--text-bright);
+    margin-bottom:0.35rem;
+  }
+  .header p { color:var(--text-dim); font-size:0.85rem; }
+
+  .filters {
+    display:flex;
+    gap:0.5rem;
+    padding:1rem 1.5rem;
+    border-bottom:1px solid var(--border);
+    overflow-x:auto;
+    flex-wrap:wrap;
+  }
+  .filter-btn {
+    font-family:'Geist Mono',monospace;
+    font-size:0.68rem;
+    padding:0.35em 0.7em;
+    border:1px solid var(--border);
+    border-radius:4px;
+    background:transparent;
+    color:var(--text-dim);
+    cursor:pointer;
+    transition:all 0.15s;
+    white-space:nowrap;
+  }
+  .filter-btn:hover { border-color:var(--brass); color:var(--text); }
+  .filter-btn.active { border-color:var(--brass); color:var(--brass); background:var(--brass-dim); }
+
+  .grid {
+    display:grid;
+    grid-template-columns:repeat(auto-fill, minmax(260px, 1fr));
+    gap:0.75rem;
+    padding:1.5rem;
+    max-width:1100px;
+    margin:0 auto;
+  }
+
+  .tool-card {
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:6px;
+    padding:1rem 1.25rem;
+    transition:all 0.2s;
+    cursor:pointer;
+  }
+  .tool-card:hover { border-color:var(--brass); }
+  .tool-card.expanded { border-color:var(--brass); }
+
+  .tool-top {
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:0.5rem;
+  }
+  .tool-name {
+    font-weight:600;
+    font-size:0.92rem;
+    color:var(--text-bright);
+  }
+  .status-dot {
+    width:8px; height:8px;
+    border-radius:50%;
+    flex-shrink:0;
+  }
+  .status-dot.live { background:var(--green); box-shadow:0 0 6px rgba(74,222,128,0.4); }
+  .status-dot.partial { background:var(--orange); box-shadow:0 0 6px rgba(251,146,60,0.3); }
+  .status-dot.down { background:var(--red); box-shadow:0 0 6px rgba(248,113,113,0.3); }
+  .status-dot.dormant { background:var(--text-dim); }
+
+  .tool-role {
+    font-size:0.78rem;
+    color:var(--text-dim);
+    margin-top:0.3rem;
+  }
+  .tool-tags {
+    display:flex;
+    gap:0.3rem;
+    flex-wrap:wrap;
+    margin-top:0.5rem;
+  }
+  .tool-tag {
+    font-family:'Geist Mono',monospace;
+    font-size:0.58rem;
+    padding:0.15em 0.4em;
+    border-radius:3px;
+    border:1px solid var(--border);
+    color:var(--text-dim);
+  }
+
+  .tool-detail {
+    display:none;
+    margin-top:0.75rem;
+    padding-top:0.75rem;
+    border-top:1px solid var(--border);
+    font-size:0.82rem;
+    color:var(--text-dim);
+    line-height:1.5;
+  }
+  .tool-card.expanded .tool-detail { display:block; }
+  .tool-detail strong { color:var(--text-bright); }
+
+  .legend {
+    display:flex;
+    gap:1.5rem;
+    padding:1rem 1.5rem;
+    border-top:1px solid var(--border);
+    font-size:0.72rem;
+    color:var(--text-dim);
+    flex-wrap:wrap;
+    justify-content:center;
+  }
+  .legend-item { display:flex; align-items:center; gap:0.4rem; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-meta">Load-Bearing · Interactive Reference</div>
+  <h1>What's Actually Running</h1>
+  <p>The real tool stack — live, broken, and dormant. Click any card for details.</p>
+</div>
+
+<div class="filters">
+  <button class="filter-btn active" onclick="filter('all')">All</button>
+  <button class="filter-btn" onclick="filter('core')">Core</button>
+  <button class="filter-btn" onclick="filter('ai')">AI / LLM</button>
+  <button class="filter-btn" onclick="filter('infra')">Infrastructure</button>
+  <button class="filter-btn" onclick="filter('build')">Build Tools</button>
+  <button class="filter-btn" onclick="filter('content')">Content</button>
+  <button class="filter-btn" onclick="filter('broken')">Broken / Down</button>
+</div>
+
+<div class="grid" id="grid"></div>
+
+<div class="legend">
+  <div class="legend-item"><span class="status-dot live" style="position:static"></span> Live & working</div>
+  <div class="legend-item"><span class="status-dot partial" style="position:static"></span> Partial / degraded</div>
+  <div class="legend-item"><span class="status-dot down" style="position:static"></span> Down / blocked</div>
+  <div class="legend-item"><span class="status-dot dormant" style="position:static"></span> Dormant / unused</div>
+</div>
+
+<script>
+const tools = [
+  { name:'Claude (claude.ai)', role:'Primary AI — chat, projects, skills, memory', status:'live', cats:['core','ai'], detail:'50 skills in active rotation. Memory system configured. Projects for FlashFusion, memoir, INT. Cowork for file builds. This is the center of everything.' },
+  { name:'Claude Code', role:'Terminal AI — builds, audits, deploys', status:'live', cats:['core','ai','build'], detail:'Used for multi-file builds, skill packaging, code audits. Subagent support via agents/ directory. The productivity multiplier.' },
+  { name:'Vercel', role:'Deployment — 25+ active projects', status:'partial', cats:['core','infra'], detail:'FlashFusion team (team_hPVeJgH0h1nCrogiaMvD6fxu). ~25 projects. GitHub App connection broken for Continuum — needs manual reconnect. Other projects deploy fine.' },
+  { name:'Supabase', role:'Database — auth, RLS, Postgres', status:'down', cats:['core','infra','broken'], detail:'Bill overdue. Both instances (flashfusion + ascend-ai) at risk. Blocks Continuum and any Supabase-dependent features. Critical blocker.' },
+  { name:'Base44', role:'Lightweight app builder — 41 apps', status:'live', cats:['core','build'], detail:'Fusion AI (101 entities, 0 data), AI Setup Audit Scorecard (products at $0/$1.5K/$4.5K), TeamSync (3 real simulations — most used). Entity count ≠ quality.' },
+  { name:'n8n', role:'Workflow automation — orchestration spine', status:'live', cats:['core','infra'], detail:'krosebrook.app.n8n.cloud. Portfolio Command Center (JPSVa3cLtQPi8NKF). 6 MCP tools. 11 blocked workflows pending Base44 API credential fix.' },
+  { name:'GitHub', role:'Code hosting — 628+ repos', status:'live', cats:['core','build'], detail:'Krosebrook personal, ChaosClubCo org (50+), FlashFusionv1 org. Private repos include upe-priority-engine, SynthelNC, beta-test-army, claude-code-plugins-plus (244 plugins).' },
+  { name:'Cloudflare', role:'DNS, CDN, edge routing', status:'live', cats:['infra'], detail:'Manages flashfusion.co and subdomains. audit.flashfusion.co CNAME to base44.onrender.com. client.flashfusion.co CNAME pending.' },
+  { name:'Figma', role:'Design — brand files + UI kits', status:'live', cats:['build','content'], detail:'Team 152971. FlashFusion Website (published, starred), Ample UI, Enterprise Profile Builder. shadcn/ui + MCP Apps for Claude UI kits imported.' },
+  { name:'Bitwarden', role:'Secrets management', status:'live', cats:['core','infra'], detail:'Replaced Keeper. Primary secrets manager for all lanes.' },
+  { name:'Google Drive', role:'File storage + search', status:'live', cats:['core'], detail:'MCP connected. Drive Automation Chain 1+2 system with Supabase audit trail and CrewAI agent council.' },
+  { name:'Gmail', role:'Email — MCP connected', status:'live', cats:['core'], detail:'MCP integration for reading and sending. Used across all three lanes.' },
+  { name:'Notion', role:'Docs + wiki', status:'partial', cats:['build','content'], detail:'Connected but not fully integrated into current workflow. Marked for reconnect.' },
+  { name:'Replit', role:'Cloud IDE — 3 workspaces', status:'dormant', cats:['build'], detail:'kylerosebrook personal, FlashFusion team, INT team. FlashFusion(1) is PUBLIC+starred. Not actively used for current builds.' },
+  { name:'PostHog', role:'Product analytics', status:'live', cats:['infra'], detail:'Connected via MCP. Available for FlashFusion product analytics when Fusion AI exits beta.' },
+  { name:'Continuum', role:'Primary product — Next.js 16 + Supabase + Tailwind 4', status:'down', cats:['build','broken'], detail:'Blocked by Supabase overdue bill AND broken Vercel GitHub App connection. Last good prod deploy: dpl_6G5v9RpMSend3Ckh4eZJfCf4ZTL9 from PR #112 (Mar 23).' },
+  { name:'Anthropic API', role:'claude-sonnet-4 for artifacts', status:'live', cats:['ai'], detail:'Used in HTML artifacts for Claude-in-Claude patterns. Standard model ref: claude-sonnet-4-20250514.' },
+  { name:'Sudowrite', role:'Manuscript drafting', status:'live', cats:['content'], detail:'Memoir manuscript exists here. Excavation sessions continue in parallel with Claude project work.' },
+  { name:'claude-code-plugins-plus', role:'244-plugin marketplace catalog', status:'dormant', cats:['build'], detail:'Built, last commit Oct 2025, installable via /plugin install. Distribution decision pending — marketplace, blog launch, direct outreach, or Anthropic partnership.' },
+  { name:'Craft', role:'Docs + notes', status:'dormant', cats:['content'], detail:'MCP connected. Marked for reconnect alongside Notion. Not actively used.' },
+];
+
+function render(filterCat) {
+  const grid = document.getElementById('grid');
+  const filtered = filterCat === 'all' ? tools :
+    filterCat === 'broken' ? tools.filter(t => t.status === 'down' || t.status === 'partial') :
+    tools.filter(t => t.cats.includes(filterCat));
+
+  grid.innerHTML = filtered.map((t, i) => `
+    <div class="tool-card" onclick="this.classList.toggle('expanded')">
+      <div class="tool-top">
+        <span class="tool-name">${t.name}</span>
+        <span class="status-dot ${t.status}"></span>
+      </div>
+      <div class="tool-role">${t.role}</div>
+      <div class="tool-tags">
+        ${t.cats.map(c => `<span class="tool-tag">${c}</span>`).join('')}
+      </div>
+      <div class="tool-detail">${t.detail}</div>
+    </div>
+  `).join('');
+}
+
+function filter(cat) {
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+  render(cat);
+}
+
+render('all');
+</script>
+</body>
+</html>

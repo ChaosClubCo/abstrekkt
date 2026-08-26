@@ -1,0 +1,800 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Pivotal Moments v8 — Kyle Rosebrook</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#07070f;--sf:#0d0d1c;--sf2:#111126;
+  --bd:#1a1a32;--bd2:#242448;
+  --t:#ddddf5;--t2:#8888b8;--t3:#44446a;
+  --p:#c084fc;--pd:#1e0f38;
+  --tc:#34d399;--tcd:#081f14;
+  --s:#fbbf24;--sd:#251500;
+  --k:#f87171;--kd:#200a0a;
+  --x:#38bdf8;--xd:#051828;
+  --ac:#6c6cff;
+}
+body{font-family:'Inter',-apple-system,sans-serif;background:var(--bg);color:var(--t);min-height:100vh}
+.hdr{padding:16px 22px 12px;border-bottom:1px solid var(--bd);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px}
+.hdr h1{font-size:10px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--ac)}
+.hdr p{font-size:10px;color:var(--t3);margin-top:1px}
+.hdr-r{font-size:11px;color:var(--t3)}.hdr-r strong{color:var(--s)}
+.stats{display:flex;border-bottom:1px solid var(--bd)}
+.stat{flex:1;padding:7px 8px;border-right:1px solid var(--bd);display:flex;flex-direction:column;align-items:center}
+.stat:last-child{border-right:none}
+.sn{font-size:15px;font-weight:800}
+.sl{font-size:7px;color:var(--t3);text-transform:uppercase;letter-spacing:.1em;margin-top:1px}
+.np{color:var(--p)}.nt{color:var(--tc)}.ns{color:var(--s)}.nk{color:var(--k)}.nx{color:var(--x)}
+.ctrl{display:flex;gap:4px;align-items:center;flex-wrap:wrap;padding:8px 22px;border-bottom:1px solid var(--bd)}
+.cl{font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:.1em;margin-right:2px}
+.fb,.vb{font-size:9px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:3px 8px;border-radius:3px;cursor:pointer;border:1px solid var(--bd2);background:var(--sf);color:var(--t3);transition:all .15s;white-space:nowrap}
+.fb.all.on{background:var(--ac);border-color:var(--ac);color:#fff}
+.fb.personal.on{background:var(--pd);border-color:var(--p);color:var(--p)}
+.fb.technical.on{background:var(--tcd);border-color:var(--tc);color:var(--tc)}
+.fb.synthesis.on{background:var(--sd);border-color:var(--s);color:var(--s)}
+.fb.kill.on{background:var(--kd);border-color:var(--k);color:var(--k)}
+.fb.tension.on{background:var(--xd);border-color:var(--x);color:var(--x)}
+.sep{width:1px;height:14px;background:var(--bd2);margin:0 3px}
+.vb.on{background:var(--sf2);border-color:var(--ac);color:var(--ac)}
+#vt{padding:0 22px 48px}
+.ph{display:flex;align-items:center;gap:10px;padding:22px 0 10px}
+.pl{flex:1;height:1px;background:var(--bd)}
+.pt{font-size:9px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--t3);white-space:nowrap}
+.pn{font-size:8px;color:var(--s);margin-left:3px}
+.cr{display:grid;grid-template-columns:repeat(auto-fill,minmax(248px,1fr));gap:8px}
+.card{background:var(--sf);border:1px solid var(--bd);border-radius:7px;padding:12px 14px;cursor:pointer;transition:border-color .15s,background .15s,transform .1s;position:relative;overflow:hidden}
+.card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+.card.personal::before{background:linear-gradient(90deg,var(--p),#818cf8)}
+.card.technical::before{background:linear-gradient(90deg,var(--tc),#06b6d4)}
+.card.synthesis::before{background:linear-gradient(90deg,var(--s),#ef4444)}
+.card.kill::before{background:linear-gradient(90deg,var(--k),#f97316)}
+.card.tension::before{background:linear-gradient(90deg,var(--x),#6366f1)}
+.card:hover{border-color:var(--bd2);background:var(--sf2);transform:translateY(-1px)}
+.card.on{background:var(--sf2);border-color:var(--bd2)}
+.card.hi{display:none!important}
+.card.isN::after{content:'NEW';position:absolute;top:8px;right:8px;font-size:6px;font-weight:800;letter-spacing:.12em;color:var(--s);background:var(--sd);border:1px solid var(--s);border-radius:2px;padding:1px 3px}
+.ct{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px}
+.tg{font-size:7px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:2px 5px;border-radius:2px}
+.tg-p{background:var(--pd);color:var(--p)}.tg-t{background:var(--tcd);color:var(--tc)}
+.tg-s{background:var(--sd);color:var(--s)}.tg-k{background:var(--kd);color:var(--k)}.tg-x{background:var(--xd);color:var(--x)}
+.cd{font-size:8px;color:var(--t3)}
+.ctit{font-size:11px;font-weight:700;color:var(--t);line-height:1.35;margin-bottom:4px}
+.csig{font-size:9px;color:var(--t3);font-style:italic;line-height:1.4}
+.cex{max-height:0;overflow:hidden;transition:max-height .35s ease}
+.card.on .cex{max-height:720px}
+.xi{padding-top:10px;margin-top:10px;border-top:1px solid var(--bd)}
+.q{font-size:10px;color:var(--t2);line-height:1.65;padding:8px 10px;background:var(--bg);border-left:2px solid var(--bd2);border-radius:0 4px 4px 0;margin-bottom:8px;font-style:italic}
+.q strong{color:var(--t);font-style:normal}
+.w{font-size:10px;color:var(--t2);line-height:1.65;margin-bottom:8px}
+.em{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-bottom:8px}
+.ec{background:var(--bg);border:1px solid var(--bd);border-radius:3px;padding:5px 7px}
+.el{font-size:7px;text-transform:uppercase;letter-spacing:.1em;color:var(--t3);margin-bottom:1px}
+.ev{font-size:9px;color:var(--t2);line-height:1.4}
+.lk{display:inline-flex;gap:3px;font-size:8px;color:#3a3aaa;border:1px solid #1e1e40;border-radius:2px;padding:2px 6px;text-decoration:none;transition:color .15s;margin-right:3px;margin-top:2px}
+.lk:hover{color:#6a6aff;border-color:#3a3aff}
+.lk.c{color:#2a5a8a;border-color:#182840}.lk.c:hover{color:#60a5fa}
+.lk.pr{color:#2a6a3a;border-color:#182818}.lk.pr:hover{color:#4ade80}
+#vg{padding:16px 22px 48px}
+.gg{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+@media(max-width:1100px){.gg{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:700px){.gg{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:450px){.gg{grid-template-columns:1fr}}
+.gc{background:var(--sf);border:1px solid var(--bd);border-radius:7px;padding:11px 13px;cursor:pointer;transition:border-color .15s,background .15s;position:relative;overflow:hidden}
+.gc::before{content:'';position:absolute;left:0;top:0;bottom:0;width:2px}
+.gc.personal::before{background:var(--p)}.gc.technical::before{background:var(--tc)}
+.gc.synthesis::before{background:var(--s)}.gc.kill::before{background:var(--k)}.gc.tension::before{background:var(--x)}
+.gc:hover{border-color:var(--bd2);background:var(--sf2)}
+.gc.hi{display:none!important}.gc.isN{border-color:#1c1c3a}
+.gn{font-size:22px;font-weight:900;opacity:.06;position:absolute;right:7px;top:5px}
+.gnw{position:absolute;top:7px;right:7px;font-size:6px;font-weight:800;letter-spacing:.1em;color:var(--s);background:var(--sd);border:1px solid var(--s);border-radius:2px;padding:1px 3px}
+.gtg{font-size:7px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:2px 5px;border-radius:2px;display:inline-block;margin-bottom:5px}
+.gd{font-size:8px;color:var(--t3);margin-bottom:3px}
+.gtit{font-size:11px;font-weight:700;color:var(--t);line-height:1.35;margin-bottom:3px}
+.gsig{font-size:9px;color:var(--t3);font-style:italic;line-height:1.3}
+#vc{padding:16px 22px 48px}
+.cg{display:grid;grid-template-columns:repeat(5,1fr);gap:11px}
+@media(max-width:1200px){.cg{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:700px){.cg{grid-template-columns:repeat(2,1fr)}}
+.ch{font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;padding:6px 0 8px;border-bottom:2px solid;margin-bottom:8px}
+.ch.personal{color:var(--p);border-color:var(--p)}.ch.technical{color:var(--tc);border-color:var(--tc)}
+.ch.synthesis{color:var(--s);border-color:var(--s)}.ch.kill{color:var(--k);border-color:var(--k)}.ch.tension{color:var(--x);border-color:var(--x)}
+.cc{background:var(--sf);border:1px solid var(--bd);border-radius:5px;padding:8px 10px;margin-bottom:6px;cursor:pointer;transition:border-color .15s,background .15s;position:relative}
+.cc:hover{background:var(--sf2);border-color:var(--bd2)}
+.cc.hi{display:none!important}
+.cc.isN::after{content:'✦';font-size:7px;color:var(--s);position:absolute;top:5px;right:7px}
+.ccd{font-size:8px;color:var(--t3);margin-bottom:2px}
+.cct{font-size:10px;font-weight:700;color:var(--t2);line-height:1.35;margin-bottom:2px}
+.ccs{font-size:9px;color:var(--t3);font-style:italic;line-height:1.3}
+.sb{font-size:7px;padding:1px 4px;border-radius:2px}
+.sc{background:#0a1a2a;color:#3a7aaa}.sd2{background:#0d1a08;color:#5a8a2a}.sp{background:#0d140d;color:#3a7a5a}
+.hidden{display:none!important}
+</style>
+</head>
+<body>
+<div class="hdr">
+  <div><h1>Pivotal Moments — Kyle Rosebrook · v8</h1><p>Oct 2025 → Mar 2026 · Chat · Drive · Project Files · Memory</p></div>
+  <div class="hdr-r">49 prior &nbsp;+&nbsp; <strong>6 new</strong> &nbsp;=&nbsp; 55 total</div>
+</div>
+<div class="stats">
+  <div class="stat"><span class="sn">55</span><span class="sl">Total</span></div>
+  <div class="stat"><span class="sn np">4</span><span class="sl">Personal</span></div>
+  <div class="stat"><span class="sn nt">27</span><span class="sl">Technical</span></div>
+  <div class="stat"><span class="sn ns">19</span><span class="sl">Synthesis</span></div>
+  <div class="stat"><span class="sn nk">4</span><span class="sl">Kill / Cut</span></div>
+  <div class="stat"><span class="sn nx">1</span><span class="sl">Tension</span></div>
+</div>
+<div class="ctrl">
+  <span class="cl">Filter</span>
+  <button class="fb all on" onclick="fil('all')">All 55</button>
+  <button class="fb personal" onclick="fil('personal')">Personal</button>
+  <button class="fb technical" onclick="fil('technical')">Technical</button>
+  <button class="fb synthesis" onclick="fil('synthesis')">Synthesis</button>
+  <button class="fb kill" onclick="fil('kill')">Kill / Cut</button>
+  <button class="fb tension" onclick="fil('tension')">Tension</button>
+  <div class="sep"></div>
+  <span class="cl">View</span>
+  <button class="vb on" id="bt" onclick="sv('t')">Timeline</button>
+  <button class="vb" id="bg" onclick="sv('g')">Grid</button>
+  <button class="vb" id="bc" onclick="sv('c')">Columns</button>
+</div>
+
+<div id="vt">
+<!-- ── PHASE 0: Oct 2025 ── -->
+<div class="ph"><div class="pl"></div><span class="pt">Foundation · Oct 2025</span><div class="pl"></div></div>
+<div class="cr">
+<div class="card technical" data-c="technical" onclick="tog(this)">
+<div class="ct"><span class="tg tg-t">Technical</span><span class="cd">Oct 20 · <span class="sb sc">Chat</span></span></div>
+<div class="ctit">Smart Content Assistant v2.1 — First Build, 12 Templates, 8 Reality Filters</div>
+<div class="csig">The origin artifact. Zero external deps. Reality filters coined before they had a name.</div>
+<div class="cex"><div class="xi">
+<div class="q">"8 reality filters: <strong>hallucination mitigation, brand voice consistency, platform algorithm awareness, SEO volatility shield, sensitive topic scanner, accessibility validator, copyright scanner, content safety.</strong>"</div>
+<div class="w">The "reality filter" framing originates here. Zero dependencies beyond React + Lucide. The deliverable pattern that becomes the meta-prompt system months later.</div>
+<a class="lk c" href="https://claude.ai/chat/54a4946e-6561-459b-be84-903ed417d26a" target="_blank">↗ Chat</a>
+</div></div></div>
+
+<div class="card synthesis" data-c="synthesis" onclick="tog(this)">
+<div class="ct"><span class="tg tg-s">Synthesis</span><span class="cd">Oct 20 · <span class="sb sc">Chat</span></span></div>
+<div class="ctit">Preflight Validation Research — 60% of Errors Preventable, Proven</div>
+<div class="csig">100% success with checks. 57% without. p=0.03. Three-layer defense model established.</div>
+<div class="cex"><div class="xi">
+<div class="q">"<strong>Has preflight check: 100% success. No preflight check: 57% success, 14% fail.</strong> p=0.03 (Fisher's exact test)."</div>
+<div class="w">Reshaped every subsequent workflow built. Also surfaced: security guidance says always scan for PII, but 90% of examples don't implement it.</div>
+<a class="lk c" href="https://claude.ai/chat/2af7197e-8087-4226-84f4-577a680f2c52" target="_blank">↗ Chat</a>
+</div></div></div>
+
+<div class="card synthesis" data-c="synthesis" onclick="tog(this)">
+<div class="ct"><span class="tg tg-s">Synthesis</span><span class="cd">Oct 26 · <span class="sb sp">Project</span></span></div>
+<div class="ctit">Prompt Engineering Audit — 47→23, Evidence Over Anecdote</div>
+<div class="csig">The intellectual foundation. Evidence > anecdote established before the MONOTURBO arc.</div>
+<div class="cex"><div class="xi">
+<div class="q">"<strong>'47% better with persona' has no primary source.</strong> Corrected. Temperature control is not user-accessible in ChatGPT's standard interface."</div>
+<span class="lk pr">📄 prompt-engineering-23-core-techniques.md</span>
+</div></div></div>
+
+<div class="card technical" data-c="technical" onclick="tog(this)">
+<div class="ct"><span class="tg tg-t">Technical</span><span class="cd">Oct 26 · <span class="sb sp">Project</span></span></div>
+<div class="ctit">Anti-Slop v2.0 — 20 Findings Resolved, 6 Hard-Stop Gates</div>
+<div class="csig">724→836 lines. The formal system behind "mediocre → rebuild."</div>
+<div class="cex"><div class="xi">
+<div class="q">"Gates 1–2 hard stops. Primary test: <strong>'Could any AI using default settings produce this?' → Yes = redesign.</strong>"</div>
+<span class="lk pr">📄 anti_slop_prompt.md</span>
+</div></div></div>
+</div>
+
+<!-- ── PHASE 1: Nov–Dec 2025 ── -->
+<div class="ph"><div class="pl"></div><span class="pt">Pre-Arc · Nov – Dec 2025</span><div class="pl"></div></div>
+<div class="cr">
+<div class="card technical" data-c="technical" onclick="tog(this)">
+<div class="ct"><span class="tg tg-t">Technical</span><span class="cd">Nov 3 · <span class="sb sc">Chat</span></span></div>
+<div class="ctit">INT Smart Triage Security Audit — First Formal AppSec Review</div>
+<div class="csig">75/100 MODERATE. localStorage crash + RLS gaps. audit→rebuild cycle established.</div>
+<div class="cex"><div class="xi">
+<div class="q">"🟡 MODERATE (75/100). <strong>Critical: localStorage crash (ThemeContext.tsx). RLS gap on triage-report edge function.</strong>"</div>
+<a class="lk c" href="https://claude.ai/chat/a257175f-755f-425b-8396-4f47fbdb8a14" target="_blank">↗ Chat</a>
+</div></div></div>
+
+<div class="card technical" data-c="technical" onclick="tog(this)">
+<div class="ct"><span class="tg tg-t">Technical</span><span class="cd">Nov 19 · <span class="sb sc">Chat</span></span></div>
+<div class="ctit">SCA v2.2 Security Hardening — Dual-LLM Pattern, 99%+ Injection Defense</div>
+<div class="csig">OWASP + STRIDE + Zod. 7-10 file deliverable standard locked in here.</div>
+<div class="cex"><div class="xi">
+<div class="q">"<strong>Dual LLM: quarantined LLM (no tool access) extracts data first. Privileged LLM never sees raw user input.</strong> 99%+ injection defense. 3 weaknesses + patches in the delivery itself."</div>
+<a class="lk c" href="https://claude.ai/chat/574eb863-c6b7-4766-a9a5-3b061159ebf1" target="_blank">↗ Chat</a>
+</div></div></div>
+
+<div class="card technical" data-c="technical" onclick="tog(this)">
+<div class="ct"><span class="tg tg-t">Technical</span><span class="cd">Nov 19 · <span class="sb sc">Chat</span></span></div>
+<div class="ctit">SCA Codebase Refactor — Evidence-Based Stack, Two-Tier Testing Standard</div>
+<div class="csig">Next.js 14. Zustand over Context. Vitest 5×. Claims now backed by primary sources.</div>
+<div class="cex"><div class="xi">
+<div class="q">"<strong>Context (≤3 slices) → Zustand (4–15) → Redux (>15).</strong> 75% coverage hygiene + 80% mutation for critical paths. Microsoft Research: high coverage alone permits 20-40% of bugs."</div>
+<a class="lk c" href="https://claude.ai/chat/9d7af5bd-b0f1-47bc-95e2-bdfc27338f87" target="_blank">↗ Chat</a>
+</div></div></div>
+
+<div class="card technical" data-c="technical" onclick="tog(this)">
+<div class="ct"><span class="tg tg-t">Technical</span><span class="cd">Dec 13 · <span class="sb sc">Chat</span></span></div>
+<div class="ctit">Platform Explorer v6.0 — First Production AI Advisory Tool Shipped</div>
+<div class="csig">10+ platforms. INT dept recs baked in. 70KB single file, works offline.</div>
+<div class="cex"><div class="xi">
+<div class="q">"<strong>Legal→Claude, Engineering→Claude+GitHub, Marketing→ChatGPT, InfoSec→Claude+Gemini.</strong> Multi-vendor strategies $1,200–$2,500/month for 50 users."</div>
+<a class="lk c" href="https://claude.ai/chat/4b4e8ab8-2b36-46f8-9db2-21f6105f5f55" target="_blank">↗ Chat</a>
+</div></div></div>
+
+<div class="card synthesis" data-c="synthesis" onclick="tog(this)">
+<div class="ct"><span class="tg tg-s">Synthesis</span><span class="cd">Dec 12 · <span class="sb sc">Chat</span></span></div>
+<div class="ctit">Founder OS → Production Platform</div>
+<div class="csig">9-database system. ZMSC gates. Operational maturity as the baseline.</div>
+<div class="cex"><div class="xi">
+<div class="q">"<strong>13 major sections and 8 interconnected Notion databases.</strong>"</div>
+<a class="lk c" href="https://claude.ai/chat/f4b8a0fb-49d0-466a-95c0-a584342a7f29" target="_blank">↗ Chat</a>
+</div></div></div>
+
+<div class="card kill" data-c="kill" onclick="tog(this)">
+<div class="ct"><span class="tg tg-k">Scale Shock</span><span class="cd">Dec 13 · <span class="sb sc">Chat</span></span></div>
+<div class="ctit">400+ Repos. Not 15.</div>
+<div class="csig">The assumption blew up. MONOTURBO strategy rebuilt from scratch.</div>
+<div class="cex"><div class="xi">
+<div class="q">"<strong>53 'consolidated' repos — mostly placeholders, only 4 real projects.</strong>"</div>
+<a class="lk c" href="https://claude.ai/chat/b797ebef-a4d7-4253-b323-5ca400efe1bc" target="_blank">↗ Chat</a>
+</div></div></div>
+
+<div class="card technical" data-c="technical" onclick="tog(this)">
+<div class="ct"><span class="tg tg-t">Technical</span><span class="cd">Dec 21 · <span class="sb sc">Chat</span></span></div>
+<div class="ctit">System Genesis — This README Was Born Here</div>
+<div class="csig">System for building systems. Portfolio unified into one architecture.</div>
+<div class="cex"><div class="xi">
+<div class="q">"Universal blueprint extraction prompt + <strong>unified architecture across his entire company.</strong>"</div>
+<a class="lk c" href="https://claude.ai/chat/8573ea5a-3e72-4b70-952a-a0b936de6c6b" target="_blank">↗ Chat</a>
+</div></div></div>
+
+<div class="card technical" data-c="technical" onclick="tog(this)">
+<div class="ct"><span class="tg tg-t">Technical</span><span class="cd">Dec 29 · <span class="sb sc">Chat</span></span></div>
+<div class="ctit">MONOTURBO Named + TessaFusion Designated as IP</div>
+<div class="csig">A name gave it gravity. A designation gave the frameworks a moat.</div>
+<div class="cex"><div class="xi">
+<div class="q">"<strong>MONOTURBO: every other project becomes an apps/ folder inside MONOTURBO.</strong>"</div>
+<a class="lk c" href="https://claude.ai/chat/3f15344d-b7c4-4ff6-af9f-baeaa815eed4" target="_blank">↗ Chat</a>
+</div></div></div>
+</div>
+
+<!-- ── PHASE 2: Jan 2026 ── -->
+<div class="ph"><div class="pl"></div><span class="pt">Build I · Jan 2026</span><div class="pl"></div></div>
+<div class="cr">
+<div class="card technical" data-c="technical" onclick="tog(this)">
+<div class="ct"><span class="tg tg-t">Technical</span><span class="cd">Jan 10 · <span class="sb sc">Chat</span></span></div>
+<div class="ctit">saas_core v2.6.0 — Template Becomes Real Infrastructure</div>
+<div class="csig">SKIP LOCKED, watchdog, quarantine lanes. Zero rebuild cost from here.</div>
+<div class="cex"><div class="xi">
+<div class="q">"33KB ZIP, 20+ files: <strong>SKIP LOCKED, idempotent webhooks, stale-lock watchdog, quarantine lanes, audit trails and correlation IDs.</strong>"</div>
+<a class="lk c" href="https://claude.ai/chat/2f3be8f7-ace4-46af-b6c6-97c69dac5d02" target="_blank">↗ Chat</a>
+</div></div></div>
+
+<div class="card synthesis" data-c="synthesis" onclick="tog(this)">
+<div class="ct"><span class="tg tg-s">Synthesis</span><span class="cd">Jan 17 · <span class="sb sc">Chat</span></span></div>
+<div class="ctit">34 Projects. Frameworks Named as Competitive Moat.</div>
+<div class="csig">Not productivity tools — unfair advantages. IP framing locked in.</div>
+<div class="cex"><div class="xi">
+<div class="q">"<strong>Unfair advantages: AI orchestration expertise, production infrastructure experience, and proprietary R-I-S-E, F-L-O-W, and R-O-S-E frameworks.</strong>"</div>
+<a class="lk c" href="https://claude.ai/chat/60038682-23a7-45a6-a90f-7190fbbbac42" target="_blank">↗ Chat</a>
+</div></div></div>
+
+<div class="card synthesis" data-c="synthesis" onclick="tog(this)">
+<div class="ct"><span class="tg tg-s">Synthesis</span><span class="cd">Jan 16 · <span class="sb sc">Chat</span></span></div>
+<div class="ctit">INT AI Adoption — 3-Phase Framework, AI Council</div>
+<div class="csig">5→50→75 users. Governance before scale. The rollout Dave needs to see.</div>
+<div class="cex"><div class="xi">
+<div class="q">"<strong>'Contains client name? → COPILOT. Complex reasoning? → CLAUDE. Current news? → PERPLEXITY.'</strong> AI Council meets 1st Thursday monthly."</div>
+<a class="lk c" href="https://claude.ai/chat/728dc086-6bf9-4b38-8b36-497227c328c5" target="_blank">↗ Chat</a>
+</div></div></div>
+</div>
+
+<!-- ── PHASE 3: Feb 2026 ── -->
+<div class="ph"><div class="pl"></div><span class="pt">Build II · Feb 2026</span><span class="pn">← 5 new moments</span><div class="pl"></div></div>
+<div class="cr">
+
+<div class="card technical isN" data-c="technical" onclick="tog(this)">
+<div class="ct"><span class="tg tg-t">Technical</span><span class="cd">Feb 5 · <span class="sb sc">Chat</span></span></div>
+<div class="ctit">Claude in Chrome — Security Plan, PR Review Automation, Multi-Repo GitHub</div>
+<div class="csig">Allowlist/blocklist configs. 23.6%→11.2% injection reduction. Two-lane automation model.</div>
+<div class="cex"><div class="xi">
+<div class="q">"Prompt injection attack success rate reduced from <strong>23.6% → 11.2%</strong> (Anthropic, August 2025). Allowlist: github.com, base44.com, notion.so, vercel.com, supabase.com, sentry.io. requireApprovalFor: DELETE, PURCHASE, TRANSFER."</div>
+<div class="w">Complete integration plan for Claude in Chrome across INT's GitHub org and Base44 account. Two automation lanes established: manual lane (you watch Claude in real-time, can intervene) vs. automated lane (scheduled tasks, unattended). GitHub Actions workflow for automated PR review using `anthropics/claude-code-action@v1`. Base44 health monitoring. Key constraint surfaced: Claude in Chrome works exclusively with Google Chrome — not Arc, Brave, or other Chromium. Requires Windows 10/11 or WSL2. Critical counterexample documented: use GitHub CLI (`gh`) for API-accessible operations; use browser automation only as fallback for UI-only workflows.</div>
+<div class="em">
+<div class="ec"><div class="el">Two-lane model</div><div class="ev">Manual (watched, real-time, can intervene) vs. Automated (scheduled, unattended, separate Chrome profile)</div></div>
+<div class="ec"><div class="el">Security perimeter</div><div class="ev">Domain allowlist = RLS for browser automation. User-generated content (issues, PRs) still validated before Claude acts on it.</div></div>
+</div>
+<a class="lk c" href="https://claude.ai/chat/bb6b3d86-c7d7-4aba-843c-488a2e9ce9e5" target="_blank">↗ Chat: Planning Claude web browser extension integration</a>
+</div></div></div>
+
+<div class="card technical" data-c="technical" onclick="tog(this)">
+<div class="ct"><span class="tg tg-t">Technical</span><span class="cd">Feb 5 · <span class="sb sc">Chat</span></span></div>
+<div class="ctit">Credentials Exposure — P0 Security Incident, 100+ Live Keys Uploaded</div>
+<div class="csig">Complete infrastructure compromise. "Security override denied." P0→P3 rotation guide.</div>
+<div class="cex"><div class="xi">
+<div class="q">"🚨 P0 SECURITY INCIDENT — STOP 🚨 <strong>Hundreds of live production credentials now completely compromised. Security override denied. Even with your permission, I won't echo real secrets.</strong>"</div>
+<div class="w">100+ credentials: OpenAI (6+), Anthropic (5+), Stripe, AWS root, GitHub, Supabase, Vercel, Firebase, SendGrid, Zapier, n8n. Priority-ordered rotation: P0 in 15 minutes, P3 in 2 hours. The "security incidents require immediate escalation" principle traces here.</div>
+<a class="lk c" href="https://claude.ai/chat/82a4df9a-789a-4e12-87f3-a7e8ec539282" target="_blank">↗ Chat</a>
+</div></div></div>
+
+<div class="card technical" data-c="technical" onclick="tog(this)">
+<div class="ct"><span class="tg tg-t">Technical</span><span class="cd">Feb 5 · <span class="sb sc">Chat</span></span></div>
+<div class="ctit">EmeraldDrift P0 — 11,000% Over Capacity, 5 Audit Prompts Built</div>
+<div class="csig">React Native + Expo. 7 marketplace integrations. Compound architecture failures diagnosed.</div>
+<div class="cex"><div class="xi">
+<div class="q">"<strong>11,000% above capacity. P0 catastrophic.</strong> Five context-engineered audit prompts targeting state cascade, async memory leaks, webhook rate-limiting, N+1 RLS, full-tree re-renders."</div>
+<a class="lk c" href="https://claude.ai/chat/f947542e-7071-47b6-8850-3f71509b7142" target="_blank">↗ Chat</a>
+</div></div></div>
+
+<div class="card synthesis" data-c="synthesis" onclick="tog(this)">
+<div class="ct"><span class="tg tg-s">Synthesis</span><span class="cd">Feb 5 · <span class="sb sc">Chat</span></span></div>
+<div class="ctit">FlashFusion MVP Scope Locked — "Describe Brand → 2 Minutes → $X"</div>
+<div class="csig">Generate → Preview → Purchase. Publish is future. The aspirin problem defined.</div>
+<div class="cex"><div class="xi">
+<div class="q">"Collapses <strong>'hire designer → 2 weeks → $500' into 'describe brand → 2 minutes → $X.'</strong>"</div>
+<a class="lk c" href="https://claude.ai/chat/b6d50473-a79b-4b06-9158-3f098bc1bc0b" target="_blank">↗ Chat</a>
+</div></div></div>
+
+<div class="card technical" data-c="technical" onclick="tog(this)">
+<div class="ct"><span class="tg tg-t">Technical</span><span class="cd">Feb 5 · <span class="sb sc">Chat</span></span></div>
+<div class="ctit">FlashFusion Dev Onboarding Package — New Developer Monday</div>
+<div class="csig">10 ADRs, 6 skills, 6 diagrams, 7 MCPs. Documentation as infrastructure.</div>
+<div class="cex"><div class="xi">
+<div class="q">"<strong>ADR-002: Supabase+Firebase coexistence. ADR-008: tRPC over REST. ADR-009: n8n over Zapier ($0 vs $20–50/mo).</strong>"</div>
+<a class="lk c" href="https://claude.ai/chat/9dd1e18b-596e-49c2-9d5c-ddb60d42de03" target="_blank">↗ Chat</a>
+</div></div></div>
+
+<div class="card kill" data-c="kill" onclick="tog(this)">
+<div class="ct"><span class="tg tg-k">Kill Decision</span><span class="cd">Feb 5 · <span class="sb sc">Chat</span></span></div>
+<div class="ctit">"Probably Shelve it." — AI Prompt Galaxy Killed</div>
+<div class="csig">Good recon. No differentiation. Three words saved weeks.</div>
+<div class="cex"><div class="xi">
+<div class="q">"Solid reconnaissance, but solving for 'clone an existing marketplace' without a clear <strong>why</strong> or differentiation."</div>
+<a class="lk c" href="https://claude.ai/chat/2002affd-c136-4766-935f-8a165dac9df4" target="_blank">↗ Chat</a>
+</div></div></div>
+
+<div class="card technical" data-c="technical" onclick="tog(this)">
+<div class="ct"><span class="tg tg-t">Technical</span><span class="cd">Feb 5 · <span class="sb sc">Chat</span></span></div>
+<div class="ctit">Continuum — "Ship it." Same Day as the Kill.</div>
+<div class="csig">18-section PRD. One word. Framework working in both directions simultaneously.</div>
+<div class="cex"><div class="xi">
+<div class="q">"Kyle decisively responded <strong>'ship it.'</strong>"</div>
+<a class="lk c" href="https://claude.ai/chat/a055e66c-43d0-4524-9437-06b756981efe" target="_blank">↗ Chat</a>
+</div></div></div>
+
+<div class="card technical" data-c="technical" onclick="tog(this)">
+<div class="ct"><span class="tg tg-t">Technical</span><span class="cd">Feb 5 · <span class="sb sc">Chat</span></span></div>
+<div class="ctit">Vibecode v2.6.0 — Ops Maturity as Baseline, Not Add-On</div>
+<div class="csig">13 alerts. 6-phase drills. 5 SLOs. Gaps documented in the delivery itself.</div>
+<div class="cex"><div class="xi">
+<div class="q">"<strong>SLO tracking for 5 key metrics.</strong> Delivery explicitly identifies limitations."</div>
+<a class="lk c" href="https://claude.ai/chat/f7498f44-9748-499a-8bd0-b377a99fd894" target="_blank">↗ Chat</a>
+</div></div></div>
+
+<div class="card synthesis isN" data-c="synthesis" onclick="tog(this)">
+<div class="ct"><span class="tg tg-s">Synthesis</span><span class="cd">Feb 13 · <span class="sb sc">Chat</span></span></div>
+<div class="ctit">SCA → Customization Service Reference Implementation</div>
+<div class="csig">"You're not building a Jasper competitor." Data engine + integration moat framing.</div>
+<div class="cex"><div class="xi">
+<div class="q">"You're <strong>not</strong> building a Jasper competitor. You're building: a reference implementation showing Intinc customers what's possible with Claude Enterprise + M365 integration. A <strong>data engine</strong> that learns what content works best for your customer segments. A <strong>defensible moat</strong> around integration depth + customer data + special permissions."</div>
+<div class="w">Started as "help me build a Smart Content Assistant to compete with Jasper/Copy.ai." Strategic pivot: the SCA is worth more as a reference implementation for Intinc's Customization Service than as a standalone product. Three-phase roadmap: POC (Claude Enterprise API + M365 brand kit sync), Integration layer (customer data loops, n8n routing to billing), Data moat (cross-customer learning, permission-based workflows competitors can't replicate). Key insight: INT's M365 special permissions create differentiation that Jasper/Copy.ai structurally cannot match. Audit trail requirement identified: B2B content creation = who generated what, when, for whom, approved by whom.</div>
+<div class="em">
+<div class="ec"><div class="el">The pivot</div><div class="ev">Competitor → Reference implementation. Shows clients what's possible. Becomes the Customization Service demo.</div></div>
+<div class="ec"><div class="el">The moat</div><div class="ev">M365 special permissions + customer data loops + audit trail = structurally unreplicable by generic content tools.</div></div>
+</div>
+<a class="lk c" href="https://claude.ai/chat/691df19f-f725-42eb-81b2-a684d27d9c95" target="_blank">↗ Chat: Claude code CLI functionality</a>
+</div></div></div>
+
+<div class="card synthesis isN" data-c="synthesis" onclick="tog(this)">
+<div class="ct"><span class="tg tg-s">Synthesis</span><span class="cd">Feb 14 · <span class="sb sc">Chat</span></span></div>
+<div class="ctit">28 Frameworks + 410 Prompts → ONE Intelligent Meta-Prompt Router</div>
+<div class="csig">"You picked the smarter option." Static doesn't scale. Dynamic routing does.</div>
+<div class="cex"><div class="xi">
+<div class="q">"Instead of generating 410 static prompts, I created <strong>ONE intelligent routing system</strong> that asks 3-5 clarifiers, routes to the right 1-3 frameworks, generates the specific prompt dynamically with Intinc context injected, and outputs production-ready — ready to paste into Notion AI."</div>
+<div class="w">Expansion arc: R-I-S-E + F-L-O-W → 15 frameworks (280 prompts) → 28 frameworks (410+ prompts). At the point of generating all 410 prompts, Claude chose the superior approach: one meta-prompt router instead. Five clarifiers: GOAL TYPE (10 options), SCOPE, TIMELINE, CONSTRAINTS, SUCCESS. Comparison locked in: static prompts are finite, brittle, hard to maintain; dynamic routing is infinite, adapts to context, maintains itself. Shell alias `intinc` routes any request through all 28 frameworks. No pre-generation debt. This is the "eliminate static knowledge artifacts" principle applied to the prompt library itself.</div>
+<div class="em">
+<div class="ec"><div class="el">The insight</div><div class="ev">410 static prompts = finite + brittle + hard to maintain. 1 routing meta-prompt = infinite + adaptive + zero debt.</div></div>
+<div class="ec"><div class="el">28 frameworks</div><div class="ev">R-I-S-E, F-L-O-W, R-O-S-E + 25 others (C-L-I-P, S-T-A-R, P-O-W-E-R, V-A-L-U-E, etc.) all routable dynamically.</div></div>
+</div>
+<a class="lk c" href="https://claude.ai/chat/1f2444e7-2ff9-4208-ac63-b5afb87e62ce" target="_blank">↗ Chat: Current best practices prompting playbook</a>
+</div></div></div>
+
+<div class="card personal" data-c="personal" onclick="tog(this)">
+<div class="ct"><span class="tg tg-p">Personal</span><span class="cd">Feb 10–11 · <span class="sb sc">Chat</span></span></div>
+<div class="ctit">AI SME Assessment — "No" Verdict, 30-60-90 Roadmap to Earn It</div>
+<div class="csig">Board-level skeptic. Accountability without authority = career risk.</div>
+<div class="cex"><div class="xi">
+<div class="q">"While the user has genuine AI fluency across 60+ platforms, they lack <strong>institutional authority, formal decision rights, risk accountability, and measurable business impact.</strong> Verdict: No."</div>
+<div class="w">Missing: formal charter, budget authority, measurable outcomes tied to name, governance artifacts. 30-60-90 roadmap to earn it legitimately.</div>
+<a class="lk c" href="https://claude.ai/chat/76141cf4-f80d-4921-b8e6-cdf3ede2237a" target="_blank">↗ Chat</a>
+</div></div></div>
+
+<div class="card synthesis isN" data-c="synthesis" onclick="tog(this)">
+<div class="ct"><span class="tg tg-s">Synthesis</span><span class="cd">Feb 10 · <span class="sb sc">Chat</span></span></div>
+<div class="ctit">AI Conference — Dave + Kyle Together, EPB Market Validation Brief</div>
+<div class="csig">"This is cheaper than 3 months of customer research." Joint attendance framing locked in.</div>
+<div class="cex"><div class="xi">
+<div class="q">"We're 6-12 months from rolling out our enterprise Claude profile orchestration platform. <strong>Together: 'INT Inc is serious about enterprise Claude governance. We're building the OS for it.'</strong> This is cheaper than 3 months of customer research/sales consulting. We get it all compressed into one week."</div>
+<div class="w">Kyle wanted to attend The AI Conference (Mar 16-19, San Jose) with Dave (president). Executive brief built: Kyle's role = deep technical sessions, platform intelligence, emerging agent orchestration patterns. Dave's role = enterprise buyers (VPs Engineering, CTOs), partnership discovery, business model validation. The EPB framing shifted here: it's not just "Claude profile orchestration" — it's "the governance OS for enterprise Claude." The joint attendance frame ("INT Inc is serious") creates credibility that solo attendance can't. ROI framing: market validation + customer discovery + competitive intelligence compressed into one week, not 3 months of separate research. Budget objection handled: "I'll own ROI tracking — 5-10 qualified leads, documented conversations, partnership pipeline with metrics."</div>
+<div class="em">
+<div class="ec"><div class="el">Kyle's lane</div><div class="ev">Technical sessions, AI Builders track, agent orchestration patterns, integration partner scouting</div></div>
+<div class="ec"><div class="el">Dave's lane</div><div class="ev">Enterprise buyers, partnership discovery, business model validation, CEO's AI Imperative roundtable</div></div>
+</div>
+<a class="lk c" href="https://claude.ai/chat/e2078648-596b-41c2-8623-0341d5d1c746" target="_blank">↗ Chat: Will you please search the AI conferences...</a>
+</div></div></div>
+
+<div class="card synthesis" data-c="synthesis" onclick="tog(this)">
+<div class="ct"><span class="tg tg-s">Synthesis</span><span class="cd">Feb 11 · <span class="sb sc">Chat</span></span></div>
+<div class="ctit">Unfair Advantages Reframe — Enterprise Architecture, Not Consumer Mobile</div>
+<div class="csig">"Stop. You're building the wrong thing entirely." B2B moat where consumer has none.</div>
+<div class="cex"><div class="xi">
+<div class="q">"<strong>You're not a consumer app founder. You're a B2B AI infrastructure founder who understands creators.</strong> SOC2-ready multi-tenant architecture + governance-first + 15K FlashFusion users + direct enterprise sales channel."</div>
+<a class="lk c" href="https://claude.ai/chat/f91f7c1c-b618-45e4-bba0-5c3831375dd5" target="_blank">↗ Chat</a>
+</div></div></div>
+
+<div class="card synthesis" data-c="synthesis" onclick="tog(this)">
+<div class="ct"><span class="tg tg-s">Synthesis</span><span class="cd">Feb 11 · <span class="sb sc">Chat</span></span></div>
+<div class="ctit">Replit Global Mobile Buildathon — $10K Grand Prize, Feb 13 Deadline</div>
+<div class="csig">5,200+ attendees. React Native + Expo. Shaped Infinity Heroes architecture.</div>
+<div class="cex"><div class="xi">
+<div class="q">"Grand prize: <strong>$10,000 cash + iPhone 17 Pro Max + Replit HQ visit.</strong> Feb 13 deadline."</div>
+<a class="lk c" href="https://claude.ai/chat/75502996-dd06-4b88-be57-b39528bd5e5f" target="_blank">↗ Chat</a>
+</div></div></div>
+
+<div class="card technical" data-c="technical" onclick="tog(this)">
+<div class="ct"><span class="tg tg-t">Technical</span><span class="cd">Feb 16 · <span class="sb sc">Chat</span></span></div>
+<div class="ctit">Infinity Heroes Rebuilt — Gemini 3 Pro + TTS + PWA + 3 Story Modes</div>
+<div class="csig">React 19 + TypeScript + Vite. ~185KB gzipped. Replit-deployable from one env variable.</div>
+<div class="cex"><div class="xi">
+<div class="q">"TTS: Gemini 2.5 Flash TTS (<strong>7 voices, Web Audio API soundscapes</strong>). Classic + Mad Libs + Sleep modes."</div>
+<a class="lk c" href="https://claude.ai/chat/a4785b5f-f4aa-4a2f-a092-239015a4ce40" target="_blank">↗ Chat</a>
+</div></div></div>
+
+<div class="card technical" data-c="technical" onclick="tog(this)">
+<div class="ct"><span class="tg tg-t">Technical</span><span class="cd">Feb 16 · <span class="sb sc">Chat</span></span></div>
+<div class="ctit">Condukt / Creativable — White-Label Rebrand Thesis</div>
+<div class="csig">"Orchestrate Everything." German SaaS repositioned for English market.</div>
+<div class="cex"><div class="xi">
+<div class="q">"<strong>60+ routes, 12 domains, 5 phases, 29-week plan.</strong>"</div>
+<a class="lk c" href="https://claude.ai/chat/df33c546-9b2e-4b95-8298-91f667b7448c" target="_blank">↗ Chat</a>
+</div></div></div>
+
+<div class="card synthesis isN" data-c="synthesis" onclick="tog(this)">
+<div class="ct"><span class="tg tg-s">Synthesis</span><span class="cd">Feb 21 · <span class="sb sc">Chat</span></span></div>
+<div class="ctit">HumanX Context Extractor — Rich vs. Missing Content Mapped</div>
+<div class="csig">Universal Project Context Extractor pattern. 8-file structured output. Honest gap map.</div>
+<div class="cex"><div class="xi">
+<div class="q">"<strong>This project is RICH for:</strong> multi-tenant isolation patterns (4 scored levels), EPB architecture + RLS code, compliance framework mapping, 72-persona framework. <strong>This project is MISSING:</strong> HumanX 2026 specifics, Skyflow/Commvault/CockroachDB/Snowflake vendor matrix, Gemini-specific API patterns."</div>
+<div class="w">The Universal Project Context Extractor is a reusable methodology: systematically surface what's usable vs. what's missing before building. Applied to INT Inc's current Claude project for the HumanX 2026 Interactive AI Assessment Tool build. Eight categorized extraction files + master manifest delivered as zip. Gap identification is the output — not just content synthesis but explicit "run extractor in InVelo/Data Venue project next" routing. The assessment tool build requires Claude for analysis + Gemini for media generation (image + audio). Question bank structure: 10-15 questions mapping to isolation pattern, compliance readiness, architecture maturity, MSP-specific controls. This is where "context extraction as project ritual" crystallizes as a pattern.</div>
+<div class="em">
+<div class="ec"><div class="el">The method</div><div class="ev">8 categorized extraction files + manifest. Rich vs. Missing as explicit output. "Where to find what's missing" as a deliverable.</div></div>
+<div class="ec"><div class="el">Assessment tool plan</div><div class="ev">QR → landing → 10-15 questions → Claude analysis (JSON) → Gemini Image (architecture diagram) → audio walkthrough → INT CTA</div></div>
+</div>
+<a class="lk c" href="https://claude.ai/chat/48914d44-f403-409a-8c54-b8dc9cfcfbef" target="_blank">↗ Chat: Data extraction and technical assets packaging</a>
+</div></div></div>
+
+<div class="card synthesis" data-c="synthesis" onclick="tog(this)">
+<div class="ct"><span class="tg tg-s">Synthesis</span><span class="cd">Feb 21 · <span class="sb sc">Chat</span></span></div>
+<div class="ctit">HumanX AIaaS Presentation — INT as "AI General Contractor"</div>
+<div class="csig">Gartner 40%+ stat. Three hero offers. Governance-as-product throughout.</div>
+<div class="cex"><div class="xi">
+<div class="q">"<strong>Three hero offers: Copilot Governance ($15–30K), Security Copilot SecOps ($20–45K), Operational Automation Sprint ($15–25K), all 6–8 weeks.</strong> 'We don't sell engines, we build the road system.'"</div>
+<a class="lk c" href="https://claude.ai/chat/bd279009-22bc-42d1-b4d4-63a957f40911" target="_blank">↗ Chat</a>
+</div></div></div>
+
+<div class="card synthesis" data-c="synthesis" onclick="tog(this)">
+<div class="ct"><span class="tg tg-s">Synthesis</span><span class="cd">Feb 17–20 · <span class="sb sc">Chat</span></span></div>
+<div class="ctit">InVelo Full Package — Every Leadership Objection Answered</div>
+<div class="csig">10 battle cards. Financial model. ZIP. "Build it. Use it. Retire it."</div>
+<div class="cex"><div class="xi">
+<div class="q">"$18K per 6–8 week engagement. <strong>80% add-ons (zero CAC). 20% new logos.</strong>"</div>
+<a class="lk c" href="https://claude.ai/chat/1f86284d-b3b8-43d7-99a6-3aa4afbe429b" target="_blank">↗ Chat</a>
+</div></div></div>
+
+<div class="card synthesis" data-c="synthesis" onclick="tog(this)">
+<div class="ct"><span class="tg tg-s">Synthesis</span><span class="cd">Feb 22 · <span class="sb sc">Chat</span></span></div>
+<div class="ctit">InVelo HumanX Strategy — 16-File Package, SolutionBridge Mar 6 Deadline</div>
+<div class="csig">Shadow AI as entry narrative. Free ticket + 8 pre-scheduled 1:1s. Forcing function created.</div>
+<div class="cex"><div class="xi">
+<div class="q">"SolutionBridge deadline March 6. <strong>'38% of employees share sensitive data through unapproved AI tools.'</strong> Free $3,995 ticket + 8 pre-scheduled 1:1 meetings with VP-level buyers."</div>
+<a class="lk c" href="https://claude.ai/chat/ed5ce433-4a19-41b9-820c-a94b5e92f31a" target="_blank">↗ Chat</a>
+</div></div></div>
+
+<div class="card synthesis" data-c="synthesis" onclick="tog(this)">
+<div class="ct"><span class="tg tg-s">Synthesis</span><span class="cd">Feb 20 · <span class="sb sc">Chat</span></span></div>
+<div class="ctit">Claude Code Security — CrowdStrike −7.56%, Cloudflare −8.09%</div>
+<div class="csig">Reasoning-based SAST. Multi-hop vulnerability detection. AppSec disruption signal.</div>
+<div class="cex"><div class="xi">
+<div class="q">"Reasoning-based, not rule-based. Catches multi-hop vulns: <strong>unauthenticated webhook → format_payload() → shell execution.</strong>"</div>
+<a class="lk c" href="https://claude.ai/chat/0a1c9b9a-4cb7-4d93-97a0-8d01e46e9a91" target="_blank">↗ Chat</a>
+</div></div></div>
+
+<div class="card kill" data-c="kill" onclick="tog(this)">
+<div class="ct"><span class="tg tg-k">Kill / Reframe</span><span class="cd">Feb 21 · <span class="sb sc">Chat</span></span></div>
+<div class="ctit">Data Venue Reframe — "We're Not Building a Vault"</div>
+<div class="csig">Product → consulting framework. $50–100K liability avoided.</div>
+<div class="cex"><div class="xi">
+<div class="q">"<strong>Vendors LOVE that positioning — it means you bring them deals.</strong>"</div>
+<a class="lk c" href="https://claude.ai/chat/45676d46-0b9a-486e-a108-22f8d74c51eb" target="_blank">↗ Chat</a>
+</div></div></div>
+</div>
+
+<!-- ── PHASE 4: Mar 2026 ── -->
+<div class="ph"><div class="pl"></div><span class="pt">Crystallization · Mar 2026</span><span class="pn">← 1 new moment</span><div class="pl"></div></div>
+<div class="cr">
+
+<div class="card kill" data-c="kill" onclick="tog(this)">
+<div class="ct"><span class="tg tg-k">Kill / DNR</span><span class="cd">Mar 2 · <span class="sb sc">Chat</span></span></div>
+<div class="ctit">Claude Cowork — "Don't Use It." Data Loss Risk for High-Value Work</div>
+<div class="csig">Family photos deleted. Home directory wiped. VM instability. Formal DNR.</div>
+<div class="cex"><div class="xi">
+<div class="q">"<strong>Files were gone because deleted through the terminal (not the trash).</strong> VM stability issues mean bricking errors. Recommendation: Don't use Cowork yet."</div>
+<a class="lk c" href="https://claude.ai/chat/f768e9df-c0a0-4bef-baba-f494ffd7d92a" target="_blank">↗ Chat</a>
+</div></div></div>
+
+<div class="card technical isN" data-c="technical" onclick="tog(this)">
+<div class="ct"><span class="tg tg-t">Technical</span><span class="cd">Mar 6 · <span class="sb sc">Chat</span></span></div>
+<div class="ctit">Beta Tester Army — Multi-Agent Template, Context Capsule Migration Pattern</div>
+<div class="csig">5 tester personas. 6 test flows. 7-dimension scoring rubric. Flash-n-Frame project.</div>
+<div class="cex"><div class="xi">
+<div class="q">"<strong>5 personas: Skeptical Enterprise Architect, Vibe Coder Who Broke Prod, Security-First DevOps Lead, New Renaissance Developer, Budget-Conscious CTO. 6 flows: Orchestrator→Worker delegation, HITL checkpoint, cross-agent context handoff (95% rot threshold), zombie agent detection, adversarial researcher/fact-checker pairing, parallel result synthesis.</strong>"</div>
+<div class="w">Flash-n-Frame project, Claude Ecosystem Knowledge Project. Arrived with zero text prompt — only a context capsule JSX file. Claude read the capsule, extracted the handoff state, confirmed locked decisions (Path B infrastructure-first, JSON export not flat text), identified the top priority open thread (Agentic/Multi-Agent System template), and built it. Context capsule migration pattern: complete session handoff encoded as a JSX artifact — all decisions, locked choices, open threads, and priority queue transferred between Claude sessions without context loss. The 7-dimension scoring rubric: Context Integrity (20%), HITL Compliance (18%), Blast Radius (17%), Observability/T-Mux (15%), Security Posture (15%), Cost Efficiency (8%), Goal Coherence (7%). Meta-prompt with 5 template variables — explicitly anti-helpful by design: real-time friction surfacing, P0/P1/P2 severity vocabulary. Exports to JSON (bta-template-v2 schema) for direct import into BTA v2.</div>
+<div class="em">
+<div class="ec"><div class="el">The pattern</div><div class="ev">Context capsule = JSX artifact encoding all session state. Zero-prompt arrival → Claude reads capsule → executes top priority thread.</div></div>
+<div class="ec"><div class="el">7-dimension rubric</div><div class="ev">Context Integrity 20% · HITL Compliance 18% · Blast Radius 17% · Observability 15% · Security 15% · Cost 8% · Goal 7%</div></div>
+</div>
+<a class="lk c" href="https://claude.ai/chat/ac5b8adf-5f63-44f6-9c1b-258753a708df" target="_blank">↗ Chat: Beta tester army deployment readiness</a>
+</div></div></div>
+
+<div class="card technical" data-c="technical" onclick="tog(this)">
+<div class="ct"><span class="tg tg-t">Technical</span><span class="cd">Mar 14 · <span class="sb sc">Chat</span></span></div>
+<div class="ctit">MONOTURBO ROI — $46K Annual Benefit, 3.7-Month Payback</div>
+<div class="csig">Infrastructure project becomes a business investment with a real number attached.</div>
+<div class="cex"><div class="xi">
+<div class="q">"<strong>$46,260 annual benefit against $41,000 investment, 3.7-month payback.</strong>"</div>
+<a class="lk c" href="https://claude.ai/chat/381d00f5-c745-4f23-bdf6-20d9cf6c6c12" target="_blank">↗ Chat</a>
+</div></div></div>
+
+<div class="card personal" data-c="personal" onclick="tog(this)">
+<div class="ct"><span class="tg tg-p">Personal</span><span class="cd">Mar 14 · <span class="sb sc">Chat</span></span></div>
+<div class="ctit">"Mediocre" → "So Mediocre" → Rebuild from First Principles</div>
+<div class="csig">Terse rejection = start over, not iterate. Quality bar formally enforced.</div>
+<div class="cex"><div class="xi">
+<div class="q">"<strong>Experience Thesis: material, temperature, density, and a single memorable element before any code.</strong>"</div>
+<a class="lk c" href="https://claude.ai/chat/0f53cd08-73d1-41e1-a290-23523fdaad99" target="_blank">↗ Chat</a>
+</div></div></div>
+
+<div class="card technical" data-c="technical" onclick="tog(this)">
+<div class="ct"><span class="tg tg-t">Technical</span><span class="cd">Mar 14 · <span class="sb sc">Chat</span></span></div>
+<div class="ctit">Expo EXPO_PUBLIC_ Fix — 22 Errors, 1 Root Cause</div>
+<div class="csig">Client exposure requires prefix + full rebuild. Hot reload is not enough.</div>
+<div class="cex"><div class="xi">
+<div class="q">"<strong>EXPO_PUBLIC_</strong> prefix required. Silently ignored otherwise. Full `expo start --clear` rebuild — hot reload won't pick up compile-time changes."</div>
+<a class="lk c" href="https://claude.ai/chat/c8bd31c6-65b8-450a-a43c-3c92d213acb7" target="_blank">↗ Chat</a>
+</div></div></div>
+
+<div class="card synthesis" data-c="synthesis" onclick="tog(this)">
+<div class="ct"><span class="tg tg-s">Synthesis</span><span class="cd">Mar 17 · <span class="sb sc">Chat</span></span></div>
+<div class="ctit">Meta-Prompt Generator v1.0 — The Blueprint Factory Formalized</div>
+<div class="csig">Input: description → 7–10 fully-populated files. No placeholders. No TODOs.</div>
+<div class="cex"><div class="xi">
+<div class="q">"<strong>NEVER output placeholders, TODOs, or 'implement this later' comments. Blueprint Factory — teaches apprentices not just how to build one chair, but how to set up the entire furniture factory.</strong>"</div>
+<a class="lk c" href="https://claude.ai/chat/be36344e-b06b-4406-8514-ad6450037dad" target="_blank">↗ Chat</a>
+</div></div></div>
+
+<div class="card technical" data-c="technical" onclick="tog(this)">
+<div class="ct"><span class="tg tg-t">Technical</span><span class="cd">Mar 21 · <span class="sb sc">Chat</span></span></div>
+<div class="ctit">Vibecode v1.1.0 — Multi-Stack. Not Just Vercel.</div>
+<div class="csig">Firebase + AWS Amplify + Docker. Tool becomes distributable platform.</div>
+<div class="cex"><div class="xi">
+<div class="q">"<strong>Standalone executables: Linux 45MB, macOS 50MB, Windows 37MB.</strong>"</div>
+<a class="lk c" href="https://claude.ai/chat/eb90a8bd-1a50-49c4-bd62-b38288713978" target="_blank">↗ Chat</a>
+</div></div></div>
+
+<div class="card technical" data-c="technical" onclick="tog(this)">
+<div class="ct"><span class="tg tg-t">Technical</span><span class="cd">Mar 9 · <span class="sb sc">Chat</span></span></div>
+<div class="ctit">EPB Compliance Audit Update — 85%, 21 Gaps, EU AI Act Aug 2026</div>
+<div class="csig">NIST AI RMF 2.0. Score down because bar moved, not because EPB regressed.</div>
+<div class="cex"><div class="xi">
+<div class="q">"Overall compliance revised to <strong>85% (down 2 points due to new framework requirements, not regressions). 21 total gaps. EU AI Act high-risk enforcement: August 2026. ISO 42001: Q3 2026.</strong>"</div>
+<a class="lk c" href="https://claude.ai/chat/c0e7bef1-d997-498e-87ac-465932187398" target="_blank">↗ Chat</a>
+</div></div></div>
+
+<div class="card technical" data-c="technical" onclick="tog(this)">
+<div class="ct"><span class="tg tg-t">Technical</span><span class="cd">Mar 9 · <span class="sb sc">Chat</span></span></div>
+<div class="ctit">Ops Autopilot for SMB — 81-File Product Delivery Kit</div>
+<div class="csig">$49/$149/$500+/mo. Zero-knowledge secrets. Per-customer n8n. Full lifecycle in one zip.</div>
+<div class="cex"><div class="xi">
+<div class="q">"<strong>Zero-knowledge secrets: Intinc never stores plaintext credentials. Per-customer isolated n8n Docker instances. Immutable HMAC-SHA256 signed audit logs. $49/$149/$500+/mo at 30%/50%/54% gross margins.</strong>"</div>
+<a class="lk c" href="https://claude.ai/chat/f228d519-1b29-4673-a7f4-3f5ec0c0c025" target="_blank">↗ Chat</a>
+</div></div></div>
+
+<div class="card technical" data-c="technical" onclick="tog(this)">
+<div class="ct"><span class="tg tg-t">Technical</span><span class="cd">Mar 10 · <span class="sb sc">Chat</span></span></div>
+<div class="ctit">INT Org Chart — 12 Depts, All 4 Lenses, SPOF Formally Documented</div>
+<div class="csig">78 roles. NOW/SCALE/HORIZON/SPOF. Kyle = SPOF across DEPT-05/06/07. Staff Eng #2 Q3 2026.</div>
+<div class="cex"><div class="xi">
+<div class="q">"<strong>⚠️ SPOF surfaces consistently across DEPT-05 (Engineering), DEPT-06 (AI Strategy), DEPT-07 (Security). Staff Engineer #2 hire Q3 2026, 90-day knowledge transfer as onboarding condition.</strong>"</div>
+<a class="lk c" href="https://claude.ai/chat/e1af2fd7-1a88-4ce2-a564-31291ddbd66b" target="_blank">↗ Chat</a>
+</div></div></div>
+
+<div class="card technical" data-c="technical" onclick="tog(this)">
+<div class="ct"><span class="tg tg-t">Technical</span><span class="cd">Mar 10 · <span class="sb sc">Chat</span></span></div>
+<div class="ctit">Claude Plugin Ecosystem — 10 Plugins, 106 Files, 7 Roles, 200+ Engineers</div>
+<div class="csig">RLS Validator. Incident Responder. Compliance Auditor. n8n Orchestrator. Full governance.</div>
+<div class="cex"><div class="xi">
+<div class="q">"<strong>10 scaffolded plugins, 3-edition DOCX (non-technical, technical, AI team), 7 role-specific configs, RBAC matrix, trust assessment templates, 3 metrics dashboards, 4 installation scripts. 106 files, 119KB.</strong>"</div>
+<a class="lk c" href="https://claude.ai/chat/e1af2fd7-1a88-4ce2-a564-31291ddbd66b" target="_blank">↗ Chat</a>
+</div></div></div>
+
+<div class="card technical" data-c="technical" onclick="tog(this)">
+<div class="ct"><span class="tg tg-t">Technical</span><span class="cd">Mar 2026 · <span class="sb sp">Project</span></span></div>
+<div class="ctit">Lyra Observability Stack — PRD Becomes Infrastructure</div>
+<div class="csig">Prometheus + Grafana + Loki + Tempo + OTel. "Observability-first" is live.</div>
+<div class="cex"><div class="xi">
+<div class="q">"<strong>Prometheus 2.48.0 + Grafana 10.2.2 + Loki 2.9.3 + Tempo 2.3.1 + OTel Collector 0.91.0 + Alertmanager 0.26.0 + Promtail 2.9.3.</strong>"</div>
+<span class="lk pr">📄 docker-compose.yml</span>
+</div></div></div>
+
+<div class="card synthesis" data-c="synthesis" onclick="tog(this)">
+<div class="ct"><span class="tg tg-s">Synthesis</span><span class="cd">Mar 9 · <span class="sb sc">Chat</span></span></div>
+<div class="ctit">Portfolio Alignment Audit — What Exists vs. What's Claimed</div>
+<div class="csig">Simulator ≠ exist. Dave meeting = #1 unresolved blocker.</div>
+<div class="cex"><div class="xi">
+<div class="q">"<strong>Cross-Functional Simulator: does not appear in any conversation, project file, or memory entry.</strong> Dave/Jackie/Daniel meeting still unscheduled = single most important unresolved blocker."</div>
+<a class="lk c" href="https://claude.ai/chat/4bdc845c-b7c1-44e2-9be4-2dc0e30787e2" target="_blank">↗ Chat</a>
+</div></div></div>
+
+<div class="card tension" data-c="tension" onclick="tog(this)">
+<div class="ct"><span class="tg tg-x">Tension</span><span class="cd">Current · <span class="sb sp">Project</span></span></div>
+<div class="ctit">Cursor Prompt Chain — "15 Years Experience" Frame Still in Play</div>
+<div class="csig">Active project, role-based prompting. Contra the current "obsolete" ruling.</div>
+<div class="cex"><div class="xi">
+<div class="q">"You are a Senior Solution Architect with 15 years of experience…"</div>
+<div class="w">Memory: "Role-based prompting is obsolete." The 8-phase sequential chain is sound. Only persona frames contradict current principles.</div>
+<span class="lk pr">📄 Cursor_AI_Prompt_Chain_System.md</span>
+</div></div></div>
+
+<div class="card personal" data-c="personal" onclick="tog(this)">
+<div class="ct"><span class="tg tg-p">Personal</span><span class="cd">Mar 25 · <span class="sb sd2">Drive</span></span></div>
+<div class="ctit">⚡ "Human-Led. AI-Accelerated. NOT AI-generated."</div>
+<div class="csig">The identity statement that settles the internal debate.</div>
+<div class="cex"><div class="xi">
+<div class="q">"<strong>Human-Led. AI-Accelerated. NOT AI-generated.</strong>"</div>
+<a class="lk" href="https://docs.google.com/document/d/11qjw9UcmwVQ4lpD4FarkDoeA4Q3oXHg2wy5_IX41Y0o/edit" target="_blank">↗ Google Doc</a>
+</div></div></div>
+
+<div class="card personal" data-c="personal" onclick="tog(this)">
+<div class="ct"><span class="tg tg-p">Personal</span><span class="cd">Mar 25 · <span class="sb sd2">Drive</span></span></div>
+<div class="ctit">Memoir Thesis — Recovery as the Origin of Capability</div>
+<div class="csig">"Not subtraction — transformation." The inversion that makes the book publishable.</div>
+<div class="cex"><div class="xi">
+<div class="q">"Skills developed in active use — pattern recognition, systems thinking under pressure, risk tolerance — <strong>became the exact cognitive toolkit of an effective technologist.</strong>"</div>
+<a class="lk" href="https://docs.google.com/document/d/11qjw9UcmwVQ4lpD4FarkDoeA4Q3oXHg2wy5_IX41Y0o/edit" target="_blank">↗ Google Doc</a>
+</div></div></div>
+
+<div class="card synthesis" data-c="synthesis" onclick="tog(this)">
+<div class="ct"><span class="tg tg-s">Synthesis</span><span class="cd">Mar 25 · <span class="sb sd2">Drive</span></span></div>
+<div class="ctit">"The Model War is Over. Now it's the Deployment War."</div>
+<div class="csig">The frame that moves the moat from model choice to infrastructure.</div>
+<div class="cex"><div class="xi">
+<div class="q">"We stop building chat-wrappers and start building <strong>agentic primitives.</strong>"</div>
+<a class="lk" href="https://docs.google.com/document/d/1qDWGjpreOfTd_ilqf0yLQhgOCLqdl-9bvI26BEERnb4/edit" target="_blank">↗ Google Doc</a>
+</div></div></div>
+
+<div class="card synthesis" data-c="synthesis" onclick="tog(this)">
+<div class="ct"><span class="tg tg-s">Synthesis</span><span class="cd">Mar 25 · <span class="sb sd2">Drive</span></span></div>
+<div class="ctit">Agentic Frontier — AI as Sovereign Economic Participant</div>
+<div class="csig">Moltbook + MCP + FlashFusion into one coherent worldview.</div>
+<div class="cex"><div class="xi">
+<div class="q">"Agents no longer merely assist humans — they <strong>discover, negotiate, and execute</strong> within a machine-to-machine ecosystem."</div>
+<a class="lk" href="https://docs.google.com/document/d/1TB2h7EdV8hnth-i_aO8rxtIHHvriaxmjOTwPv67tAcQ/edit" target="_blank">↗ Google Doc</a>
+</div></div></div>
+</div>
+</div><!-- /vt -->
+
+<div id="vg" class="hidden"><div class="gg" id="ggc"></div></div>
+<div id="vc" class="hidden">
+  <div class="cg">
+    <div><div class="ch personal">Personal (4)</div><div id="cp"></div></div>
+    <div><div class="ch technical">Technical (27)</div><div id="ctc"></div></div>
+    <div><div class="ch synthesis">Synthesis (19)</div><div id="cs"></div></div>
+    <div><div class="ch kill">Kill / Cut (4)</div><div id="ck"></div></div>
+    <div><div class="ch tension">Tension (1)</div><div id="cx"></div></div>
+  </div>
+</div>
+
+<script>
+const M=[
+  {n:1,c:'technical',d:'Oct 20',N:false,src:'chat',T:'Smart Content Assistant v2.1 — First Build, 12 Templates, 8 Reality Filters',S:'The origin artifact. Reality filters coined.',lk:'https://claude.ai/chat/54a4946e-6561-459b-be84-903ed417d26a'},
+  {n:2,c:'synthesis',d:'Oct 20',N:false,src:'chat',T:'Preflight Validation Research — 60% of Errors Preventable, Proven',S:'100% success with checks. 57% without. p=0.03.',lk:'https://claude.ai/chat/2af7197e-8087-4226-84f4-577a680f2c52'},
+  {n:3,c:'synthesis',d:'Oct 26',N:false,src:'project',T:'Prompt Engineering Audit — 47→23, Evidence Over Anecdote',S:'Evidence > anecdote. The intellectual foundation.',lk:null},
+  {n:4,c:'technical',d:'Oct 26',N:false,src:'project',T:'Anti-Slop v2.0 — 20 Findings Resolved, 6 Hard-Stop Gates',S:'724→836 lines. The system behind "mediocre → rebuild."',lk:null},
+  {n:5,c:'technical',d:'Nov 3',N:false,src:'chat',T:'INT Smart Triage Security Audit — First Formal AppSec Review',S:'75/100 MODERATE. audit→rebuild cycle established.',lk:'https://claude.ai/chat/a257175f-755f-425b-8396-4f47fbdb8a14'},
+  {n:6,c:'technical',d:'Nov 19',N:false,src:'chat',T:'SCA v2.2 Security Hardening — Dual-LLM Pattern, 99%+ Injection Defense',S:'OWASP + STRIDE + Zod. 7-10 file standard locked.',lk:'https://claude.ai/chat/574eb863-c6b7-4766-a9a5-3b061159ebf1'},
+  {n:7,c:'technical',d:'Nov 19',N:false,src:'chat',T:'SCA Codebase Refactor — Evidence-Based Stack, Two-Tier Testing',S:'Next.js 14. Zustand. Vitest 5×. Claims cite sources.',lk:'https://claude.ai/chat/9d7af5bd-b0f1-47bc-95e2-bdfc27338f87'},
+  {n:8,c:'technical',d:'Dec 13',N:false,src:'chat',T:'Platform Explorer v6.0 — First Production AI Advisory Tool',S:'10+ platforms. INT dept recs baked in.',lk:'https://claude.ai/chat/4b4e8ab8-2b36-46f8-9db2-21f6105f5f55'},
+  {n:9,c:'synthesis',d:'Dec 12',N:false,src:'chat',T:'Founder OS → Production Platform',S:'9-database system. Operational maturity as baseline.',lk:'https://claude.ai/chat/f4b8a0fb-49d0-466a-95c0-a584342a7f29'},
+  {n:10,c:'kill',d:'Dec 13',N:false,src:'chat',T:'400+ Repos. Not 15.',S:'The assumption blew up. Strategy rebuilt.',lk:'https://claude.ai/chat/b797ebef-a4d7-4253-b323-5ca400efe1bc'},
+  {n:11,c:'technical',d:'Dec 21',N:false,src:'chat',T:'System Genesis — This README Was Born Here',S:'System for building systems.',lk:'https://claude.ai/chat/8573ea5a-3e72-4b70-952a-a0b936de6c6b'},
+  {n:12,c:'technical',d:'Dec 29',N:false,src:'chat',T:'MONOTURBO Named + TessaFusion Designated as IP',S:'A name gave it gravity.',lk:'https://claude.ai/chat/3f15344d-b7c4-4ff6-af9f-baeaa815eed4'},
+  {n:13,c:'technical',d:'Jan 10',N:false,src:'chat',T:'saas_core v2.6.0 — Template Becomes Real Infrastructure',S:'SKIP LOCKED, watchdog. Zero rebuild cost.',lk:'https://claude.ai/chat/2f3be8f7-ace4-46af-b6c6-97c69dac5d02'},
+  {n:14,c:'synthesis',d:'Jan 17',N:false,src:'chat',T:'34 Projects. Frameworks Named as Competitive Moat.',S:'Not productivity tools — unfair advantages.',lk:'https://claude.ai/chat/60038682-23a7-45a6-a90f-7190fbbbac42'},
+  {n:15,c:'synthesis',d:'Jan 16',N:false,src:'chat',T:'INT AI Adoption — 3-Phase Framework, AI Council',S:'5→50→75 users. Governance before scale.',lk:'https://claude.ai/chat/728dc086-6bf9-4b38-8b36-497227c328c5'},
+  {n:16,c:'technical',d:'Feb 5',N:true,src:'chat',T:'Claude in Chrome — Security Plan, PR Review Automation',S:'23.6%→11.2% injection reduction. Two-lane automation model.',lk:'https://claude.ai/chat/bb6b3d86-c7d7-4aba-843c-488a2e9ce9e5'},
+  {n:17,c:'technical',d:'Feb 5',N:false,src:'chat',T:'Credentials Exposure — P0 Security Incident, 100+ Live Keys',S:'Complete infrastructure compromise. "Security override denied."',lk:'https://claude.ai/chat/82a4df9a-789a-4e12-87f3-a7e8ec539282'},
+  {n:18,c:'technical',d:'Feb 5',N:false,src:'chat',T:'EmeraldDrift P0 — 11,000% Over Capacity',S:'7 marketplace integrations. Compound architecture failures.',lk:'https://claude.ai/chat/f947542e-7071-47b6-8850-3f71509b7142'},
+  {n:19,c:'synthesis',d:'Feb 5',N:false,src:'chat',T:'FlashFusion MVP Scope Locked — "Describe Brand → 2 Min → $X"',S:'Generate → Preview → Purchase. Publish is future.',lk:'https://claude.ai/chat/b6d50473-a79b-4b06-9158-3f098bc1bc0b'},
+  {n:20,c:'technical',d:'Feb 5',N:false,src:'chat',T:'FlashFusion Dev Onboarding Package — New Developer Monday',S:'10 ADRs, 6 skills, 6 diagrams, 7 MCPs.',lk:'https://claude.ai/chat/9dd1e18b-596e-49c2-9d5c-ddb60d42de03'},
+  {n:21,c:'kill',d:'Feb 5',N:false,src:'chat',T:'"Probably Shelve it." — AI Prompt Galaxy Killed',S:'Good recon. No differentiation. Three words.',lk:'https://claude.ai/chat/2002affd-c136-4766-935f-8a165dac9df4'},
+  {n:22,c:'technical',d:'Feb 5',N:false,src:'chat',T:'Continuum — "Ship it." Same Day as the Kill.',S:'18-section PRD. One word. Both directions at once.',lk:'https://claude.ai/chat/a055e66c-43d0-4524-9437-06b756981efe'},
+  {n:23,c:'technical',d:'Feb 5',N:false,src:'chat',T:'Vibecode v2.6.0 — Ops Maturity as Baseline',S:'13 alerts. 6-phase drills. 5 SLOs.',lk:'https://claude.ai/chat/f7498f44-9748-499a-8bd0-b377a99fd894'},
+  {n:24,c:'synthesis',d:'Feb 13',N:true,src:'chat',T:'SCA → Customization Service Reference Implementation',S:'"You\'re not building a Jasper competitor." Data engine + moat.',lk:'https://claude.ai/chat/691df19f-f725-42eb-81b2-a684d27d9c95'},
+  {n:25,c:'synthesis',d:'Feb 14',N:true,src:'chat',T:'28 Frameworks + 410 Prompts → ONE Intelligent Meta-Prompt Router',S:'"You picked the smarter option." Static doesn\'t scale.',lk:'https://claude.ai/chat/1f2444e7-2ff9-4208-ac63-b5afb87e62ce'},
+  {n:26,c:'personal',d:'Feb 10–11',N:false,src:'chat',T:'AI SME Assessment — "No" Verdict, 30-60-90 Roadmap',S:'Accountability without authority = career risk.',lk:'https://claude.ai/chat/76141cf4-f80d-4921-b8e6-cdf3ede2237a'},
+  {n:27,c:'synthesis',d:'Feb 10',N:true,src:'chat',T:'AI Conference — Dave + Kyle Together, EPB Market Validation Brief',S:'"Cheaper than 3 months of customer research." Joint frame.',lk:'https://claude.ai/chat/e2078648-596b-41c2-8623-0341d5d1c746'},
+  {n:28,c:'synthesis',d:'Feb 11',N:false,src:'chat',T:'Unfair Advantages Reframe — Enterprise Architecture, Not Consumer Mobile',S:'"Stop. You\'re building the wrong thing entirely."',lk:'https://claude.ai/chat/f91f7c1c-b618-45e4-bba0-5c3831375dd5'},
+  {n:29,c:'synthesis',d:'Feb 11',N:false,src:'chat',T:'Replit Global Mobile Buildathon — $10K Grand Prize',S:'5,200+ attendees. Shaped Infinity Heroes.',lk:'https://claude.ai/chat/75502996-dd06-4b88-be57-b39528bd5e5f'},
+  {n:30,c:'technical',d:'Feb 16',N:false,src:'chat',T:'Infinity Heroes Rebuilt — Gemini 3 Pro + TTS + PWA',S:'React 19 + TypeScript + Vite. 3 story modes.',lk:'https://claude.ai/chat/a4785b5f-f4aa-4a2f-a092-239015a4ce40'},
+  {n:31,c:'technical',d:'Feb 16',N:false,src:'chat',T:'Condukt / Creativable — White-Label Rebrand Thesis',S:'"Orchestrate Everything." German SaaS repositioned.',lk:'https://claude.ai/chat/df33c546-9b2e-4b95-8298-91f667b7448c'},
+  {n:32,c:'synthesis',d:'Feb 21',N:true,src:'chat',T:'HumanX Context Extractor — Rich vs. Missing Content Mapped',S:'Universal extraction pattern. 8-file output. Honest gap map.',lk:'https://claude.ai/chat/48914d44-f403-409a-8c54-b8dc9cfcfbef'},
+  {n:33,c:'synthesis',d:'Feb 21',N:false,src:'chat',T:'HumanX AIaaS Presentation — INT as "AI General Contractor"',S:'Gartner 40%+ stat. Three hero offers.',lk:'https://claude.ai/chat/bd279009-22bc-42d1-b4d4-63a957f40911'},
+  {n:34,c:'synthesis',d:'Feb 17–20',N:false,src:'chat',T:'InVelo Full Package — Every Leadership Objection Answered',S:'10 battle cards. Financial model. ZIP.',lk:'https://claude.ai/chat/1f86284d-b3b8-43d7-99a6-3aa4afbe429b'},
+  {n:35,c:'synthesis',d:'Feb 22',N:false,src:'chat',T:'InVelo HumanX Strategy — 16-File Package, SolutionBridge Mar 6',S:'Shadow AI narrative. Free ticket + 8 pre-scheduled 1:1s.',lk:'https://claude.ai/chat/ed5ce433-4a19-41b9-820c-a94b5e92f31a'},
+  {n:36,c:'synthesis',d:'Feb 20',N:false,src:'chat',T:'Claude Code Security — CrowdStrike −7.56%',S:'Reasoning-based SAST. AppSec disruption signal.',lk:'https://claude.ai/chat/0a1c9b9a-4cb7-4d93-97a0-8d01e46e9a91'},
+  {n:37,c:'kill',d:'Feb 21',N:false,src:'chat',T:'Data Venue Reframe — "We\'re Not Building a Vault"',S:'Product → consulting framework.',lk:'https://claude.ai/chat/45676d46-0b9a-486e-a108-22f8d74c51eb'},
+  {n:38,c:'kill',d:'Mar 2',N:false,src:'chat',T:'Claude Cowork — "Don\'t Use It." Data Loss Risk',S:'Family photos deleted. VM instability. Formal DNR.',lk:'https://claude.ai/chat/f768e9df-c0a0-4bef-baba-f494ffd7d92a'},
+  {n:39,c:'technical',d:'Mar 6',N:true,src:'chat',T:'Beta Tester Army — Multi-Agent Template, Context Capsule Pattern',S:'5 personas. 6 flows. 7-dimension rubric. Flash-n-Frame.',lk:'https://claude.ai/chat/ac5b8adf-5f63-44f6-9c1b-258753a708df'},
+  {n:40,c:'technical',d:'Mar 14',N:false,src:'chat',T:'MONOTURBO ROI — $46K Annual Benefit, 3.7-Month Payback',S:'Infrastructure project becomes a business investment.',lk:'https://claude.ai/chat/381d00f5-c745-4f23-bdf6-20d9cf6c6c12'},
+  {n:41,c:'personal',d:'Mar 14',N:false,src:'chat',T:'"Mediocre" → "So Mediocre" → Rebuild from First Principles',S:'Terse rejection = start over.',lk:'https://claude.ai/chat/0f53cd08-73d1-41e1-a290-23523fdaad99'},
+  {n:42,c:'technical',d:'Mar 14',N:false,src:'chat',T:'Expo EXPO_PUBLIC_ Fix — Env Variable Convention',S:'Client exposure requires prefix + full rebuild.',lk:'https://claude.ai/chat/c8bd31c6-65b8-450a-a43c-3c92d213acb7'},
+  {n:43,c:'synthesis',d:'Mar 17',N:false,src:'chat',T:'Meta-Prompt Generator v1.0 — The Blueprint Factory',S:'Input: description → 7–10 fully-populated files.',lk:'https://claude.ai/chat/be36344e-b06b-4406-8514-ad6450037dad'},
+  {n:44,c:'technical',d:'Mar 21',N:false,src:'chat',T:'Vibecode v1.1.0 — Multi-Stack. Not Just Vercel.',S:'Firebase + AWS + Docker. Distributable platform.',lk:'https://claude.ai/chat/eb90a8bd-1a50-49c4-bd62-b38288713978'},
+  {n:45,c:'technical',d:'Mar 9',N:false,src:'chat',T:'EPB Compliance Audit Update — 85%, 21 Gaps, EU AI Act Aug 2026',S:'NIST AI RMF 2.0. Score down because bar moved.',lk:'https://claude.ai/chat/c0e7bef1-d997-498e-87ac-465932187398'},
+  {n:46,c:'technical',d:'Mar 9',N:false,src:'chat',T:'Ops Autopilot for SMB — 81-File Product Delivery Kit',S:'$49/$149/$500+/mo. Zero-knowledge secrets. Per-customer n8n.',lk:'https://claude.ai/chat/f228d519-1b29-4673-a7f4-3f5ec0c0c025'},
+  {n:47,c:'technical',d:'Mar 10',N:false,src:'chat',T:'INT Org Chart — 12 Depts, All 4 Lenses, SPOF Documented',S:'78 roles. Kyle = SPOF across 3 depts. Staff Eng #2 Q3 2026.',lk:'https://claude.ai/chat/e1af2fd7-1a88-4ce2-a564-31291ddbd66b'},
+  {n:48,c:'technical',d:'Mar 10',N:false,src:'chat',T:'Claude Plugin Ecosystem — 10 Plugins, 106 Files, 7 Roles',S:'RLS Validator. Incident Responder. Compliance Auditor.',lk:'https://claude.ai/chat/e1af2fd7-1a88-4ce2-a564-31291ddbd66b'},
+  {n:49,c:'technical',d:'Mar 2026',N:false,src:'project',T:'Lyra Observability Stack — PRD Becomes Infrastructure',S:'Prometheus + Grafana + Loki + Tempo + OTel. Live.',lk:null},
+  {n:50,c:'synthesis',d:'Mar 9',N:false,src:'chat',T:'Portfolio Alignment Audit — What Exists vs. What\'s Claimed',S:'Simulator ≠ exist. Dave meeting = #1 unresolved blocker.',lk:'https://claude.ai/chat/4bdc845c-b7c1-44e2-9be4-2dc0e30787e2'},
+  {n:51,c:'tension',d:'Current',N:false,src:'project',T:'Cursor Prompt Chain — "15 Years Experience" Still in Play',S:'Active project, role-based prompting. Contra current ruling.',lk:null},
+  {n:52,c:'personal',d:'Mar 25',N:false,src:'drive',T:'⚡ "Human-Led. AI-Accelerated. NOT AI-generated."',S:'The identity statement that settles the internal debate.',lk:'https://docs.google.com/document/d/11qjw9UcmwVQ4lpD4FarkDoeA4Q3oXHg2wy5_IX41Y0o/edit'},
+  {n:53,c:'personal',d:'Mar 25',N:false,src:'drive',T:'Memoir Thesis — Recovery as the Origin of Capability',S:'"Not subtraction — transformation."',lk:'https://docs.google.com/document/d/11qjw9UcmwVQ4lpD4FarkDoeA4Q3oXHg2wy5_IX41Y0o/edit'},
+  {n:54,c:'synthesis',d:'Mar 25',N:false,src:'drive',T:'"The Model War is Over. Now it\'s the Deployment War."',S:'Moves the moat from model choice to infrastructure.',lk:'https://docs.google.com/document/d/1qDWGjpreOfTd_ilqf0yLQhgOCLqdl-9bvI26BEERnb4/edit'},
+  {n:55,c:'synthesis',d:'Mar 25',N:false,src:'drive',T:'Agentic Frontier — AI as Sovereign Economic Participant',S:'Moltbook + MCP + FlashFusion into one worldview.',lk:'https://docs.google.com/document/d/1TB2h7EdV8hnth-i_aO8rxtIHHvriaxmjOTwPv67tAcQ/edit'},
+];
+const tgC={synthesis:'tg-s',personal:'tg-p',technical:'tg-t',kill:'tg-k',tension:'tg-x'};
+const tgL={synthesis:'Synthesis',personal:'Personal',technical:'Technical',kill:'Kill/Cut',tension:'Tension'};
+const sC={chat:'sc',drive:'sd2',project:'sp'};
+const sL={chat:'Chat',drive:'Drive',project:'Project'};
+const ggc=document.getElementById('ggc');
+M.forEach(m=>{
+  const d=document.createElement('div');
+  d.className=`gc ${m.c}${m.N?' isN':''}`;d.dataset.c=m.c;
+  d.innerHTML=`<div class="gn">${String(m.n).padStart(2,'0')}</div>${m.N?'<div class="gnw">NEW</div>':''}<span class="gtg ${tgC[m.c]}">${tgL[m.c]}</span><div class="gd">${m.d} · <span class="sb ${sC[m.src]}">${sL[m.src]}</span></div><div class="gtit">${m.T}</div><div class="gsig">${m.S}</div>`;
+  if(m.lk)d.onclick=()=>window.open(m.lk,'_blank');
+  ggc.appendChild(d);
+});
+['personal','technical','synthesis','kill','tension'].forEach(cat=>{
+  const col=document.getElementById('c'+{personal:'p',technical:'tc',synthesis:'s',kill:'k',tension:'x'}[cat]);
+  M.filter(m=>m.c===cat).forEach(m=>{
+    const d=document.createElement('div');
+    d.className=`cc ${m.c}${m.N?' isN':''}`;d.dataset.c=m.c;
+    d.innerHTML=`<div class="ccd">${m.d} · <span class="sb ${sC[m.src]}">${sL[m.src]}</span></div><div class="cct">${m.T}</div><div class="ccs">${m.S}</div>`;
+    if(m.lk)d.onclick=()=>window.open(m.lk,'_blank');
+    col.appendChild(d);
+  });
+});
+function tog(el){const was=el.classList.contains('on');document.querySelectorAll('.card.on').forEach(c=>c.classList.remove('on'));if(!was)el.classList.add('on')}
+function fil(cat){
+  document.querySelectorAll('.fb').forEach(b=>b.classList.remove('on'));
+  document.querySelector('.fb.'+cat).classList.add('on');
+  ['.card','.gc','.cc'].forEach(sel=>{document.querySelectorAll(sel).forEach(c=>{c.classList.toggle('hi',cat!=='all'&&c.dataset.c!==cat)})});
+}
+function sv(v){
+  ['t','g','c'].forEach(id=>{document.getElementById('v'+id).classList.toggle('hidden',id!==v);document.getElementById('b'+id).classList.toggle('on',id===v)});
+}
+</script>
+</body>
+</html>

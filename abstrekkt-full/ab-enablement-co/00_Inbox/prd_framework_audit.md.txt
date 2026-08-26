@@ -1,0 +1,1572 @@
+AUDIT: PRD Framework v2.0
+5-Persona Critique + Structural Blind Spots
+________________
+
+
+PREAMBLE: AUDIT PROTOCOL
+This audit applies the framework to itself — treating the framework as a product.
+
+
+Auditors:
+
+
+1. Staff Engineer (scalability, architecture, execution risk)
+2. Security Officer (data handling, threat modeling, compliance assumptions)
+3. DevOps/Operator (buildability, deployment, testing strategy)
+4. Product/UX (user research integration, feedback loops, clarity)
+5. Finance (cost of using the framework, value delivered)
+
+
+Each auditor rates three dimensions:
+
+
+* ✅ What's good (enforce more)
+* ⚠️ What's fuzzy (ambiguous; needs clarification)
+* ❌ What's missing (critical gaps; framework is incomplete without it)
+
+
+________________
+
+
+STAFF ENGINEER AUDIT
+What's Good ✅
+* Persona sign-off matrix is mandatory — Forces conflict surfacing early (good)
+* Edge case section (3.14) is thorough — Race conditions, state collisions, cascading failures all covered
+* Data model section (3.9.1) uses actual table structure — Not fuzzy; implementable
+* Scalability section (3.14.2) anticipates growth — 1K → 10K → 100K orgs explicitly planned
+What's Fuzzy ⚠️
+1. Prototype validation missing entirely
+
+
+   * Framework skips straight from clarification → PRD
+   * Real products validate assumptions (wireframes, prototype, user testing) before full PRD
+   * ⚠️ Risk: You write 40-page PRD for feature nobody wants
+   * Gap: Where is "Build quick prototype, test with 5 users, get feedback, THEN write PRD"?
+
+
+2. "Assume no-code platform" but no buildability audit
+
+
+   * Says "mark features as: no-code friendly / plugin likely / custom code required"
+   * But no process for discovering what no-code platform can actually do
+   * ⚠️ Risk: PRD specifies real-time notifications; selected platform doesn't have webhook support
+   * Fix: Require: "For each third-party integration, test basic flow in target platform BEFORE PRD"
+
+
+3. Execution timeline is invisible
+
+
+   * Framework doesn't ask: "If we have 4 engineers for 6 weeks, can we ship v1?"
+   * Mentions "4–6 week MVP" but doesn't reverse-engineer scope from team capacity
+   * ⚠️ Risk: PRD scope is achievable in theory but impossible with your team
+   * Fix: Inject: "Divide feature list by estimated effort (in hours); total must fit 4 eng × 6 weeks × 25 dev hours/week = 600 hours"
+
+
+4. Dependency graph missing
+
+
+   * Feature list says "dependencies: X, Y, Z" but no critical path analysis
+   * Feature A depends on B which depends on C; if C is hard, everything blocks
+   * ⚠️ Risk: You discover week 3 that the "foundation" feature is a 2-week slog
+   * Fix: Require: "Build dependency DAG; identify critical path; flag if critical path > timeline"
+
+
+5. Testing strategy completely absent
+
+
+   * PRD talks about "no-code platform" but doesn't specify: unit tests? e2e? load testing? penetration testing?
+   * ⚠️ Risk: Shipped without load testing; at 100 concurrent users, app melts
+   * Fix: Add section: "Testing Plan (unit, integration, e2e, load, security)"
+
+
+6. No "rewrite scenario" planning
+
+
+   * Assumes PRD → build → ship (linear)
+   * Real projects: discover during MVP that data model is wrong, rewrite half the spec
+   * ⚠️ Risk: Team hits wall mid-build; no escalation path
+   * Fix: Document: "If during MVP we discover [X], we will [pause/pivot/rewrite] and notify all personas"
+
+
+7. Deployment & CI/CD assumed but not detailed
+
+
+   * Says "Assume no-code platform" but doesn't ask: can you deploy 5x/day or is it 1x/week?
+   * ⚠️ Risk: Feature flag section talks about gradual rollout, but platform doesn't support it
+   * Fix: "Deployment strategy: cadence, rollback time, feature flag support (required: Persona sign-off)"
+What's Missing ❌
+CRITICAL GAPS:
+
+
+1. Prototype → Spec → Build → Validate Loop
+
+
+The framework is:   Clarify → PRD → Build
+
+
+But should be:      Clarify → Prototype → Validate with users → PRD → Build → Measure
+
+
+Missing: How do you know your PRD is right BEFORE shipping 6 weeks of engineering?
+
+
+Answer: Build prototype in week 1; test with 10 users; refine PRD based on feedback; then commit to build
+
+
+2. No-Code Platform Audit (Pre-PRD)
+
+
+Current: "Assume this will be built on [platform]"
+
+
+Missing: Actual validation that platform can do what you want
+
+
+Should be: 
+
+
+- "Can this platform do real-time notifications? (Test it)"
+
+
+- "Can we set row-level security? (Test it)"
+
+
+- "What's the maximum database size before we hit limits? (Ask vendor)"
+
+
+- "Can we export data to X format? (Test it)"
+
+
+Risk: You get 2 weeks into MVP, hit platform limitation, have to rewrite
+
+
+3. Reverse Capacity Planning
+
+
+Missing: "Given team size (X engineers for Y weeks), what scope is realistic?"
+
+
+Current approach: "Here's what we want to build"
+
+
+Right approach: "Here's what we want, here's our capacity, here's what fits"
+
+
+If there's a gap, negotiate: extend timeline, reduce scope, add headcount
+
+
+4. Buildability Sign-Off Per Feature
+
+
+Current: Mark as "no-code friendly" / "plugin likely" / "custom code"
+
+
+Missing: Actually test 1–2 per category before PRD to confirm
+
+
+Example: "Bulk escalation" marked "no-code friendly"
+
+
+But discovered during MVP: no-code platform doesn't support multi-select + batch API call
+
+
+Needs plugin or custom code
+
+
+Should be: "We tested bulk select in [platform] and confirmed: ✓ works with [approach]"
+
+
+________________
+
+
+SECURITY OFFICER AUDIT
+What's Good ✅
+* GDPR/CCPA compliance sections are concrete — Specific requirements (right to access, right to delete) spelled out
+* Audit logging is mandatory — Not optional; baked into every entity
+* Encryption at rest called out — AES-256 for sensitive fields
+* Rate limiting mentioned — 10 req/sec per user (good baseline)
+* OWASP Top 10 referenced — Shows awareness of common vulnerabilities
+What's Fuzzy ⚠️
+1. "Data at rest" encryption is too vague
+
+
+   * Says "AES-256 for sensitive fields (passwords, payment tokens)"
+   * ⚠️ Problem: What about comments? User email? Organization name?
+   * Real question: What's your data classification scheme? What's PII? What's sensitive?
+   * Fix: Require: "Data Classification Matrix: tag every entity field as [Public / Internal / Sensitive / Secret]; encryption/handling per tier"
+
+
+2. Threat modeling is completely missing
+
+
+   * Section 3.12.2 lists controls but never asks: "What are we protecting against?"
+   * ⚠️ Missing: STRIDE analysis, attack trees, threat prioritization
+   * Real question: Is the main risk: external hackers? Insider threats? Supply chain? All different mitigations
+   * Fix: Add pre-PRD: "Threat Model (STRIDE or equivalent): identify top 5 threat vectors; map controls"
+
+
+3. "Secrets management: all API keys in environment variables"
+
+
+   * ⚠️ Problem: Who has access to environment variables? Are they logged? Rotated?
+   * Missing: Secrets rotation policy, access control, audit trail for secrets access
+   * Real risk: Dev accidentally commits .env file with Stripe key; attacker uses key to process charges
+   * Fix: "Secrets Management Plan: storage (Vault/AWS Secrets), rotation frequency, access log, detection"
+
+
+4. Third-party risk assessment is checklist-only
+
+
+   * Table says "Stripe: moderate risk" but doesn't explain why or what happens if breached
+   * ⚠️ Missing: Vendor security assessment (SOC 2? Penetration tested? Data handling agreement?)
+   * Fix: "For each third-party: required certifications (SOC 2 Type II), DPA in place, incident response plan"
+
+
+5. Audit log design is incomplete
+
+
+   * Says "Log: timestamp, actor, action, resource, before/after, IP"
+   * ⚠️ Missing:
+      * How do you prevent audit log tampering? (immutable logs?)
+      * How long retained? (30 days? 7 years? Compliance-dependent)
+      * Can admin themselves delete audit logs? (That defeats the purpose)
+      * Who has access to audit logs? (All admins? Only security team? Compliance team?)
+   * Fix: "Audit Log Integrity Plan: immutable storage, retention by regulation, access restrictions"
+
+
+6. PII handling in support workflows
+
+
+   * Section 3.11 mentions "support staff can view user data for debugging"
+   * ⚠️ Missing: Do they export it? Log what they viewed? Sign NDA? Can they share screenshots?
+   * Real risk: Support intern screenshots customer data; posts to Slack; data leaked
+   * Fix: "Support Access Policy: what data can support view, what's masked, what's logged, who gets trained"
+
+
+7. Payment data handling is missing
+
+
+   * Says "Stripe handles payment processing" but doesn't detail:
+      * Do you store credit card data? (You shouldn't; Stripe tokenizes it)
+      * What happens to invoice data? How long stored? Encrypted?
+      * Who can view payment history? (Admin? Anyone?)
+   * ⚠️ Risk: Compliance issue if you're storing PCI data incorrectly
+   * Fix: "Payment Data Handling: never store CC data; Stripe token flow; invoice retention per GDPR"
+What's Missing ❌
+CRITICAL GAPS:
+
+
+1. Data Classification & Privacy By Design
+
+
+Missing: Before you model data, classify it
+
+
+Current: Data model table lists fields (user_id, email, password_hash, etc.)
+
+
+Should first ask: 
+
+
+  - Which fields are PII? 
+
+
+  - Which are sensitive? 
+
+
+  - Which trigger GDPR/CCPA? 
+
+
+  - Which can never be logged?
+
+
+Then: Design encryption, access control, retention around classification
+
+
+Real example: You log all API requests for debugging. One request includes user's 
+
+
+password in a failed login attempt. Now you've stored password in logs. GDPR violation.
+
+
+2. Threat Model (STRIDE or equivalent)
+
+
+Missing: Structured threat identification
+
+
+Should include:
+
+
+- Spoofing: Can someone impersonate an admin? How do we prevent?
+
+
+- Tampering: Can someone modify audit logs? Change escalation assignments?
+
+
+- Repudiation: Can a user deny they deleted data? (Audit log prevents this)
+
+
+- Information Disclosure: Can unauthorized users see other org's data?
+
+
+- Denial of Service: Can attacker rate-limit the API to block users?
+
+
+- Elevation of Privilege: Can a member escalate to admin?
+
+
+Real benefit: Prevents "oh we didn't think of that" during security audit
+
+
+3. Compliance-Specific Requirements
+
+
+Current: Generic GDPR/CCPA checklist
+
+
+Missing: Triggers for actual compliance frameworks
+
+
+Should ask:
+
+
+- Healthcare data (HIPAA)? → Requires Business Associate Agreement, encryption, audit logs
+
+
+- Payment data (PCI-DSS)? → Requires certification, annual audit, token-only storage
+
+
+- Financial data (SOX)? → Requires segregation of duties, change control, audit trails
+
+
+- Education data (FERPA)? → Requires parental consent, specific retention rules
+
+
+Compliance isn't one-size-fits-all; must be determined by data type
+
+
+4. Vendor Security Baseline
+
+
+Current: "Stripe: API key (server-side only)" — assumes they're secure
+
+
+Missing: Validation
+
+
+Should require BEFORE PRD:
+
+
+- Does Stripe have SOC 2 Type II cert? ✓
+
+
+- Do they have a DPA? ✓
+
+
+- What's their RTO/RPO? ✓
+
+
+- Do they have incident response SLA? ✓
+
+
+Apply to ALL third-parties: Resend, Auth0, hosting provider, etc.
+
+
+________________
+
+
+DEVOPS AUDIT
+What's Good ✅
+* Backup strategy is concrete — Daily full backup, monthly restore test, 30-day retention
+* Incident response mentioned — <1 hour MTTR target, on-call rotation
+* Observability section includes alerting thresholds — "Alert if API latency >1s"
+* Feature flags for gradual rollout — Good practice for risky deploys
+What's Fuzzy ⚠️
+1. Testing strategy is invisible
+
+
+   * Framework mentions: "smoke-level minimum" and "test rollbacks" but no comprehensive plan
+   * ⚠️ Missing: Unit tests? Integration tests? Load tests? Penetration tests? Which are required for v1?
+   * Real question: Do you test payment failure scenarios? Do you load-test at 10x expected volume?
+   * Fix: Require: "Testing Plan (unit, integration, e2e, load, chaos, security)" with coverage targets
+
+
+2. "Assume no-code platform" hides deployment complexity
+
+
+   * Doesn't ask: "What's the deployment cadence? 1x/week or 10x/day?"
+   * ⚠️ Missing: CI/CD pipeline design, rollback procedure, deployment environment config
+   * Real scenario: You deploy breaking change; 100 users affected; rollback takes 20 minutes (should be <5)
+   * Fix: "Deployment Plan: cadence, environments (dev/staging/prod), rollback SLA, change control"
+
+
+3. Monitoring is high-level
+
+
+   * Says "Monitor error rate, latency, cost" but doesn't detail:
+      * What's the error rate threshold before alerting? (5%? 1%? Depends on baseline)
+      * How do you collect these metrics? (Logging service? APM tool? Built into platform?)
+      * Who gets paged? (On-call engineer? Manager? Escalation path?)
+   * ⚠️ Missing: Runbooks for top 5 failure scenarios
+   * Fix: "Observability Plan: metrics definition, collection method, alert thresholds, runbooks per alert type"
+
+
+4. Capacity planning is mentioned but not detailed
+
+
+   * Says "At 1K orgs, need indexing; at 10K, need Redis" but doesn't ask:
+      * When do you scale? (When you hit 80% capacity? 50%?)
+      * How do you forecast growth? (User interviews? Cohort analysis? Model?)
+      * What's the lead time to provision new capacity? (2 days? 2 weeks?)
+   * ⚠️ Risk: You hit capacity limit on a Sunday; can't scale until Monday; outage
+   * Fix: "Capacity Plan: growth forecast model, scaling triggers (thresholds), provisioning lead time, cost projection"
+
+
+5. Database backup is reactive, not proactive
+
+
+   * "Daily backups; monthly restore test" — but doesn't ask:
+      * How do you know backup actually works? (You should auto-restore to staging daily)
+      * What's the RTO (Recovery Time Objective)? "30 minutes" or "4 hours"?
+      * What's the RPO (Recovery Point Objective)? "0 data loss" or "1 hour of loss acceptable"?
+   * ⚠️ Risk: Backup is corrupt; you don't discover until disaster happens
+   * Fix: "Backup & Recovery Plan: RTO/RPO targets, backup validation (auto-restore to staging), retention, encryption"
+
+
+6. Load testing completely absent
+
+
+   * No mention of: "Can system handle 1000 concurrent users? 10x traffic spike?"
+   * ⚠️ Risk: You launch; traffic doubles on day 1; app falls over
+   * Fix: "Load Testing Plan: baseline (expected concurrent users), spike test (10x), sustained test (24h at peak), results"
+What's Missing ❌
+CRITICAL GAPS:
+
+
+1. CI/CD Pipeline Design (Pre-Launch)
+
+
+Missing: How code gets from laptop to production
+
+
+Should define:
+
+
+- Environments: dev (local) → staging (prod-like) → prod (customer-facing)
+
+
+- Testing gates: do tests run before merge? Before deploy?
+
+
+- Approval workflow: who approves production deployments?
+
+
+- Rollback mechanism: how fast can you rollback? (Goal: <5 min)
+
+
+- Deployment frequency: 1x/day? 1x/week? 1x/quarter?
+
+
+Real gap: You finish MVP; want to deploy daily; platform only allows 1x/week deploys
+
+
+Discover this AFTER build starts; blocked
+
+
+2. Runbook Template & Incident Response
+
+
+Missing: Step-by-step playbooks for common failures
+
+
+Should document:
+
+
+- "Notification service is down" → [detect it, alert ops, switch to in-app, retry queue]
+
+
+- "Database is slow" → [check query logs, kill long-running query, alert DBA]
+
+
+- "Payment processing stuck" → [check Stripe status, manually trigger webhook, notify users]
+
+
+- "Cascade outage (multiple services down)" → [degrade gracefully, switch to read-only mode, notify all customers]
+
+
+Real benefit: When crisis hits, ops person runs playbook instead of panic-debugging
+
+
+3. Observability Architecture (Not Just Metrics)
+
+
+Missing: Structured logging, distributed tracing, alerting framework
+
+
+Should define:
+
+
+- Log aggregation: all logs to central place (CloudWatch, DataDog, etc.)
+
+
+- Structured logging: all logs include [timestamp, service, request_id, user_id, action, status]
+
+
+- Tracing: can you follow a user's request across multiple services? (for debugging)
+
+
+- Alerting framework: high signal-to-noise ratio (avoid "alert fatigue")
+
+
+Real gap: Something breaks; ops searches 1000s of log lines; can't find root cause
+
+
+With structured logging + tracing: pinpoint in seconds
+
+
+4. Chaos Engineering / Failure Testing
+
+
+Missing: Deliberately breaking things to find gaps
+
+
+Should plan:
+
+
+- Kill the database; does app gracefully degrade?
+
+
+- Slow down Stripe API (10s response time); does checkout timeout gracefully?
+
+
+- Flood the API with requests; does rate limiting kick in before outage?
+
+
+- Corrupt a backup; can you restore from an older backup?
+
+
+Real benefit: Find failure modes in controlled environment instead of at 3 AM in production
+
+
+5. Security Testing (Penetration Testing Plan)
+
+
+Missing: No mention of security testing before launch
+
+
+Should require:
+
+
+- Internal security review (checklist)
+
+
+- Third-party penetration test (professional)
+
+
+- Vulnerability scanning (dependencies, secrets in code)
+
+
+- OWASP Top 10 validation (SQL injection, XSS, CSRF, etc.)
+
+
+Timing: Security should sign off BEFORE v1 ships
+
+
+________________
+
+
+PRODUCT/UX AUDIT
+What's Good ✅
+* User personas are specific — Not "businesses"; actual roles (Service Desk Manager, L2 Engineer)
+* Jobs-to-be-done format is strong — Trigger, happy path, edge cases all clear
+* Success metrics tied to goals — "30-day activation 40%" not fuzzy "user engagement"
+* Empty states & error states mentioned — UX edge cases covered
+What's Fuzzy ⚠️
+1. No user research validation required
+
+
+   * Section 1.3 lists "User research validation" as a question but doesn't enforce it
+   * ⚠️ Missing: "Before PRD, you must interview 10+ target users; here's the protocol"
+   * Real risk: You write a PRD for a problem that doesn't exist
+   * Fix: Require: "User Research Summary: 10+ interviews, top 3 problems by frequency, validation evidence"
+
+
+2. Competitive landscape is thin
+
+
+   * Mentions "Who else solves this?" but no framework for competitive analysis depth
+   * ⚠️ Missing: How do you know your differentiation is real? (Not just your opinion)
+   * Real question: "Have users told you why they'd switch FROM [competitor] TO you?"
+   * Fix: Require: "Competitive Analysis: for each competitor, user feedback on strengths/weaknesses, your differentiation validated with users"
+
+
+3. Activation funnel is not detailed
+
+
+   * Says "40% 30-day activation" but doesn't define what "activation" means
+   * ⚠️ Problem: Does "activation" = first ticket created? Or first escalation?
+   * Real risk: You ship; measure; discover your definition doesn't match what matters
+   * Fix: "Define activation explicitly: [specific action] within [time]. Validate with users that this predicts retention."
+
+
+4. Churn is underdefined
+
+
+   * Says "reduce 12-month churn to <8%" but asks: "What causes churn?"
+   * ⚠️ Missing: Churn diagnosis framework: is it price? UX? Bugs? Lack of features?
+   * Real scenario: You launch; churn is 15%; you don't know why; guess wrong; churn stays at 15%
+   * Fix: "Churn Analysis Plan: cohort analysis, exit survey, interview churned users (N=5), segment by cause"
+
+
+5. Onboarding is mentioned but not tested
+
+
+   * Section 3.6.1 describes onboarding flow but doesn't ask: "Has anyone tried it?"
+   * ⚠️ Missing: FTUX (first-time user experience) testing with actual users
+   * Real gap: You assume 5-minute onboarding; test with 5 users; average is 12 minutes; you lose early users
+   * Fix: "Onboarding Validation: test with 5 target users; measure time-to-value; iterate until <5 min"
+
+
+6. NPS mentioned once; no NPS strategy
+
+
+   * Section 3.1.4 says "NPS >50" but doesn't detail:
+      * When do you measure? (At 30 days? 90 days? Quarterly?)
+      * How do you send survey? (Email? In-app? Prompt?)
+      * What do you do with feedback? (Ignore low scores? Act on them?)
+   * ⚠️ Missing: NPS feedback loop; "low NPS → root cause analysis → product change"
+   * Fix: "NPS & Feedback Plan: survey cadence, in-app + email distribution, response target, feedback loop"
+
+
+7. Accessibility is checkbox-only
+
+
+   * Section 3.12.5 lists WCAG 2.1 AA requirements but doesn't ask: "How will you test?"
+   * ⚠️ Missing: Accessibility testing with real users (screen reader testing, keyboard-only testing)
+   * Fix: "Accessibility Testing: automated checks (Axe), manual WCAG audit, user testing with screen reader"
+What's Missing ❌
+CRITICAL GAPS:
+
+
+1. User Research → Spec → Build → Measure Loop
+
+
+Current: Clarify → PRD → Build
+
+
+Missing: User research integrated throughout
+
+
+Should be:
+
+
+- Weeks 0–1: User interviews (10+) → validate problem exists
+
+
+- Week 1: Prototype → test with 5 users → refine concept
+
+
+- Week 2–3: Spec (PRD) → personas review
+
+
+- Weeks 3–8: Build
+
+
+- Week 8: Beta test with users → measure activation → refine
+
+
+- Week 9: GA launch
+
+
+Current framework skips weeks 0–1 and week 8; you're flying blind
+
+
+2. Churn Prediction & Retention Levers
+
+
+Missing: How do you PREVENT churn before it happens?
+
+
+Should require:
+
+
+- Define churn segments: power users? Occasional users? Trials that don't convert?
+
+
+- Predict churn: what signals predict someone will cancel? (e.g., "3 days no login" → likely to churn)
+
+
+- Retention lever: what can you do to prevent churn? (e.g., send re-engagement email on day 3 no login)
+
+
+- Measure: did retention lever reduce churn?
+
+
+Real example: You have 20% churn; study shows "users who created 0 tickets in first week churn 40%"
+
+
+Retention lever: send email on day 2 "Create your first ticket in 5 minutes" → reduces churn to 10%
+
+
+3. Support Burden Forecast
+
+
+Missing: How many support tickets will you get? Can you handle them?
+
+
+Current: "Support escalations <5 per month" (goal) but no forecast method
+
+
+Should ask:
+
+
+- What % of users will contact support in first 30 days?
+
+
+- For what reasons? (Billing? Bugs? Features? UX confusion?)
+
+
+- How long to resolve each? (5 min? 30 min? 2 hours?)
+
+
+- Total support hours per month?
+
+
+- Can your team handle it? (If you expect 500 tickets/month but have 0 support staff, you're screwed)
+
+
+4. A/B Testing Plan
+
+
+Missing: How will you validate product decisions?
+
+
+Should define:
+
+
+- Questions you'll A/B test: 
+
+
+  - "Does daily digest reduce unsubscribe rate vs. real-time?" 
+
+
+  - "Does onboarding walkthrough increase activation?"
+
+
+- Sample size needed (for statistical significance)
+
+
+- Duration of test (1 week? 2 weeks?)
+
+
+- Success criteria (what % improvement is meaningful?)
+
+
+5. Personas Are Not Enough; Validate User Paths
+
+
+Current: Define personas; write user stories for each
+
+
+Missing: Validate that your personas actually use the product differently
+
+
+Real gap: You define "Admin" and "Member" but discover they both do the same job
+
+
+Or: You define "Service Desk Manager" but they all have different workflows
+
+
+Should require: User path mapping with real users (not personas)
+
+
+- Record actual user behavior (video or screen recording)
+
+
+- Map out their actual workflow
+
+
+- Compare against your persona assumptions
+
+
+- Iterate if different
+
+
+________________
+
+
+FINANCE AUDIT
+What's Good ✅
+* Pricing tiers are concrete — Free ($0), Pro ($99/mo), Enterprise (custom)
+* LTV/CAC mentioned — Shows awareness of unit economics
+* Churn as metric — Understands that retention matters more than activation
+* Expansion opportunity addressed — Can customers spend more over time?
+What's Fuzzy ⚠️
+1. Pricing is not validated; just assumed
+
+
+   * Section 3.8.1 lists tiers but doesn't ask: "Are these prices right? Will users pay?"
+   * ⚠️ Missing: Pricing research (interviews, surveys, willingness-to-pay analysis)
+   * Real risk: You launch at $99/mo; realize market only accepts $49/mo; revenue is half expected
+   * Fix: Require: "Pricing Validation: 20+ interviews on willingness to pay, price sensitivity test, competitive pricing analysis"
+
+
+2. CAC/LTV mentioned but not calculated
+
+
+   * Section 1.3 (Finance questions) asks about LTV/CAC ratio
+   * ⚠️ Missing: Actual model; "What LTV do we expect? What's our target CAC?"
+   * Real gap: You assume 3:1 LTV/CAC is achievable; discover it's only 1.5:1; business doesn't work
+   * Fix: Require: "Unit Economics Model: forecast CAC (sales cost), forecast LTV (revenue × retention), ratio target, break-even analysis"
+
+
+3. Support cost model missing
+
+
+   * Section 3.13.1 mentions "support contacted" as metric
+   * ⚠️ Missing: How many support hours per user? At what cost?
+   * Real scenario: You forecast $5 LTV but support costs $10/user; business is upside-down
+   * Fix: Require: "Support Cost Model: support hours per user, hourly rate, cost per user, impact on margin"
+
+
+4. Infrastructure costs are invisible
+
+
+   * Framework assumes "no-code platform" but doesn't cost it out
+   * ⚠️ Missing: "Hosting costs $X/mo at 1K orgs, $Y/mo at 10K orgs. What's our gross margin?"
+   * Real risk: You add features; hosting costs double; margin goes from 70% to 40%; business model breaks
+   * Fix: Require: "COGS Model: hosting, payment processing, email service, support labor, third-party tools. Margin forecast at different scale"
+
+
+5. No pricing strategy for free tier
+
+
+   * Section 3.8.1 says "Free: up to 2 users, 100 tickets/month"
+   * ⚠️ Missing: "What % of free users upgrade to Pro? When?"
+   * Real question: If free tier is too generous, few upgrade. If too restrictive, nobody tries it.
+   * Fix: Require: "Free Tier Strategy: What do we want to happen? (showcase value → upgrade at 30 days? OR network effects?). Conversion target: X% free → Pro"
+
+
+6. Expansion revenue is not modeled
+
+
+   * Section 1.3 asks "Can customers spend more?" but doesn't detail:
+      * How? (Higher tier? Add-on? Overage fees?)
+      * At what price? (Is it margins-accretive or loss-leading?)
+      * What % of users expand? (Most? Some? None?)
+   * ⚠️ Missing: Net revenue retention (NRR) forecast; if <100%, you have contraction
+   * Fix: Require: "Expansion/Upsell Model: what % of users expand? What's the incremental revenue? NRR forecast."
+
+
+7. Churn impact on LTV is assumed but not modeled
+
+
+   * "12-month churn <8%" is a goal, but how does this drive LTV?
+   * ⚠️ Missing: If you have 8% monthly churn, your LTV is much lower than if you have 2% churn
+   * Real math:
+      * Scenario A: $99/mo, 8% monthly churn → LTV ~$600
+      * Scenario B: $99/mo, 2% monthly churn → LTV ~$2,200
+   * Fix: Require: "LTV Calculation: revenue × (1 / monthly churn rate) = LTV. Model impact of churn on revenue forecast."
+What's Missing ❌
+CRITICAL GAPS:
+
+
+1. Market Sizing & Addressable Market
+
+
+Missing: Is there even a market large enough?
+
+
+Should require:
+
+
+- Total addressable market (TAM): "How many MSPs exist in US?" (Answer: ~5,000)
+
+
+- Service addressable market (SAM): "How many target our solution?" (Answer: 1,000)
+
+
+- Serviceable obtainable market (SOM): "How many can we realistically acquire in 3 years?" (Answer: 100)
+
+
+If your SOM at $99/mo × 100 accounts = $10K/mo revenue, and your burn is $50K/mo, 
+
+
+your unit economics don't work. You need to either:
+
+
+- Raise prices
+
+
+- Reduce burn
+
+
+- Expand addressable market
+
+
+- Find different market
+
+
+Without market sizing, you might be building into a dead end
+
+
+2. Sales & Marketing Cost Structure
+
+
+Missing: How will you acquire customers? What will it cost?
+
+
+Current: Mentions "PLG vs. sales-assisted" but doesn't model cost
+
+
+Should require:
+
+
+- If PLG: organic/viral loops cost (time + tools), conversion rate funnel, CAC = (marketing spend) / (signups)
+
+
+- If sales: sales headcount, quota, commission, CAC = (salary + commission) / (deals closed)
+
+
+- Blended CAC across channels
+
+
+Real gap: You assume you'll get customers for free (PLG); build product for self-serve
+
+
+Discover nobody knows about you; need paid ads ($5K/mo); CAC suddenly $200/signup
+
+
+At 10% conversion free → Pro, you need 20 free signups to get 1 paying customer
+
+
+CAC = $200; LTV = $600; ratio is 3:1 (breakeven); not sustainable long-term
+
+
+3. Break-Even Analysis & Runway
+
+
+Missing: How long until you're profitable? How much capital do you need?
+
+
+Should require:
+
+
+- Monthly burn rate (salaries, hosting, tools, marketing)
+
+
+- Monthly revenue forecast (month 1, 3, 6, 12)
+
+
+- Break-even month (when revenue = burn)
+
+
+- Capital needed = (burn rate) × (months to break-even)
+
+
+Example:
+
+
+- Burn: $30K/mo
+
+
+- Expected break-even: month 12
+
+
+- Capital needed: $30K × 12 = $360K
+
+
+- Do you have $360K? If not, adjust: reduce burn, accelerate growth, or timeline is unrealistic
+
+
+4. Pricing Test / Launch Strategy
+
+
+Missing: How will you validate pricing before full launch?
+
+
+Should require:
+
+
+- Will you offer discount to early customers? (Y/N) If Y, what discount and for how long?
+
+
+- Will you test different price points? (e.g., $49 vs. $99 vs. $149)
+
+
+- Will you grand-father existing customers if you raise prices later?
+
+
+Real example: You launch at $99/mo. Month 3 you realize you could charge $199/mo.
+
+
+Do you grandfather early customers? (Good for retention, bad for revenue.) Or raise for everyone? (Bad for churn.)
+
+
+Decide upfront.
+
+
+5. Competitive Pricing Dynamics
+
+
+Missing: What if a competitor drops prices?
+
+
+Should plan:
+
+
+- Your pricing elasticity: if a competitor is $49/mo, do you:
+
+
+  - Drop to $49 (margin compression)?
+
+
+  - Stay at $99 (expect to lose customers)?
+
+
+  - Reposition upmarket to $199 (for better support/features)?
+
+
+- What's your defensibility? (Switching cost? Network effects? Better product?)
+
+
+Without this, you're reactive instead of strategic
+
+
+________________
+
+
+CROSS-CUTTING STRUCTURAL GAPS
+These aren't persona-specific; they're foundational holes in the framework itself.
+Gap 1: No Feedback Loop After PRD Delivery ❌
+Current state: Framework outputs PRD; "Personas sign off; ready to build"
+
+
+Missing: What happens next?
+
+
+* ✅ Does founder review PRD for reasonableness?
+* ✅ Does a PM/designer prototype against it before build starts?
+* ✅ Does the team do a pre-build design review?
+* ❌ Missing: Explicit "PRD review & approval" checkpoint before build starts
+
+
+Fix: Add STEP 5.1: "PRD Review Checkpoint"
+
+
+Before build starts:
+
+
+- [ ] Founder has reviewed PRD; no surprises
+
+
+- [ ] Product/Design has sketched key screens; confirms PRD is buildable
+
+
+- [ ] Engineering has estimated effort; confirms it fits timeline
+
+
+- [ ] Security has reviewed; any gaps flagged
+
+
+- All 5 personas have signed off (formal approval, not just "seems fine")
+
+
+If anyone says "wait, I have a concern," negotiate before starting build
+
+
+________________
+
+
+Gap 2: No Prototype → Validate Loop (Pre-PRD)
+Current state: Clarify → PRD → Build
+
+
+Missing: Validation that your assumptions are correct before committing 6 weeks
+
+
+Fix: Insert "STEP 1.5: Prototype & Validation"
+
+
+Timing: Weeks 1–2 (parallel to PRD work)
+
+
+1. Build quick prototype (wireframes or Figma mockup) of 3 key flows
+
+
+   - User signup + first ticket creation
+
+
+   - Escalation workflow
+
+
+   - Admin dashboard
+
+
+2. Test with 5 target users (interviews + observation)
+
+
+   - Can they complete flows?
+
+
+   - Do they understand the value prop?
+
+
+   - What confuses them?
+
+
+3. Refine PRD based on feedback
+
+
+   - Change feature X if users didn't like it
+
+
+   - Add clarification to feature Y if users misunderstood
+
+
+   - Adjust success metrics if assumptions were wrong
+
+
+This prevents: "We spent 6 weeks building something nobody wants"
+
+
+________________
+
+
+Gap 3: No Buildability Validation (Pre-Build)
+Current state: "Mark features as no-code friendly / plugin likely / custom code"
+
+
+Missing: Actually test 1–2 features in target platform before committing
+
+
+Fix: Add "STEP 2.5: Buildability Audit"
+
+
+Timing: Week 2–3 (before final approval)
+
+
+For each critical feature, test in target platform:
+
+
+1. "Can we build real-time escalation notifications in [platform]?" → Spike
+
+
+2. "Can we implement row-level security?" → Spike
+
+
+3. "Can we export audit logs to CSV?" → Spike
+
+
+If any spike says "requires custom code" but you marked it "no-code friendly":
+
+
+   - Revise scope OR
+
+
+   - Re-evaluate platform OR
+
+
+   - Plan for custom code budget/timeline
+
+
+This prevents: Getting 2 weeks into MVP, discovering platform can't do X, having to rewrite
+
+
+________________
+
+
+Gap 4: No Capacity Planning (Reverse Scope)
+Current state: "Here's what we want to build" (supply-driven)
+
+
+Missing: "Here's our capacity; here's what fits" (demand-driven)
+
+
+Fix: Add "STEP 2.1: Capacity Reality Check"
+
+
+Input:
+
+
+- Team size (X engineers)
+
+
+- Timeline (Y weeks)
+
+
+- Dev velocity (Z hours per week available per person)
+
+
+Math:
+
+
+- Total dev hours = X × Y × Z
+
+
+- Each feature has effort estimate
+
+
+- Sum of features must fit total hours
+
+
+If scope > capacity:
+
+
+- Negotiate timeline (extend to 8 weeks?)
+
+
+- Reduce scope (move features to v2)
+
+
+- Add headcount (hire contractor?)
+
+
+This prevents: PRD scope impossible to deliver in 6 weeks; team works 80 hours/week; burns out
+
+
+________________
+
+
+Gap 5: No Rewrite/Pivot Scenario Planning
+Current state: PRD → Build → Ship (linear assumption)
+
+
+Missing: "What if during MVP we discover the data model is wrong?"
+
+
+Fix: Add "STEP 2.6: Pivot Planning"
+
+
+Assume: During build, you'll discover something fundamental was wrong
+
+
+(data model, UX assumption, performance ceiling, etc.)
+
+
+Plan for it:
+
+
+- What's your decision gate? (End of week 2? When?)
+
+
+- What do you do if you hit gate? 
+
+
+  - Continue with mitigation
+
+
+  - Rewrite affected component
+
+
+  - Descope that feature
+
+
+  - Extend timeline
+
+
+- Who decides? (CTO + PM? All personas?)
+
+
+- How do you notify stakeholders? (Weekly? As it happens?)
+
+
+This prevents: Hit a wall mid-build; chaos; blame; extended timeline nobody agreed to
+
+
+________________
+
+
+Gap 6: No Success Criteria for PRD Itself
+Current state: PRD is output; unclear what "good" looks like
+
+
+Missing: How do you know the PRD is good enough to build from?
+
+
+Fix: Add "Quality Gates for PRD"
+
+
+Before build starts, PRD must satisfy:
+
+
+Clarity:
+
+
+- [ ] Every term is defined (no jargon without explanation)
+
+
+- [ ] Every feature has a "why" (not just "what")
+
+
+- [ ] No "OPEN QUESTION" remains unresolved
+
+
+Completeness:
+
+
+- [ ] All 5 personas have reviewed (and not blocked)
+
+
+- [ ] All user stories have edge cases covered
+
+
+- [ ] All features have effort estimates (from engineering)
+
+
+- [ ] All external dependencies verified (platform can do X, vendor has SLA, etc.)
+
+
+Feasibility:
+
+
+- [ ] Scope fits timeline (capacity check done)
+
+
+- [ ] No hard blockers (security, compliance, platform limitation)
+
+
+- [ ] Risk mitigation plan exists (top 5 risks addressed)
+
+
+If PRD fails any gate → negotiate / refine before build starts
+
+
+________________
+
+
+Gap 7: Timing & Cadence Is Invisible
+Current state: Framework has 5 steps; no guidance on duration
+
+
+Missing: "How long does this take? Can we do it in parallel?"
+
+
+Fix: Add "PRD Timeline"
+
+
+Typical timeline (assuming full scope):
+
+
+Step 0 (Intake): 2 hours → Founder fills out template; quick gut-check
+
+
+Step 1 (Clarify): 3–5 days
+
+
+  - Founder answers 10 questions
+
+
+  - Personas ask follow-ups (back & forth emails)
+
+
+  - Prototype spike work (in parallel)
+
+
+Step 2 (Scope): 2 days
+
+
+  - Define v1 vs. v2
+
+
+  - Capacity reality check
+
+
+  - All personas sign off
+
+
+Steps 3–4 (PRD + Risks): 5–7 days
+
+
+  - Product/Designer writes PRD
+
+
+  - Engineering estimates
+
+
+  - Security reviews data model
+
+
+  - Personas iterate
+
+
+**Total: 2–3 weeks (if founder is responsive; can stretch to 4 weeks if slow)**
+
+
+Parallel work:
+
+
+- Weeks 1–2: Prototype (design) + platform evaluation (engineering)
+
+
+- Week 2–3: PRD writing + buildability audit
+
+
+Fast-track option (if low-complexity product):
+
+
+- Skip prototype (do STEP 1, 2, simplified STEP 3)
+
+
+- Timing: 1 week → build immediately after
+
+
+This prevents: Founder expects PRD in 2 days; actually takes 3 weeks
+
+
+________________
+
+
+Gap 8: No Escalation Path for Blocked Decisions
+Current state: "If any persona says no-go, negotiate"
+
+
+Missing: What if you can't agree?
+
+
+Fix: Add "Escalation Protocol"
+
+
+Scenario: Finance says "LTV/CAC doesn't work out; stop"
+
+
+         Product says "Users validate the value prop; ship it"
+
+
+Escalation path:
+
+
+1. Finance & Product meet (1 hour); try to find compromise
+
+
+2. If no agreement: escalate to Founder + CTO
+
+
+3. Founder makes call: "We'll ship with lower margin" or "Reposition product"
+
+
+4. Decision is binding; move forward
+
+
+Without escalation path: Project stalls; nobody moves forward; wasted time
+
+
+________________
+
+
+SUMMARY: CRITICAL GAPS IN PRIORITY ORDER
+Rank
+	Gap
+	Severity
+	Fix Effort
+	Impact If Not Fixed
+	1
+	No prototype/validation before PRD
+	❌ Critical
+	High
+	Ship 6-week PRD for wrong problem
+	2
+	No threat model / security up-front
+	❌ Critical
+	Medium
+	Security audit fails; launch delayed
+	3
+	No buildability testing in platform
+	❌ Critical
+	Medium
+	Discover mid-build platform can't do X
+	4
+	No unit economics model (CAC/LTV)
+	❌ Critical
+	Medium
+	Business model broken at scale
+	5
+	No capacity planning (reverse scope)
+	⚠️ High
+	Low
+	Team overcommits; burns out
+	6
+	No testing strategy
+	⚠️ High
+	Medium
+	Ship untested; bugs in production
+	7
+	No churn analysis / retention plan
+	⚠️ High
+	Medium
+	Launch; 30% churn; don't know why
+	8
+	No CI/CD / deployment strategy
+	⚠️ High
+	Medium
+	Deploy takes 1 hour; can't rollback
+	9
+	No observability / runbooks
+	⚠️ Medium
+	Medium
+	Production incident; nobody knows what to do
+	10
+	No feedback loop after PRD
+	⚠️ Medium
+	Low
+	Build against stale PRD; discover issues mid-build
+	
+
+________________
+
+
+AUDIT VERDICT
+Overall Rating: 7/10
+
+
+What Works:
+
+
+* ✅ Persona-driven review is strong enforcement mechanism
+* ✅ Data modeling section is detailed + implementable
+* ✅ Compliance section is thorough
+* ✅ Risk section covers realistic edge cases
+
+
+What's Broken:
+
+
+* ❌ Missing prototype → validate loop (you're building PRD without proof problem exists)
+* ❌ Missing security threat model (compliance checklist, not actual threat modeling)
+* ❌ Missing capacity planning (scope is supply-driven, not demand-driven)
+* ❌ Missing unit economics model (business model unvalidated)
+* ❌ Missing buildability proof (can your platform actually do this?)
+
+
+Recommendation: This framework is good for 80% of products but incomplete for products where:
+
+
+* Regulatory/security is complex (healthcare, fintech) → needs deeper threat modeling
+* Technical risk is high (real-time, scalability, integrations) → needs spike testing
+* Market validation is uncertain (new product category) → needs prototype testing
+
+
+To make this framework production-grade, add:
+
+
+1. Prototype → validation loop (weeks 1–2)
+2. Threat model template (STRIDE)
+3. Unit economics model template
+4. Capacity planning template
+5. Buildability spike checklist
+6. CI/CD & testing strategy section
+7. Observability & runbook template
+
+
+With those additions: 9.5/10
+
+
+________________
+
+
+RECOMMENDED NEXT STEP
+Would you like me to: A) Patch the framework — Add the 7 missing sections above B) Create supplementary templates — Threat model, unit economics, capacity planning (as standalone tools) C) Create a "lite" version — For simple/low-risk products (3-week timeline) D) Test it — Walk through with a real product scenario; expose remaining gaps
+
+
+What's your priority?

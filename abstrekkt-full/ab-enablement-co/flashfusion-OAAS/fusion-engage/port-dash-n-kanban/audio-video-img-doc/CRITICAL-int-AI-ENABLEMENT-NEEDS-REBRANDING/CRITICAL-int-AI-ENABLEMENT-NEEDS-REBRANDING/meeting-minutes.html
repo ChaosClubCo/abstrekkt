@@ -1,0 +1,833 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meeting Minutes | INT Inc.</title>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --int-navy: #0A1628;
+            --int-blue: #1E4D8C;
+            --int-accent: #FF6B35;
+            --green: #10B981;
+            --yellow: #F59E0B;
+            --red: #EF4444;
+            --gray-50: #F8FAFC;
+            --gray-100: #F1F5F9;
+            --gray-200: #E2E8F0;
+            --gray-300: #CBD5E1;
+            --gray-400: #94A3B8;
+            --gray-500: #64748B;
+            --gray-600: #475569;
+            --gray-700: #334155;
+            --gray-800: #1E293B;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Space Grotesk', sans-serif;
+            background: var(--gray-100);
+            color: var(--gray-800);
+            line-height: 1.7;
+        }
+
+        .container {
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            min-height: 100vh;
+        }
+
+        .sidebar {
+            background: var(--int-navy);
+            color: white;
+            padding: 1.5rem;
+            overflow-y: auto;
+            max-height: 100vh;
+            position: sticky;
+            top: 0;
+        }
+
+        .sidebar h1 {
+            font-size: 1.25rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 0.85rem;
+            margin-bottom: 0.4rem;
+            color: var(--gray-300);
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 0.6rem 0.8rem;
+            border: 1px solid var(--gray-600);
+            border-radius: 6px;
+            background: var(--gray-800);
+            color: white;
+            font-size: 0.9rem;
+            font-family: inherit;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.75rem;
+        }
+
+        .section-title {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--gray-400);
+            margin: 1.5rem 0 0.75rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--gray-700);
+        }
+
+        .attendee-list {
+            background: var(--gray-800);
+            border-radius: 8px;
+            padding: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .attendee-item {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 0.4rem;
+        }
+
+        .attendee-item input {
+            flex: 1;
+        }
+
+        .attendee-item button {
+            padding: 0 0.5rem;
+            background: var(--red);
+            border: none;
+            border-radius: 4px;
+            color: white;
+            cursor: pointer;
+        }
+
+        .add-btn {
+            width: 100%;
+            padding: 0.5rem;
+            background: var(--gray-700);
+            border: 1px dashed var(--gray-500);
+            border-radius: 6px;
+            color: var(--gray-400);
+            cursor: pointer;
+            font-size: 0.85rem;
+        }
+
+        .add-btn:hover {
+            border-color: var(--int-accent);
+            color: var(--int-accent);
+        }
+
+        .topic-item {
+            background: var(--gray-800);
+            border-radius: 8px;
+            padding: 0.75rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .topic-header {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .topic-header input {
+            flex: 1;
+        }
+
+        .action-item {
+            background: var(--gray-700);
+            border-radius: 6px;
+            padding: 0.5rem;
+            margin-top: 0.5rem;
+        }
+
+        .action-row {
+            display: grid;
+            grid-template-columns: 1fr 100px 100px;
+            gap: 0.5rem;
+            margin-bottom: 0.4rem;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 0.875rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 0.5rem;
+        }
+
+        .btn-primary {
+            background: var(--int-accent);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: var(--gray-700);
+            color: white;
+        }
+
+        /* Preview */
+        .preview {
+            padding: 2rem;
+        }
+
+        .minutes {
+            background: white;
+            max-width: 800px;
+            margin: 0 auto;
+            box-shadow: 0 4px 30px rgba(0,0,0,0.1);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .minutes-header {
+            background: linear-gradient(135deg, var(--int-navy), var(--int-blue));
+            color: white;
+            padding: 2rem;
+        }
+
+        .minutes-logo {
+            font-size: 1rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            opacity: 0.8;
+        }
+
+        .minutes-title {
+            font-size: 1.75rem;
+            font-weight: 700;
+            margin-bottom: 0.25rem;
+        }
+
+        .minutes-subtitle {
+            color: var(--gray-300);
+            font-size: 1rem;
+        }
+
+        .minutes-meta {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.5rem;
+            margin-top: 1.5rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .meta-item {
+            font-size: 0.9rem;
+        }
+
+        .meta-label {
+            color: var(--gray-400);
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .minutes-body {
+            padding: 2rem;
+        }
+
+        .section {
+            margin-bottom: 2rem;
+        }
+
+        .section h2 {
+            font-size: 1.1rem;
+            color: var(--int-navy);
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid var(--int-accent);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .attendee-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 0.75rem;
+        }
+
+        .attendee-card {
+            background: var(--gray-50);
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .attendee-avatar {
+            width: 36px;
+            height: 36px;
+            background: var(--int-accent);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 0.85rem;
+        }
+
+        .attendee-name {
+            font-weight: 500;
+        }
+
+        .attendee-role {
+            font-size: 0.8rem;
+            color: var(--gray-500);
+        }
+
+        .topic-block {
+            background: var(--gray-50);
+            border-radius: 12px;
+            padding: 1.25rem;
+            margin-bottom: 1rem;
+        }
+
+        .topic-title {
+            font-weight: 600;
+            color: var(--int-navy);
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .topic-number {
+            background: var(--int-accent);
+            color: white;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            font-weight: 700;
+        }
+
+        .topic-notes {
+            color: var(--gray-700);
+            font-size: 0.95rem;
+            margin-bottom: 1rem;
+        }
+
+        .decision-box {
+            background: #D1FAE5;
+            border-left: 4px solid var(--green);
+            padding: 0.75rem 1rem;
+            border-radius: 0 8px 8px 0;
+            margin-bottom: 0.75rem;
+        }
+
+        .decision-label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            color: #065F46;
+            font-weight: 700;
+            margin-bottom: 0.25rem;
+        }
+
+        .action-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+
+        .action-table th,
+        .action-table td {
+            padding: 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid var(--gray-200);
+        }
+
+        .action-table th {
+            background: var(--gray-100);
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            color: var(--gray-500);
+            font-weight: 600;
+        }
+
+        .priority-badge {
+            display: inline-block;
+            padding: 0.15rem 0.5rem;
+            border-radius: 50px;
+            font-size: 0.7rem;
+            font-weight: 600;
+        }
+
+        .priority-high { background: #FEE2E2; color: #991B1B; }
+        .priority-medium { background: #FEF3C7; color: #A16207; }
+        .priority-low { background: #D1FAE5; color: #065F46; }
+
+        .minutes-footer {
+            padding: 1.5rem 2rem;
+            background: var(--gray-50);
+            border-top: 1px solid var(--gray-200);
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            color: var(--gray-500);
+        }
+
+        @media print {
+            .sidebar { display: none; }
+            .container { display: block; }
+            .preview { padding: 0; }
+            .minutes { box-shadow: none; }
+        }
+
+        @media (max-width: 1000px) {
+            .container { grid-template-columns: 1fr; }
+            .sidebar { position: relative; max-height: none; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <aside class="sidebar">
+            <h1>📝 Meeting Minutes</h1>
+
+            <div class="form-group">
+                <label>Meeting Title</label>
+                <input type="text" id="meetingTitle" placeholder="Weekly Status Update" oninput="updateMinutes()">
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Date</label>
+                    <input type="date" id="meetingDate" oninput="updateMinutes()">
+                </div>
+                <div class="form-group">
+                    <label>Time</label>
+                    <input type="time" id="meetingTime" value="10:00" oninput="updateMinutes()">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Duration</label>
+                    <select id="meetingDuration" oninput="updateMinutes()">
+                        <option value="30 min">30 min</option>
+                        <option value="1 hour" selected>1 hour</option>
+                        <option value="1.5 hours">1.5 hours</option>
+                        <option value="2 hours">2 hours</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Location</label>
+                    <input type="text" id="meetingLocation" placeholder="Zoom / Room 301" oninput="updateMinutes()">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Project/Client</label>
+                <input type="text" id="projectName" placeholder="Acme Healthcare AI" oninput="updateMinutes()">
+            </div>
+
+            <div class="section-title">Attendees</div>
+            <div class="attendee-list" id="attendeeList">
+                <div class="attendee-item">
+                    <input type="text" placeholder="Name, Role" oninput="updateMinutes()">
+                    <button onclick="removeAttendee(this)">×</button>
+                </div>
+            </div>
+            <button class="add-btn" onclick="addAttendee()">+ Add Attendee</button>
+
+            <div class="section-title">Discussion Topics</div>
+            <div id="topicList">
+                <div class="topic-item">
+                    <div class="topic-header">
+                        <input type="text" placeholder="Topic title" class="topic-title-input" oninput="updateMinutes()">
+                        <button onclick="removeTopic(this)" style="padding: 0 0.5rem; background: var(--red); border: none; border-radius: 4px; color: white; cursor: pointer;">×</button>
+                    </div>
+                    <textarea placeholder="Discussion notes..." rows="2" class="topic-notes-input" style="width: 100%; margin-bottom: 0.5rem;" oninput="updateMinutes()"></textarea>
+                    <input type="text" placeholder="Decision made (if any)" class="topic-decision-input" style="width: 100%;" oninput="updateMinutes()">
+                    
+                    <div class="action-item">
+                        <div style="font-size: 0.75rem; color: var(--gray-400); margin-bottom: 0.4rem;">Action Items:</div>
+                        <div class="action-list">
+                            <div class="action-row">
+                                <input type="text" placeholder="Action" class="action-desc" oninput="updateMinutes()">
+                                <input type="text" placeholder="Owner" class="action-owner" oninput="updateMinutes()">
+                                <input type="date" class="action-due" oninput="updateMinutes()">
+                            </div>
+                        </div>
+                        <button class="add-btn" onclick="addAction(this)" style="margin-top: 0.25rem; font-size: 0.75rem; padding: 0.25rem;">+ Add Action</button>
+                    </div>
+                </div>
+            </div>
+            <button class="add-btn" onclick="addTopic()">+ Add Topic</button>
+
+            <div class="section-title">Next Meeting</div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Date</label>
+                    <input type="date" id="nextMeetingDate" oninput="updateMinutes()">
+                </div>
+                <div class="form-group">
+                    <label>Time</label>
+                    <input type="time" id="nextMeetingTime" value="10:00" oninput="updateMinutes()">
+                </div>
+            </div>
+
+            <button class="btn btn-primary" onclick="window.print()">🖨️ Print / Export PDF</button>
+            <button class="btn btn-secondary" onclick="copyAsEmail()">📧 Copy as Email</button>
+        </aside>
+
+        <main class="preview">
+            <div class="minutes" id="minutesContent">
+                <header class="minutes-header">
+                    <div class="minutes-logo">INT Inc.</div>
+                    <h1 class="minutes-title" id="displayTitle">Meeting Minutes</h1>
+                    <p class="minutes-subtitle" id="displayProject">Project/Client Name</p>
+                    <div class="minutes-meta">
+                        <div class="meta-item">
+                            <div class="meta-label">Date & Time</div>
+                            <div id="displayDateTime">—</div>
+                        </div>
+                        <div class="meta-item">
+                            <div class="meta-label">Duration</div>
+                            <div id="displayDuration">1 hour</div>
+                        </div>
+                        <div class="meta-item">
+                            <div class="meta-label">Location</div>
+                            <div id="displayLocation">—</div>
+                        </div>
+                    </div>
+                </header>
+
+                <div class="minutes-body">
+                    <div class="section">
+                        <h2>👥 Attendees</h2>
+                        <div class="attendee-grid" id="displayAttendees">
+                            <div class="attendee-card">
+                                <div class="attendee-avatar">?</div>
+                                <div>
+                                    <div class="attendee-name">No attendees</div>
+                                    <div class="attendee-role">Add attendees in the sidebar</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <h2>📋 Discussion</h2>
+                        <div id="displayTopics">
+                            <div class="topic-block">
+                                <div class="topic-title">
+                                    <span class="topic-number">1</span>
+                                    No topics added
+                                </div>
+                                <p class="topic-notes">Add discussion topics in the sidebar</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <h2>✅ Action Items</h2>
+                        <table class="action-table" id="displayActions">
+                            <thead>
+                                <tr>
+                                    <th>Action</th>
+                                    <th>Owner</th>
+                                    <th>Due Date</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td colspan="3" style="text-align: center; color: var(--gray-400);">No action items</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="section">
+                        <h2>📅 Next Meeting</h2>
+                        <p id="displayNextMeeting">Not scheduled</p>
+                    </div>
+                </div>
+
+                <footer class="minutes-footer">
+                    <span>Minutes prepared by INT Inc.</span>
+                    <span id="preparedDate"></span>
+                </footer>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        function addAttendee() {
+            const list = document.getElementById('attendeeList');
+            const item = document.createElement('div');
+            item.className = 'attendee-item';
+            item.innerHTML = `
+                <input type="text" placeholder="Name, Role" oninput="updateMinutes()">
+                <button onclick="removeAttendee(this)">×</button>
+            `;
+            list.appendChild(item);
+            item.querySelector('input').focus();
+        }
+
+        function removeAttendee(btn) {
+            const list = document.getElementById('attendeeList');
+            if (list.children.length > 1) {
+                btn.parentElement.remove();
+                updateMinutes();
+            }
+        }
+
+        function addTopic() {
+            const list = document.getElementById('topicList');
+            const item = document.createElement('div');
+            item.className = 'topic-item';
+            item.innerHTML = `
+                <div class="topic-header">
+                    <input type="text" placeholder="Topic title" class="topic-title-input" oninput="updateMinutes()">
+                    <button onclick="removeTopic(this)" style="padding: 0 0.5rem; background: var(--red); border: none; border-radius: 4px; color: white; cursor: pointer;">×</button>
+                </div>
+                <textarea placeholder="Discussion notes..." rows="2" class="topic-notes-input" style="width: 100%; margin-bottom: 0.5rem;" oninput="updateMinutes()"></textarea>
+                <input type="text" placeholder="Decision made (if any)" class="topic-decision-input" style="width: 100%;" oninput="updateMinutes()">
+                
+                <div class="action-item">
+                    <div style="font-size: 0.75rem; color: var(--gray-400); margin-bottom: 0.4rem;">Action Items:</div>
+                    <div class="action-list">
+                        <div class="action-row">
+                            <input type="text" placeholder="Action" class="action-desc" oninput="updateMinutes()">
+                            <input type="text" placeholder="Owner" class="action-owner" oninput="updateMinutes()">
+                            <input type="date" class="action-due" oninput="updateMinutes()">
+                        </div>
+                    </div>
+                    <button class="add-btn" onclick="addAction(this)" style="margin-top: 0.25rem; font-size: 0.75rem; padding: 0.25rem;">+ Add Action</button>
+                </div>
+            `;
+            list.appendChild(item);
+        }
+
+        function removeTopic(btn) {
+            const list = document.getElementById('topicList');
+            if (list.children.length > 1) {
+                btn.closest('.topic-item').remove();
+                updateMinutes();
+            }
+        }
+
+        function addAction(btn) {
+            const actionList = btn.previousElementSibling;
+            const row = document.createElement('div');
+            row.className = 'action-row';
+            row.innerHTML = `
+                <input type="text" placeholder="Action" class="action-desc" oninput="updateMinutes()">
+                <input type="text" placeholder="Owner" class="action-owner" oninput="updateMinutes()">
+                <input type="date" class="action-due" oninput="updateMinutes()">
+            `;
+            actionList.appendChild(row);
+        }
+
+        function updateMinutes() {
+            // Header info
+            document.getElementById('displayTitle').textContent = document.getElementById('meetingTitle').value || 'Meeting Minutes';
+            document.getElementById('displayProject').textContent = document.getElementById('projectName').value || 'Project/Client Name';
+            
+            const date = document.getElementById('meetingDate').value;
+            const time = document.getElementById('meetingTime').value;
+            document.getElementById('displayDateTime').textContent = date ? 
+                `${new Date(date).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })} at ${time}` : '—';
+            
+            document.getElementById('displayDuration').textContent = document.getElementById('meetingDuration').value;
+            document.getElementById('displayLocation').textContent = document.getElementById('meetingLocation').value || '—';
+
+            // Attendees
+            const attendees = Array.from(document.querySelectorAll('#attendeeList input'))
+                .map(i => i.value.trim())
+                .filter(v => v);
+            
+            const attendeeHtml = attendees.length > 0 ? attendees.map(a => {
+                const parts = a.split(',');
+                const name = parts[0].trim();
+                const role = parts[1]?.trim() || '';
+                const initials = name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+                return `
+                    <div class="attendee-card">
+                        <div class="attendee-avatar">${initials}</div>
+                        <div>
+                            <div class="attendee-name">${name}</div>
+                            ${role ? `<div class="attendee-role">${role}</div>` : ''}
+                        </div>
+                    </div>
+                `;
+            }).join('') : `
+                <div class="attendee-card">
+                    <div class="attendee-avatar">?</div>
+                    <div>
+                        <div class="attendee-name">No attendees</div>
+                        <div class="attendee-role">Add attendees in the sidebar</div>
+                    </div>
+                </div>
+            `;
+            document.getElementById('displayAttendees').innerHTML = attendeeHtml;
+
+            // Topics
+            const topics = document.querySelectorAll('.topic-item');
+            let topicsHtml = '';
+            let allActions = [];
+
+            topics.forEach((topic, index) => {
+                const title = topic.querySelector('.topic-title-input').value.trim() || `Topic ${index + 1}`;
+                const notes = topic.querySelector('.topic-notes-input').value.trim();
+                const decision = topic.querySelector('.topic-decision-input').value.trim();
+                
+                const actions = Array.from(topic.querySelectorAll('.action-row')).map(row => ({
+                    desc: row.querySelector('.action-desc').value.trim(),
+                    owner: row.querySelector('.action-owner').value.trim(),
+                    due: row.querySelector('.action-due').value
+                })).filter(a => a.desc);
+
+                actions.forEach(a => allActions.push(a));
+
+                topicsHtml += `
+                    <div class="topic-block">
+                        <div class="topic-title">
+                            <span class="topic-number">${index + 1}</span>
+                            ${title}
+                        </div>
+                        ${notes ? `<p class="topic-notes">${notes}</p>` : ''}
+                        ${decision ? `
+                            <div class="decision-box">
+                                <div class="decision-label">Decision</div>
+                                ${decision}
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            });
+
+            document.getElementById('displayTopics').innerHTML = topicsHtml || `
+                <div class="topic-block">
+                    <div class="topic-title">
+                        <span class="topic-number">1</span>
+                        No topics added
+                    </div>
+                    <p class="topic-notes">Add discussion topics in the sidebar</p>
+                </div>
+            `;
+
+            // Actions table
+            const actionsHtml = allActions.length > 0 ? allActions.map(a => `
+                <tr>
+                    <td>${a.desc}</td>
+                    <td>${a.owner || 'TBD'}</td>
+                    <td>${a.due ? new Date(a.due).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'TBD'}</td>
+                </tr>
+            `).join('') : `
+                <tr>
+                    <td colspan="3" style="text-align: center; color: var(--gray-400);">No action items</td>
+                </tr>
+            `;
+            document.querySelector('#displayActions tbody').innerHTML = actionsHtml;
+
+            // Next meeting
+            const nextDate = document.getElementById('nextMeetingDate').value;
+            const nextTime = document.getElementById('nextMeetingTime').value;
+            document.getElementById('displayNextMeeting').textContent = nextDate ?
+                `${new Date(nextDate).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })} at ${nextTime}` : 'Not scheduled';
+
+            // Footer date
+            document.getElementById('preparedDate').textContent = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+        }
+
+        function copyAsEmail() {
+            const title = document.getElementById('meetingTitle').value || 'Meeting';
+            const date = document.getElementById('meetingDate').value;
+            const dateStr = date ? new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'Today';
+            
+            let email = `Subject: Meeting Minutes - ${title} (${dateStr})\n\n`;
+            email += `Hi Team,\n\nPlease find below the minutes from our ${title.toLowerCase()} meeting.\n\n`;
+            
+            // Attendees
+            const attendees = Array.from(document.querySelectorAll('#attendeeList input'))
+                .map(i => i.value.trim())
+                .filter(v => v);
+            if (attendees.length) {
+                email += `ATTENDEES:\n${attendees.join(', ')}\n\n`;
+            }
+
+            // Topics and decisions
+            const topics = document.querySelectorAll('.topic-item');
+            email += `DISCUSSION:\n`;
+            topics.forEach((topic, index) => {
+                const title = topic.querySelector('.topic-title-input').value.trim();
+                const notes = topic.querySelector('.topic-notes-input').value.trim();
+                const decision = topic.querySelector('.topic-decision-input').value.trim();
+                if (title || notes) {
+                    email += `\n${index + 1}. ${title || 'Topic ' + (index + 1)}\n`;
+                    if (notes) email += `   ${notes}\n`;
+                    if (decision) email += `   ✓ Decision: ${decision}\n`;
+                }
+            });
+
+            // Actions
+            let allActions = [];
+            topics.forEach(topic => {
+                const actions = Array.from(topic.querySelectorAll('.action-row')).map(row => ({
+                    desc: row.querySelector('.action-desc').value.trim(),
+                    owner: row.querySelector('.action-owner').value.trim(),
+                    due: row.querySelector('.action-due').value
+                })).filter(a => a.desc);
+                allActions.push(...actions);
+            });
+
+            if (allActions.length) {
+                email += `\nACTION ITEMS:\n`;
+                allActions.forEach(a => {
+                    const dueStr = a.due ? new Date(a.due).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'TBD';
+                    email += `• ${a.desc} [${a.owner || 'TBD'} - Due: ${dueStr}]\n`;
+                });
+            }
+
+            // Next meeting
+            const nextDate = document.getElementById('nextMeetingDate').value;
+            if (nextDate) {
+                const nextTime = document.getElementById('nextMeetingTime').value;
+                email += `\nNEXT MEETING:\n${new Date(nextDate).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })} at ${nextTime}\n`;
+            }
+
+            email += `\nBest regards,\n[Your Name]\nINT Inc.`;
+
+            navigator.clipboard.writeText(email).then(() => {
+                alert('Email copied to clipboard!');
+            });
+        }
+
+        // Initialize
+        document.getElementById('meetingDate').valueAsDate = new Date();
+        updateMinutes();
+    </script>
+</body>
+</html>

@@ -1,0 +1,341 @@
+{
+  "name": "GitHub PR Review Pipeline",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "github-pr-webhook",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "GitHub Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [240, 300],
+      "webhookId": "github-pr-review"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.action }}",
+              "operation": "equals",
+              "value2": "opened"
+            }
+          ]
+        }
+      },
+      "id": "filter-pr-opened",
+      "name": "PR Opened?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:7811/mcp/contents/get",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "owner",
+              "value": "={{ $json.repository.owner.login }}"
+            },
+            {
+              "name": "repo",
+              "value": "={{ $json.repository.name }}"
+            },
+            {
+              "name": "path",
+              "value": "={{ $json.pull_request.head.sha }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "get-pr-diff",
+      "name": "Get PR Diff",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [680, 200]
+    },
+    {
+      "parameters": {
+        "jsCode": "const pr = $input.first().json.pull_request || $input.first().json;\nconst diff = $input.all()[0]?.json?.data || 'Unable to fetch diff';\n\n// Construct AI review prompt\nconst prompt = `You are a senior code reviewer. Review this pull request:\n\n**Title:** ${pr.title}\n**Description:** ${pr.body || 'No description provided'}\n**Files Changed:** ${pr.changed_files || 'Unknown'}\n**Additions:** ${pr.additions || 0}\n**Deletions:** ${pr.deletions || 0}\n\n**Changes:**\n${typeof diff === 'string' ? diff.substring(0, 8000) : JSON.stringify(diff).substring(0, 8000)}\n\nProvide:\n1. **Summary** (2-3 sentences)\n2. **Security concerns** (if any)\n3. **Code quality issues** (if any)\n4. **Suggestions** (up to 3)\n5. **Verdict**: APPROVE / REQUEST_CHANGES / COMMENT\n\nBe concise and actionable.`;\n\nreturn [{\n  json: {\n    pr_number: pr.number,\n    repo: pr.base?.repo?.full_name || 'unknown',\n    author: pr.user?.login || 'unknown',\n    prompt,\n    pr_url: pr.html_url\n  }\n}];"
+      },
+      "id": "prepare-review-prompt",
+      "name": "Prepare Review Prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 200]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:7817/mcp/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"claude-sonnet-4-20250514\",\n  \"max_tokens\": 1024,\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": {{ JSON.stringify($json.prompt) }}\n    }\n  ]\n}",
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "id": "ai-review",
+      "name": "Claude AI Review",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1120, 200],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\nconst review = input.content?.[0]?.text || input.error || 'Review generation failed';\n\n// Parse verdict from review\nlet verdict = 'COMMENT';\nif (review.includes('APPROVE')) verdict = 'APPROVE';\nif (review.includes('REQUEST_CHANGES')) verdict = 'REQUEST_CHANGES';\n\nreturn [{\n  json: {\n    pr_number: $('Prepare Review Prompt').first().json.pr_number,\n    repo: $('Prepare Review Prompt').first().json.repo,\n    author: $('Prepare Review Prompt').first().json.author,\n    pr_url: $('Prepare Review Prompt').first().json.pr_url,\n    review,\n    verdict,\n    generated_at: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "parse-review",
+      "name": "Parse Review",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1340, 200]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:7811/mcp/issues/comment",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"owner\": \"{{ $json.repo.split('/')[0] }}\",\n  \"repo\": \"{{ $json.repo.split('/')[1] }}\",\n  \"issue_number\": {{ $json.pr_number }},\n  \"body\": \"## 🤖 AI Code Review\\n\\n{{ $json.review.replace(/\"/g, '\\\\\"').replace(/\\n/g, '\\\\n') }}\\n\\n---\\n*Generated by MCP Universal Stack PR Review Pipeline*\"\n}",
+        "options": {}
+      },
+      "id": "post-comment",
+      "name": "Post Review Comment",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1560, 200]
+    },
+    {
+      "parameters": {
+        "channel": "#engineering",
+        "text": "🔍 *PR Review Completed*\n\n*PR:* <{{ $json.pr_url }}|#{{ $json.pr_number }}>\n*Repo:* {{ $json.repo }}\n*Author:* {{ $json.author }}\n*Verdict:* {{ $json.verdict }}\n\nReview has been posted as a comment.",
+        "otherOptions": {}
+      },
+      "id": "slack-notify",
+      "name": "Slack Notification",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2,
+      "position": [1780, 200],
+      "credentials": {
+        "slackApi": {
+          "id": "slack-cred",
+          "name": "Slack Credentials"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "mode": "url",
+          "value": "={{ $env.PR_REVIEW_LOG_SHEET_ID }}"
+        },
+        "sheetName": "PR Reviews",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "mappingMode": "defineBelow",
+            "value": [
+              {
+                "column": "timestamp",
+                "value": "={{ $json.generated_at }}"
+              },
+              {
+                "column": "repo",
+                "value": "={{ $json.repo }}"
+              },
+              {
+                "column": "pr_number",
+                "value": "={{ $json.pr_number }}"
+              },
+              {
+                "column": "author",
+                "value": "={{ $json.author }}"
+              },
+              {
+                "column": "verdict",
+                "value": "={{ $json.verdict }}"
+              },
+              {
+                "column": "pr_url",
+                "value": "={{ $json.pr_url }}"
+              }
+            ]
+          }
+        },
+        "options": {}
+      },
+      "id": "log-review",
+      "name": "Log Review",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [1780, 400],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "google-cred",
+          "name": "Google Sheets"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "id": "skip-non-pr",
+      "name": "Skip Non-PR Events",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [680, 400]
+    }
+  ],
+  "connections": {
+    "GitHub Webhook": {
+      "main": [
+        [
+          {
+            "node": "PR Opened?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PR Opened?": {
+      "main": [
+        [
+          {
+            "node": "Get PR Diff",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Skip Non-PR Events",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get PR Diff": {
+      "main": [
+        [
+          {
+            "node": "Prepare Review Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Review Prompt": {
+      "main": [
+        [
+          {
+            "node": "Claude AI Review",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Claude AI Review": {
+      "main": [
+        [
+          {
+            "node": "Parse Review",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Review": {
+      "main": [
+        [
+          {
+            "node": "Post Review Comment",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Post Review Comment": {
+      "main": [
+        [
+          {
+            "node": "Slack Notification",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Log Review",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": "error-handler-workflow"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "name": "mcp",
+      "id": "mcp-tag"
+    },
+    {
+      "name": "github",
+      "id": "github-tag"
+    },
+    {
+      "name": "ai",
+      "id": "ai-tag"
+    }
+  ],
+  "meta": {
+    "instanceId": "mcp-universal-stack"
+  }
+}

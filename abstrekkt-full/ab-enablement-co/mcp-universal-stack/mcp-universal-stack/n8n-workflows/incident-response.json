@@ -1,0 +1,354 @@
+{
+  "name": "MCP Incident Response Pipeline",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "incident-webhook",
+        "options": {}
+      },
+      "id": "incident-webhook",
+      "name": "Incident Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [240, 300],
+      "webhookId": "incident-response"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse and classify incident\nconst incident = $input.first().json;\n\n// Determine severity based on rules\nlet severity = 'P3'; // Default: low\nlet channel = '#ops-alerts';\nlet escalate = false;\n\nconst title = (incident.title || incident.message || '').toLowerCase();\nconst source = incident.source || 'unknown';\nconst errorRate = incident.error_rate || 0;\nconst affectedUsers = incident.affected_users || 0;\n\n// P0: Critical - Complete outage\nif (\n  title.includes('outage') ||\n  title.includes('down') ||\n  errorRate > 50 ||\n  affectedUsers > 1000 ||\n  incident.severity === 'critical'\n) {\n  severity = 'P0';\n  channel = '#incidents';\n  escalate = true;\n}\n// P1: High - Major degradation\nelse if (\n  title.includes('degraded') ||\n  title.includes('slow') ||\n  errorRate > 10 ||\n  affectedUsers > 100 ||\n  incident.severity === 'high'\n) {\n  severity = 'P1';\n  channel = '#incidents';\n  escalate = true;\n}\n// P2: Medium - Partial impact\nelse if (\n  errorRate > 1 ||\n  affectedUsers > 10 ||\n  incident.severity === 'medium'\n) {\n  severity = 'P2';\n  channel = '#ops-alerts';\n}\n\nreturn [{\n  json: {\n    id: `INC-${Date.now()}`,\n    severity,\n    title: incident.title || 'Unnamed Incident',\n    description: incident.description || incident.message || 'No description',\n    source,\n    error_rate: errorRate,\n    affected_users: affectedUsers,\n    channel,\n    escalate,\n    raw: incident,\n    created_at: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "classify-incident",
+      "name": "Classify Incident",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.severity }}",
+              "operation": "equals",
+              "value2": "P0"
+            }
+          ]
+        }
+      },
+      "id": "is-p0",
+      "name": "Is P0?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "channel": "={{ $json.channel }}",
+        "text": "🚨 *{{ $json.severity }} INCIDENT DECLARED*\n\n*ID:* {{ $json.id }}\n*Title:* {{ $json.title }}\n*Source:* {{ $json.source }}\n\n*Description:*\n{{ $json.description }}\n\n*Metrics:*\n• Error Rate: {{ $json.error_rate }}%\n• Affected Users: {{ $json.affected_users }}\n\n*Timestamp:* {{ $json.created_at }}\n\n@channel Please acknowledge and begin investigation.",
+        "otherOptions": {
+          "unfurl_links": false,
+          "unfurl_media": false
+        }
+      },
+      "id": "slack-p0-alert",
+      "name": "Slack P0 Alert",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2,
+      "position": [900, 200],
+      "credentials": {
+        "slackApi": {
+          "id": "slack-cred",
+          "name": "Slack Credentials"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "channel": "={{ $json.channel }}",
+        "text": "⚠️ *{{ $json.severity }} Alert*\n\n*ID:* {{ $json.id }}\n*Title:* {{ $json.title }}\n*Source:* {{ $json.source }}\n\n{{ $json.description }}\n\n*Timestamp:* {{ $json.created_at }}",
+        "otherOptions": {}
+      },
+      "id": "slack-standard-alert",
+      "name": "Slack Standard Alert",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2,
+      "position": [900, 400],
+      "credentials": {
+        "slackApi": {
+          "id": "slack-cred",
+          "name": "Slack Credentials"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:7812/mcp/insert",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"table\": \"incidents\",\n  \"data\": {\n    \"incident_id\": \"{{ $json.id }}\",\n    \"severity\": \"{{ $json.severity }}\",\n    \"title\": \"{{ $json.title }}\",\n    \"description\": \"{{ $json.description }}\",\n    \"source\": \"{{ $json.source }}\",\n    \"error_rate\": {{ $json.error_rate }},\n    \"affected_users\": {{ $json.affected_users }},\n    \"status\": \"open\",\n    \"created_at\": \"{{ $json.created_at }}\"\n  }\n}",
+        "options": {}
+      },
+      "id": "log-to-supabase",
+      "name": "Log to Supabase",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1120, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $('Classify Incident').first().json.escalate }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "needs-escalation",
+      "name": "Needs Escalation?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [1340, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://events.pagerduty.com/v2/enqueue",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"routing_key\": \"{{ $env.PAGERDUTY_ROUTING_KEY }}\",\n  \"event_action\": \"trigger\",\n  \"dedup_key\": \"{{ $('Classify Incident').first().json.id }}\",\n  \"payload\": {\n    \"summary\": \"{{ $('Classify Incident').first().json.severity }}: {{ $('Classify Incident').first().json.title }}\",\n    \"source\": \"{{ $('Classify Incident').first().json.source }}\",\n    \"severity\": \"{{ $('Classify Incident').first().json.severity === 'P0' ? 'critical' : 'error' }}\",\n    \"timestamp\": \"{{ $('Classify Incident').first().json.created_at }}\",\n    \"custom_details\": {\n      \"description\": \"{{ $('Classify Incident').first().json.description }}\",\n      \"error_rate\": {{ $('Classify Incident').first().json.error_rate }},\n      \"affected_users\": {{ $('Classify Incident').first().json.affected_users }}\n    }\n  }\n}",
+        "options": {}
+      },
+      "id": "pagerduty-escalate",
+      "name": "PagerDuty Escalation",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1560, 200]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:7817/mcp/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"claude-sonnet-4-20250514\",\n  \"max_tokens\": 1024,\n  \"messages\": [{\n    \"role\": \"user\",\n    \"content\": \"You are an SRE assistant. Analyze this incident and suggest immediate actions:\\n\\nIncident: {{ $('Classify Incident').first().json.title }}\\nSeverity: {{ $('Classify Incident').first().json.severity }}\\nSource: {{ $('Classify Incident').first().json.source }}\\nDescription: {{ $('Classify Incident').first().json.description }}\\nError Rate: {{ $('Classify Incident').first().json.error_rate }}%\\nAffected Users: {{ $('Classify Incident').first().json.affected_users }}\\n\\nProvide:\\n1. Likely root causes (top 3)\\n2. Immediate mitigation steps\\n3. Commands to run for investigation\\n4. Rollback recommendation (yes/no with reason)\\n\\nBe concise and actionable.\"\n  }]\n}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "ai-analysis",
+      "name": "AI Analysis",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1560, 400],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const incident = $('Classify Incident').first().json;\nconst aiResponse = $input.first().json;\n\nconst analysis = aiResponse.data?.content?.[0]?.text || 'AI analysis unavailable';\n\nreturn [{\n  json: {\n    incident_id: incident.id,\n    severity: incident.severity,\n    title: incident.title,\n    analysis,\n    timestamp: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "format-analysis",
+      "name": "Format Analysis",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1780, 400]
+    },
+    {
+      "parameters": {
+        "channel": "#incidents",
+        "text": "🤖 *AI Incident Analysis*\n\n*Incident:* {{ $json.incident_id }} ({{ $json.severity }})\n*Title:* {{ $json.title }}\n\n{{ $json.analysis }}",
+        "otherOptions": {}
+      },
+      "id": "post-analysis",
+      "name": "Post Analysis",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2,
+      "position": [2000, 400],
+      "credentials": {
+        "slackApi": {
+          "id": "slack-cred",
+          "name": "Slack Credentials"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "id": "no-escalation",
+      "name": "No Escalation Needed",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [1560, 500]
+    }
+  ],
+  "connections": {
+    "Incident Webhook": {
+      "main": [
+        [
+          {
+            "node": "Classify Incident",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Classify Incident": {
+      "main": [
+        [
+          {
+            "node": "Is P0?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is P0?": {
+      "main": [
+        [
+          {
+            "node": "Slack P0 Alert",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Slack Standard Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Slack P0 Alert": {
+      "main": [
+        [
+          {
+            "node": "Log to Supabase",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Slack Standard Alert": {
+      "main": [
+        [
+          {
+            "node": "Log to Supabase",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log to Supabase": {
+      "main": [
+        [
+          {
+            "node": "Needs Escalation?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Needs Escalation?": {
+      "main": [
+        [
+          {
+            "node": "PagerDuty Escalation",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "AI Analysis",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No Escalation Needed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Analysis": {
+      "main": [
+        [
+          {
+            "node": "Format Analysis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Analysis": {
+      "main": [
+        [
+          {
+            "node": "Post Analysis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": "error-handler-workflow"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "name": "mcp",
+      "id": "mcp-tag"
+    },
+    {
+      "name": "incident",
+      "id": "incident-tag"
+    },
+    {
+      "name": "ai",
+      "id": "ai-tag"
+    }
+  ]
+}

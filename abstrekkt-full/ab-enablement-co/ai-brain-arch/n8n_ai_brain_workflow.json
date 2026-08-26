@@ -1,0 +1,1389 @@
+{
+  "name": "AI Brain — Agent Pipeline v2",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "ai-brain-task-trigger",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "github-webhook",
+      "name": "GitHub Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        240,
+        460
+      ],
+      "webhookId": "ai-brain-task-trigger",
+      "notes": "One webhook fans out to three folder filters (TASKS/, OUTPUT/approved/, RESULTS/). Single file per push (single-writer). Obsidian Sync -> GitHub push chains the transitions."
+    },
+    {
+      "parameters": {
+        "jsCode": "    const payload = $input.first().json;\n    const commits = payload.commits || [];\n    const files = [].concat.apply([], commits.map(c => c.added || []))\n      .concat([].concat.apply([], commits.map(c => c.modified || [])));\n    const matched = files.filter(f => f.indexOf(\"TASKS/\") === 0 && f.endsWith('.md') && f.indexOf(\" \") !== 0);\n    if (matched.length === 0) { return []; }\n    const filePath = matched[0];\n    return [{ json: {\n      file_path: filePath,\n      file_content: '',\n      commit_hash: payload.after || 'unknown',\n      repo: (payload.repository && payload.repository.full_name) || 'unknown',\n      pushed_at: new Date().toISOString()\n    } }];"
+      },
+      "id": "filter-task",
+      "name": "Filter Task Files",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        160
+      ],
+      "notes": "Keeps the first TASKS/*.md file. Halts if none."
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.OBSIDIAN_API_URL }}/vault/{{ $json.file_path.split('/').map(encodeURIComponent).join('/') }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.OBSIDIAN_API_KEY }}"
+            },
+            {
+              "name": "Accept",
+              "value": "text/markdown"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 30000,
+          "response": {
+            "response": {
+              "responseFormat": "text"
+            }
+          }
+        }
+      },
+      "id": "read-task",
+      "name": "Read Task File",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        640,
+        160
+      ],
+      "notes": "Obsidian GET -> raw markdown of the task note."
+    },
+    {
+      "parameters": {
+        "jsCode": "    const original = $(\"Filter Task Files\").first().json;\n    const resp = $input.first().json;\n    const c = (typeof resp === 'string') ? resp\n      : (resp && resp.data != null ? resp.data\n        : (resp && resp.body != null ? resp.body\n          : (resp && resp.content != null ? resp.content : '')));\n    return [{ json: Object.assign({}, original, { file_content: String(c || '') }) }];"
+      },
+      "id": "merge-task",
+      "name": "Merge Task Content",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        840,
+        160
+      ],
+      "notes": "Merges read markdown into file_content."
+    },
+    {
+      "parameters": {
+        "jsCode": "  // Gate 1: block prompt-injection patterns before any content reaches an agent.\n  const item = $input.first().json;\n  const BLOCKED_PATTERNS = [\n    /eval\\s*\\(/gi,\n    /exec\\s*\\(/gi,\n    /\\.\\.\\//g,\n    /<script/gi,\n    /DROP\\s+TABLE/gi,\n    /DELETE\\s+FROM/gi,\n    /system\\s*\\(/gi\n  ];\n  const content = item.file_content || '';\n  for (const pattern of BLOCKED_PATTERNS) {\n    if (pattern.test(content)) {\n      throw new Error('GATE1_BLOCKED: Injection pattern detected in ' + item.file_path + ': ' + pattern);\n    }\n  }\n  return [{ json: Object.assign({}, item, { sanitized: true, gate1_passed: true, gate1_timestamp: new Date().toISOString() }) }];"
+      },
+      "id": "gate1-task",
+      "name": "Gate 1 — Sanitize (Task)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1040,
+        160
+      ],
+      "notes": "Gate 1: blocks injection patterns in the task note."
+    },
+    {
+      "parameters": {
+        "url": "https://api.anthropic.com/v1/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "={{ $env.ANTHROPIC_API_KEY }}"
+            },
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "=",
+              "value": "={{ JSON.stringify({ model: 'claude-sonnet-5', max_tokens: 5000, thinking: { type: 'disabled' }, system: \"You are a Task Analyzer agent. Analyze the provided task note and produce a structured specification. Write output ONLY to OUTPUT/pending-review/. Token budget: 5000.\", output_config: { format: { type: 'json_schema', schema: {\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"spec_file\",\"schema_version\",\"task_name\",\"steps\",\"risks\",\"acceptance_criteria\",\"estimated_complexity\",\"timestamp\"],\"properties\":{\"spec_file\":{\"type\":\"string\"},\"schema_version\":{\"type\":\"string\",\"const\":\"1.0\"},\"task_name\":{\"type\":\"string\"},\"steps\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}},\"risks\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}},\"acceptance_criteria\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}},\"estimated_complexity\":{\"type\":\"string\",\"enum\":[\"low\",\"medium\",\"high\"]},\"timestamp\":{\"type\":\"string\"}}} } }, messages: [ { role: 'user', content: \"Analyze this task note and generate a SPEC.\\n\\nFile: \" + $json.file_path + \"\\nCommit: \" + $json.commit_hash + \"\\n\\nContent:\\n\" + $json.file_content + \"\\n\\nSet spec_file to OUTPUT/pending-review/SPEC_<task-name>.md and timestamp to the current ISO8601 time.\" } ] }) }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 60000,
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "agent-1-task-analyzer",
+      "name": "Agent 1 · Task Analyzer",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        1240,
+        160
+      ],
+      "notes": "Agent 1. Structured outputs; thinking disabled to protect the 5000-token budget."
+    },
+    {
+      "parameters": {
+        "jsCode": "  // Structured outputs guarantee JSON shape + enums. This gate enforces what a schema can't:\n  // non-empty arrays + the write-path boundary (defense in depth).\n  const response = $input.first().json;\n  const raw = response.content && response.content[0] ? response.content[0].text : '';\n  let parsed;\n  try { parsed = JSON.parse(raw); }\n  catch (e) { throw new Error('GATE2_INVALID_JSON: ' + String(raw).substring(0, 200)); }\n  if (!parsed.spec_file || parsed.spec_file.indexOf('OUTPUT/pending-review/') !== 0) {\n    throw new Error('GATE2_PATH_VIOLATION: spec_file must be under OUTPUT/pending-review/');\n  }\n  if (!Array.isArray(parsed.steps) || parsed.steps.length < 1) {\n    throw new Error('GATE2_MISSING_STEPS: at least one step required');\n  }\n  if (!Array.isArray(parsed.acceptance_criteria) || parsed.acceptance_criteria.length < 1) {\n    throw new Error('GATE2_MISSING_CRITERIA: acceptance_criteria required');\n  }\n  return [{ json: Object.assign({}, parsed, { gate2_passed: true, gate2_timestamp: new Date().toISOString() }) }];"
+      },
+      "id": "gate2-spec",
+      "name": "Gate 2 — Validate Spec",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1440,
+        160
+      ],
+      "notes": "Gate 2: pending-review path boundary + non-empty steps/criteria."
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/ai_brain_audit_trail",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "=",
+              "value": "={{ JSON.stringify({ agent_name: 'task-analyzer', task_file: $('Filter Task Files').first().json.file_path, output_file: $json.spec_file, commit_hash: $('Filter Task Files').first().json.commit_hash, status: 'pending', token_count: $('Agent 1 · Task Analyzer').first().json.usage?.output_tokens || 0 }) }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "audit-task",
+      "name": "Write Audit — Task Analyzer",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        1640,
+        160
+      ],
+      "notes": "Supabase audit: agent=task-analyzer, status=pending."
+    },
+    {
+      "parameters": {
+        "jsCode": "  const spec = $('Gate 2 — Validate Spec').first().json;\n  const content = `---\ntitle: ${spec.task_name}\ntype: spec\nstatus: pending-review\nagent: task-analyzer\ncreated: ${spec.timestamp}\ncomplexity: ${spec.estimated_complexity}\nschema_version: ${spec.schema_version}\n---\n\n# SPEC: ${spec.task_name}\n\n## Steps\n${spec.steps.map((s, i) => `${i + 1}. ${s}`).join('\\n')}\n\n## Risks\n${spec.risks.map(r => `- ${r}`).join('\\n') || '- None identified'}\n\n## Acceptance Criteria\n${spec.acceptance_criteria.map(c => `- [ ] ${c}`).join('\\n')}\n\n---\n*Generated by Task Analyzer agent. Move to /OUTPUT/approved/ to proceed.*\n`;\n  return [{ json: Object.assign({}, spec, { markdown_content: content, write_path: spec.spec_file }) }];"
+      },
+      "id": "format-spec",
+      "name": "Format SPEC Markdown",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1840,
+        160
+      ],
+      "notes": "Renders SPEC.md (reads the Gate node by name, not position)."
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "={{ $env.OBSIDIAN_API_URL }}/vault/{{ $json.write_path.split('/').map(encodeURIComponent).join('/') }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.OBSIDIAN_API_KEY }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "text/markdown",
+        "body": "={{ $json.markdown_content }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "write-spec",
+      "name": "Write SPEC (Obsidian)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        2040,
+        160
+      ],
+      "notes": "Obsidian PUT -> OUTPUT/pending-review/SPEC_*.md. Human moves to approved/ to advance."
+    },
+    {
+      "parameters": {
+        "jsCode": "    const payload = $input.first().json;\n    const commits = payload.commits || [];\n    const files = [].concat.apply([], commits.map(c => c.added || []))\n      .concat([].concat.apply([], commits.map(c => c.modified || [])));\n    const matched = files.filter(f => f.indexOf(\"OUTPUT/approved/\") === 0 && f.endsWith('.md') && f.indexOf(\" \") !== 0);\n    if (matched.length === 0) { return []; }\n    const filePath = matched[0];\n    return [{ json: {\n      file_path: filePath,\n      file_content: '',\n      commit_hash: payload.after || 'unknown',\n      repo: (payload.repository && payload.repository.full_name) || 'unknown',\n      pushed_at: new Date().toISOString()\n    } }];"
+      },
+      "id": "filter-approved",
+      "name": "Filter Approved Files",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        460
+      ],
+      "notes": "Keeps the first OUTPUT/approved/*.md file. Halts if none."
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.OBSIDIAN_API_URL }}/vault/{{ $json.file_path.split('/').map(encodeURIComponent).join('/') }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.OBSIDIAN_API_KEY }}"
+            },
+            {
+              "name": "Accept",
+              "value": "text/markdown"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 30000,
+          "response": {
+            "response": {
+              "responseFormat": "text"
+            }
+          }
+        }
+      },
+      "id": "read-approved",
+      "name": "Read Approved File",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        640,
+        460
+      ],
+      "notes": "Obsidian GET -> raw markdown of the approved spec."
+    },
+    {
+      "parameters": {
+        "jsCode": "    const original = $(\"Filter Approved Files\").first().json;\n    const resp = $input.first().json;\n    const c = (typeof resp === 'string') ? resp\n      : (resp && resp.data != null ? resp.data\n        : (resp && resp.body != null ? resp.body\n          : (resp && resp.content != null ? resp.content : '')));\n    return [{ json: Object.assign({}, original, { file_content: String(c || '') }) }];"
+      },
+      "id": "merge-approved",
+      "name": "Merge Approved Content",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        840,
+        460
+      ],
+      "notes": "Merges read markdown into file_content."
+    },
+    {
+      "parameters": {
+        "jsCode": "  // Gate 1: block prompt-injection patterns before any content reaches an agent.\n  const item = $input.first().json;\n  const BLOCKED_PATTERNS = [\n    /eval\\s*\\(/gi,\n    /exec\\s*\\(/gi,\n    /\\.\\.\\//g,\n    /<script/gi,\n    /DROP\\s+TABLE/gi,\n    /DELETE\\s+FROM/gi,\n    /system\\s*\\(/gi\n  ];\n  const content = item.file_content || '';\n  for (const pattern of BLOCKED_PATTERNS) {\n    if (pattern.test(content)) {\n      throw new Error('GATE1_BLOCKED: Injection pattern detected in ' + item.file_path + ': ' + pattern);\n    }\n  }\n  return [{ json: Object.assign({}, item, { sanitized: true, gate1_passed: true, gate1_timestamp: new Date().toISOString() }) }];"
+      },
+      "id": "gate1-approved",
+      "name": "Gate 1 — Sanitize (Approved)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1040,
+        460
+      ],
+      "notes": "Gate 1: blocks injection patterns in the approved spec."
+    },
+    {
+      "parameters": {
+        "url": "https://api.anthropic.com/v1/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "={{ $env.ANTHROPIC_API_KEY }}"
+            },
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "=",
+              "value": "={{ JSON.stringify({ model: 'claude-sonnet-5', max_tokens: 8000, thinking: { type: 'disabled' }, system: \"You are a Spec Generator agent. Given an APPROVED spec, produce a concrete implementation plan with an explicit rollback. Write output ONLY to RESULTS/. Token budget: 8000.\", output_config: { format: { type: 'json_schema', schema: {\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"result_file\",\"schema_version\",\"task_name\",\"plan_steps\",\"files_touched\",\"rollback\",\"timestamp\"],\"properties\":{\"result_file\":{\"type\":\"string\"},\"schema_version\":{\"type\":\"string\",\"const\":\"1.0\"},\"task_name\":{\"type\":\"string\"},\"plan_steps\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}},\"files_touched\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}},\"rollback\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}},\"timestamp\":{\"type\":\"string\"}}} } }, messages: [ { role: 'user', content: \"Generate a concrete implementation plan from this APPROVED spec.\\n\\nFile: \" + $json.file_path + \"\\nCommit: \" + $json.commit_hash + \"\\n\\nContent:\\n\" + $json.file_content + \"\\n\\nSet result_file to RESULTS/PLAN_<task-name>.md, include a rollback plan, and timestamp as ISO8601.\" } ] }) }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 60000,
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "agent-2-spec-generator",
+      "name": "Agent 2 · Spec Generator",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        1240,
+        460
+      ],
+      "notes": "Agent 2. Structured outputs. Triggered by a file moved to OUTPUT/approved/."
+    },
+    {
+      "parameters": {
+        "jsCode": "  const response = $input.first().json;\n  const raw = response.content && response.content[0] ? response.content[0].text : '';\n  let parsed;\n  try { parsed = JSON.parse(raw); }\n  catch (e) { throw new Error('GATE2_INVALID_JSON: ' + String(raw).substring(0, 200)); }\n  if (!parsed.result_file || parsed.result_file.indexOf('RESULTS/') !== 0) {\n    throw new Error('GATE2_PATH_VIOLATION: result_file must be under RESULTS/');\n  }\n  if (!Array.isArray(parsed.plan_steps) || parsed.plan_steps.length < 1) {\n    throw new Error('GATE2_MISSING_STEPS: at least one plan step required');\n  }\n  if (!Array.isArray(parsed.rollback) || parsed.rollback.length < 1) {\n    throw new Error('GATE2_MISSING_ROLLBACK: a rollback plan is required');\n  }\n  return [{ json: Object.assign({}, parsed, { gate2_passed: true, gate2_timestamp: new Date().toISOString() }) }];"
+      },
+      "id": "gate2-plan",
+      "name": "Gate 2 — Validate Plan",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1440,
+        460
+      ],
+      "notes": "Gate 2: RESULTS/ path boundary + non-empty plan steps + rollback required."
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/ai_brain_audit_trail",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "=",
+              "value": "={{ JSON.stringify({ agent_name: 'spec-generator', task_file: $('Filter Approved Files').first().json.file_path, output_file: $json.result_file, commit_hash: $('Filter Approved Files').first().json.commit_hash, status: 'approved', token_count: $('Agent 2 · Spec Generator').first().json.usage?.output_tokens || 0 }) }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "audit-spec",
+      "name": "Write Audit — Spec Generator",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        1640,
+        460
+      ],
+      "notes": "Supabase audit: agent=spec-generator, status=approved."
+    },
+    {
+      "parameters": {
+        "jsCode": "  const plan = $('Gate 2 — Validate Plan').first().json;\n  const content = `---\ntitle: ${plan.task_name}\ntype: plan\nstatus: generated\nagent: spec-generator\ncreated: ${plan.timestamp}\nschema_version: ${plan.schema_version}\n---\n\n# PLAN: ${plan.task_name}\n\n## Implementation Steps\n${plan.plan_steps.map((s, i) => `${i + 1}. ${s}`).join('\\n')}\n\n## Files Touched\n${plan.files_touched.map(f => `- ${f}`).join('\\n') || '- None specified'}\n\n## Rollback\n${plan.rollback.map(r => `- ${r}`).join('\\n')}\n\n---\n*Generated by Spec Generator agent. Written to /RESULTS/ (triggers the Validator).*\n`;\n  return [{ json: Object.assign({}, plan, { markdown_content: content, write_path: plan.result_file }) }];"
+      },
+      "id": "format-plan",
+      "name": "Format Plan Markdown",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1840,
+        460
+      ],
+      "notes": "Renders PLAN.md for RESULTS/."
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "={{ $env.OBSIDIAN_API_URL }}/vault/{{ $json.write_path.split('/').map(encodeURIComponent).join('/') }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.OBSIDIAN_API_KEY }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "text/markdown",
+        "body": "={{ $json.markdown_content }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "write-plan",
+      "name": "Write PLAN (Obsidian)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        2040,
+        460
+      ],
+      "notes": "Obsidian PUT -> RESULTS/PLAN_*.md. This write triggers the Validator lane."
+    },
+    {
+      "parameters": {
+        "jsCode": "    const payload = $input.first().json;\n    const commits = payload.commits || [];\n    const files = [].concat.apply([], commits.map(c => c.added || []))\n      .concat([].concat.apply([], commits.map(c => c.modified || [])));\n    const matched = files.filter(f => f.indexOf(\"RESULTS/\") === 0 && f.endsWith('.md') && f.indexOf(\"RESULTS/reports/\") !== 0);\n    if (matched.length === 0) { return []; }\n    const filePath = matched[0];\n    return [{ json: {\n      file_path: filePath,\n      file_content: '',\n      commit_hash: payload.after || 'unknown',\n      repo: (payload.repository && payload.repository.full_name) || 'unknown',\n      pushed_at: new Date().toISOString()\n    } }];"
+      },
+      "id": "filter-result",
+      "name": "Filter Result Files",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        760
+      ],
+      "notes": "Keeps the first RESULTS/*.md file, EXCLUDING RESULTS/reports/ (loop guard)."
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.OBSIDIAN_API_URL }}/vault/{{ $json.file_path.split('/').map(encodeURIComponent).join('/') }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.OBSIDIAN_API_KEY }}"
+            },
+            {
+              "name": "Accept",
+              "value": "text/markdown"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 30000,
+          "response": {
+            "response": {
+              "responseFormat": "text"
+            }
+          }
+        }
+      },
+      "id": "read-result",
+      "name": "Read Result File",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        640,
+        760
+      ],
+      "notes": "Obsidian GET -> raw markdown of the result/plan under review."
+    },
+    {
+      "parameters": {
+        "jsCode": "    const original = $(\"Filter Result Files\").first().json;\n    const resp = $input.first().json;\n    const c = (typeof resp === 'string') ? resp\n      : (resp && resp.data != null ? resp.data\n        : (resp && resp.body != null ? resp.body\n          : (resp && resp.content != null ? resp.content : '')));\n    return [{ json: Object.assign({}, original, { file_content: String(c || '') }) }];"
+      },
+      "id": "merge-result",
+      "name": "Merge Result Content",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        840,
+        760
+      ],
+      "notes": "Merges read markdown into file_content."
+    },
+    {
+      "parameters": {
+        "jsCode": "  // Gate 1: block prompt-injection patterns before any content reaches an agent.\n  const item = $input.first().json;\n  const BLOCKED_PATTERNS = [\n    /eval\\s*\\(/gi,\n    /exec\\s*\\(/gi,\n    /\\.\\.\\//g,\n    /<script/gi,\n    /DROP\\s+TABLE/gi,\n    /DELETE\\s+FROM/gi,\n    /system\\s*\\(/gi\n  ];\n  const content = item.file_content || '';\n  for (const pattern of BLOCKED_PATTERNS) {\n    if (pattern.test(content)) {\n      throw new Error('GATE1_BLOCKED: Injection pattern detected in ' + item.file_path + ': ' + pattern);\n    }\n  }\n  return [{ json: Object.assign({}, item, { sanitized: true, gate1_passed: true, gate1_timestamp: new Date().toISOString() }) }];"
+      },
+      "id": "gate1-result",
+      "name": "Gate 1 — Sanitize (Result)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1040,
+        760
+      ],
+      "notes": "Gate 1: blocks injection patterns in the result file."
+    },
+    {
+      "parameters": {
+        "url": "https://api.anthropic.com/v1/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "={{ $env.ANTHROPIC_API_KEY }}"
+            },
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "=",
+              "value": "={{ JSON.stringify({ model: 'claude-sonnet-5', max_tokens: 3000, thinking: { type: 'disabled' }, system: \"You are a Validator agent. Compare an implementation result against its spec and decide VALIDATED or REJECTED with reasons. Token budget: 3000.\", output_config: { format: { type: 'json_schema', schema: {\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"status\",\"result_file\",\"reasons\",\"schema_version\",\"timestamp\"],\"properties\":{\"status\":{\"type\":\"string\",\"enum\":[\"VALIDATED\",\"REJECTED\"]},\"result_file\":{\"type\":\"string\"},\"reasons\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}},\"schema_version\":{\"type\":\"string\",\"const\":\"1.0\"},\"timestamp\":{\"type\":\"string\"}}} } }, messages: [ { role: 'user', content: \"Validate this implementation result against its spec and decide VALIDATED or REJECTED.\\n\\nFile: \" + $json.file_path + \"\\nCommit: \" + $json.commit_hash + \"\\n\\nContent:\\n\" + $json.file_content + \"\\n\\nSet result_file to the file under review, give at least one reason, and timestamp as ISO8601.\" } ] }) }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 60000,
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "agent-3-validator",
+      "name": "Agent 3 · Validator",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        1240,
+        760
+      ],
+      "notes": "Agent 3. Structured outputs. Triggered by a new file in RESULTS/."
+    },
+    {
+      "parameters": {
+        "jsCode": "  const response = $input.first().json;\n  const raw = response.content && response.content[0] ? response.content[0].text : '';\n  let parsed;\n  try { parsed = JSON.parse(raw); }\n  catch (e) { throw new Error('GATE2_INVALID_JSON: ' + String(raw).substring(0, 200)); }\n  if (!parsed.result_file || parsed.result_file.indexOf('RESULTS/') !== 0) {\n    throw new Error('GATE2_PATH_VIOLATION: result_file must be under RESULTS/');\n  }\n  if (!Array.isArray(parsed.reasons) || parsed.reasons.length < 1) {\n    throw new Error('GATE2_MISSING_REASONS: at least one reason required');\n  }\n  return [{ json: Object.assign({}, parsed, { gate2_passed: true, gate2_timestamp: new Date().toISOString() }) }];"
+      },
+      "id": "gate2-report",
+      "name": "Gate 2 — Validate Report",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1440,
+        760
+      ],
+      "notes": "Gate 2: RESULTS/ path boundary + at least one reason."
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/ai_brain_audit_trail",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "=",
+              "value": "={{ JSON.stringify({ agent_name: 'validator', task_file: $('Filter Result Files').first().json.file_path, output_file: $json.result_file, commit_hash: $('Filter Result Files').first().json.commit_hash, status: ($json.status === 'VALIDATED' ? 'approved' : 'rejected'), token_count: $('Agent 3 · Validator').first().json.usage?.output_tokens || 0 }) }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "audit-validator",
+      "name": "Write Audit — Validator",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        1640,
+        760
+      ],
+      "notes": "Supabase audit: agent=validator, status derived from VALIDATED/REJECTED."
+    },
+    {
+      "parameters": {
+        "jsCode": "  const report = $('Gate 2 — Validate Report').first().json;\n  // Write to RESULTS/reports/ so the report does NOT re-trigger the RESULTS/ filter (loop guard).\n  const base = String(report.result_file || 'RESULTS/unknown.md').split('/').pop().replace(/\\.md$/, '');\n  const outPath = 'RESULTS/reports/' + base + '.validation.md';\n  const content = `---\ntitle: Validation Report\ntype: validation\nstatus: ${report.status}\nagent: validator\ncreated: ${report.timestamp}\nschema_version: ${report.schema_version}\nresult_file: ${report.result_file}\n---\n\n# VALIDATION: ${report.status}\n\n## Reasons\n${report.reasons.map(r => `- ${r}`).join('\\n')}\n\n---\n*Generated by Validator agent.*\n`;\n  return [{ json: Object.assign({}, report, { markdown_content: content, write_path: outPath }) }];"
+      },
+      "id": "format-validation",
+      "name": "Format Validation Markdown",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1840,
+        760
+      ],
+      "notes": "Renders the report to RESULTS/reports/*.validation.md (excluded from the filter)."
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "={{ $env.OBSIDIAN_API_URL }}/vault/{{ $json.write_path.split('/').map(encodeURIComponent).join('/') }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.OBSIDIAN_API_KEY }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "text/markdown",
+        "body": "={{ $json.markdown_content }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "write-validation",
+      "name": "Write Validation (Obsidian)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        2040,
+        760
+      ],
+      "notes": "Obsidian PUT -> RESULTS/reports/*.validation.md. Does NOT re-trigger the Validator."
+    },
+    {
+      "parameters": {
+        "url": "https://api.anthropic.com/v1/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "={{ $env.ANTHROPIC_API_KEY }}"
+            },
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "=",
+              "value": "={{ JSON.stringify({ model: 'claude-sonnet-5', max_tokens: 2000, thinking: { type: 'disabled' }, system: \"You are an Auditor agent. Summarize the change and its validation, and assess residual risk for the audit trail. Token budget: 2000.\", output_config: { format: { type: 'json_schema', schema: {\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"summary\",\"risk_level\",\"schema_version\",\"timestamp\"],\"properties\":{\"summary\":{\"type\":\"string\"},\"risk_level\":{\"type\":\"string\",\"enum\":[\"low\",\"medium\",\"high\"]},\"schema_version\":{\"type\":\"string\",\"const\":\"1.0\"},\"timestamp\":{\"type\":\"string\"}}} } }, messages: [ { role: 'user', content: \"Summarize this result and its validation for the audit trail.\\n\\nResult file: \" + $('Filter Result Files').first().json.file_path + \"\\nValidation status: \" + $('Gate 2 — Validate Report').first().json.status + \"\\nCommit: \" + $('Filter Result Files').first().json.commit_hash + \"\\n\\nProvide a concise summary, a risk_level, and timestamp as ISO8601.\" } ] }) }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 60000,
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "agent-4-auditor",
+      "name": "Agent 4 · Auditor",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        2240,
+        760
+      ],
+      "notes": "Agent 4. Structured outputs. Runs after the Validator on any RESULTS/ commit."
+    },
+    {
+      "parameters": {
+        "jsCode": "  const response = $input.first().json;\n  const raw = response.content && response.content[0] ? response.content[0].text : '{}';\n  const parsed = JSON.parse(raw);\n  return [{ json: Object.assign({}, parsed, { parsed: true, parsed_timestamp: new Date().toISOString() }) }];"
+      },
+      "id": "parse-audit",
+      "name": "Parse Audit",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2440,
+        760
+      ],
+      "notes": "Parses the Auditor JSON before the final Supabase write."
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/ai_brain_audit_trail",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "=",
+              "value": "={{ JSON.stringify({ agent_name: 'auditor', task_file: $('Filter Result Files').first().json.file_path, commit_hash: $('Filter Result Files').first().json.commit_hash, status: 'approved', token_count: $('Agent 4 · Auditor').first().json.usage?.output_tokens || 0 }) }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "audit-auditor",
+      "name": "Write Audit — Auditor",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        2640,
+        760
+      ],
+      "notes": "Supabase audit: agent=auditor, final commit-scoped record."
+    },
+    {
+      "parameters": {
+        "jsCode": "  const error = $input.first().json;\n  const errorMsg = error.message || (error.error && error.error.message) || 'Unknown error';\n  const failedNode = error.node || 'unknown';\n  console.error('[AI Brain Error] Node: ' + failedNode + ' | Error: ' + errorMsg);\n  return [{ json: { agent_name: 'pipeline', status: 'error', error_msg: errorMsg, failed_node: failedNode, timestamp: new Date().toISOString() } }];"
+      },
+      "id": "error-handler",
+      "name": "Error Handler",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1240,
+        1080
+      ],
+      "notes": "Catches thrown errors from any read/merge/gate/agent/write node and logs status=error."
+    }
+  ],
+  "connections": {
+    "GitHub Webhook": {
+      "main": [
+        [
+          {
+            "node": "Filter Task Files",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Filter Approved Files",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Filter Result Files",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Task Files": {
+      "main": [
+        [
+          {
+            "node": "Read Task File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Task File": {
+      "main": [
+        [
+          {
+            "node": "Merge Task Content",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ],
+      "error": [
+        [
+          {
+            "node": "Error Handler",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Task Content": {
+      "main": [
+        [
+          {
+            "node": "Gate 1 — Sanitize (Task)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ],
+      "error": [
+        [
+          {
+            "node": "Error Handler",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gate 1 — Sanitize (Task)": {
+      "main": [
+        [
+          {
+            "node": "Agent 1 · Task Analyzer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ],
+      "error": [
+        [
+          {
+            "node": "Error Handler",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agent 1 · Task Analyzer": {
+      "main": [
+        [
+          {
+            "node": "Gate 2 — Validate Spec",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ],
+      "error": [
+        [
+          {
+            "node": "Error Handler",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gate 2 — Validate Spec": {
+      "main": [
+        [
+          {
+            "node": "Write Audit — Task Analyzer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ],
+      "error": [
+        [
+          {
+            "node": "Error Handler",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Write Audit — Task Analyzer": {
+      "main": [
+        [
+          {
+            "node": "Format SPEC Markdown",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format SPEC Markdown": {
+      "main": [
+        [
+          {
+            "node": "Write SPEC (Obsidian)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ],
+      "error": [
+        [
+          {
+            "node": "Error Handler",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Approved Files": {
+      "main": [
+        [
+          {
+            "node": "Read Approved File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Approved File": {
+      "main": [
+        [
+          {
+            "node": "Merge Approved Content",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ],
+      "error": [
+        [
+          {
+            "node": "Error Handler",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Approved Content": {
+      "main": [
+        [
+          {
+            "node": "Gate 1 — Sanitize (Approved)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ],
+      "error": [
+        [
+          {
+            "node": "Error Handler",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gate 1 — Sanitize (Approved)": {
+      "main": [
+        [
+          {
+            "node": "Agent 2 · Spec Generator",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ],
+      "error": [
+        [
+          {
+            "node": "Error Handler",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agent 2 · Spec Generator": {
+      "main": [
+        [
+          {
+            "node": "Gate 2 — Validate Plan",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ],
+      "error": [
+        [
+          {
+            "node": "Error Handler",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gate 2 — Validate Plan": {
+      "main": [
+        [
+          {
+            "node": "Write Audit — Spec Generator",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ],
+      "error": [
+        [
+          {
+            "node": "Error Handler",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Write Audit — Spec Generator": {
+      "main": [
+        [
+          {
+            "node": "Format Plan Markdown",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Plan Markdown": {
+      "main": [
+        [
+          {
+            "node": "Write PLAN (Obsidian)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ],
+      "error": [
+        [
+          {
+            "node": "Error Handler",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Result Files": {
+      "main": [
+        [
+          {
+            "node": "Read Result File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Result File": {
+      "main": [
+        [
+          {
+            "node": "Merge Result Content",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ],
+      "error": [
+        [
+          {
+            "node": "Error Handler",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Result Content": {
+      "main": [
+        [
+          {
+            "node": "Gate 1 — Sanitize (Result)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ],
+      "error": [
+        [
+          {
+            "node": "Error Handler",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gate 1 — Sanitize (Result)": {
+      "main": [
+        [
+          {
+            "node": "Agent 3 · Validator",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ],
+      "error": [
+        [
+          {
+            "node": "Error Handler",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agent 3 · Validator": {
+      "main": [
+        [
+          {
+            "node": "Gate 2 — Validate Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ],
+      "error": [
+        [
+          {
+            "node": "Error Handler",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gate 2 — Validate Report": {
+      "main": [
+        [
+          {
+            "node": "Write Audit — Validator",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ],
+      "error": [
+        [
+          {
+            "node": "Error Handler",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Write Audit — Validator": {
+      "main": [
+        [
+          {
+            "node": "Format Validation Markdown",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Validation Markdown": {
+      "main": [
+        [
+          {
+            "node": "Write Validation (Obsidian)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ],
+      "error": [
+        [
+          {
+            "node": "Error Handler",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Write Validation (Obsidian)": {
+      "main": [
+        [
+          {
+            "node": "Agent 4 · Auditor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ],
+      "error": [
+        [
+          {
+            "node": "Error Handler",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agent 4 · Auditor": {
+      "main": [
+        [
+          {
+            "node": "Parse Audit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ],
+      "error": [
+        [
+          {
+            "node": "Error Handler",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Audit": {
+      "main": [
+        [
+          {
+            "node": "Write Audit — Auditor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Write SPEC (Obsidian)": {
+      "error": [
+        [
+          {
+            "node": "Error Handler",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Write PLAN (Obsidian)": {
+      "error": [
+        [
+          {
+            "node": "Error Handler",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": "AI Brain Error Notifier"
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "instanceId": "ai-brain-v2"
+  },
+  "_notes": {
+    "agents": [
+      "Agent 1 (Task Analyzer): TASKS/*.md -> SPEC in OUTPUT/pending-review/ (5000 tok).",
+      "Agent 2 (Spec Generator): OUTPUT/approved/*.md -> PLAN in RESULTS/ (8000 tok).",
+      "Agent 3 (Validator): RESULTS/*.md -> report in RESULTS/reports/ (3000 tok).",
+      "Agent 4 (Auditor): after the Validator on RESULTS/ commits -> Supabase audit summary (2000 tok)."
+    ],
+    "obsidian_io": "Each lane READS its file via Obsidian Local REST API (GET /vault/{path}) into file_content, and WRITES its output via PUT /vault/{path}. This is the concrete transport for the spec's \"Obsidian MCP bridge\" layer. Requires OBSIDIAN_API_URL + OBSIDIAN_API_KEY.",
+    "loop_guard": "Validator reports are written to RESULTS/reports/, which the Filter Result Files node excludes, so a report never re-triggers the Validator. Agent 2 writing a PLAN to RESULTS/ intentionally triggers the Validator.",
+    "structured_outputs": "All four agents use output_config.format (json_schema) on claude-sonnet-5 with thinking disabled; Gate 2 nodes enforce only business rules + write-path boundaries.",
+    "env_vars_required": [
+      "ANTHROPIC_API_KEY — server-side only",
+      "SUPABASE_URL",
+      "SUPABASE_SERVICE_ROLE_KEY — server-side only",
+      "OBSIDIAN_API_URL — Obsidian Local REST API base (e.g. https://127.0.0.1:27124)",
+      "OBSIDIAN_API_KEY — Obsidian Local REST API bearer token"
+    ],
+    "github_webhook_setup": [
+      "1. Vault repo on GitHub > Settings > Webhooks > Add webhook",
+      "2. Payload URL: https://krosebrook.app.n8n.cloud/webhook/ai-brain-task-trigger",
+      "3. Content type: application/json",
+      "4. Secret: openssl rand -hex 32 -> store as N8N_WEBHOOK_SECRET",
+      "5. Events: Just the push event"
+    ]
+  }
+}

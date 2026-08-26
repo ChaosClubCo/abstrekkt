@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>The Checklist I Wish Someone Had Handed Me · Kyle Rosebrook</title>
+<meta name="description" content="Why I wrote a security pre-flight checklist as a non-credentialed builder, and what changes when you stop pretending to be the expert in the room." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,SOFT,WONK@9..144,300..900,0..100,0..1&family=Crimson+Pro:ital,wght@0,300..600;1,300..600&family=JetBrains+Mono:wght@300;400&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --ink: #0a0907;
+    --paper: #f2efe9;
+    --paper-dim: #a09888;
+    --paper-faint: #6b6557;
+    --brass: #c4935a;
+    --brass-deep: #7a5a35;
+    --brass-faint: rgba(196, 147, 90, 0.2);
+    --rule: rgba(255, 255, 255, 0.06);
+    --measure: 38rem;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--ink);
+    color: var(--paper);
+    font-family: 'Crimson Pro', Georgia, serif;
+    font-weight: 380;
+    font-size: 19px;
+    line-height: 1.75;
+    min-height: 100vh;
+    position: relative;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 1;
+    background:
+      radial-gradient(ellipse at 15% 10%, rgba(196, 147, 90, 0.05) 0%, transparent 45%),
+      radial-gradient(ellipse at 85% 90%, rgba(196, 147, 90, 0.03) 0%, transparent 50%);
+  }
+
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 2;
+    opacity: 0.4;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.92' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.1 0 0 0 0 0.08 0 0 0 0 0.05 0 0 0 0.5 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  a {
+    color: var(--brass);
+    text-decoration: none;
+    transition: color 0.25s;
+    border-bottom: 1px solid var(--brass-faint);
+  }
+  a:hover { color: var(--paper); border-bottom-color: var(--paper); }
+
+  .rule-vertical {
+    position: fixed;
+    left: clamp(20px, 5vw, 64px);
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    background: linear-gradient(to bottom, transparent, var(--brass-faint) 15%, var(--brass-faint) 85%, transparent);
+    z-index: 0;
+  }
+  @media (max-width: 600px) { .rule-vertical { display: none; } }
+
+  .stage {
+    position: relative;
+    z-index: 3;
+    max-width: var(--measure);
+    margin: 0 auto;
+    padding: clamp(4rem, 10vw, 7rem) clamp(1.25rem, 4vw, 2rem) clamp(5rem, 10vw, 8rem);
+  }
+
+  /* ============ MASTHEAD ============ */
+  .article-meta {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.4em;
+    text-transform: uppercase;
+    color: var(--brass);
+    margin-bottom: 1.75rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--brass-faint);
+    display: inline-block;
+    animation: rise 1.2s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  }
+  .article-meta .dot { color: var(--brass-deep); margin: 0 0.5rem; }
+
+  .title {
+    font-family: 'Fraunces', serif;
+    font-variation-settings: 'opsz' 144, 'SOFT' 50, 'WONK' 1;
+    font-weight: 320;
+    font-size: clamp(2.1rem, 5.5vw, 3.4rem);
+    line-height: 1.08;
+    color: var(--paper);
+    letter-spacing: -0.018em;
+    margin-bottom: 1rem;
+    animation: rise 1.2s cubic-bezier(0.2, 0.8, 0.2, 1) 0.1s both;
+  }
+  .title em {
+    font-style: italic;
+    color: var(--brass);
+    font-variation-settings: 'opsz' 144, 'SOFT' 100, 'WONK' 1;
+  }
+
+  .deck {
+    font-family: 'Crimson Pro', serif;
+    font-style: italic;
+    font-weight: 300;
+    font-size: clamp(1.05rem, 1.8vw, 1.25rem);
+    color: var(--paper-dim);
+    max-width: 32rem;
+    line-height: 1.55;
+    margin-top: 1.5rem;
+    margin-bottom: 2.5rem;
+    animation: rise 1.2s cubic-bezier(0.2, 0.8, 0.2, 1) 0.2s both;
+  }
+
+  .byline {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--paper-faint);
+    margin-bottom: clamp(2.5rem, 5vw, 3.5rem);
+    padding-bottom: 1.25rem;
+    border-bottom: 1px solid var(--rule);
+    animation: rise 1.2s cubic-bezier(0.2, 0.8, 0.2, 1) 0.3s both;
+  }
+  .byline span { color: var(--brass-deep); margin: 0 0.5rem; }
+
+  /* ============ PROSE ============ */
+  article p {
+    margin-bottom: 1.4rem;
+    color: var(--paper);
+    line-height: 1.75;
+    animation: rise 1s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+    animation-delay: 0.4s;
+  }
+  article p strong { color: var(--paper); font-weight: 500; }
+  article p em { font-style: italic; color: var(--brass); }
+
+  article p.lede::first-letter {
+    font-family: 'Fraunces', serif;
+    font-variation-settings: 'opsz' 144, 'WONK' 1;
+    font-weight: 380;
+    font-size: 4.2rem;
+    float: left;
+    line-height: 0.85;
+    margin: 0.35rem 0.55rem 0 0;
+    color: var(--brass);
+  }
+
+  article h2 {
+    font-family: 'Fraunces', serif;
+    font-variation-settings: 'opsz' 60, 'SOFT' 40, 'WONK' 1;
+    font-weight: 360;
+    font-size: clamp(1.4rem, 2.8vw, 1.8rem);
+    line-height: 1.2;
+    color: var(--paper);
+    letter-spacing: -0.012em;
+    margin-top: clamp(2.5rem, 5vw, 3.5rem);
+    margin-bottom: 1.25rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--rule);
+  }
+  article h2 em { font-style: italic; color: var(--brass); }
+
+  article h2 .num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.4em;
+    color: var(--brass-deep);
+    display: block;
+    margin-bottom: 0.85rem;
+    padding-top: 0;
+    font-style: normal;
+  }
+
+  article blockquote {
+    margin: 2rem 0;
+    padding: 0.5rem 0 0.5rem 1.5rem;
+    border-left: 2px solid var(--brass);
+    font-style: italic;
+    color: var(--paper);
+    font-size: 1.1rem;
+    line-height: 1.6;
+  }
+
+  /* ============ CALLOUT ============ */
+  .callout {
+    margin: 2.5rem 0;
+    padding: 1.75rem;
+    border: 1px solid var(--brass-faint);
+    background: rgba(196, 147, 90, 0.04);
+    position: relative;
+  }
+  .callout-mark {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.4em;
+    text-transform: uppercase;
+    color: var(--brass);
+    margin-bottom: 0.75rem;
+    display: block;
+  }
+  .callout p {
+    margin-bottom: 0.85rem;
+    color: var(--paper);
+    font-size: 1rem;
+  }
+  .callout p:last-child { margin-bottom: 0; }
+  .callout a {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--brass);
+    border-bottom: 1px solid var(--brass-deep);
+    padding-bottom: 0.25rem;
+    margin-top: 0.35rem;
+  }
+  .callout a:hover { color: var(--paper); border-bottom-color: var(--paper); }
+  .callout a .arrow { transition: transform 0.25s; }
+  .callout a:hover .arrow { transform: translateX(3px); }
+
+  /* ============ ENDMARK + COLOPHON ============ */
+  .endmark {
+    text-align: center;
+    margin: 3rem 0 2rem;
+    color: var(--brass);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1rem;
+    letter-spacing: 0.5em;
+  }
+
+  .colophon {
+    margin-top: 4rem;
+    padding-top: 2rem;
+    border-top: 1px solid var(--brass-faint);
+  }
+  .colophon-name {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-weight: 360;
+    font-size: 1.05rem;
+    color: var(--brass);
+    margin-bottom: 0.3rem;
+  }
+  .colophon-bio {
+    font-family: 'Crimson Pro', serif;
+    font-size: 0.95rem;
+    color: var(--paper-dim);
+    line-height: 1.65;
+    margin-bottom: 1.5rem;
+  }
+  .colophon-stamp {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.4em;
+    text-transform: uppercase;
+    color: var(--brass-deep);
+    padding-top: 1rem;
+    border-top: 1px solid var(--rule);
+  }
+  .colophon-stamp .dot { color: var(--brass); margin: 0 0.5rem; }
+  .colophon-links {
+    margin-top: 1rem;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+  }
+  .colophon-links a {
+    color: var(--paper-faint);
+    border-bottom: none;
+    margin-right: 1.5rem;
+  }
+  .colophon-links a:hover { color: var(--brass); }
+
+  @keyframes rise {
+    from { opacity: 0; transform: translateY(1.25rem); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @media print {
+    body { background: white; color: black; font-size: 12pt; }
+    body::before, body::after, .rule-vertical { display: none; }
+    .title, h2, p strong, p em, .colophon-name { color: #1a1410 !important; }
+    .article-meta, .colophon-stamp, h2 .num, .callout-mark { color: #7a5a35 !important; }
+    .deck, .byline, p, .colophon-bio { color: #2a2520 !important; }
+    .callout { background: #f5efe5; }
+    .endmark { color: #7a5a35; }
+  }
+
+.ks-nav{position:sticky;top:0;z-index:9000;display:flex;justify-content:space-between;align-items:center;gap:1.25rem;padding:13px clamp(20px,5vw,48px);background:rgba(10,9,7,.92);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid rgba(196,147,90,.18);font-family:'JetBrains Mono',ui-monospace,monospace;line-height:1}
+.ks-nav .ks-brand{font-family:'Fraunces','EB Garamond',Georgia,serif;font-size:15px;font-weight:500;color:#f2efe9;letter-spacing:.01em;text-decoration:none;white-space:nowrap}
+.ks-nav .ks-brand em{font-style:italic;color:#c4935a}
+.ks-nav .ks-links{display:flex;gap:18px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+.ks-nav .ks-links a{font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:#a09888;text-decoration:none;transition:color .2s,border-color .2s,background .2s}
+.ks-nav .ks-links a:hover{color:#c4935a}
+.ks-nav .ks-links a.is-active{color:#c4935a}
+.ks-nav .ks-links a.ks-ext{color:#9c8f78;border:1px solid rgba(196,147,90,.28);padding:6px 11px}
+.ks-nav .ks-links a.ks-ext:hover{color:#0a0907;background:#c4935a;border-color:#c4935a}
+@media(max-width:640px){.ks-nav{flex-wrap:wrap;gap:.5rem}.ks-nav .ks-links{gap:11px}.ks-nav .ks-links a{font-size:9px;letter-spacing:.12em}.ks-nav .ks-brand{font-size:13px}}
+</style>
+</head>
+<body>
+<nav class="ks-nav">
+  <a class="ks-brand" href="Kyle Rosebrook Home.html">Abstrekkt&nbsp;<em>Journal</em></a>
+  <div class="ks-links">
+    <a href="Kyle Rosebrook Home.html">Home</a>
+    <a href="Kyle Rosebrook About.html">About</a>
+    <a class="is-active" href="Kyle Rosebrook Home.html#writing">Writing</a>
+    <a href="Sedona - The Meditation Pivot.html">Sedona</a>
+    <a href="LLC Formation Kit.html">Toolkit</a>
+    <a class="ks-ext" href="Abstrekkt Home.html">Abstrekkt&nbsp;↗</a>
+  </div>
+</nav>
+
+<div class="rule-vertical"></div>
+
+<main class="stage">
+
+  <!-- ============ HEADER ============ -->
+  <div class="article-meta">Essay <span class="dot">·</span> April 25, 2026 <span class="dot">·</span> 4 min read</div>
+
+  <h1 class="title">The Checklist I <em>Wish Someone</em> Had Handed Me</h1>
+
+  <p class="deck">I am not a security expert. That is exactly why you should run my list.</p>
+
+  <div class="byline">
+    Kyle Rosebrook <span>·</span> Grayslake, Illinois
+  </div>
+
+  <article>
+
+    <p class="lede">There is a particular kind of writing that gets done about software security, and I am not the person who does it. It is written by people who use words like <em>posture</em> and <em>surface area</em> in everyday conversation. It assumes you know what a salt is and have feelings about which one. It is mostly correct. It is also, for the people I am writing this for, mostly useless.</p>
+
+    <p>I work an L1 service desk by day. I taught myself everything else on nights and weekends. The cohort I came up with, self-taught builders, vibe coders, people who learned to ship from YouTube and Cursor and a high tolerance for being lost, does not read those security posts. The posts assume a baseline our cohort doesn't have. So we don't read them. So we ship things that get breached. And then the security people write a new post explaining what happened, in language we still don't read, and the cycle continues.</p>
+
+    <p>The Moltbook breach in January was the cleanest illustration of this in years. <em>1.5 million API keys exposed.</em> Root cause: one Supabase setting was off. The founder, by his own account, had not written a single line of code. The security writing about that incident was thoughtful and accurate and aimed at the wrong audience. The people who needed to read it were not Moltbook's auditors. They were the next thousand builders about to make the same configuration mistake.</p>
+
+    <p>So I wrote my own.</p>
+
+    <h2><span class="num">I</span>The credential gap is the entire point.</h2>
+
+    <p>The reason I think a non-credentialed checklist is useful is the same reason most security people would find that idea uncomfortable: <strong>I don't know what I don't know.</strong> Neither does the audience. We are equally exposed to the unknown unknowns. What I can offer is a tour of the eight things I have actually seen go wrong on the stack we are all using, Supabase, Vercel, Next.js, Cursor, the rest, and how I check for them on my own apps before I ship.</p>
+
+    <p>That's it. That is the whole pitch. It's not comprehensive. It won't save you from a determined attacker. It will save you from being Moltbook, and being Moltbook is the failure mode that is actually killing this cohort right now.</p>
+
+    <h2><span class="num">II</span>What changes when you stop pretending.</h2>
+
+    <p>Most security writing is performed by people who need to look authoritative because their job depends on being trusted. <em>I do not have that constraint.</em> My job is on a service desk. The writing is something I do because nobody handed me this list when I needed it, and the version of me from twelve months ago would have shipped most of what I'm now warning about.</p>
+
+    <p>That changes the writing. I can say "I don't know if this is the best way" without a CISO reading over my shoulder. I can recommend the library I actually use instead of the one with the most github stars. I can describe a failure mode in the language of the person about to cause it instead of the person who will have to clean it up.</p>
+
+    <blockquote>
+      The best security writing for self-taught builders is going to come from self-taught builders. Not because we know more, we know less. Because we know what doesn't translate.
+    </blockquote>
+
+    <p>The credentialed audience will find pieces like this incomplete. <strong>That is correct.</strong> They are. But "complete" is not the bar that produces fewer breaches in this cohort. <em>Read</em> is the bar. Pieces that get read by the people about to cause the breach prevent breaches. Pieces that don't, don't.</p>
+
+    <h2><span class="num">III</span>The eight things I check.</h2>
+
+    <p>The list is at <a href="Essay - Pre-Flight Checklist.html">abstrekkt.com/preflight</a>. It covers Row Level Security on Supabase tables, secrets in client bundles, CORS, JWT verification (the specific way most vibe-coded apps fake it), storage bucket visibility, webhook signatures, rate limits, and logs as a second PII database. Each check has a failure mode, a way to verify, and an estimate of how long it takes to run.</p>
+
+    <p>It took me about two hours to write down. It will take you about three hours to run on an existing app. The first time you run it, you will probably find at least one thing wrong. The second time, fewer. By the fourth or fifth app, the list lives in your hands and you stop having to consult the writeup.</p>
+
+    <p>That is the actual goal. Not the checklist. <em>The internalization of the checklist.</em> The point is to build the habit, the diagnostic instinct of running through this set of questions before deploying, until it is no longer something you do as a discipline and is just how you ship.</p>
+
+    <div class="callout">
+      <span class="callout-mark">§ Run the list</span>
+      <p>The full Pre-Flight checklist is here. Eight checks, ~2,200 words, written for non-credentialed builders by a non-credentialed builder. If you ship anything to production this week, run it first.</p>
+      <a href="Essay - Pre-Flight Checklist.html">
+        <span>Pre-Flight: What I check before I ship</span>
+        <span class="arrow">→</span>
+      </a>
+    </div>
+
+    <h2><span class="num">IV</span>What I'm not going to do.</h2>
+
+    <p>I'm not going to tell you I cracked the code on security writing. I'm not going to claim my list is the right list. The next person to come up the same path is going to find things in my list that are wrong, or missing, or have aged badly, and I hope they write their own. <strong>That's how this works.</strong> One non-credentialed builder writes down what they wish they had known. Another comes along, runs it, finds the gaps, writes the next version. The body of useful writing for our cohort accumulates the same way the rest of our knowledge has, peer to peer, in the language we actually use, with a reasonable expectation of being read.</p>
+
+    <p>If you're building AI apps without a CS degree and you've been wondering whether you should be reading the security writing that's out there: yes, you should. Eventually. <em>Start with mine.</em> It's shorter, less correct, and aimed at you.</p>
+
+  </article>
+
+  <div class="endmark">· · ·</div>
+
+  <!-- ============ COLOPHON ============ -->
+  <footer class="colophon">
+    <div class="colophon-name">Kyle Rosebrook</div>
+    <p class="colophon-bio">Self-taught builder writing about what I've actually shipped, and what I've watched break. Currently building <a href="https://flashfusion.co">FlashFusion</a>. <a href="Abstrekkt Pillars.html">Read the manifesto</a> for context on why.</p>
+    <div class="colophon-stamp">Construction <span class="dot">·</span> Not Recovery</div>
+    <div class="colophon-links">
+      <a href="Kyle Rosebrook Home.html">Home</a>
+      <a href="Abstrekkt Pillars.html">Manifesto</a>
+      <a href="Essay - Pre-Flight Checklist.html">Pre-Flight</a>
+      <a href="mailto:hello@abstrekkt.com">Contact</a>
+    </div>
+  </footer>
+
+</main>
+
+</body>
+</html>

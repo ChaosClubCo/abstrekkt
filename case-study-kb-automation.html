@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Knowledge Base That Writes Itself · FlashFusion Case Study</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@300;400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --void: #000000;
+    --surface-1: #0B0B14;
+    --surface-2: #13131F;
+    --border: rgba(139, 92, 246, 0.12);
+    --border-hover: rgba(139, 92, 246, 0.35);
+    --violet: #8B5CF6;
+    --violet-hi: #A855F7;
+    --magenta: #EC4899;
+    --cyan: #06B6D4;
+    --cyan-hi: #22D3EE;
+    --text-1: #FFFFFF;
+    --text-2: #C7C7D1;
+    --text-3: #8A8A96;
+    --text-4: #5A5A64;
+    --display: 'Instrument Serif', serif;
+    --body: 'Geist', system-ui, sans-serif;
+    --mono: 'Geist Mono', monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--void);
+    color: var(--text-1);
+    font-family: var(--body);
+    font-weight: 400;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+  }
+  .container { max-width: 1280px; margin: 0 auto; padding: 0 32px; }
+  .narrow { max-width: 760px; margin: 0 auto; padding: 0 32px; }
+
+  /* Nav pill */
+  nav.pill {
+    position: fixed; top: 24px; left: 50%; transform: translateX(-50%);
+    background: rgba(11, 11, 20, 0.6);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--border);
+    border-radius: 100px;
+    padding: 10px 24px;
+    display: flex; align-items: center; gap: 24px;
+    z-index: 100;
+    font-family: var(--mono);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  nav.pill .brand { color: var(--text-1); font-weight: 500; }
+  nav.pill a { color: var(--text-3); text-decoration: none; transition: color 0.2s; }
+  nav.pill a:hover { color: var(--text-1); }
+  nav.pill .dot { width: 4px; height: 4px; border-radius: 50%; background: var(--text-4); }
+
+  /* Hero */
+  .hero { padding: 200px 0 120px; }
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--violet-hi);
+    margin-bottom: 32px;
+  }
+  h1.display {
+    font-family: var(--display);
+    font-size: clamp(48px, 7vw, 92px);
+    font-weight: 400;
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    margin-bottom: 32px;
+    max-width: 14ch;
+  }
+  h1.display em {
+    font-style: italic;
+    background: linear-gradient(135deg, #A855F7, #EC4899, #22D3EE);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .hero-lede {
+    font-size: 22px;
+    color: var(--text-2);
+    max-width: 56ch;
+    line-height: 1.5;
+    margin-bottom: 56px;
+  }
+
+  /* Stat strip */
+  .stat-strip {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+  }
+  .stat {
+    background: var(--surface-1);
+    padding: 32px 28px;
+  }
+  .stat-label {
+    font-family: var(--mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-3);
+    margin-bottom: 12px;
+  }
+  .stat-value {
+    font-family: var(--display);
+    font-size: 44px;
+    line-height: 1;
+    color: var(--text-1);
+    margin-bottom: 8px;
+  }
+  .stat-note {
+    font-size: 13px;
+    color: var(--text-3);
+  }
+
+  /* Section header */
+  section { padding: 96px 0; }
+  .section-eyebrow {
+    font-family: var(--mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--cyan);
+    margin-bottom: 20px;
+  }
+  h2.section {
+    font-family: var(--display);
+    font-size: clamp(36px, 4.5vw, 56px);
+    font-weight: 400;
+    line-height: 1.1;
+    letter-spacing: -0.01em;
+    margin-bottom: 40px;
+    color: var(--text-1);
+    max-width: 18ch;
+  }
+  .prose p {
+    font-size: 18px;
+    line-height: 1.7;
+    color: var(--text-2);
+    margin-bottom: 24px;
+  }
+  .prose p strong { color: var(--text-1); font-weight: 500; }
+  .prose p em { color: var(--text-1); font-style: italic; font-family: var(--display); font-size: 1.1em; }
+
+  /* Comparison cards */
+  .compare {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-top: 48px;
+  }
+  @media (max-width: 720px) { .compare { grid-template-columns: 1fr; } }
+  .compare-card {
+    background: rgba(11, 11, 20, 0.6);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 32px;
+  }
+  .compare-card.wrong { border-color: rgba(236, 72, 153, 0.18); }
+  .compare-card.right { border-color: rgba(139, 92, 246, 0.25); }
+  .compare-tag {
+    font-family: var(--mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    padding: 4px 10px;
+    border-radius: 100px;
+    display: inline-block;
+    margin-bottom: 20px;
+  }
+  .compare-card.wrong .compare-tag { background: rgba(236, 72, 153, 0.12); color: #F472B6; }
+  .compare-card.right .compare-tag { background: rgba(139, 92, 246, 0.14); color: var(--violet-hi); }
+  .compare-title {
+    font-family: var(--display);
+    font-size: 28px;
+    line-height: 1.2;
+    margin-bottom: 12px;
+    color: var(--text-1);
+  }
+  .compare-price {
+    font-family: var(--mono);
+    font-size: 14px;
+    color: var(--text-3);
+    margin-bottom: 20px;
+  }
+  .compare-body {
+    font-size: 15px;
+    color: var(--text-2);
+    line-height: 1.6;
+  }
+
+  /* Pipeline */
+  .pipeline {
+    background: rgba(11, 11, 20, 0.6);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 48px;
+    margin-top: 48px;
+  }
+  .pipeline-steps {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 24px;
+  }
+  .pipe-step { position: relative; }
+  .pipe-num {
+    font-family: var(--mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--cyan);
+    margin-bottom: 12px;
+  }
+  .pipe-name {
+    font-family: var(--display);
+    font-size: 22px;
+    line-height: 1.2;
+    color: var(--text-1);
+    margin-bottom: 10px;
+  }
+  .pipe-detail {
+    font-size: 14px;
+    color: var(--text-3);
+    line-height: 1.5;
+  }
+
+  /* Guardrails list */
+  .guardrails {
+    list-style: none;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 16px;
+    margin-top: 32px;
+  }
+  .guard {
+    padding: 20px 24px;
+    background: var(--surface-1);
+    border: 1px solid var(--border);
+    border-left: 2px solid var(--violet);
+    border-radius: 12px;
+  }
+  .guard-name {
+    font-family: var(--mono);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--violet-hi);
+    margin-bottom: 8px;
+  }
+  .guard-body {
+    font-size: 14px;
+    color: var(--text-2);
+    line-height: 1.5;
+  }
+
+  /* Pull quote */
+  .pull {
+    margin: 80px 0;
+    padding: 0 24px;
+    text-align: left;
+    border-left: 2px solid var(--violet);
+  }
+  .pull blockquote {
+    font-family: var(--display);
+    font-size: clamp(28px, 3.5vw, 40px);
+    line-height: 1.25;
+    font-style: italic;
+    color: var(--text-1);
+    margin-bottom: 16px;
+    max-width: 24ch;
+  }
+  .pull cite {
+    font-family: var(--mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--text-3);
+    font-style: normal;
+  }
+
+  /* CTA */
+  .cta-band {
+    background: var(--surface-1);
+    border: 1px solid var(--border);
+    border-radius: 24px;
+    padding: 64px 48px;
+    margin: 0 0 96px;
+    text-align: left;
+  }
+  .cta-band h3 {
+    font-family: var(--display);
+    font-size: clamp(32px, 4vw, 48px);
+    font-weight: 400;
+    line-height: 1.1;
+    margin-bottom: 20px;
+    max-width: 18ch;
+  }
+  .cta-band p {
+    font-size: 18px;
+    color: var(--text-2);
+    margin-bottom: 32px;
+    max-width: 56ch;
+  }
+  .btn {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    padding: 16px 32px;
+    border-radius: 100px;
+    text-decoration: none;
+    transition: all 0.2s;
+    cursor: pointer;
+    border: 1px solid transparent;
+  }
+  .btn-primary {
+    background: var(--text-1);
+    color: var(--void);
+  }
+  .btn-primary:hover { background: var(--text-2); }
+  .btn-secondary {
+    background: transparent;
+    color: var(--text-1);
+    border-color: var(--border-hover);
+    margin-left: 12px;
+  }
+  .btn-secondary:hover { background: rgba(139, 92, 246, 0.08); }
+
+  /* Footer */
+  footer {
+    padding: 48px 0;
+    border-top: 1px solid var(--border);
+    color: var(--text-4);
+    font-family: var(--mono);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+  footer .container { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; }
+  footer .footer-meta { display: flex; gap: 24px; }
+
+  /* divider */
+  .divider {
+    height: 1px;
+    background: var(--border);
+    margin: 0;
+  }
+</style>
+</head>
+<body>
+
+<nav class="pill">
+  <span class="brand">FlashFusion</span>
+  <span class="dot"></span>
+  <a href="#problem">Problem</a>
+  <a href="#build">Build</a>
+  <a href="#numbers">Numbers</a>
+  <a href="#method">Method</a>
+</nav>
+
+<main>
+
+<section class="hero">
+  <div class="narrow">
+    <div class="eyebrow">Case Study · Service Desk Automation</div>
+    <h1 class="display">The knowledge base that <em>writes itself.</em></h1>
+    <p class="hero-lede">A managed IT firm's institutional knowledge was walking out the door at every ticket close. The vendor's answer cost $9,600 a year. Ours costs around $4 a month. Built in one sprint. Live in production.</p>
+
+    <div class="stat-strip">
+      <div class="stat">
+        <div class="stat-label">Operating cost</div>
+        <div class="stat-value">$1–5</div>
+        <div class="stat-note">per month, at 50–100 articles</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Article generation</div>
+        <div class="stat-value">&lt;90s</div>
+        <div class="stat-note">ticket close → published draft</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Vendor alternative</div>
+        <div class="stat-value">~99%</div>
+        <div class="stat-note">cost reduction vs. tier upgrade</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<section id="problem">
+  <div class="narrow">
+    <div class="section-eyebrow">The Problem</div>
+    <h2 class="section">Institutional memory walks out at ticket close.</h2>
+    <div class="prose">
+      <p>The pattern is universal in any service desk: a senior engineer solves a hard problem, the ticket resolves, the institutional memory of how the problem was solved evaporates by the next morning. Six months later, someone else solves the same problem from scratch.</p>
+      <p>This isn't a discipline failure. It's a cost-benefit failure. <strong>The manual effort of writing a knowledge base article exceeds the perceived value for an agent under active ticket load.</strong> The recovery path — going back later to write it up — never executes, because the value of a KB article degrades the further you get from the moment of solution.</p>
+      <p>The result is operational: repeat issues triaged from scratch every occurrence, onboarding with no searchable history, escalation decisions delayed for lack of prior art, knowledge lost to attrition.</p>
+    </div>
+
+    <div class="compare">
+      <div class="compare-card wrong">
+        <span class="compare-tag">The wrong answer</span>
+        <div class="compare-title">A vendor tier upgrade</div>
+        <div class="compare-price">~$9,600–12,000 / year (5 agents, tier only)</div>
+        <div class="compare-body">The native AI feature is purpose-built for enterprise teams using the ticketing platform in full standard configuration — not the Frankenstein build most managed IT firms actually operate. Tier uplift, plus token charges on top of the subscription. Designed for a usage pattern this client doesn't follow.</div>
+      </div>
+      <div class="compare-card right">
+        <span class="compare-tag">The right answer</span>
+        <div class="compare-title">A lightweight pipeline on existing stack</div>
+        <div class="compare-price">~$1–5 / month, all-in</div>
+        <div class="compare-body">A four-step automation on tools the client already licensed. No new vendor relationships, no per-agent uplift, no data leaving their cloud. Articles drafted, reviewed, and published before the agent's coffee gets cold.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<section id="build">
+  <div class="narrow">
+    <div class="section-eyebrow">The Build</div>
+    <h2 class="section">Four steps. Inside their own cloud. No agent action required.</h2>
+    <div class="prose">
+      <p>The pipeline executes on ticket resolution. The agent does nothing — the work is captured forward from the moment of solution, not recovered backward from a later writing session.</p>
+    </div>
+
+    <div class="pipeline">
+      <div class="pipeline-steps">
+        <div class="pipe-step">
+          <div class="pipe-num">01 · Trigger</div>
+          <div class="pipe-name">Webhook fires</div>
+          <div class="pipe-detail">Ticket resolves in the service desk → webhook posts to the client's API gateway endpoint. No new infrastructure.</div>
+        </div>
+        <div class="pipe-step">
+          <div class="pipe-num">02 · Hydrate</div>
+          <div class="pipe-name">Pull full ticket</div>
+          <div class="pipe-detail">Lambda function fetches subject, agent notes, resolution text, conversation thread via REST API.</div>
+        </div>
+        <div class="pipe-step">
+          <div class="pipe-num">03 · Generate</div>
+          <div class="pipe-name">Structured article</div>
+          <div class="pipe-detail">PII redacted, sanitized, then Claude generates Problem · Symptoms · Root Cause · Resolution · Prevention.</div>
+        </div>
+        <div class="pipe-step">
+          <div class="pipe-num">04 · Publish</div>
+          <div class="pipe-name">Draft in KB</div>
+          <div class="pipe-detail">Article POSTed to the KB API. Visible to agents in 60–90 seconds. Draft status for 30 days before publish.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="prose" style="margin-top: 56px;">
+      <p>What separates this from a weekend script is the construction posture: the failure modes were designed in, not bolted on. Every guardrail below was specified before the first deploy.</p>
+    </div>
+
+    <ul class="guardrails">
+      <li class="guard">
+        <div class="guard-name">PII Redaction</div>
+        <div class="guard-body">Input text scrubbed before the LLM ever sees it. Email addresses, phone numbers, internal identifiers — stripped at the function layer.</div>
+      </li>
+      <li class="guard">
+        <div class="guard-name">Token Budget Caps</div>
+        <div class="guard-body">Daily and monthly hard caps on LLM API calls. One adversarial input cannot drain the budget.</div>
+      </li>
+      <li class="guard">
+        <div class="guard-name">30-Day Draft Gate</div>
+        <div class="guard-body">Every generated article lands in Draft status for the first month. Human review before public publish. Quality bar, not vibes.</div>
+      </li>
+      <li class="guard">
+        <div class="guard-name">Dead-Letter Queue</div>
+        <div class="guard-body">Webhook misses don't become silent data loss. Failed triggers route to a DLQ with daily audit reconciliation.</div>
+      </li>
+      <li class="guard">
+        <div class="guard-name">Idempotent Retry</div>
+        <div class="guard-body">Exponential backoff on rate limits. Same ticket retriggered does not produce duplicate articles.</div>
+      </li>
+      <li class="guard">
+        <div class="guard-name">Data Residency</div>
+        <div class="guard-body">All ticket content stays inside the client's own cloud account. Cleanest possible audit posture for SOC 2.</div>
+      </li>
+    </ul>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<section id="numbers">
+  <div class="narrow">
+    <div class="section-eyebrow">What it costs</div>
+    <h2 class="section">The numbers, with nothing rounded for marketing.</h2>
+    <div class="prose">
+      <p>This is the per-component cost, not a marketing average. Lambda sits comfortably within free tier at this ticket volume. LLM cost runs about two to five cents per article generated. KB storage is zero — articles live in the existing knowledge base, which is already paid for.</p>
+
+      <p style="font-family: var(--mono); font-size: 13px; color: var(--text-3); margin-top: 32px; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.1em;">Monthly cost breakdown (50 tickets/month)</p>
+    </div>
+
+    <div class="stat-strip" style="margin-top: 16px;">
+      <div class="stat">
+        <div class="stat-label">Compute</div>
+        <div class="stat-value">~$0</div>
+        <div class="stat-note">Lambda free tier</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">LLM</div>
+        <div class="stat-value">$1–2.50</div>
+        <div class="stat-note">~$0.02–0.05/article</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Storage</div>
+        <div class="stat-value">$0</div>
+        <div class="stat-note">existing KB</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">All-in</div>
+        <div class="stat-value">$1–5</div>
+        <div class="stat-note">per month</div>
+      </div>
+    </div>
+
+    <div class="prose" style="margin-top: 56px;">
+      <p>Build effort: four to eight hours of one engineer's time. Approval chain: service desk manager plus operations. No new vendor relationships. No new budget line. Live in one sprint.</p>
+      <p>Compared to the vendor's recommended tier upgrade (roughly $800–1,000 per month for five agents, before token charges), the operating cost reduction sits around <strong>98–99%.</strong> The savings buy back the build effort within the first ten days of production.</p>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<section>
+  <div class="narrow">
+    <div class="pull">
+      <blockquote>The recovery path never executes. The construction path captures forward, not backward.</blockquote>
+      <cite>FlashFusion · operating principle</cite>
+    </div>
+
+    <div class="section-eyebrow">What held</div>
+    <h2 class="section">This is what Construction over Recovery looks like at the service desk.</h2>
+    <div class="prose">
+      <p>The interesting question isn't whether the build worked. It worked. The interesting question is <em>why</em> the wrong answer was the default — a $9,600/year vendor upsell that nobody wanted, for a tier the firm didn't operate, with a token cost on top that nobody could predict.</p>
+      <p>The default failed because it assumed the recovery posture: ship a feature, hope teams adopt it, recover later if they don't. The build worked because it took the construction posture: anticipate where the manual process fails, design the verification in at the moment of work, never trust the path that requires someone to come back later.</p>
+      <p>This is the same posture FlashFusion brings to every engagement. The work isn't to install AI on top of broken processes. The work is to identify the recovery paths that aren't executing — the KB article that never gets written, the report that never gets read, the handoff that never gets made — and replace them with construction paths that capture the work forward, before institutional memory has a chance to evaporate.</p>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<section id="method">
+  <div class="narrow">
+    <div class="section-eyebrow">The Method</div>
+    <h2 class="section">How this gets repeated.</h2>
+    <div class="prose">
+      <p>Every FlashFusion engagement runs through the same diagnostic before code gets written: <strong>where is your team's recovery posture quietly failing?</strong> The KB problem is one variant. Onboarding documentation that lives in a senior's head is another. Compliance evidence that gets reconstructed from chat logs once a quarter is another. Customer success notes that exist only as untranscribed call recordings is another.</p>
+      <p>The audit names the failing recovery paths. The build replaces them, one at a time, with construction paths sized to the actual operational reality. No vendor lock-in. No tier upgrades. No verification debt accumulating in the background. Just what holds.</p>
+    </div>
+
+    <div class="cta-band" style="margin-top: 64px;">
+      <h3>Find the recovery path that's quietly failing in your operation.</h3>
+      <p>A FlashFusion AI Setup Audit identifies where the manual catch-up work is silently exceeding the time saved by automation — and what to build instead. Fixed scope. Production-ready output.</p>
+      <a href="https://audit.flashfusion.co" class="btn btn-primary">Book the audit ↗</a>
+      <a href="#problem" class="btn btn-secondary">Read again</a>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="container">
+    <div>FlashFusion · Case Study v1 · May 2026</div>
+    <div class="footer-meta">
+      <span>Built on existing stack</span>
+      <span>Anonymized at client request</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

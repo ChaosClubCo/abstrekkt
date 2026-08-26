@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vibe Coding Playbook: AppSec-First AI Development — Kyle Rosebrook</title>
+<meta name="description" content="The security playbook for AI-assisted development: failure-mode modeling, architecture-first prompting, a 7-question adversarial review, and structural quality gates. Written from production audits, not theory.">
+<link rel="canonical" href="https://kyle.abstrekkt.com/playbook">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Vibe Coding Playbook: AppSec-First AI Development">
+<meta property="og:description" content="Ship AI-assisted code without shipping its failure modes. Four disciplines, one adversarial prompt, one trust matrix — from real production audits.">
+<meta property="og:url" content="https://kyle.abstrekkt.com/playbook">
+<meta name="author" content="Kyle Rosebrook">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,400&family=Crimson+Pro:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #101216;
+    --surface: #16181d;
+    --surface-2: #1c1f25;
+    --border: rgba(242,239,231,0.09);
+    --border-strong: rgba(242,239,231,0.16);
+    --paper: #f2efe7;
+    --paper-dim: #a9a599;
+    --paper-faint: #6b675c;
+    --ember: #cf5a32;
+    --ember-bright: #de7449;
+    --ember-dim: rgba(207,90,50,0.14);
+    --radius: 4px;
+    --font-display: 'Fraunces', Georgia, serif;
+    --font-body: 'Crimson Pro', Georgia, serif;
+    --font-mono: 'JetBrains Mono', 'Courier New', monospace;
+  }
+  *, *::before, *::after { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--ink);
+    color: var(--paper);
+    font-family: var(--font-body);
+    font-size: 1.08rem;
+    line-height: 1.75;
+    margin: 0;
+    -webkit-font-smoothing: antialiased;
+  }
+  .page { max-width: 720px; margin: 0 auto; padding: 56px 24px 96px; }
+
+  /* Masthead */
+  .masthead {
+    display: flex; align-items: baseline; justify-content: space-between;
+    padding-bottom: 20px; margin-bottom: 56px;
+    border-bottom: 1px solid var(--border);
+  }
+  .masthead a { text-decoration: none; }
+  .wordmark {
+    font-family: var(--font-mono); font-size: 12px;
+    letter-spacing: 0.18em; text-transform: uppercase;
+    color: var(--paper-dim);
+  }
+  .wordmark b { color: var(--ember-bright); font-weight: 500; }
+  .masthead-tag {
+    font-family: var(--font-mono); font-size: 11px;
+    color: var(--paper-faint); letter-spacing: 0.06em;
+  }
+
+  /* Header */
+  .kicker {
+    font-family: var(--font-mono); font-size: 11px;
+    letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--ember-bright); margin-bottom: 16px;
+  }
+  h1 {
+    font-family: var(--font-display);
+    font-size: clamp(2rem, 5.5vw, 2.9rem);
+    font-weight: 700; line-height: 1.12;
+    color: var(--paper); margin: 0 0 14px;
+    letter-spacing: -0.01em;
+  }
+  .byline {
+    font-family: var(--font-mono); font-size: 12px;
+    color: var(--paper-faint); letter-spacing: 0.05em;
+    display: flex; gap: 14px; flex-wrap: wrap;
+    margin-bottom: 40px;
+  }
+  .byline span::after { content: "·"; margin-left: 14px; color: var(--border-strong); }
+  .byline span:last-child::after { content: ""; }
+
+  .lede {
+    font-size: 1.16rem; color: var(--paper-dim);
+    border-left: 2px solid var(--ember);
+    padding-left: 22px; margin-bottom: 48px;
+  }
+  .lede p { margin: 0 0 18px; }
+  .lede p:last-child { margin-bottom: 0; }
+  .lede strong { color: var(--paper); }
+
+  /* Sections */
+  h2 {
+    font-family: var(--font-display);
+    font-size: 1.5rem; font-weight: 600;
+    color: var(--paper); margin: 64px 0 8px;
+    line-height: 1.25;
+  }
+  .tip-num {
+    font-family: var(--font-mono); font-size: 11px;
+    color: var(--ember-bright); letter-spacing: 0.14em;
+    text-transform: uppercase; display: block; margin-bottom: 8px;
+  }
+  p { margin: 0 0 20px; }
+  strong { color: var(--paper); font-weight: 600; }
+  em { font-style: italic; }
+  a { color: var(--ember-bright); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  blockquote {
+    font-family: var(--font-display);
+    font-size: 1.14rem; font-style: italic; font-weight: 400;
+    color: var(--paper-dim); line-height: 1.55;
+    border-left: 2px solid var(--ember);
+    margin: 26px 0 30px; padding: 2px 0 2px 22px;
+  }
+
+  .case {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 2px solid var(--ember);
+    border-radius: var(--radius);
+    padding: 20px 24px; margin: 28px 0;
+    font-size: 1rem;
+  }
+  .case-label {
+    font-family: var(--font-mono); font-size: 10px;
+    letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--ember-bright); display: block; margin-bottom: 8px;
+  }
+  .case p { margin-bottom: 12px; color: var(--paper-dim); }
+  .case p:last-child { margin-bottom: 0; }
+  .case strong { color: var(--paper); }
+
+  ul { padding-left: 22px; margin: 0 0 20px; }
+  li { margin-bottom: 10px; }
+  li strong { color: var(--paper); }
+
+  code {
+    font-family: var(--font-mono); font-size: 0.82em;
+    background: var(--surface-2); color: var(--ember-bright);
+    padding: 0.12em 0.4em; border-radius: var(--radius);
+  }
+
+  /* Prompt block with copy */
+  .prompt-block { position: relative; margin: 28px 0; }
+  .prompt-block pre {
+    background: var(--surface-2);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius);
+    padding: 22px 22px 20px;
+    overflow-x: auto;
+    font-family: var(--font-mono);
+    font-size: 0.78rem; line-height: 1.65;
+    color: var(--paper-dim); margin: 0;
+  }
+  .copy-btn {
+    position: absolute; top: 10px; right: 10px;
+    font-family: var(--font-mono); font-size: 10px;
+    letter-spacing: 0.08em; text-transform: uppercase;
+    background: var(--ink); color: var(--paper-dim);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius);
+    padding: 5px 10px; cursor: pointer;
+    transition: color .15s, border-color .15s;
+  }
+  .copy-btn:hover { color: var(--ember-bright); border-color: var(--ember); }
+  .copy-btn.done { color: var(--ember-bright); border-color: var(--ember); }
+
+  /* Trust matrix */
+  .matrix-wrap { overflow-x: auto; margin: 28px 0; }
+  table {
+    width: 100%; border-collapse: collapse;
+    font-size: 0.94rem; min-width: 520px;
+  }
+  thead th {
+    font-family: var(--font-mono); font-size: 10px;
+    letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--paper-faint); text-align: left;
+    padding: 10px 14px; border-bottom: 1px solid var(--border-strong);
+  }
+  tbody td {
+    padding: 12px 14px; border-bottom: 1px solid var(--border);
+    vertical-align: top; color: var(--paper-dim);
+  }
+  tbody td:first-child { color: var(--paper); }
+  .trust {
+    font-family: var(--font-mono); font-size: 11px;
+    letter-spacing: 0.06em; white-space: nowrap;
+    padding: 2px 8px; border-radius: var(--radius);
+  }
+  .trust-never  { background: rgba(207,90,50,0.18); color: var(--ember-bright); }
+  .trust-low    { background: rgba(207,90,50,0.10); color: #d99e6b; }
+  .trust-med    { background: rgba(242,239,231,0.07); color: var(--paper-dim); }
+  .trust-high   { background: rgba(242,239,231,0.05); color: var(--paper-faint); }
+
+  .closing {
+    margin-top: 64px; padding-top: 32px;
+    border-top: 1px solid var(--border);
+  }
+  .closing p:first-child { font-size: 1.12rem; color: var(--paper-dim); }
+
+  footer {
+    margin-top: 72px; padding-top: 24px;
+    border-top: 1px solid var(--border);
+    display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px;
+    font-family: var(--font-mono); font-size: 11px;
+    color: var(--paper-faint); letter-spacing: 0.05em;
+  }
+
+  @media print {
+    body { background: #fff; color: #16181d; }
+    .copy-btn { display: none; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+<header class="masthead">
+  <a href="/"><span class="wordmark"><b>ABSTREKKT</b> · KYLE ROSEBROOK</span></a>
+  <span class="masthead-tag">playbook</span>
+</header>
+
+<div class="kicker">Playbook · AI-Assisted Development</div>
+<h1>Vibe Coding Playbook: AppSec-First AI Development</h1>
+<div class="byline">
+  <span>Kyle Rosebrook</span>
+  <span>Self-taught AI practitioner</span>
+  <span>First written March 2026 · maintained</span>
+</div>
+
+<div class="lede">
+  <p>I did not come up through a traditional CS path. I came from hospitality and retail management, which means I learned systems thinking from a different angle: how failure modes in a service environment propagate, how trust between components breaks down under load, how the gap between "works in the demo" and "works at 2am when no one is watching" is almost entirely a function of how seriously you modeled failure before you shipped.</p>
+  <p>That framing transfers directly to vibe coding. The tools are fast. The outputs are often good enough to look right. The failure modes are subtle — they surface at security boundaries, in multi-tenant data access patterns, and in edge cases that weren't covered by the prompt that generated the code.</p>
+  <p>This playbook is what I apply to every AI-assisted system I build. It assumes you know how to code. <strong>It's about knowing how to code with AI without introducing the classes of problems that get caught in prod instead of review.</strong></p>
+</div>
+
+<span class="tip-num">Tip 01</span>
+<h2>Model Failure Modes Before You Prompt</h2>
+
+<blockquote>"Confident output and correct output are independent variables. At security boundaries they're often inversely correlated."</blockquote>
+
+<p>AI code generation fails in patterned ways. These aren't random bugs — they're structural gaps you can model before you start:</p>
+
+<p><strong>Implicit permission assumptions.</strong> AI defaults to "authenticated = authorized." It will generate code that checks for a valid session token and assumes that's sufficient. Row-level authorization, tenant isolation, and role-scoped access are not implicit. You have to require them explicitly.</p>
+
+<p><strong>Context window contamination.</strong> In long sessions, early assumptions bleed into later outputs. The auth model you described in turn three will silently inform the data access pattern generated in turn fourteen. Validate late-session outputs against your actual architecture, not the session history.</p>
+
+<p><strong>Confident wrongness at interfaces.</strong> AI is most dangerous at API boundaries, database queries, and auth handlers — exactly where errors have the highest blast radius. It will generate syntactically valid, logically confident, and subtly wrong code for edge cases it wasn't trained on.</p>
+
+<p><strong>Missing validation on untrusted input.</strong> Default behavior treats function arguments as clean. If the input originates from user-controlled sources, you're responsible for adding sanitization, type enforcement, and bounds checking. The AI won't add it unless you explicitly require it.</p>
+
+<div class="case">
+  <span class="case-label">What this looked like in practice</span>
+  <p>I ran a security audit on a Supabase project. The <code>invite_codes</code> and <code>api_keys</code> tables had no Row Level Security policies. They existed, they worked, they passed functional tests. But any authenticated user could query any row. The AI that generated the initial schema had no way to know the multi-tenant requirements — it built what multi-tenant schemas generally look like. <strong>General is not the same as correct for your system.</strong></p>
+</div>
+
+<div class="case">
+  <span class="case-label">The same failure mode, at scale</span>
+  <p>On January 31, 2026, Moltbook exposed 1.5 million API authentication tokens and 35,000 email addresses. Root cause: a Supabase database with Row Level Security disabled — the exact gap described above, shipped to production. Wiz Security found it within minutes of examining the client-side bundle. The founder's response: "I didn't write a single line of code." <strong>The tables existed, they worked, they passed functional tests — the same sentence applies here as it did to the audit above, just at a scale that made the news.</strong></p>
+</div>
+
+<span class="tip-num">Tip 02</span>
+<h2>Architecture-First Is Non-Negotiable</h2>
+
+<blockquote>"Features built without a modeled architecture are technical debt with a polished UI. AI accelerates the rate at which you can accumulate that debt."</blockquote>
+
+<p>Before you prompt for any feature, system, or component, the following must be modeled explicitly. Not implied. Not assumed. Written down where you can reference them in the session:</p>
+
+<ul>
+  <li><strong>System boundaries:</strong> What is inside this system and what is outside it? Where does trust change?</li>
+  <li><strong>Data flows:</strong> Where does data enter, what transforms it, where does it persist, who can read it?</li>
+  <li><strong>State transitions:</strong> What are the valid states of each entity? What triggers each transition? What's invalid?</li>
+  <li><strong>Auth model:</strong> Authentication mechanism, session lifecycle, authorization model (RBAC/ABAC/tenant-scoped), token storage, revocation.</li>
+  <li><strong>Failure modes:</strong> What happens when each dependency is unavailable?</li>
+  <li><strong>Abuse vectors:</strong> Who are the adversarial actors? What do they gain by breaking each component? What's the blast radius?</li>
+</ul>
+
+<p><strong>The meta-prompt pattern I use:</strong> I enforce this via a structured prompt protocol with an explicit <code>SCOPE_MODE</code> parameter:</p>
+
+<ul>
+  <li><code>SCOPE_MODE: LITE</code> — spec + constraints only</li>
+  <li><code>SCOPE_MODE: STANDARD</code> — spec + arch + implementation plan</li>
+  <li><code>SCOPE_MODE: FULL</code> — complete implementation with tests, security notes, and observability hooks</li>
+</ul>
+
+<p>The model doesn't move to code until the architecture is stated. This is the single highest-leverage habit for preventing AI-generated technical debt.</p>
+
+<div class="case">
+  <span class="case-label">What skipping this actually costs</span>
+  <p>I ran an end-to-end HTTP audit on a production domain. What it found without architecture-first development:</p>
+  <p><strong>Missing HSTS header</strong> — allows protocol downgrade attacks. Not caught in functional testing.<br>
+  <strong>No Content Security Policy</strong> — XSS surface left open. AI-generated HTML templates don't add CSP by default.<br>
+  <strong>No rate limiting on auth endpoints</strong> — brute force surface fully open. Auth logic generated correctly; protection layer never added because it wasn't in the prompt.<br>
+  <strong>Null byte injection accepted</strong> — input handling generated without considering non-printable characters in path parameters.</p>
+  <p>None of these were bugs in the code. They were gaps in the architecture that was never written down before the code was generated.</p>
+</div>
+
+<span class="tip-num">Tip 03</span>
+<h2>Security Prompting Is a Discipline, Not a Checkbox</h2>
+
+<blockquote>"The model will answer questions you ask. It will not ask the questions you didn't think of. Your job is to have a standing list of questions that covers the failure modes you've seen."</blockquote>
+
+<p>After generating any security-relevant code — auth handlers, data access layers, API endpoints, input processing — run this prompt verbatim:</p>
+
+<div class="prompt-block">
+  <button class="copy-btn" id="copyBtn" aria-label="Copy the adversarial review prompt">Copy</button>
+<pre id="promptText">Adversarial security review. For the code above, answer each question:
+
+1. UNTRUSTED INPUT: Which function parameters could carry
+   user-controlled data? Is each one validated before use?
+
+2. SQL / QUERY CONSTRUCTION: Is any query assembled via
+   string concatenation? If so, where and with what input?
+
+3. CONCURRENCY: Are there race conditions possible under
+   concurrent requests? Identify any shared mutable state.
+
+4. DATA EXPOSURE: What data does this return or log?
+   Is any of it sensitive? Is it scoped to the requesting
+   user or tenant?
+
+5. FAIL BEHAVIOR: Does this fail open or fail closed?
+   What is the default behavior on error?
+
+6. IMPLICIT PERMISSIONS: Does this code assume that
+   authentication implies authorization? Where?
+
+7. MISSING VALIDATION: What inputs, states, or edge cases
+   are not covered by explicit validation?</pre>
+</div>
+
+<p>This is not a comprehensive security review. It is the minimum viable adversarial pass for code that touches auth, data access, or user input.</p>
+
+<div class="case">
+  <span class="case-label">RLS violation caught by this pattern</span>
+  <p>During a code review cycle, I ran this prompt on a data access function that had passed functional tests. Question 6 flagged that the query was scoped to authenticated users generally — not to the requesting user's tenant. The Supabase RLS policy existed on the table but was not enforced at the application layer. <strong>Both layers need to hold. The AI had generated one.</strong></p>
+</div>
+
+<span class="tip-num">Tip 04</span>
+<h2>Incremental Review Must Be Structural, Not Personal</h2>
+
+<blockquote>"Code review discipline degrades under velocity pressure. The solution is not better intentions. It is gates that don't close until requirements are met."</blockquote>
+
+<p>Personal discipline is not a reliable security control. These are structural gates that enforce review before progression — independent of how fast the sprint is moving:</p>
+
+<ul>
+  <li><strong>CI smoke step</strong> — runs on every commit, fails fast on linting, type errors, and basic security patterns (hardcoded secrets, unsafe eval, missing env var guards). No merge without green CI.</li>
+  <li><strong>CODEOWNERS enforcement</strong> — security-sensitive paths (auth, data access, API boundaries, RLS policies) require review from a designated owner. Not just "a reviewer." The right reviewer.</li>
+  <li><strong>RLS policy review requirement</strong> — any migration touching a table with user or tenant data requires explicit RLS policy review before merge. Separate checklist item, not implied by code review.</li>
+  <li><strong>Test gate</strong> — tests written alongside the feature, not after. AI-generated code ships with AI-assisted tests, both reviewed before merge. The project I'm most actively maintaining has 529+ unit tests and Playwright E2E coverage.</li>
+  <li><strong>Staged deployment with smoke verification</strong> — no production deploy without a post-deploy smoke step. Failures trigger automatic rollback.</li>
+</ul>
+
+<p>The reason engineers skip review steps under pressure is that the steps are perceived as friction. The reframe that works: these are not review steps, they are the definition of done. Code that hasn't passed the gates isn't ready. It isn't a judgment call. It's a state.</p>
+
+<h2>AI Trust Calibration Matrix</h2>
+
+<p>Not all AI-generated output carries the same risk. Calibrate review depth to the actual blast radius.</p>
+
+<div class="matrix-wrap">
+<table>
+  <thead>
+    <tr><th>Output type</th><th>Trust level</th><th>Required review action</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Auth handlers / session logic</td><td><span class="trust trust-never">Never trust</span></td><td>Full adversarial review + CODEOWNERS sign-off</td></tr>
+    <tr><td>Data access / RLS-adjacent queries</td><td><span class="trust trust-low">Low trust</span></td><td>RLS policy review + tenant scope verification</td></tr>
+    <tr><td>API endpoints / input handling</td><td><span class="trust trust-low">Low trust</span></td><td>Input validation + 7-question adversarial pass</td></tr>
+    <tr><td>Business logic / algorithms</td><td><span class="trust trust-med">Medium trust</span></td><td>Unit test coverage + edge case review</td></tr>
+    <tr><td>UI components / boilerplate</td><td><span class="trust trust-high">Higher trust</span></td><td>Standard code review, no special protocol</td></tr>
+  </tbody>
+</table>
+</div>
+
+<div class="closing">
+  <p>The tools are fast. The failure modes are not obvious. The security gaps I've found in AI-generated production code were not caused by bad engineering — they were caused by engineers who trusted confident output without modeling the failure modes first.</p>
+  <p><strong>Architecture-first. Adversarial review on security surfaces. Structural gates that enforce quality independent of velocity pressure.</strong> These are not restrictions on how you use AI. They are the conditions under which AI actually accelerates safe production output.</p>
+</div>
+
+<footer>
+  <span>Kyle Rosebrook · <a href="/">kyle.abstrekkt.com</a></span>
+  <span>© 2026 Abstrekkt LLC</span>
+</footer>
+
+</div>
+
+<script>
+(function () {
+  var btn = document.getElementById('copyBtn');
+  var src = document.getElementById('promptText');
+  if (!btn || !src) return;
+  btn.addEventListener('click', function () {
+    var text = src.textContent;
+    function done(ok) {
+      btn.textContent = ok ? 'Copied' : 'Select + copy';
+      btn.classList.toggle('done', ok);
+      setTimeout(function () { btn.textContent = 'Copy'; btn.classList.remove('done'); }, 2000);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { done(true); }, function () { done(false); });
+    } else {
+      try {
+        var r = document.createRange(); r.selectNodeContents(src);
+        var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+        done(document.execCommand('copy'));
+        s.removeAllRanges();
+      } catch (e) { done(false); }
+    }
+  });
+})();
+</script>
+</body>
+</html>

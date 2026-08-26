@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prompting Frameworks</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.47.0/tabler-icons.min.css">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #ffffff; --bg2: #f6f5f3; --bg3: #f0ede9;
+    --text: #1a1a18; --text2: #6b6a67; --text3: #9b9994;
+    --border: rgba(0,0,0,0.1); --border2: rgba(0,0,0,0.15);
+    --radius: 8px; --radius-lg: 12px;
+    --blue-bg: #E6F1FB; --blue-text: #0C447C;
+    --purple-bg: #EEEDFE; --purple-text: #3C3489;
+    --green-bg: #EAF3DE; --green-text: #27500A;
+    --danger: #A32D2D; --info: #185FA5;
+    --font: system-ui, -apple-system, sans-serif;
+    --mono: 'JetBrains Mono', 'Fira Code', monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1a1a18; --bg2: #222220; --bg3: #2a2a28;
+      --text: #f0ede9; --text2: #9b9994; --text3: #6b6a67;
+      --border: rgba(255,255,255,0.1); --border2: rgba(255,255,255,0.18);
+      --blue-bg: #042C53; --blue-text: #B5D4F4;
+      --purple-bg: #26215C; --purple-text: #CECBF6;
+      --green-bg: #173404; --green-text: #C0DD97;
+    }
+  }
+  body { font-family: var(--font); font-size: 15px; color: var(--text); background: var(--bg); padding: 24px; line-height: 1.6; max-width: 900px; margin: 0 auto; }
+  h1 { font-size: 20px; font-weight: 500; margin-bottom: 4px; }
+  .subtitle { font-size: 13px; color: var(--text2); margin-bottom: 24px; }
+  .layout { display: grid; grid-template-columns: 210px minmax(0, 1fr); gap: 16px; align-items: start; }
+  .sidebar { display: flex; flex-direction: column; gap: 3px; position: sticky; top: 24px; }
+  .fw-btn {
+    display: flex; align-items: center; gap: 8px; padding: 8px 10px;
+    border-radius: var(--radius); border: 0.5px solid transparent;
+    background: transparent; cursor: pointer; text-align: left; width: 100%;
+    font-size: 13px; color: var(--text2); font-family: var(--font);
+  }
+  .fw-btn:hover { background: var(--bg2); color: var(--text); }
+  .fw-btn.active { background: var(--bg2); border-color: var(--border2); color: var(--text); font-weight: 500; }
+  .fw-tag { font-size: 10px; padding: 2px 6px; border-radius: 4px; font-weight: 500; margin-left: auto; flex-shrink: 0; }
+  .tag-core { background: var(--blue-bg); color: var(--blue-text); }
+  .tag-advanced { background: var(--purple-bg); color: var(--purple-text); }
+  .tag-claude { background: var(--green-bg); color: var(--green-text); }
+  .detail { background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 20px; }
+  .detail-title { font-size: 16px; font-weight: 500; margin-bottom: 3px; }
+  .detail-sub { font-size: 13px; color: var(--text2); margin-bottom: 12px; }
+  .pill-row { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 16px; }
+  .pill { font-size: 11px; padding: 3px 8px; border-radius: 100px; border: 0.5px solid var(--border2); color: var(--text2); background: var(--bg2); }
+  .sec-label { font-size: 11px; font-weight: 500; color: var(--text3); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; margin-top: 14px; }
+  .use-text { font-size: 13px; line-height: 1.65; }
+  .avoid-text { font-size: 13px; line-height: 1.65; color: var(--text2); }
+  pre.tpl {
+    background: var(--bg2); border: 0.5px solid var(--border); border-radius: var(--radius);
+    padding: 12px 14px; font-family: var(--mono); font-size: 11.5px; line-height: 1.7;
+    white-space: pre-wrap; word-break: break-word; color: var(--text); margin-top: 6px;
+  }
+  button.try {
+    margin-top: 14px; width: 100%; padding: 9px 14px; border-radius: var(--radius);
+    border: 0.5px solid var(--border2); background: transparent; cursor: pointer;
+    font-size: 13px; font-weight: 500; color: var(--text); font-family: var(--font);
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+  }
+  button.try:hover { background: var(--bg2); }
+  button.try:disabled { opacity: 0.45; cursor: not-allowed; }
+  .out-zone { margin-top: 14px; border-top: 0.5px solid var(--border); padding-top: 14px; }
+  .out-label { font-size: 11px; font-weight: 500; color: var(--text3); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 8px; }
+  .out-text { font-size: 13px; line-height: 1.7; white-space: pre-wrap; word-break: break-word; }
+  .out-prompt { font-family: var(--mono); font-size: 11.5px; line-height: 1.65; background: var(--bg3); border-radius: var(--radius); padding: 10px 12px; color: var(--text2); white-space: pre-wrap; word-break: break-word; margin-bottom: 12px; }
+  .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid var(--border2); border-top-color: var(--text2); border-radius: 50%; animation: spin 0.7s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .src { font-size: 11px; color: var(--text3); margin-top: 14px; padding-top: 12px; border-top: 0.5px solid var(--border); }
+  .src a { color: var(--info); text-decoration: none; }
+  .src a:hover { text-decoration: underline; }
+  .err { color: var(--danger); }
+</style>
+</head>
+<body>
+
+<h1>Prompting frameworks</h1>
+<p class="subtitle">Current best practices — grounded from Anthropic docs &amp; 2025/26 research. Select a technique, fire a live example.</p>
+
+<div class="layout">
+  <nav class="sidebar" id="sidebar"></nav>
+  <div class="detail" id="detail">
+    <p style="color:var(--text2);font-size:13px;">Select a framework →</p>
+  </div>
+</div>
+
+<script>
+const FW = [
+  {
+    id:"xml", name:"XML structuring", tag:"claude", tagLabel:"Claude-native",
+    sub:"Turn prompts into typed contracts with labeled compartments",
+    useWhen:"Your prompt mixes instructions, context, examples, and variable inputs. Any time the model might confuse examples for instructions. Multi-document inputs. Production prompts that need consistency across runs.",
+    avoidWhen:"Simple single-intent questions where content boundaries are obvious.",
+    tpl:`<instructions>\n  Classify the sentiment. Return only: positive, negative, or neutral.\n</instructions>\n\n<examples>\n  <example>\n    <input>Great product, fast shipping.</input>\n    <output>positive</output>\n  </example>\n  <example>\n    <input>Arrived broken, no refund.</input>\n    <output>negative</output>\n  </example>\n</examples>\n\n<input>{{USER_REVIEW}}</input>`,
+    demo:`<instructions>\nClassify the sentiment of the review below.\nReturn only: positive, negative, or neutral.\n</instructions>\n\n<examples>\n  <example>\n    <input>Great product, fast shipping.</input>\n    <output>positive</output>\n  </example>\n  <example>\n    <input>Arrived broken, no refund.</input>\n    <output>negative</output>\n  </example>\n</examples>\n\n<input>The packaging was fine but the product stopped working after two days. Customer support was actually helpful though.</input>`,
+    tags:["Claude-specific","production reliability","structured output"],
+    src:"https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices",
+    srcLabel:"Anthropic API docs"
+  },
+  {
+    id:"cot", name:"Chain-of-thought", tag:"core", tagLabel:"Core",
+    sub:"Force intermediate reasoning steps before the final answer",
+    useWhen:"Math, logic, multi-step analysis, debugging, legal reasoning — any task where the path matters as much as the destination. Greatest gains on hard problems.",
+    avoidWhen:"Simple fact lookups. Latency-sensitive production paths. Classification tasks where you only want the label.",
+    tpl:`Problem: {{PROBLEM}}\n\nThink through this step by step before giving your final answer.\nShow reasoning, then state the answer clearly at the end.`,
+    demo:`A store sells apples for $0.75 and oranges for $1.20. Maria buys 6 apples and some oranges. Her total bill is $9.90. How many oranges did she buy?\n\nThink through this step by step before giving your final answer.`,
+    tags:["reasoning","math","logic","debugging"],
+    src:"https://www.promptingguide.ai/techniques/cot",
+    srcLabel:"Prompting Guide"
+  },
+  {
+    id:"fewshot", name:"Few-shot examples", tag:"core", tagLabel:"Core",
+    sub:"Show 3–8 input/output pairs to lock in the pattern you want",
+    useWhen:"Output format matters. Custom classification categories. Tone or style matching. When zero-shot keeps drifting. Research shows 8 well-chosen examples can beat fine-tuning on some benchmarks.",
+    avoidWhen:"When you don't have high-quality examples — bad examples hurt more than none. Reasoning tasks where you want the model to figure out the approach.",
+    tpl:`Input: {{EXAMPLE_1_INPUT}}\nOutput: {{EXAMPLE_1_OUTPUT}}\n\nInput: {{EXAMPLE_2_INPUT}}\nOutput: {{EXAMPLE_2_OUTPUT}}\n\nInput: {{EXAMPLE_3_INPUT}}\nOutput: {{EXAMPLE_3_OUTPUT}}\n\n---\n\nInput: {{USER_INPUT}}\nOutput:`,
+    demo:`Rewrite each sentence in plain English (8th-grade reading level), keeping the meaning.\n\nInput: The implementation of fiscal austerity measures precipitated widespread economic contraction.\nOutput: Cutting government spending caused the economy to shrink.\n\nInput: Participants demonstrated a statistically significant improvement in cognitive function.\nOutput: People's thinking got measurably better.\n\nInput: The organization underwent a comprehensive restructuring to optimize operational efficiency.\nOutput: The company reorganized to work more efficiently.\n\n---\n\nInput: The longitudinal study yielded inconclusive results regarding the efficacy of pharmacological interventions for the target demographic.\nOutput:`,
+    tags:["formatting","classification","style matching"],
+    src:"https://www.programming-helper.com/tech/prompt-engineering-2026-essential-skill-ai-powered-development",
+    srcLabel:"Programming Helper, 2026"
+  },
+  {
+    id:"rtf", name:"RTF framework", tag:"core", tagLabel:"Core",
+    sub:"Role → Task → Format — the minimal structure that works everywhere",
+    useWhen:"Drafting prompts fast. One-shot utility prompts. System prompts for agents. Any time you need reliable output shape without a full XML schema.",
+    avoidWhen:"Complex multi-step workflows where you need more than three levers.",
+    tpl:`Role: You are a {{ROLE}}.\n\nTask: {{TASK_DESCRIPTION}}\n\nFormat: {{OUTPUT_FORMAT_REQUIREMENTS}}`,
+    demo:`Role: You are a senior security engineer doing a code review.\n\nTask: Review the following Python function for security vulnerabilities. Be direct and specific.\n\ndef get_user(username):\n    query = f"SELECT * FROM users WHERE username = '{username}'"\n    return db.execute(query)\n\nFormat: List each vulnerability as: [SEVERITY] Description — one-line fix. No preamble.`,
+    tags:["system prompts","agents","fast drafting"],
+    src:"https://pasqualepillitteri.it/en/news/1090/prompt-engineering-2026-frameworks-complete-guide",
+    srcLabel:"Pillitteri, April 2026"
+  },
+  {
+    id:"selfconsistency", name:"Self-consistency", tag:"advanced", tagLabel:"Advanced",
+    sub:"Generate multiple reasoning paths, pick the majority answer",
+    useWhen:"High-stakes answers where correctness > latency. Math and science. Medical or legal reasoning. Any task where a single CoT path might go wrong. Can improve accuracy 10–15% on hard benchmarks.",
+    avoidWhen:"Latency-critical systems (requires multiple calls). Tasks with no natural majority answer — creative writing, open-ended generation.",
+    tpl:`Solve the problem three times using different approaches.\nAt the end, state which answer appears most often.\n\nProblem: {{PROBLEM}}\n\nAttempt 1 (approach: {{A1}}):\nAttempt 2 (approach: {{A2}}):\nAttempt 3 (approach: {{A3}}):\n\nFinal answer (majority):`,
+    demo:`Solve the following problem three times using different approaches. At the end, state which answer appears most often.\n\nProblem: If you flip a fair coin 3 times, what is the probability of getting exactly 2 heads?\n\nAttempt 1 (list all outcomes):\nAttempt 2 (binomial formula):\nAttempt 3 (probability tree):\n\nFinal answer (majority):`,
+    tags:["accuracy","reasoning","reliability","multi-path"],
+    src:"https://www.adaline.ai/blog/chain-of-thought-prompting-in-2025",
+    srcLabel:"Adaline, 2026"
+  },
+  {
+    id:"ctxplacement", name:"Context placement", tag:"claude", tagLabel:"Claude-native",
+    sub:"Long content goes first — above queries and instructions",
+    useWhen:"Any prompt with documents, transcripts, or reference material over a few hundred tokens. Frontier models attend better to content placed early.",
+    avoidWhen:"Short prompts where placement doesn't matter. Purely instructional system prompts.",
+    tpl:`<document index="1">\n<source>{{SOURCE_NAME}}</source>\n<document_content>\n{{LONG_DOCUMENT}}\n</document_content>\n</document>\n\n---\n\nBased on the document above, {{TASK}}`,
+    demo:`<document index="1">\n<source>Q2 engineering retrospective</source>\n<document_content>\nSprint velocity dropped 30% in Q2 due to: unexpected scope creep on the auth migration (3 extra weeks), two senior engineers on extended leave, and a late compliance requirement forcing a DB schema change. Morale dipped in week 8. PR review times stretched from 1 day to 4 days. On the positive side, the new on-call rotation reduced incident response time by 40%.\n</document_content>\n</document>\n\n---\n\nWrite a 3-bullet executive summary: main risks and one win. Direct, no padding.`,
+    tags:["long context","documents","RAG","Claude-specific"],
+    src:"https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices",
+    srcLabel:"Anthropic API docs"
+  },
+  {
+    id:"negative", name:"Negative examples", tag:"advanced", tagLabel:"Advanced",
+    sub:"Show what NOT to produce alongside what you want",
+    useWhen:"The model keeps drifting toward a specific wrong pattern. You want to break a default behavior (over-hedging, padding, added caveats). Combined with few-shot, often more efficient than more positive examples.",
+    avoidWhen:"Simple tasks where positive examples are sufficient.",
+    tpl:`DO produce:\n{{POSITIVE_EXAMPLE_1}}\n{{POSITIVE_EXAMPLE_2}}\n\nDO NOT produce:\n{{NEGATIVE_EXAMPLE_1}} — because {{REASON_1}}\n{{NEGATIVE_EXAMPLE_2}} — because {{REASON_2}}\n\nNow apply to: {{USER_INPUT}}`,
+    demo:`Rewrite this description concisely.\n\nDO produce:\n"Validates user input against a schema and returns errors."\n"Retries failed requests up to 3 times with exponential backoff."\n\nDO NOT produce:\n"This function is designed to help users by validating their input data against a predefined schema, and will return any errors found during the validation process." — because it's padded\n"It's worth noting that this may retry requests." — because hedge phrases weaken precision\n\nNow rewrite this:\n"The purpose of this module is to provide functionality that allows developers to handle the process of authenticating users by checking their credentials against the stored values in the database and then returning an appropriate response based on whether the authentication was successful or not."`,
+    tags:["quality control","anti-patterns","refinement"],
+    src:"https://www.lakera.ai/blog/prompt-engineering-guide",
+    srcLabel:"Lakera Guide"
+  },
+  {
+    id:"prefill", name:"Response prefilling", tag:"claude", tagLabel:"Claude-native",
+    sub:"Start the assistant turn to lock output format from the first token",
+    useWhen:"You need JSON with no preamble. Force a specific markdown structure. Skip the 'Certainly!' opener. Extremely effective for API production use.",
+    avoidWhen:"Conversational use cases where the opening matters. When you haven't tested the prefill — wrong prefills can constrain the model badly.",
+    tpl:`User: [message]\n\n[API call includes assistant prefill:]\nassistant: [\n  {`,
+    demo:`Extract the following fields from this support ticket as JSON: customer_name, issue_category, urgency (low/medium/high), one_line_summary.\n\nTicket: 'Hi, I'm Sarah Chen and I've been trying to access my account for two days. I have a product demo with a major client tomorrow morning and I absolutely cannot get in. I've tried resetting my password three times. This is really urgent.'\n\nRespond with only valid JSON. No explanation, no markdown fences. Start your response with the opening brace.`,
+    tags:["JSON output","structured output","API production"],
+    src:"https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices",
+    srcLabel:"Anthropic API docs"
+  },
+  {
+    id:"selfrefinement", name:"Self-refinement", tag:"advanced", tagLabel:"Advanced",
+    sub:"Model critiques its own output then revises — one prompt, two passes",
+    useWhen:"Writing quality, code review, argument construction, any task where a first draft is predictably improvable. Often delivers better results than a more detailed initial prompt. High ROI — one extra instruction, measurable output lift.",
+    avoidWhen:"Tasks where the model's self-critique is as unreliable as its first pass (e.g. factual recall). Latency-sensitive paths.",
+    tpl:`{{TASK_PROMPT}}\n\n---\n\nNow critique your response above. Identify:\n1. What's weak, vague, or missing\n2. Any claims that need verification\n3. Structural problems\n\nThen rewrite it, fixing everything you flagged. Label the rewrite clearly.`,
+    demo:`Write a cold outreach email to a VP of Engineering at a 200-person SaaS company offering an AI enablement audit.\n\n---\n\nNow critique your email above. Identify:\n1. What's weak, vague, or unlikely to get a reply\n2. Any generic phrases a VP would skip over\n3. Structural problems\n\nThen rewrite it, fixing everything you flagged. Label the rewrite "Revised:".`,
+    tags:["writing quality","code review","refinement","two-pass"],
+    src:"https://www.promptingguide.ai/techniques/self-refinement",
+    srcLabel:"Prompting Guide"
+  },
+  {
+    id:"react", name:"ReAct (reason + act)", tag:"advanced", tagLabel:"Advanced",
+    sub:"Interleave reasoning traces and actions in a loop — the agent prompting pattern",
+    useWhen:"Multi-step tasks requiring tool use, search, or external actions. Agentic pipelines. Any task where the model needs to decide what to do next based on intermediate results. Foundation of most production agent architectures.",
+    avoidWhen:"Single-shot tasks. No tools available. When you want a direct answer and intermediate traces add noise.",
+    tpl:`You have access to these tools:\n- Search(query): returns web results\n- Calculate(expr): returns a number\n\nFor each step, output:\nThought: [your reasoning about what to do]\nAction: [tool name and input]\nObservation: [result]\n\nRepeat until you can give a Final Answer.\n\nQuestion: {{QUESTION}}`,
+    demo:`You are solving a research task. Work through it step by step using this format:\n\nThought: [what you're reasoning about]\nAction: [what you would do — e.g. "Search for X" or "Calculate Y"]\nObservation: [what that action would return — simulate it]\n\nRepeat until you reach a Final Answer.\n\nQuestion: A company's revenue grew from $4.2M to $6.8M over 3 years. What was the compound annual growth rate (CAGR)? Then find the rule of thumb name for doubling time at that growth rate.`,
+    tags:["agents","tool use","agentic","multi-step"],
+    src:"https://www.promptingguide.ai/techniques/react",
+    srcLabel:"Prompting Guide — ReAct"
+  },
+  {
+    id:"tot", name:"Tree of Thoughts", tag:"advanced", tagLabel:"Advanced",
+    sub:"Branch multiple reasoning paths, evaluate each, commit to the best",
+    useWhen:"Complex planning, strategy, and creative problems where the first path is rarely optimal. Problems with a clear evaluation criterion. When self-consistency gives you multiple answers but you want the model to reason about *why* one is better before committing.",
+    avoidWhen:"Factual lookups. Tasks with one clear path. Very high latency tolerance required.",
+    tpl:`Problem: {{PROBLEM}}\n\nGenerate 3 distinct approaches to solving this:\n\nApproach A: [describe]\nApproach B: [describe]\nApproach C: [describe]\n\nEvaluate each on: {{CRITERIA_1}}, {{CRITERIA_2}}, {{CRITERIA_3}}\n\nScore each 1-5 per criterion. Pick the winner and execute it fully.`,
+    demo:`Problem: Design a pricing structure for a B2B AI consulting service targeting small businesses (5-50 employees). Budget-sensitive buyers, high value delivered, needs to be easy to explain in a 2-minute call.\n\nGenerate 3 distinct pricing approaches:\n\nApproach A: [describe]\nApproach B: [describe]\nApproach C: [describe]\n\nEvaluate each on: simplicity to explain, revenue ceiling, sales friction.\n\nScore each 1-5 per criterion. Pick the winner and build it out with specific prices and tier names.`,
+    tags:["planning","strategy","creative","evaluation"],
+    src:"https://www.promptingguide.ai/techniques/tot",
+    srcLabel:"Prompting Guide — ToT"
+  },
+  {
+    id:"chaining", name:"Prompt chaining", tag:"advanced", tagLabel:"Advanced",
+    sub:"Break one complex task into sequential prompts — output of each feeds the next",
+    useWhen:"Tasks too large or complex for a single context window. Quality-sensitive pipelines where each stage benefits from dedicated focus. Research → outline → draft → edit flows. Any time a human would naturally break work into phases.",
+    avoidWhen:"Simple tasks. When the overhead of passing state between prompts outweighs the quality gain.",
+    tpl:`[Prompt 1 — Research stage]\nGiven: {{INPUT}}\nProduce: {{INTERMEDIATE_OUTPUT_1}}\n\n[Prompt 2 — Planning stage — receives output of Prompt 1]\nGiven: {{INTERMEDIATE_OUTPUT_1}}\nProduce: {{INTERMEDIATE_OUTPUT_2}}\n\n[Prompt 3 — Execution stage — receives output of Prompt 2]\nGiven: {{INTERMEDIATE_OUTPUT_2}}\nProduce: {{FINAL_OUTPUT}}`,
+    demo:`This is stage 2 of a 3-stage prompt chain.\n\nStage 1 output (research, already done):\n"Target audience: ops and IT managers at 20-100 person companies. Pain: too many disconnected tools, no single workflow view. Top competitors: Monday.com, ClickUp, Notion. Key differentiator opportunity: AI that actually surfaces what's blocked, not just what's scheduled. Budget: $50-200/seat/month tolerable."\n\nYour task (stage 2 — positioning):\nUsing only the research above, write 3 distinct positioning angles for a new B2B SaaS product. For each: one-sentence positioning statement, primary buyer emotion it targets, biggest risk with this angle. No fluff.`,
+    tags:["pipelines","production","multi-stage","quality"],
+    src:"https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices",
+    srcLabel:"Anthropic API docs"
+  },
+  {
+    id:"genknowledge", name:"Generated knowledge", tag:"advanced", tagLabel:"Advanced",
+    sub:"Have the model produce relevant facts first, then answer using that context",
+    useWhen:"No RAG available but you want grounded answers. Questions requiring domain knowledge the model has but doesn't surface unprompted. Reduces hallucination by forcing the model to externalize its reasoning before committing to an answer.",
+    avoidWhen:"Tasks where the generated knowledge would itself be unreliable (rare or recent facts). When you have actual retrieved context — use that instead.",
+    tpl:`Before answering, generate 5 relevant facts about {{TOPIC}} that would help answer the question accurately. Label them "Background knowledge:"\n\nThen use that knowledge to answer: {{QUESTION}}\n\nLabel your answer "Answer:" and cite which facts you used.`,
+    demo:`Before answering, generate 5 relevant facts about SQL injection vulnerabilities that would help answer the question accurately. Label them "Background knowledge:"\n\nThen use that knowledge to answer: A junior developer asks "why is string interpolation in SQL queries dangerous and what's the actual exploit path?" Explain it concisely for someone who understands Python but not security.\n\nLabel your answer "Answer:" and note which facts you drew from.`,
+    tags:["grounding","hallucination reduction","knowledge","reasoning"],
+    src:"https://www.promptingguide.ai/techniques/generated_knowledge",
+    srcLabel:"Prompting Guide — Generated Knowledge"
+  },
+  {
+    id:"skeleton", name:"Skeleton-of-thought", tag:"advanced", tagLabel:"Advanced",
+    sub:"Generate outline first, then fill each section — parallel structure, better coherence",
+    useWhen:"Long-form content (reports, docs, articles). Any task where structure decisions made upfront produce better output than deciding structure mid-generation. Forces the model to commit to scope before filling it in, which reduces drift and padding.",
+    avoidWhen:"Short outputs where overhead isn't worth it. Conversational responses. Anything under ~300 words.",
+    tpl:`Task: {{TASK}}\n\nStep 1 — Skeleton only. List the sections/points this response needs. One line each. No content yet.\n\nStep 2 — Fill each section of the skeleton above. Be specific and direct. No repetition between sections.`,
+    demo:`Task: Write a technical decision memo recommending whether to build or buy an internal tool for AI prompt management at a 50-person company.\n\nStep 1 — Skeleton only. List the sections this memo needs. One line each. No content yet.\n\nStep 2 — Fill each section of the skeleton above. Direct, specific, no padding. Recommendation must be unambiguous.`,
+    tags:["long-form","structure","coherence","documents"],
+    src:"https://arxiv.org/abs/2307.15337",
+    srcLabel:"Skeleton-of-Thought paper, 2023"
+  }
+];
+
+
+
+const sidebar = document.getElementById('sidebar');
+const detail = document.getElementById('detail');
+let activeId = null;
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+FW.forEach(fw => {
+  const btn = document.createElement('button');
+  btn.className = 'fw-btn';
+  btn.dataset.id = fw.id;
+  const tc = fw.tag === 'core' ? 'tag-core' : fw.tag === 'advanced' ? 'tag-advanced' : 'tag-claude';
+  btn.innerHTML = `<span style="flex:1;">${fw.name}</span><span class="fw-tag ${tc}">${fw.tagLabel}</span>`;
+  btn.addEventListener('click', () => select(fw.id));
+  sidebar.appendChild(btn);
+});
+
+function select(id) {
+  activeId = id;
+  document.querySelectorAll('.fw-btn').forEach(b => b.classList.toggle('active', b.dataset.id === id));
+  const fw = FW.find(f => f.id === id);
+  detail.innerHTML = `
+    <div class="detail-title">${fw.name}</div>
+    <div class="detail-sub">${fw.sub}</div>
+    <div class="pill-row">${fw.tags.map(t=>`<span class="pill">${t}</span>`).join('')}</div>
+    <div class="sec-label">Use when</div>
+    <div class="use-text">${fw.useWhen}</div>
+    <div class="sec-label">Skip when</div>
+    <div class="avoid-text">${fw.avoidWhen}</div>
+    <div class="sec-label">Template pattern</div>
+    <pre class="tpl">${escHtml(fw.tpl)}</pre>
+    <div class="sec-label" style="margin-top:14px;">Demo prompt (what fires)</div>
+    <pre class="out-prompt">${escHtml(fw.demo)}</pre>
+    <button class="try" id="try-btn">
+      <i class="ti ti-player-play" style="font-size:14px;" aria-hidden="true"></i>
+      Fire live example
+    </button>
+    <div id="out-zone"></div>
+    <div class="src">Source: <a href="${fw.src}" target="_blank" rel="noopener">${fw.srcLabel}</a></div>
+  `;
+  document.getElementById('try-btn').addEventListener('click', () => run(fw));
+}
+
+async function run(fw) {
+  const btn = document.getElementById('try-btn');
+  const zone = document.getElementById('out-zone');
+  btn.disabled = true;
+  btn.innerHTML = `<div class="spinner"></div>&nbsp;Calling API...`;
+  zone.innerHTML = `<div class="out-zone"><div class="out-label">Live output</div><div class="out-text" id="live" style="color:var(--text2);font-style:italic;">Waiting for response...</div></div>`;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 600,
+        messages: [{ role: 'user', content: fw.demo }]
+      })
+    });
+    if (!res.ok) {
+      const e = await res.json().catch(() => ({}));
+      throw new Error(e?.error?.message || `HTTP ${res.status}`);
+    }
+    const data = await res.json();
+    const text = (data.content || []).filter(b=>b.type==='text').map(b=>b.text).join('');
+    const el = document.getElementById('live');
+    if (el) { el.style.fontStyle='normal'; el.style.color='var(--text)'; el.textContent = text; }
+    btn.disabled = false;
+    btn.innerHTML = `<i class="ti ti-refresh" style="font-size:14px;" aria-hidden="true"></i>&nbsp;Run again`;
+  } catch(e) {
+    const el = document.getElementById('live');
+    if (el) { el.className = 'out-text err'; el.textContent = `Error: ${e.message}`; }
+    btn.disabled = false;
+    btn.innerHTML = `<i class="ti ti-player-play" style="font-size:14px;" aria-hidden="true"></i>&nbsp;Retry`;
+  }
+}
+
+select('xml');
+</script>
+</body>
+</html>

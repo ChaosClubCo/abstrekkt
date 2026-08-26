@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Tools &amp; Tips, Six Things I Wish I Knew Before Moving to Base44 · Kyle Rosebrook</title>
+<meta name="description" content="Six practical tips from migrating off Wix to Base44 this week. What to watch for, what saved time, what cost time." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,SOFT,WONK@9..144,300..900,0..100,0..1&family=Crimson+Pro:ital,wght@0,300..600;1,300..600&family=JetBrains+Mono:wght@300;400&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --ink: #0a0907;
+    --paper: #f2efe9;
+    --paper-dim: #a09888;
+    --paper-faint: #6b6557;
+    --brass: #c4935a;
+    --brass-deep: #7a5a35;
+    --brass-faint: rgba(196, 147, 90, 0.2);
+    --rule: rgba(255, 255, 255, 0.06);
+    --code-bg: rgba(196, 147, 90, 0.08);
+    --measure: 38rem;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--ink);
+    color: var(--paper);
+    font-family: 'Crimson Pro', Georgia, serif;
+    font-weight: 380;
+    font-size: 18px;
+    line-height: 1.7;
+    min-height: 100vh;
+    position: relative;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 1;
+    background:
+      radial-gradient(ellipse at 15% 10%, rgba(196, 147, 90, 0.05) 0%, transparent 45%),
+      radial-gradient(ellipse at 85% 90%, rgba(196, 147, 90, 0.03) 0%, transparent 50%);
+  }
+
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 2;
+    opacity: 0.4;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.92' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.1 0 0 0 0 0.08 0 0 0 0 0.05 0 0 0 0.5 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  a {
+    color: var(--brass);
+    text-decoration: none;
+    transition: color 0.25s;
+    border-bottom: 1px solid var(--brass-faint);
+  }
+  a:hover { color: var(--paper); border-bottom-color: var(--paper); }
+
+  code, .mono {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.85em;
+    background: var(--code-bg);
+    padding: 0.1em 0.4em;
+    border-radius: 2px;
+    color: var(--brass);
+  }
+
+  .rule-vertical {
+    position: fixed;
+    left: clamp(20px, 5vw, 64px);
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    background: linear-gradient(to bottom, transparent, var(--brass-faint) 15%, var(--brass-faint) 85%, transparent);
+    z-index: 0;
+  }
+  @media (max-width: 600px) { .rule-vertical { display: none; } }
+
+  .stage {
+    position: relative;
+    z-index: 3;
+    max-width: var(--measure);
+    margin: 0 auto;
+    padding: clamp(4rem, 10vw, 7rem) clamp(1.25rem, 4vw, 2rem) clamp(5rem, 10vw, 8rem);
+  }
+
+  .article-meta {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.4em;
+    text-transform: uppercase;
+    color: var(--brass);
+    margin-bottom: 1.75rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--brass-faint);
+    display: inline-block;
+    animation: rise 1.2s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  }
+  .article-meta .dot { color: var(--brass-deep); margin: 0 0.5rem; }
+
+  .title {
+    font-family: 'Fraunces', serif;
+    font-variation-settings: 'opsz' 144, 'SOFT' 50, 'WONK' 1;
+    font-weight: 320;
+    font-size: clamp(2rem, 5.2vw, 3rem);
+    line-height: 1.1;
+    color: var(--paper);
+    letter-spacing: -0.018em;
+    margin-bottom: 1rem;
+    animation: rise 1.2s cubic-bezier(0.2, 0.8, 0.2, 1) 0.1s both;
+  }
+  .title em {
+    font-style: italic;
+    color: var(--brass);
+    font-variation-settings: 'opsz' 144, 'SOFT' 100, 'WONK' 1;
+  }
+
+  .deck {
+    font-family: 'Crimson Pro', serif;
+    font-style: italic;
+    font-weight: 300;
+    font-size: clamp(1.05rem, 1.8vw, 1.2rem);
+    color: var(--paper-dim);
+    max-width: 32rem;
+    line-height: 1.55;
+    margin-top: 1.5rem;
+    margin-bottom: 2.5rem;
+    animation: rise 1.2s cubic-bezier(0.2, 0.8, 0.2, 1) 0.2s both;
+  }
+
+  .byline {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--paper-faint);
+    margin-bottom: clamp(2.5rem, 5vw, 3rem);
+    padding-bottom: 1.25rem;
+    border-bottom: 1px solid var(--rule);
+    animation: rise 1.2s cubic-bezier(0.2, 0.8, 0.2, 1) 0.3s both;
+  }
+  .byline span { color: var(--brass-deep); margin: 0 0.5rem; }
+
+  .tool-card {
+    margin-bottom: clamp(2.5rem, 5vw, 3.5rem);
+    padding: 1.75rem;
+    border: 1px solid var(--brass-faint);
+    background: rgba(196, 147, 90, 0.04);
+    animation: rise 1.2s cubic-bezier(0.2, 0.8, 0.2, 1) 0.4s both;
+  }
+  .tool-card-mark {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.4em;
+    text-transform: uppercase;
+    color: var(--brass);
+    margin-bottom: 0.85rem;
+    display: block;
+  }
+  .tool-card-title {
+    font-family: 'Fraunces', serif;
+    font-variation-settings: 'opsz' 36, 'SOFT' 30, 'WONK' 1;
+    font-weight: 380;
+    font-size: 1.4rem;
+    color: var(--paper);
+    margin-bottom: 0.6rem;
+    letter-spacing: -0.005em;
+  }
+  .tool-card-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1.5rem;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--paper-faint);
+  }
+  .tool-card-meta span { color: var(--brass); margin-left: 0.4rem; }
+
+  article > p {
+    color: var(--paper);
+    line-height: 1.75;
+    margin-bottom: 1.4rem;
+    animation: rise 1s cubic-bezier(0.2, 0.8, 0.2, 1) 0.5s both;
+  }
+  article > p strong { color: var(--paper); font-weight: 500; }
+  article > p em { font-style: italic; color: var(--brass); }
+
+  .tips { margin-top: clamp(2.5rem, 5vw, 3.5rem); }
+
+  .tip-section-head {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.4em;
+    text-transform: uppercase;
+    color: var(--brass);
+    margin: 2.5rem 0 1.5rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--brass-faint);
+    display: block;
+  }
+
+  .tip {
+    margin-bottom: 2.25rem;
+    padding-bottom: 2.25rem;
+    border-bottom: 1px solid var(--rule);
+  }
+  .tip:last-child { border-bottom: none; padding-bottom: 0; }
+
+  .tip-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.3em;
+    color: var(--brass-deep);
+    margin-bottom: 0.6rem;
+    display: block;
+  }
+
+  .tip-title {
+    font-family: 'Fraunces', serif;
+    font-variation-settings: 'opsz' 48, 'SOFT' 30, 'WONK' 1;
+    font-weight: 380;
+    font-size: 1.25rem;
+    line-height: 1.3;
+    color: var(--paper);
+    letter-spacing: -0.008em;
+    margin-bottom: 0.85rem;
+  }
+  .tip-title em { font-style: italic; color: var(--brass); }
+
+  .tip-body {
+    color: var(--paper-dim);
+    font-size: 0.98rem;
+    line-height: 1.7;
+  }
+  .tip-body p { margin-bottom: 0.75rem; }
+  .tip-body p:last-child { margin-bottom: 0; }
+  .tip-body p strong { color: var(--paper); font-weight: 500; }
+  .tip-body p em { color: var(--paper); font-style: italic; }
+
+  .tip-hint {
+    margin-top: 1rem;
+    padding: 0.75rem 1rem;
+    background: rgba(196, 147, 90, 0.06);
+    border-left: 2px solid var(--brass-deep);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    line-height: 1.55;
+    color: var(--paper-dim);
+    letter-spacing: 0.01em;
+  }
+  .tip-hint::before {
+    content: '→ ';
+    color: var(--brass);
+    font-weight: 400;
+  }
+
+  .endnote {
+    margin-top: 3rem;
+    padding-top: 2rem;
+    border-top: 1px solid var(--brass-faint);
+  }
+  .endnote p {
+    font-family: 'Crimson Pro', serif;
+    font-style: italic;
+    font-weight: 300;
+    font-size: 1.05rem;
+    color: var(--paper-dim);
+    line-height: 1.6;
+    text-align: center;
+  }
+  .endnote p em { color: var(--paper); }
+
+  .endmark {
+    text-align: center;
+    margin: 2.5rem 0 2rem;
+    color: var(--brass);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1rem;
+    letter-spacing: 0.5em;
+  }
+
+  .colophon {
+    margin-top: 3rem;
+    padding-top: 2rem;
+    border-top: 1px solid var(--rule);
+  }
+  .colophon-name {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-weight: 360;
+    font-size: 1rem;
+    color: var(--brass);
+    margin-bottom: 0.3rem;
+  }
+  .colophon-bio {
+    font-family: 'Crimson Pro', serif;
+    font-size: 0.9rem;
+    color: var(--paper-dim);
+    line-height: 1.6;
+    margin-bottom: 1.5rem;
+  }
+  .colophon-stamp {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.4em;
+    text-transform: uppercase;
+    color: var(--brass-deep);
+    padding-top: 1rem;
+    border-top: 1px solid var(--rule);
+  }
+  .colophon-stamp .dot { color: var(--brass); margin: 0 0.5rem; }
+  .colophon-links {
+    margin-top: 1rem;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+  }
+  .colophon-links a {
+    color: var(--paper-faint);
+    border-bottom: none;
+    margin-right: 1.5rem;
+  }
+  .colophon-links a:hover { color: var(--brass); }
+
+  @keyframes rise {
+    from { opacity: 0; transform: translateY(1rem); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @media print {
+    body { background: white; color: black; font-size: 11pt; }
+    body::before, body::after, .rule-vertical { display: none; }
+    .title, .tip-title, .tool-card-title, p strong, p em, .colophon-name { color: #1a1410 !important; }
+    .article-meta, .colophon-stamp, .tip-num, .tool-card-mark, .tip-section-head { color: #7a5a35 !important; }
+    .deck, .byline, p, .tip-body, .colophon-bio { color: #2a2520 !important; }
+    code, .mono { color: #7a5a35; background: #f5efe5; }
+    .tool-card, .tip-hint { background: #f5efe5; }
+    .endmark { color: #7a5a35; }
+  }
+
+.ks-nav{position:sticky;top:0;z-index:9000;display:flex;justify-content:space-between;align-items:center;gap:1.25rem;padding:13px clamp(20px,5vw,48px);background:rgba(10,9,7,.92);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid rgba(196,147,90,.18);font-family:'JetBrains Mono',ui-monospace,monospace;line-height:1}
+.ks-nav .ks-brand{font-family:'Fraunces','EB Garamond',Georgia,serif;font-size:15px;font-weight:500;color:#f2efe9;letter-spacing:.01em;text-decoration:none;white-space:nowrap}
+.ks-nav .ks-brand em{font-style:italic;color:#c4935a}
+.ks-nav .ks-links{display:flex;gap:18px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+.ks-nav .ks-links a{font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:#a09888;text-decoration:none;transition:color .2s,border-color .2s,background .2s}
+.ks-nav .ks-links a:hover{color:#c4935a}
+.ks-nav .ks-links a.is-active{color:#c4935a}
+.ks-nav .ks-links a.ks-ext{color:#9c8f78;border:1px solid rgba(196,147,90,.28);padding:6px 11px}
+.ks-nav .ks-links a.ks-ext:hover{color:#0a0907;background:#c4935a;border-color:#c4935a}
+@media(max-width:640px){.ks-nav{flex-wrap:wrap;gap:.5rem}.ks-nav .ks-links{gap:11px}.ks-nav .ks-links a{font-size:9px;letter-spacing:.12em}.ks-nav .ks-brand{font-size:13px}}
+</style>
+</head>
+<body>
+<nav class="ks-nav">
+  <a class="ks-brand" href="Kyle Rosebrook Home.html">Abstrekkt&nbsp;<em>Journal</em></a>
+  <div class="ks-links">
+    <a href="Kyle Rosebrook Home.html">Home</a>
+    <a href="Kyle Rosebrook About.html">About</a>
+    <a class="is-active" href="Kyle Rosebrook Home.html#writing">Writing</a>
+    <a href="Sedona - The Meditation Pivot.html">Sedona</a>
+    <a href="LLC Formation Kit.html">Toolkit</a>
+    <a class="ks-ext" href="Abstrekkt Home.html">Abstrekkt&nbsp;↗</a>
+  </div>
+</nav>
+
+<div class="rule-vertical"></div>
+
+<main class="stage">
+
+  <div class="article-meta">Tools &amp; Tips <span class="dot">·</span> April 25, 2026</div>
+
+  <h1 class="title">Six Things I Wish I Knew Before <em>Moving to Base44</em></h1>
+
+  <p class="deck">I migrated my front door off Wix this week. Six tips, organized by where they bit me, onboarding, schema, deploy, MCP, debug, and what's actually worth using it for.</p>
+
+  <div class="byline">
+    Kyle Rosebrook <span>·</span> 4 min read
+  </div>
+
+  <article>
+
+    <div class="tool-card">
+      <span class="tool-card-mark">§ The Tool</span>
+      <div class="tool-card-title">Base44</div>
+      <div class="tool-card-meta">
+        <div>Type<span>App platform</span></div>
+        <div>Use<span>Schema-first AI apps</span></div>
+        <div>Stack<span>MongoDB-style</span></div>
+        <div>MCP<span>Yes (read-only)</span></div>
+      </div>
+    </div>
+
+    <p>I shipped <a href="https://flashfusion.co">FlashFusion</a>'s AI Setup Audit Scorecard on Base44 in under a day, then started moving my personal site over from Wix this week. The platform is good. It's also opinionated in ways the docs don't fully prepare you for. <em>These are the six things that would have saved me time on day one.</em></p>
+
+    <div class="tips">
+
+      <span class="tip-section-head">§ Setup &amp; Schema</span>
+
+      <article class="tip">
+        <span class="tip-num">Tip 01</span>
+        <h2 class="tip-title">Entity count is a <em>terrible signal</em> of app readiness.</h2>
+        <div class="tip-body">
+          <p>The platform surfaces entity count prominently. I assumed early that more entities meant a more mature app. <strong>It's the opposite, often.</strong> My most-used app has 16 entities and three real test runs of actual data flowing through. My biggest schema has 101 entities and zero real data, it's a blueprint, not a product.</p>
+          <p>Pattern-match on <em>data presence and recency</em>, not entity count. The entities are the easy part. The data is the work.</p>
+        </div>
+        <div class="tip-hint">If an app has lots of entities and no recent records, it's a sketch. Treat it accordingly.</div>
+      </article>
+
+      <article class="tip">
+        <span class="tip-num">Tip 02</span>
+        <h2 class="tip-title">Enum values <em>must match the schema exactly</em> or the field drops silently.</h2>
+        <div class="tip-body">
+          <p>This one cost me an afternoon. If you POST a record with an enum value that doesn't match the schema's allowed list, case-sensitive, no fuzzy matching, Base44 doesn't reject the record. It accepts the record and <strong>silently drops the offending field.</strong> No error. No warning. The record just shows up missing that value.</p>
+          <p>The first time you debug this, you'll waste an hour assuming your code is broken. <em>Your code is fine.</em> Your enum is wrong.</p>
+        </div>
+        <div class="tip-hint">When a field "isn't saving," your first check is the enum. Compare the value byte-for-byte against the schema definition.</div>
+      </article>
+
+      <span class="tip-section-head">§ MCP &amp; Integrations</span>
+
+      <article class="tip">
+        <span class="tip-num">Tip 03</span>
+        <h2 class="tip-title">The MCP is <em>read and create, not update or delete.</em></h2>
+        <div class="tip-body">
+          <p>If you're planning to mutate records programmatically through Claude or another MCP client, plan around this constraint up front. Base44's MCP exposes <code>create_entities</code> and <code>query_entities</code> as the substantive write/read primitives. <strong>It does not expose update or delete endpoints.</strong></p>
+          <p>If you need to update records, the workarounds are real but ugly: write a new record and tombstone the old one, route through a separate workflow tool, or do it in the UI. Don't architect a system around mutations the API doesn't support.</p>
+        </div>
+        <div class="tip-hint">Architect around the API surface that exists today. The capability gap may close, but don't build assuming it will.</div>
+      </article>
+
+      <article class="tip">
+        <span class="tip-num">Tip 04</span>
+        <h2 class="tip-title">Custom domains via Cloudflare CNAME, <em>proxy off.</em></h2>
+        <div class="tip-body">
+          <p>The setup is straightforward but the proxy setting matters. Point your subdomain to <code>base44.onrender.com</code> via CNAME with the Cloudflare proxy <em>disabled</em> (the gray cloud, not the orange one). Proxy on will produce SSL handshake failures that look like Base44's problem and aren't.</p>
+          <p>I had <code>audit.flashfusion.co</code> live in about ten minutes. <strong>If your domain isn't resolving, check the proxy setting first.</strong> It's the #1 cause of the issue and the easiest to miss.</p>
+        </div>
+        <div class="tip-hint">Cloudflare gray cloud (DNS only), not orange. Base44 handles its own SSL termination.</div>
+      </article>
+
+      <span class="tip-section-head">§ Debug &amp; Deploy</span>
+
+      <article class="tip">
+        <span class="tip-num">Tip 05</span>
+        <h2 class="tip-title">Treat the schema as the <em>source of truth</em>, not your app code.</h2>
+        <div class="tip-body">
+          <p>Base44's strictness, the silent enum drops, the rigid schema enforcement, is actually a feature once you stop fighting it. The fastest path to a working app is to treat the schema as the canonical contract and write your app code against it, not the other way around.</p>
+          <p>I lost time on the first build trying to get the app to "work around" schema constraints. <em>Don't.</em> Update the schema, then update the app. Build forward. The platform rewards builders who think in entities first; it punishes builders who think in code first.</p>
+        </div>
+        <div class="tip-hint">Schema-first means: change the data model, then change the code. Not in the other order.</div>
+      </article>
+
+      <article class="tip">
+        <span class="tip-num">Tip 06</span>
+        <h2 class="tip-title">Use Base44 for what it's <em>actually good at.</em></h2>
+        <div class="tip-body">
+          <p>Production-grade AI apps with a schema that matters: yes. Internal tools with structured data and AI-touched workflows: yes. CRM-shaped apps with complex relationships: yes.</p>
+          <p>Drag-and-drop landing pages, marketing sites with twenty layouts, blog-shaped content sites: <strong>no.</strong> Use the right tool. I'm migrating my static personal site there because I want a single platform, not because Base44 is the best static-site builder. <em>Don't pretend a tool is something it isn't.</em></p>
+        </div>
+        <div class="tip-hint">Base44's strength is structured data with AI integration. Anything you'd build in Webflow or Framer is probably better built there.</div>
+      </article>
+
+    </div>
+
+    <div class="endnote">
+      <p>Most tool friction is the gap between <em>how the tool actually works</em> and <em>how the docs describe it.</em> Closing the gap is where the time goes.</p>
+    </div>
+
+  </article>
+
+  <div class="endmark">· · ·</div>
+
+  <footer class="colophon">
+    <div class="colophon-name">Kyle Rosebrook</div>
+    <p class="colophon-bio">Self-taught builder. Tools &amp; Tips drops when I learn something worth writing down about a tool I'm actually using. Next up: n8n quirks, and what I learned migrating off Wix.</p>
+    <div class="colophon-stamp">Construction <span class="dot">·</span> Not Recovery</div>
+    <div class="colophon-links">
+      <a href="Kyle Rosebrook Home.html">Home</a>
+      <a href="Kyle Rosebrook About.html">About</a>
+      <a href="Abstrekkt Pillars.html">Manifesto</a>
+      <a href="Essay - Pre-Flight Checklist.html">Pre-Flight</a>
+      <a href="mailto:hello@abstrekkt.com">Contact</a>
+    </div>
+  </footer>
+
+</main>
+
+</body>
+</html>

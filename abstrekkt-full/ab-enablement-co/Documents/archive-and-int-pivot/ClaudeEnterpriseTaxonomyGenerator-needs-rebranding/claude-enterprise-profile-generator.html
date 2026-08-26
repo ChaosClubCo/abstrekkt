@@ -1,0 +1,1444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Claude Enterprise Profile Generator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #2c3e50;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px 20px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 32px;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        .header p {
+            font-size: 16px;
+            opacity: 0.9;
+        }
+
+        .content {
+            display: flex;
+            min-height: 600px;
+        }
+
+        .sidebar {
+            width: 250px;
+            background: #f8f9fa;
+            border-right: 1px solid #e0e0e0;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .sidebar-nav {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .nav-item {
+            padding: 12px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border-left: 3px solid transparent;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .nav-item:hover {
+            background: #e8eef2;
+        }
+
+        .nav-item.active {
+            background: #667eea;
+            color: white;
+            border-left-color: white;
+        }
+
+        .main-content {
+            flex: 1;
+            padding: 40px;
+            overflow-y: auto;
+        }
+
+        .section {
+            display: none;
+        }
+
+        .section.active {
+            display: block;
+        }
+
+        .section-title {
+            font-size: 24px;
+            margin-bottom: 10px;
+            color: #2c3e50;
+            font-weight: 600;
+        }
+
+        .section-subtitle {
+            font-size: 14px;
+            color: #7f8c8d;
+            margin-bottom: 25px;
+        }
+
+        .form-group {
+            margin-bottom: 24px;
+        }
+
+        label {
+            display: block;
+            font-weight: 500;
+            margin-bottom: 8px;
+            color: #2c3e50;
+            font-size: 14px;
+        }
+
+        input[type="text"],
+        input[type="email"],
+        input[type="password"],
+        select,
+        textarea {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: inherit;
+            transition: border-color 0.3s;
+        }
+
+        input[type="text"]:focus,
+        input[type="email"]:focus,
+        input[type="password"]:focus,
+        select:focus,
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .checkbox-group,
+        .radio-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .checkbox-item,
+        .radio-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+        }
+
+        input[type="checkbox"],
+        input[type="radio"] {
+            cursor: pointer;
+            width: 18px;
+            height: 18px;
+        }
+
+        .checkbox-label,
+        .radio-label {
+            cursor: pointer;
+            margin: 0;
+            font-weight: normal;
+        }
+
+        .card {
+            background: #f8f9fa;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+
+        .card-title {
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #2c3e50;
+        }
+
+        .card-description {
+            font-size: 13px;
+            color: #7f8c8d;
+            line-height: 1.5;
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .grid-3 {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+        }
+
+        .feature-box {
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+
+        .feature-box:hover {
+            border-color: #667eea;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+        }
+
+        .feature-box.selected {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .feature-box-icon {
+            font-size: 28px;
+            margin-bottom: 8px;
+        }
+
+        .feature-box-title {
+            font-weight: 600;
+            margin-bottom: 4px;
+            font-size: 14px;
+        }
+
+        .feature-box-description {
+            font-size: 12px;
+            opacity: 0.7;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 12px;
+            margin-top: 30px;
+            justify-content: space-between;
+        }
+
+        button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-secondary {
+            background: #ecf0f1;
+            color: #2c3e50;
+        }
+
+        .btn-secondary:hover {
+            background: #dde2e7;
+        }
+
+        .btn-success {
+            background: #27ae60;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #229954;
+        }
+
+        .output-section {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 13px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-break: break-word;
+            line-height: 1.6;
+        }
+
+        .connector-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            margin-bottom: 10px;
+        }
+
+        .connector-toggle {
+            width: 40px;
+            height: 24px;
+            background: #ddd;
+            border-radius: 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            padding: 2px;
+            transition: background 0.3s;
+        }
+
+        .connector-toggle.enabled {
+            background: #27ae60;
+        }
+
+        .toggle-circle {
+            width: 20px;
+            height: 20px;
+            background: white;
+            border-radius: 50%;
+            transition: transform 0.3s;
+        }
+
+        .connector-toggle.enabled .toggle-circle {
+            transform: translateX(16px);
+        }
+
+        .connector-info {
+            flex: 1;
+        }
+
+        .connector-name {
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 4px;
+        }
+
+        .connector-type {
+            font-size: 12px;
+            color: #7f8c8d;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 0;
+            border-bottom: 1px solid #e0e0e0;
+            margin-bottom: 20px;
+        }
+
+        .tab {
+            padding: 12px 20px;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            font-weight: 500;
+            transition: all 0.3s;
+            color: #7f8c8d;
+        }
+
+        .tab:hover {
+            color: #2c3e50;
+        }
+
+        .tab.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 4px;
+            background: #e0e0e0;
+            border-radius: 2px;
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            transition: width 0.3s;
+        }
+
+        .alert {
+            padding: 12px 16px;
+            border-radius: 6px;
+            margin-bottom: 16px;
+            font-size: 13px;
+        }
+
+        .alert-info {
+            background: #e3f2fd;
+            color: #1565c0;
+            border-left: 3px solid #1565c0;
+        }
+
+        .alert-warning {
+            background: #fff3e0;
+            color: #e65100;
+            border-left: 3px solid #e65100;
+        }
+
+        .alert-success {
+            background: #e8f5e9;
+            color: #2e7d32;
+            border-left: 3px solid #2e7d32;
+        }
+
+        @media (max-width: 768px) {
+            .content {
+                flex-direction: column;
+            }
+
+            .sidebar {
+                width: 100%;
+                border-right: none;
+                border-bottom: 1px solid #e0e0e0;
+                padding: 15px;
+            }
+
+            .sidebar-nav {
+                flex-direction: row;
+                gap: 5px;
+                overflow-x: auto;
+            }
+
+            .nav-item {
+                white-space: nowrap;
+                flex: 1;
+            }
+
+            .grid-2,
+            .grid-3 {
+                grid-template-columns: 1fr;
+            }
+
+            .main-content {
+                padding: 20px;
+            }
+
+            .button-group {
+                flex-direction: column;
+            }
+        }
+
+        .success-message {
+            padding: 16px;
+            background: #e8f5e9;
+            border: 1px solid #4caf50;
+            border-radius: 6px;
+            color: #2e7d32;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .success-message.show {
+            display: block;
+        }
+
+        .copy-button {
+            background: #607d8b;
+            color: white;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            margin-top: 10px;
+        }
+
+        .copy-button:hover {
+            background: #455a64;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 Claude Enterprise Profile Generator</h1>
+            <p>Build your enterprise Claude configuration with security-first practices</p>
+        </div>
+
+        <div class="content">
+            <div class="sidebar">
+                <div class="sidebar-nav">
+                    <div class="nav-item active" data-section="identity">
+                        👤 Identity
+                    </div>
+                    <div class="nav-item" data-section="role">
+                        💼 Role & Work
+                    </div>
+                    <div class="nav-item" data-section="preferences">
+                        ⚙️ Preferences
+                    </div>
+                    <div class="nav-item" data-section="privacy">
+                        🔐 Privacy & Security
+                    </div>
+                    <div class="nav-item" data-section="features">
+                        ✨ Features & Artifacts
+                    </div>
+                    <div class="nav-item" data-section="connectors">
+                        🔗 Connectors & MCP
+                    </div>
+                    <div class="nav-item" data-section="review">
+                        ✅ Review & Export
+                    </div>
+                </div>
+            </div>
+
+            <div class="main-content">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill" style="width: 14%"></div>
+                </div>
+
+                <!-- Identity Section -->
+                <div class="section active" id="identity">
+                    <h2 class="section-title">👤 Identity Setup</h2>
+                    <p class="section-subtitle">Tell us who you are and how Claude should address you</p>
+
+                    <div class="form-group">
+                        <label for="fullName">Full Name *</label>
+                        <input type="text" id="fullName" placeholder="e.g., Kyle Johnson" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="preferredName">What should Claude call you? *</label>
+                        <input type="text" id="preferredName" placeholder="e.g., Kyle, K, Mr. Johnson">
+                        <small style="color: #7f8c8d; margin-top: 5px;">This appears in conversation greetings</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="organization">Organization/Company</label>
+                        <input type="text" id="organization" placeholder="e.g., Intinc">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="email">Work Email</label>
+                        <input type="email" id="email" placeholder="you@company.com">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="timezone">Timezone *</label>
+                        <select id="timezone" required>
+                            <option value="">Select timezone...</option>
+                            <option value="US/Pacific">Pacific (PT)</option>
+                            <option value="US/Mountain">Mountain (MT)</option>
+                            <option value="US/Central">Central (CT)</option>
+                            <option value="US/Eastern">Eastern (ET)</option>
+                            <option value="Europe/London">London (GMT)</option>
+                            <option value="Europe/Paris">Paris (CET)</option>
+                            <option value="Asia/Tokyo">Tokyo (JST)</option>
+                            <option value="Asia/Singapore">Singapore (SGT)</option>
+                        </select>
+                    </div>
+
+                    <div class="button-group">
+                        <button class="btn-primary" onclick="nextSection('role')">Continue →</button>
+                    </div>
+                </div>
+
+                <!-- Role & Work Section -->
+                <div class="section" id="role">
+                    <h2 class="section-title">💼 Role & Work Context</h2>
+                    <p class="section-subtitle">Help Claude understand your role and responsibilities</p>
+
+                    <div class="form-group">
+                        <label>Primary Role *</label>
+                        <div class="grid-2">
+                            <div class="feature-box" data-role="staff-engineer">
+                                <div class="feature-box-icon">🏗️</div>
+                                <div class="feature-box-title">Staff Engineer</div>
+                                <div class="feature-box-description">Architecture, systems design, mentoring</div>
+                            </div>
+                            <div class="feature-box" data-role="appsec">
+                                <div class="feature-box-icon">🔒</div>
+                                <div class="feature-box-title">AppSec Engineer</div>
+                                <div class="feature-box-description">Security, compliance, threat modeling</div>
+                            </div>
+                            <div class="feature-box" data-role="platform">
+                                <div class="feature-box-icon">⚡</div>
+                                <div class="feature-box-title">Platform Engineer</div>
+                                <div class="feature-box-description">Infrastructure, DevOps, automation</div>
+                            </div>
+                            <div class="feature-box" data-role="data">
+                                <div class="feature-box-icon">📊</div>
+                                <div class="feature-box-title">Data/Analytics</div>
+                                <div class="feature-box-description">Analytics, ML, data pipelines</div>
+                            </div>
+                            <div class="feature-box" data-role="product">
+                                <div class="feature-box-icon">🎯</div>
+                                <div class="feature-box-title">Product Manager</div>
+                                <div class="feature-box-description">Strategy, requirements, roadmaps</div>
+                            </div>
+                            <div class="feature-box" data-role="founder">
+                                <div class="feature-box-icon">🚀</div>
+                                <div class="feature-box-title">Founder/CEO</div>
+                                <div class="feature-box-description">Strategy, operations, vision</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="specialties">Key Specialties (comma-separated)</label>
+                        <input type="text" id="specialties" placeholder="e.g., AppSec, Platform Engineering, MCP Servers, AI Agents">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="teamSize">Team Size You Support</label>
+                        <select id="teamSize">
+                            <option value="">Select...</option>
+                            <option value="solo">Solo / Individual Contributor</option>
+                            <option value="small">2-5 people</option>
+                            <option value="medium">6-20 people</option>
+                            <option value="large">50-200 people</option>
+                            <option value="enterprise">200+ people</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="mainProjects">Main Projects/Focus Areas</label>
+                        <textarea id="mainProjects" placeholder="e.g., FlashFusion platform, Enterprise automation, GitHub workflow optimization, MCP integrations"></textarea>
+                    </div>
+
+                    <div class="button-group">
+                        <button class="btn-secondary" onclick="prevSection('identity')">← Back</button>
+                        <button class="btn-primary" onclick="nextSection('preferences')">Continue →</button>
+                    </div>
+                </div>
+
+                <!-- Preferences Section -->
+                <div class="section" id="preferences">
+                    <h2 class="section-title">⚙️ Communication Preferences</h2>
+                    <p class="section-subtitle">How Claude should adapt to your communication style</p>
+
+                    <div class="form-group">
+                        <label>Response Style *</label>
+                        <div class="radio-group">
+                            <div class="radio-item">
+                                <input type="radio" id="style-analytical" name="style" value="analytical" checked>
+                                <label for="style-analytical" class="radio-label"><strong>Analytical</strong> - Deep reasoning, detailed technical explanations</label>
+                            </div>
+                            <div class="radio-item">
+                                <input type="radio" id="style-practical" name="style" value="practical">
+                                <label for="style-practical" class="radio-label"><strong>Practical</strong> - Action-oriented, implementation-focused</label>
+                            </div>
+                            <div class="radio-item">
+                                <input type="radio" id="style-conversational" name="style" value="conversational">
+                                <label for="style-conversational" class="radio-label"><strong>Conversational</strong> - Friendly, brief, interactive</label>
+                            </div>
+                            <div class="radio-item">
+                                <input type="radio" id="style-hybrid" name="style" value="hybrid">
+                                <label for="style-hybrid" class="radio-label"><strong>Hybrid</strong> - Mix of analytical + practical (recommended for Staff Engineers)</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Depth Preference *</label>
+                        <div class="radio-group">
+                            <div class="radio-item">
+                                <input type="radio" id="depth-brief" name="depth" value="brief">
+                                <label for="depth-brief" class="radio-label"><strong>Brief</strong> - TL;DR with option to expand</label>
+                            </div>
+                            <div class="radio-item">
+                                <input type="radio" id="depth-moderate" name="depth" value="moderate" checked>
+                                <label for="depth-moderate" class="radio-label"><strong>Moderate</strong> - Balanced explanations</label>
+                            </div>
+                            <div class="radio-item">
+                                <input type="radio" id="depth-comprehensive" name="depth" value="comprehensive">
+                                <label for="depth-comprehensive" class="radio-label"><strong>Comprehensive</strong> - Full analysis with edge cases</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Use Analogies? *</label>
+                        <div class="radio-group">
+                            <div class="radio-item">
+                                <input type="radio" id="analogies-yes" name="analogies" value="yes" checked>
+                                <label for="analogies-yes" class="radio-label">Yes - Help me understand via real-world comparisons</label>
+                            </div>
+                            <div class="radio-item">
+                                <input type="radio" id="analogies-minimal" name="analogies" value="minimal">
+                                <label for="analogies-minimal" class="radio-label">Minimal - Only when necessary</label>
+                            </div>
+                            <div class="radio-item">
+                                <input type="radio" id="analogies-no" name="analogies" value="no">
+                                <label for="analogies-no" class="radio-label">No - Technical definitions only</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Format Preferences</label>
+                        <div class="checkbox-group">
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="pref-code" checked>
+                                <label for="pref-code" class="checkbox-label">Include code examples</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="pref-tests" checked>
+                                <label for="pref-tests" class="checkbox-label">Include test cases</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="pref-docs" checked>
+                                <label for="pref-docs" class="checkbox-label">Include documentation</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="pref-risks" checked>
+                                <label for="pref-risks" class="checkbox-label">Flag gaps & risks</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="pref-no-lists">
+                                <label for="pref-no-lists" class="checkbox-label">Minimize bullet points (use prose)</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="button-group">
+                        <button class="btn-secondary" onclick="prevSection('role')">← Back</button>
+                        <button class="btn-primary" onclick="nextSection('privacy')">Continue →</button>
+                    </div>
+                </div>
+
+                <!-- Privacy & Security Section -->
+                <div class="section" id="privacy">
+                    <h2 class="section-title">🔐 Privacy & Security Configuration</h2>
+                    <p class="section-subtitle">Enterprise-grade security controls for your Claude usage</p>
+
+                    <div class="alert alert-warning">
+                        <strong>⚠️ Enterprise Requirements:</strong> These settings align with SOC 2, HIPAA, PCI-DSS, and GDPR compliance frameworks.
+                    </div>
+
+                    <div class="form-group">
+                        <label>Data Retention Policy *</label>
+                        <div class="radio-group">
+                            <div class="radio-item">
+                                <input type="radio" id="retention-standard" name="retention" value="standard" checked>
+                                <label for="retention-standard" class="radio-label"><strong>Standard</strong> - Anthropic default retention (needed for model improvement)</label>
+                            </div>
+                            <div class="radio-item">
+                                <input type="radio" id="retention-enterprise" name="retention" value="enterprise">
+                                <label for="retention-enterprise" class="radio-label"><strong>Enterprise Zero Data Retention (ZDR)</strong> - No training on inputs/outputs (Cloud only, requires Team/Enterprise plan)</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Authentication Method *</label>
+                        <div class="radio-group">
+                            <div class="radio-item">
+                                <input type="radio" id="auth-anthropic" name="auth" value="anthropic" checked>
+                                <label for="auth-anthropic" class="radio-label">Anthropic Account (Individual)</label>
+                            </div>
+                            <div class="radio-item">
+                                <input type="radio" id="auth-sso" name="auth" value="sso">
+                                <label for="auth-sso" class="radio-label"><strong>SAML 2.0 / OIDC SSO</strong> (Enterprise Plan required)</label>
+                            </div>
+                            <div class="radio-item">
+                                <input type="radio" id="auth-api" name="auth" value="api">
+                                <label for="auth-api" class="radio-label">API Key (Server-to-server, requires API access)</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Network Isolation Level *</label>
+                        <div class="radio-group">
+                            <div class="radio-item">
+                                <input type="radio" id="network-public" name="network" value="public" checked>
+                                <label for="network-public" class="radio-label">Public (Standard Claude.ai)</label>
+                            </div>
+                            <div class="radio-item">
+                                <input type="radio" id="network-vpc" name="network" value="vpc">
+                                <label for="network-vpc" class="radio-label">VPC-scoped (AWS Bedrock or Google Vertex AI)</label>
+                            </div>
+                            <div class="radio-item">
+                                <input type="radio" id="network-private" name="network" value="private">
+                                <label for="network-private" class="radio-label">Private / Air-gapped (Fully isolated infrastructure)</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Encryption & Key Management</label>
+                        <div class="checkbox-group">
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="sec-tls" checked disabled>
+                                <label for="sec-tls" class="checkbox-label">TLS 1.3 in-transit encryption (default, enforced)</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="sec-aes" checked disabled>
+                                <label for="sec-aes" class="checkbox-label">AES-256 at-rest encryption (default, enforced)</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="sec-byok">
+                                <label for="sec-byok" class="checkbox-label">BYOK - Bring Your Own Keys (Coming H1 2026)</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Audit & Compliance</label>
+                        <div class="checkbox-group">
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="audit-logs" checked>
+                                <label for="audit-logs" class="checkbox-label">Enable SOC 2 Type II audit logging (90-day retention minimum)</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="audit-rbac">
+                                <label for="audit-rbac" class="checkbox-label">Role-Based Access Control (RBAC) - Owner/Admin/Member</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="audit-scim">
+                                <label for="audit-scim" class="checkbox-label">SCIM provisioning (Automated user management)</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="audit-domain-capture">
+                                <label for="audit-domain-capture" class="checkbox-label">Domain capture (Auto-enroll email domain)</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="dataClassification">Highest Data Classification You'll Use</label>
+                        <select id="dataClassification">
+                            <option value="">Select...</option>
+                            <option value="public">Public</option>
+                            <option value="internal">Internal</option>
+                            <option value="confidential">Confidential</option>
+                            <option value="restricted">Restricted (PII/PHI/PCI)</option>
+                        </select>
+                    </div>
+
+                    <div class="button-group">
+                        <button class="btn-secondary" onclick="prevSection('preferences')">← Back</button>
+                        <button class="btn-primary" onclick="nextSection('features')">Continue →</button>
+                    </div>
+                </div>
+
+                <!-- Features & Artifacts Section -->
+                <div class="section" id="features">
+                    <h2 class="section-title">✨ Features & Artifacts</h2>
+                    <p class="section-subtitle">Configure Claude capabilities for your workflows</p>
+
+                    <div class="alert alert-info">
+                        💡 <strong>Artifacts</strong> are dedicated windows for code, documents, and interactive apps. Enable if you want Claude to create runnable code and documents.
+                    </div>
+
+                    <div class="form-group">
+                        <label>Feature Enablement</label>
+                        <div class="checkbox-group">
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="feat-artifacts" checked>
+                                <label for="feat-artifacts" class="checkbox-label">Artifacts - Code, docs, interactive prototypes</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="feat-websearch" checked>
+                                <label for="feat-websearch" class="checkbox-label">Web Search - Current info, fact-checking</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="feat-codeexecution" checked>
+                                <label for="feat-codeexecution" class="checkbox-label">Code Execution - Run and test code directly</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="feat-filecreation" checked>
+                                <label for="feat-filecreation" class="checkbox-label">File Creation - Generate documents, spreadsheets, PDFs</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="feat-memory" checked>
+                                <label for="feat-memory" class="checkbox-label">Memory - Claude remembers context from past chats</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="feat-research" checked>
+                                <label for="feat-research" class="checkbox-label">Deep Research - Multi-step investigations (5-45 min)</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="feat-skills" checked>
+                                <label for="feat-skills" class="checkbox-label">Skills - Custom instructions and frameworks</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Network Egress (for Code Execution)</label>
+                        <div class="radio-group">
+                            <div class="radio-item">
+                                <input type="radio" id="egress-none" name="egress" value="none" checked>
+                                <label for="egress-none" class="radio-label">Disabled - No external network access</label>
+                            </div>
+                            <div class="radio-item">
+                                <input type="radio" id="egress-restricted" name="egress" value="restricted">
+                                <label for="egress-restricted" class="radio-label">Restricted - Allowlisted domains only</label>
+                            </div>
+                            <div class="radio-item">
+                                <input type="radio" id="egress-all" name="egress" value="all">
+                                <label for="egress-all" class="radio-label">Unrestricted - All domains (higher security risk)</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="egressDomains">Allowlisted Domains (if restricted)</label>
+                        <textarea id="egressDomains" placeholder="api.github.com&#10;npm.org&#10;pypi.org&#10;One per line"></textarea>
+                    </div>
+
+                    <div class="button-group">
+                        <button class="btn-secondary" onclick="prevSection('privacy')">← Back</button>
+                        <button class="btn-primary" onclick="nextSection('connectors')">Continue →</button>
+                    </div>
+                </div>
+
+                <!-- Connectors & MCP Section -->
+                <div class="section" id="connectors">
+                    <h2 class="section-title">🔗 Connectors & MCP Servers</h2>
+                    <p class="section-subtitle">Connect Claude to your tools via Model Context Protocol (MCP)</p>
+
+                    <div class="alert alert-info">
+                        🔌 <strong>MCP</strong> lets Claude access real-time data and take actions in external tools. Works on Desktop (local), Web (remote), and Mobile.
+                    </div>
+
+                    <div class="form-group">
+                        <label>Claude Access Points</label>
+                        <div class="checkbox-group">
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="access-web" checked>
+                                <label for="access-web" class="checkbox-label"><strong>Claude Web</strong> (claude.ai, claude.com)</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="access-desktop" checked>
+                                <label for="access-desktop" class="checkbox-label"><strong>Claude Desktop</strong> (local MCP servers)</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="access-mobile" checked>
+                                <label for="access-mobile" class="checkbox-label"><strong>Claude Mobile</strong> (iOS/Android, uses web connectors)</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="access-api">
+                                <label for="access-api" class="checkbox-label"><strong>Claude API</strong> (Programmatic, can include MCP servers)</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="access-code">
+                                <label for="access-code" class="checkbox-label"><strong>Claude Code</strong> (CLI tool, supports MCP)</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Pre-built Web Connectors (Remote MCP)</label>
+                        <small style="color: #7f8c8d; margin-bottom: 12px;">Available on Pro, Max, Team, Enterprise plans</small>
+                        <div id="webConnectors">
+                            <!-- Populated by JS -->
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Local Desktop Extensions</label>
+                        <small style="color: #7f8c8d; margin-bottom: 12px;">Claude Desktop Settings → Extensions. Install .mcpb packages or custom MCP servers</small>
+                        <div id="desktopConnectors">
+                            <!-- Populated by JS -->
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="customMCP">Custom MCP Servers (self-hosted or third-party)</label>
+                        <textarea id="customMCP" placeholder="https://mcp.example.com/sse&#10;https://custom-server.internal.com/mcp&#10;One per line"></textarea>
+                    </div>
+
+                    <div class="button-group">
+                        <button class="btn-secondary" onclick="prevSection('features')">← Back</button>
+                        <button class="btn-primary" onclick="nextSection('review')">Continue →</button>
+                    </div>
+                </div>
+
+                <!-- Review & Export Section -->
+                <div class="section" id="review">
+                    <h2 class="section-title">✅ Review & Export Profile</h2>
+                    <p class="section-subtitle">Your complete Claude enterprise configuration</p>
+
+                    <div id="successMessage" class="success-message">
+                        ✅ Profile exported successfully!
+                    </div>
+
+                    <div class="tabs">
+                        <div class="tab active" data-tab="summary">Summary</div>
+                        <div class="tab" data-tab="json">JSON Config</div>
+                        <div class="tab" data-tab="markdown">Markdown Doc</div>
+                    </div>
+
+                    <div id="summary" class="tab-content active">
+                        <div id="summaryContent">
+                            <!-- Populated by JS -->
+                        </div>
+                    </div>
+
+                    <div id="json" class="tab-content">
+                        <div class="output-section" id="jsonOutput">
+                            {
+  // Loading...
+}
+                        </div>
+                        <button class="copy-button" onclick="copyToClipboard('jsonOutput')">📋 Copy JSON</button>
+                    </div>
+
+                    <div id="markdown" class="tab-content">
+                        <div class="output-section" id="markdownOutput">
+                            # Loading...
+                        </div>
+                        <button class="copy-button" onclick="copyToClipboard('markdownOutput')">📋 Copy Markdown</button>
+                    </div>
+
+                    <div class="button-group">
+                        <button class="btn-secondary" onclick="prevSection('connectors')">← Back</button>
+                        <button class="btn-success" onclick="exportProfile()">⬇️ Download Profile</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize
+        const sections = ['identity', 'role', 'preferences', 'privacy', 'features', 'connectors', 'review'];
+        let currentSectionIndex = 0;
+
+        // Web Connectors Data
+        const webConnectors = [
+            { name: 'GitHub', icon: '🐙', type: 'Code repo sync, issues, PRs, workflows' },
+            { name: 'Jira', icon: '📋', type: 'Issue tracking, sprint mgmt, project sync' },
+            { name: 'Confluence', icon: '📚', type: 'Documentation access, knowledge base' },
+            { name: 'Slack', icon: '💬', type: 'Team/Enterprise only; message sync' },
+            { name: 'Zapier', icon: '⚙️', type: '1000+ app integrations via Zapier' },
+            { name: 'Linear', icon: '🎯', type: 'Issue tracking, roadmap sync' },
+            { name: 'Asana', icon: '✅', type: 'Task mgmt, project coordination' },
+            { name: 'Cloudflare', icon: '☁️', type: 'Workers, D1 databases, R2 storage' },
+            { name: 'Intercom', icon: '💬', type: 'Customer feedback, support tickets' },
+            { name: 'Sentry', icon: '🐛', type: 'Error tracking, monitoring' }
+        ];
+
+        const desktopConnectors = [
+            { name: 'Filesystem', icon: '📁', type: 'Local file access and manipulation' },
+            { name: 'Memory', icon: '🧠', type: 'Persistent memory across sessions' },
+            { name: 'Fetch', icon: '🌐', type: 'HTTP requests and web scraping' },
+            { name: 'Git', icon: '🔀', type: 'Repository operations and version control' },
+            { name: 'Docker', icon: '🐳', type: 'Container management and execution' },
+            { name: 'Custom Node/Python', icon: '⚡', type: 'Build your own MCP servers' }
+        ];
+
+        // Event Listeners
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.addEventListener('click', (e) => {
+                const section = e.target.dataset.section;
+                goToSection(sections.indexOf(section));
+            });
+        });
+
+        document.querySelectorAll('.feature-box').forEach(box => {
+            box.addEventListener('click', (e) => {
+                document.querySelectorAll('.feature-box').forEach(b => b.classList.remove('selected'));
+                box.classList.add('selected');
+            });
+        });
+
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', (e) => {
+                const tabName = e.target.dataset.tab;
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+                e.target.classList.add('active');
+                document.getElementById(tabName).classList.add('active');
+                
+                if (tabName === 'json') generateJSON();
+                if (tabName === 'markdown') generateMarkdown();
+                if (tabName === 'summary') generateSummary();
+            });
+        });
+
+        document.querySelectorAll('.connector-toggle').forEach(toggle => {
+            toggle.addEventListener('click', (e) => {
+                toggle.classList.toggle('enabled');
+            });
+        });
+
+        // Initialize connectors
+        function initializeConnectors() {
+            const webContainer = document.getElementById('webConnectors');
+            webContainer.innerHTML = webConnectors.map(c => `
+                <div class="connector-item">
+                    <div class="connector-toggle enabled">
+                        <div class="toggle-circle"></div>
+                    </div>
+                    <div class="connector-info">
+                        <div class="connector-name">${c.icon} ${c.name}</div>
+                        <div class="connector-type">${c.type}</div>
+                    </div>
+                </div>
+            `).join('');
+
+            const desktopContainer = document.getElementById('desktopConnectors');
+            desktopContainer.innerHTML = desktopConnectors.map(c => `
+                <div class="connector-item">
+                    <div class="connector-toggle enabled">
+                        <div class="toggle-circle"></div>
+                    </div>
+                    <div class="connector-info">
+                        <div class="connector-name">${c.icon} ${c.name}</div>
+                        <div class="connector-type">${c.type}</div>
+                    </div>
+                </div>
+            `).join('');
+
+            // Re-attach toggle listeners
+            document.querySelectorAll('.connector-toggle').forEach(toggle => {
+                toggle.addEventListener('click', (e) => {
+                    toggle.classList.toggle('enabled');
+                });
+            });
+        }
+
+        initializeConnectors();
+
+        // Navigation
+        function nextSection(sectionId) {
+            const idx = sections.indexOf(sectionId);
+            goToSection(idx);
+        }
+
+        function prevSection(sectionId) {
+            const idx = sections.indexOf(sectionId);
+            goToSection(idx - 1);
+        }
+
+        function goToSection(index) {
+            if (index < 0 || index >= sections.length) return;
+            
+            document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            
+            document.getElementById(sections[index]).classList.add('active');
+            document.querySelector(`[data-section="${sections[index]}"]`).classList.add('active');
+            
+            currentSectionIndex = index;
+            document.getElementById('progressFill').style.width = ((index + 1) / sections.length * 100) + '%';
+        }
+
+        // Data collection
+        function getFormData() {
+            return {
+                identity: {
+                    fullName: document.getElementById('fullName').value,
+                    preferredName: document.getElementById('preferredName').value,
+                    organization: document.getElementById('organization').value,
+                    email: document.getElementById('email').value,
+                    timezone: document.getElementById('timezone').value
+                },
+                role: {
+                    role: document.querySelector('.feature-box.selected')?.dataset.role || 'staff-engineer',
+                    specialties: document.getElementById('specialties').value,
+                    teamSize: document.getElementById('teamSize').value,
+                    projects: document.getElementById('mainProjects').value
+                },
+                preferences: {
+                    style: document.querySelector('input[name="style"]:checked').value,
+                    depth: document.querySelector('input[name="depth"]:checked').value,
+                    analogies: document.querySelector('input[name="analogies"]:checked').value,
+                    includeCode: document.getElementById('pref-code').checked,
+                    includeTests: document.getElementById('pref-tests').checked,
+                    includeDocs: document.getElementById('pref-docs').checked,
+                    flagRisks: document.getElementById('pref-risks').checked,
+                    minimizeLists: document.getElementById('pref-no-lists').checked
+                },
+                privacy: {
+                    retention: document.querySelector('input[name="retention"]:checked').value,
+                    auth: document.querySelector('input[name="auth"]:checked').value,
+                    network: document.querySelector('input[name="network"]:checked').value,
+                    auditLogs: document.getElementById('audit-logs').checked,
+                    rbac: document.getElementById('audit-rbac').checked,
+                    scim: document.getElementById('audit-scim').checked,
+                    domainCapture: document.getElementById('audit-domain-capture').checked,
+                    dataClassification: document.getElementById('dataClassification').value
+                },
+                features: {
+                    artifacts: document.getElementById('feat-artifacts').checked,
+                    webSearch: document.getElementById('feat-websearch').checked,
+                    codeExecution: document.getElementById('feat-codeexecution').checked,
+                    fileCreation: document.getElementById('feat-filecreation').checked,
+                    memory: document.getElementById('feat-memory').checked,
+                    research: document.getElementById('feat-research').checked,
+                    skills: document.getElementById('feat-skills').checked,
+                    egress: document.querySelector('input[name="egress"]:checked').value,
+                    egressDomains: document.getElementById('egressDomains').value
+                },
+                connectors: {
+                    web: document.getElementById('access-web').checked,
+                    desktop: document.getElementById('access-desktop').checked,
+                    mobile: document.getElementById('access-mobile').checked,
+                    api: document.getElementById('access-api').checked,
+                    code: document.getElementById('access-code').checked,
+                    customMCP: document.getElementById('customMCP').value
+                }
+            };
+        }
+
+        // Generate outputs
+        function generateSummary() {
+            const data = getFormData();
+            const html = `
+<div class="card">
+    <div class="card-title">👤 Identity</div>
+    <div class="card-description">
+        <strong>${data.identity.fullName}</strong> (${data.identity.preferredName}) | ${data.identity.organization}<br>
+        📧 ${data.identity.email}<br>
+        🌍 ${data.identity.timezone}
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-title">💼 Role & Work</div>
+    <div class="card-description">
+        <strong>Role:</strong> ${data.role.role.replace('-', ' ')}<br>
+        <strong>Specialties:</strong> ${data.role.specialties || 'Not specified'}<br>
+        <strong>Team Size:</strong> ${data.role.teamSize || 'Not specified'}<br>
+        <strong>Focus:</strong> ${data.role.projects || 'Not specified'}
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-title">⚙️ Communication</div>
+    <div class="card-description">
+        <strong>Style:</strong> ${data.preferences.style}<br>
+        <strong>Depth:</strong> ${data.preferences.depth}<br>
+        <strong>Analogies:</strong> ${data.preferences.analogies}<br>
+        <strong>Includes:</strong> ${[
+            data.preferences.includeCode && 'Code',
+            data.preferences.includeTests && 'Tests',
+            data.preferences.includeDocs && 'Docs',
+            data.preferences.flagRisks && 'Risk flags'
+        ].filter(Boolean).join(', ')}
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-title">🔐 Privacy & Security</div>
+    <div class="card-description">
+        <strong>Data Retention:</strong> ${data.privacy.retention}<br>
+        <strong>Auth:</strong> ${data.privacy.auth}<br>
+        <strong>Network:</strong> ${data.privacy.network}<br>
+        <strong>Compliance:</strong> ${[
+            data.privacy.auditLogs && 'SOC 2 Audit Logs',
+            data.privacy.rbac && 'RBAC',
+            data.privacy.scim && 'SCIM',
+            data.privacy.domainCapture && 'Domain Capture'
+        ].filter(Boolean).join(', ')}
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-title">✨ Features Enabled</div>
+    <div class="card-description">
+        ${[
+            data.features.artifacts && '✓ Artifacts',
+            data.features.webSearch && '✓ Web Search',
+            data.features.codeExecution && '✓ Code Execution',
+            data.features.fileCreation && '✓ File Creation',
+            data.features.memory && '✓ Memory',
+            data.features.research && '✓ Deep Research',
+            data.features.skills && '✓ Skills'
+        ].filter(Boolean).join('<br>')}
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-title">🔗 Access Points & Connectors</div>
+    <div class="card-description">
+        <strong>Platforms:</strong> ${[
+            data.connectors.web && 'Web',
+            data.connectors.desktop && 'Desktop',
+            data.connectors.mobile && 'Mobile',
+            data.connectors.api && 'API',
+            data.connectors.code && 'Code'
+        ].filter(Boolean).join(', ')}<br>
+        <strong>Custom MCP:</strong> ${data.connectors.customMCP ? data.connectors.customMCP.split('\n').filter(Boolean).length + ' servers' : 'None'}
+    </div>
+</div>
+            `;
+            document.getElementById('summaryContent').innerHTML = html;
+        }
+
+        function generateJSON() {
+            const data = getFormData();
+            const json = {
+                metadata: {
+                    generated: new Date().toISOString(),
+                    version: "1.0"
+                },
+                ...data
+            };
+            document.getElementById('jsonOutput').textContent = JSON.stringify(json, null, 2);
+        }
+
+        function generateMarkdown() {
+            const data = getFormData();
+            const md = `# Claude Enterprise Profile
+
+Generated: ${new Date().toLocaleString()}
+
+## Identity
+- **Name:** ${data.identity.fullName}
+- **Call me:** ${data.identity.preferredName}
+- **Organization:** ${data.identity.organization}
+- **Email:** ${data.identity.email}
+- **Timezone:** ${data.identity.timezone}
+
+## Role & Work
+- **Role:** ${data.role.role.replace('-', ' ')}
+- **Specialties:** ${data.role.specialties || 'N/A'}
+- **Team Size:** ${data.role.teamSize || 'N/A'}
+- **Focus Areas:** ${data.role.projects || 'N/A'}
+
+## Communication Preferences
+- **Style:** ${data.preferences.style}
+- **Depth:** ${data.preferences.depth}
+- **Analogies:** ${data.preferences.analogies}
+- **Include Code Examples:** ${data.preferences.includeCode}
+- **Include Test Cases:** ${data.preferences.includeTests}
+- **Include Documentation:** ${data.preferences.includeDocs}
+- **Flag Gaps & Risks:** ${data.preferences.flagRisks}
+- **Minimize Bullet Points:** ${data.preferences.minimizeLists}
+
+## Privacy & Security
+- **Data Retention:** ${data.privacy.retention}
+- **Authentication:** ${data.privacy.auth}
+- **Network Isolation:** ${data.privacy.network}
+- **Data Classification:** ${data.privacy.dataClassification}
+
+### Compliance
+- **SOC 2 Audit Logs:** ${data.privacy.auditLogs}
+- **RBAC:** ${data.privacy.rbac}
+- **SCIM Provisioning:** ${data.privacy.scim}
+- **Domain Capture:** ${data.privacy.domainCapture}
+
+## Features Enabled
+- Artifacts: ${data.features.artifacts}
+- Web Search: ${data.features.webSearch}
+- Code Execution: ${data.features.codeExecution}
+- File Creation: ${data.features.fileCreation}
+- Memory: ${data.features.memory}
+- Deep Research: ${data.features.research}
+- Skills: ${data.features.skills}
+
+### Network Egress (Code Execution)
+- **Policy:** ${data.features.egress}
+- **Allowlist:** ${data.features.egressDomains || 'N/A'}
+
+## Connectors & Access Points
+- **Web (claude.ai):** ${data.connectors.web}
+- **Desktop (local MCP):** ${data.connectors.desktop}
+- **Mobile (iOS/Android):** ${data.connectors.mobile}
+- **API:** ${data.connectors.api}
+- **Claude Code:** ${data.connectors.code}
+
+### Custom MCP Servers
+\`\`\`
+${data.connectors.customMCP || 'None configured'}
+\`\`\`
+
+---
+**Notes:** Update this profile as your role, team, or security requirements change. Review compliance settings quarterly.
+`;
+            document.getElementById('markdownOutput').textContent = md;
+        }
+
+        function copyToClipboard(elementId) {
+            const element = document.getElementById(elementId);
+            const text = element.textContent;
+            navigator.clipboard.writeText(text).then(() => {
+                alert('✅ Copied to clipboard!');
+            });
+        }
+
+        function exportProfile() {
+            const data = getFormData();
+            const filename = `claude-profile-${data.identity.preferredName || 'user'}-${new Date().toISOString().split('T')[0]}.json`;
+            const json = JSON.stringify(data, null, 2);
+            const blob = new Blob([json], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            a.click();
+            URL.revokeObjectURL(url);
+            
+            document.getElementById('successMessage').classList.add('show');
+            setTimeout(() => document.getElementById('successMessage').classList.remove('show'), 3000);
+        }
+
+        // Validation
+        function validateSection() {
+            const section = sections[currentSectionIndex];
+            if (section === 'identity') {
+                if (!document.getElementById('fullName').value || !document.getElementById('preferredName').value) {
+                    alert('Please fill in name fields');
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        // Start on identity
+        goToSection(0);
+    </script>
+</body>
+</html>

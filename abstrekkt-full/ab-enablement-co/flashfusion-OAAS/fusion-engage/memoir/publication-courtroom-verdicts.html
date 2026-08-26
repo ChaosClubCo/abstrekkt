@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Publication Courtroom Verdicts</title>
+<script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50">
+<div id="root"></div>
+
+<script>
+const publications = [
+  {
+    id: 1,
+    name: 'The Atlantic',
+    tier: 'tier1',
+    category: 'Literary/Culture',
+    contact: 'Charlie Warzel (Tech Culture)',
+    verdict: 'VIABLE - SHOOT FIRST',
+    rationale: 'Flagship. "Earned authority without credentials" + systems = Atlantic\'s exact moment. If lands, everything opens.',
+    roles: {
+      publicist: { stance: 'FOR', text: 'Atlantic byline = instant credibility. "Self-taught rebuilds broken brain through systems" = exactly what they pay for.' },
+      legal: { stance: 'CAUTION', text: 'Intinc MUST be anonymized. Complete transparency on TBI/addiction is good—literary credibility demands it. Review draft for ID risk.' },
+      marketing: { stance: 'FOR', text: 'Atlantic readers = builders + systems thinkers. Landing here ripples everything else.' },
+      assistant: { stance: 'FOR', text: 'One submission, 2-3 days work. Essays done. Clean process.' },
+      agent: { stance: 'FOR', text: 'First NA rights (standard). No exclusivity window. Essay anchors book proposal later.' }
+    },
+    payment: '$500-2000',
+    timeline: '30-90 days',
+    response: 'High (3-4 weeks)',
+    nextSteps: ['Legal review: anonymization + ID risk', 'Customize cover letter', 'Submit Week 1']
+  },
+  {
+    id: 2,
+    name: 'The Sun Magazine',
+    tier: 'tier1',
+    category: 'Literary/Personal',
+    contact: 'Rob Bowers (Managing Editor)',
+    verdict: 'VIABLE - SIMULTANEOUS',
+    rationale: 'Pays best ($1000+). Rejects toxic positivity. Your voice = their house voice. Safe simultaneous.',
+    roles: {
+      publicist: { stance: 'FOR', text: 'Sun audience = exact fit. Anti-hype, anti-recovery readers. Your voice maps directly.' },
+      legal: { stance: 'FOR', text: 'Sun forgiving on vulnerability + disclosure. Transparency expected + preferred. Risk: VERY LOW.' },
+      marketing: { stance: 'FOR', text: 'Sun readership smaller but DEEP. High-quality sharing in writing circles.' },
+      assistant: { stance: 'FOR', text: 'Submittable, straightforward. Submit same time as Atlantic.' },
+      agent: { stance: 'FOR', text: 'Sun allows simultaneous submissions explicitly. Can submit identical essay to both.' }
+    },
+    payment: '$1000+',
+    timeline: '30-90 days',
+    response: 'Very high (2-3 weeks)',
+    nextSteps: ['Same legal review as Atlantic', 'Submit Week 1 (simultaneous)']
+  },
+  {
+    id: 3,
+    name: 'Guernica',
+    tier: 'tier1',
+    category: 'Literary/Political',
+    contact: 'editors@guernicamag.com',
+    verdict: 'VIABLE - CONDITIONAL',
+    rationale: 'Political + systems thinking = perfect. REQUIRES COMPLETED MANUSCRIPT 2500+ words.',
+    roles: {
+      publicist: { stance: 'FOR', text: 'Guernica publishes unapologetic voices. "Broken brain → constructed systems" = their lane.' },
+      legal: { stance: 'CAUTION', text: 'More forgiving on disclosure BUT ensure Intinc anonymization airtight. Risk: MEDIUM if sloppy.' },
+      marketing: { stance: 'FOR', text: 'Guernica readers overlap with Atlantic but add political edge. Signals "serious systems thinker".' },
+      assistant: { stance: 'CAUTION', text: 'Requires COMPLETED manuscript. Check word count NOW if under 2500, save for elsewhere.' },
+      agent: { stance: 'FOR', text: 'First NA rights. Submit same window as Atlantic/Sun. If Atlantic takes it, Guernica may reject as duplicate.' }
+    },
+    payment: '$250-500',
+    timeline: '60-120 days',
+    response: 'Moderate (6-8 weeks)',
+    nextSteps: ['Verify essay 2500+ words', 'Legal anonymization review', 'Submit Week 1 (simultaneous)']
+  },
+  {
+    id: 4,
+    name: 'MIT Technology Review',
+    tier: 'tier1',
+    category: 'Tech/Systems',
+    contact: 'Karen Hao (AI/Labor) or Will Douglas Heaven (Systems)',
+    verdict: 'VIABLE - DIRECT PITCH',
+    rationale: 'Direct reporter pitches. Hao covers AI/labor. Heaven covers systems. Perfect fit.',
+    roles: {
+      publicist: { stance: 'FOR', text: 'MIT TR byline = credibility across tech + academic. "Systems thinker" not "recovery story".' },
+      legal: { stance: 'FOR', text: 'MIT TR comfortable with technical specificity. Can name Intinc or anonymize. Risk: VERY LOW.' },
+      marketing: { stance: 'FOR', text: 'MIT TR audience = people who cite essays in technical contexts. Good for consulting.' },
+      assistant: { stance: 'FOR', text: 'Pitch-based (200-300 words), not full submission. 2-3 days work. Fast feedback (1-2 weeks).' },
+      agent: { stance: 'FOR', text: 'First NA rights. Can pitch both Hao + Heaven (different beats, no conflict). Parallel with Atlantic/Sun.' }
+    },
+    payment: '$500-2000',
+    timeline: '14-30 days to response',
+    response: 'Very high (fast or no-response)',
+    nextSteps: ['Pitch for Hao (labor angle)', 'Pitch for Heaven (systems angle)', 'Send Week 1-2']
+  },
+  {
+    id: 5,
+    name: 'WIRED (Culture)',
+    tier: 'tier1',
+    category: 'Tech/Culture',
+    contact: 'Editorial team',
+    verdict: 'VIABLE - PITCH',
+    rationale: 'Culture section seeks "how tech shapes thinking". Self-taught + diagnostic instinct = perfect angle.',
+    roles: {
+      publicist: { stance: 'FOR', text: 'WIRED = tech insiders + general readers. "Staff engineer, no degree" = exact cultural moment.' },
+      legal: { stance: 'FOR', text: 'Forgiving on transparency. Can name or anonymize. Risk: VERY LOW.' },
+      marketing: { stance: 'FOR', text: 'WIRED audience = designers, engineers, builders. Reaches Chaos Club target.' },
+      assistant: { stance: 'FOR', text: 'Pitch-based, 200 words, 2 hours.' },
+      agent: { stance: 'FOR', text: 'First NA rights. Pitch simultaneously with Atlantic/Sun/Guernica (different routes).' }
+    },
+    payment: '$500-1500',
+    timeline: '14-30 days',
+    response: 'Moderate-high (2-3 weeks)',
+    nextSteps: ['Craft WIRED pitch ("how broken brains become builders")', 'Send to editorial contact', 'Week 1-2']
+  },
+  {
+    id: 6,
+    name: 'Slate (Tech Culture)',
+    tier: 'tier1',
+    category: 'Tech/Culture',
+    contact: 'Editorial team',
+    verdict: 'VIABLE - PITCH',
+    rationale: 'Tech culture section actively seeks essays. Pitch-based. Fast feedback.',
+    roles: {
+      publicist: { stance: 'FOR', text: 'Slate = mass culture appeal + tech credibility. Reaches both audiences.' },
+      legal: { stance: 'FOR', text: 'No concerns. Risk: VERY LOW.' },
+      marketing: { stance: 'FOR', text: 'Slate audience = educated general readers + tech professionals. Wider than WIRED.' },
+      assistant: { stance: 'FOR', text: 'Pitch-based, 200 words.' },
+      agent: { stance: 'FOR', text: 'Standard terms. Fast feedback.' }
+    },
+    payment: '$500-1200',
+    timeline: '7-14 days to response',
+    response: 'Very high (fast)',
+    nextSteps: ['Craft Slate pitch', 'Send Week 1-2']
+  },
+  {
+    id: 7,
+    name: 'Granta',
+    tier: 'tier1',
+    category: 'Literary/International',
+    contact: 'Editorial team (irregular windows)',
+    verdict: 'VIABLE - WATCH & WAIT',
+    rationale: 'Top-tier prestige globally. Irregular windows. Worth monitoring. Sign up for alerts.',
+    roles: {
+      publicist: { stance: 'FOR', text: 'Granta = *the* literary journal. International reach. Book deal conversation starter.' },
+      legal: { stance: 'FOR', text: 'Serious journal, serious vetting. Standard anonymization OK. Risk: VERY LOW.' },
+      marketing: { stance: 'FOR', text: 'Granta audience = sophisticated, international. Noticed by agents, publishers, optioners.' },
+      assistant: { stance: 'CAUTION', text: 'Irregular windows = can\'t submit until window opens. Sign up for alerts.' },
+      agent: { stance: 'FOR', text: 'First NA rights. Strategic move #2-3, not #1. Patience pays here.' }
+    },
+    payment: '$500-1500',
+    timeline: '90-180 days',
+    response: 'Moderate (8-12 weeks)',
+    nextSteps: ['Sign up for Granta submission window alerts', 'Submit when window opens (typically annual)', 'Not urgent']
+  },
+  {
+    id: 8,
+    name: 'Longreads',
+    tier: 'tier2',
+    category: 'Literary/Essays',
+    contact: 'Editors listed on site',
+    verdict: 'VIABLE - SAFE ANCHOR',
+    rationale: '$500 payment. Well-edited. Safe submission. Good fallback if tier-1 rejects.',
+    roles: {
+      publicist: { stance: 'FOR', text: 'Longreads = solid literary credibility. Respected in writing circles. Good fallback.' },
+      legal: { stance: 'FOR', text: 'Forgiving on all fronts. Risk: VERY LOW.' },
+      marketing: { stance: 'FOR', text: 'Longreads audience = writers + thinkers. Smaller but high engagement.' },
+      assistant: { stance: 'FOR', text: 'Full draft required (you have it). Straightforward.' },
+      agent: { stance: 'FOR', text: 'First NA rights. Simultaneous with tier-1 OK (different audience). If tier-1 rejects, likely accepts.' }
+    },
+    payment: '$500',
+    timeline: '30-90 days',
+    response: 'Moderate (4-6 weeks)',
+    nextSteps: ['Check editor preferences', 'Submit Week 2-3']
+  },
+  {
+    id: 9,
+    name: 'River Teeth Journal',
+    tier: 'tier2',
+    category: 'Literary/Narrative Nonfiction',
+    contact: 'Editorial team',
+    verdict: 'VIABLE - SOLID TIER-2',
+    rationale: '"Good Writing Counts, Facts Matter". 2500-5000 word range. Narrative specialist. Safe.',
+    roles: {
+      publicist: { stance: 'FOR', text: 'River Teeth = respected. Audience cares about precision + honesty. Fits your voice.' },
+      legal: { stance: 'FOR', text: 'No concerns. Risk: VERY LOW.' },
+      marketing: { stance: 'FOR', text: 'Tier-2 safe. Good for saturation.' },
+      assistant: { stance: 'FOR', text: 'Straightforward. Open window Sept-May.' },
+      agent: { stance: 'FOR', text: 'Standard terms. Safe simultaneous submission.' }
+    },
+    payment: '$200-400',
+    timeline: '60-120 days',
+    response: 'Moderate',
+    nextSteps: ['Verify 2500-5000 word range', 'Submit Sept-May window']
+  },
+  {
+    id: 10,
+    name: 'Aeon',
+    tier: 'tier2',
+    category: 'Philosophy/Culture',
+    contact: 'Editorial team',
+    verdict: 'VIABLE - PHILOSOPHICAL',
+    rationale: 'Philosophy + science + culture. Systems thinking welcome. Long-form essays.',
+    roles: {
+      publicist: { stance: 'FOR', text: 'Aeon audience = intellectuals. Credibility = academic/philosophical positioning.' },
+      legal: { stance: 'FOR', text: 'No concerns. Risk: VERY LOW.' },
+      marketing: { stance: 'FOR', text: 'Tier-2 solid. Reaches different audience (academic/philosophical).' },
+      assistant: { stance: 'FOR', text: 'Pitch-based.' },
+      agent: { stance: 'FOR', text: 'Standard terms.' }
+    },
+    payment: '$250-500',
+    timeline: '14-30 days',
+    response: 'Moderate',
+    nextSteps: ['Craft Aeon pitch (philosophy angle)', 'Send Week 2']
+  }
+];
+
+const App = () => {
+  const [expanded, setExpanded] = React.useState(null);
+  const [filterTier, setFilterTier] = React.useState('all');
+
+  const filtered = filterTier === 'all' ? publications : publications.filter(p => p.tier === filterTier);
+  const verdicts = {
+    viable: publications.filter(p => p.verdict.includes('VIABLE')).length,
+    conditional: publications.filter(p => p.verdict.includes('CONDITIONAL')).length,
+    watch: publications.filter(p => p.verdict.includes('WATCH')).length
+  };
+
+  const tier1 = publications.filter(p => p.tier === 'tier1');
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white p-6">
+      <div className="max-w-7xl mx-auto">
+        {/* HEADER */}
+        <div className="mb-8">
+          <h1 className="text-5xl font-bold text-gray-900 mb-2">Publication Courtroom</h1>
+          <p className="text-xl text-gray-600 mb-8">Kyle Rosebrook | Memoir Essays | 5-Role Debates | Saturation Strategy</p>
+
+          {/* VERDICT SUMMARY */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+            <div className="bg-gradient-to-br from-green-50 to-green-100 p-6 rounded-lg border-2 border-green-400">
+              <p className="text-sm font-bold text-green-900 uppercase">Ready to Shoot</p>
+              <p className="text-3xl font-bold text-green-700 mt-1">{verdicts.viable}</p>
+              <p className="text-xs text-green-700 mt-2">Viable targets</p>
+            </div>
+            <div className="bg-gradient-to-br from-yellow-50 to-yellow-100 p-6 rounded-lg border-2 border-yellow-400">
+              <p className="text-sm font-bold text-yellow-900 uppercase">Conditional</p>
+              <p className="text-3xl font-bold text-yellow-700 mt-1">{verdicts.conditional}</p>
+              <p className="text-xs text-yellow-700 mt-2">Verify fit first</p>
+            </div>
+            <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-6 rounded-lg border-2 border-purple-400">
+              <p className="text-sm font-bold text-purple-900 uppercase">Strategy</p>
+              <p className="text-3xl font-bold text-purple-700 mt-1">Week 1-3</p>
+              <p className="text-xs text-purple-700 mt-2">Full saturation plan</p>
+            </div>
+          </div>
+
+          {/* WEEK 1-2 PRIORITY */}
+          <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-6 rounded-lg mb-8 shadow-lg">
+            <h2 className="text-2xl font-bold mb-4">⚡ WEEK 1-2: TIER-1 SIMULTANEOUS BLITZ</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {tier1.map((pub, idx) => (
+                <div key={pub.id} className="bg-white/20 p-3 rounded-lg backdrop-blur border border-white/30">
+                  <p className="text-sm font-semibold">#{idx + 1} {pub.name}</p>
+                  <p className="text-xs opacity-90 mt-1">{pub.verdict.split(' - ')[1]}</p>
+                </div>
+              ))}
+            </div>
+            <p className="text-sm opacity-95 mt-4"><strong>Strategy:</strong> Submit all simultaneously. Different routes (pitches vs. direct) = no conflict. Expect decisions 14-30 days.</p>
+          </div>
+
+          {/* FILTERS */}
+          <div className="flex gap-2 flex-wrap">
+            <button onClick={() => setFilterTier('all')} className={`px-4 py-2 rounded-lg font-semibold transition ${filterTier === 'all' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'}`}>All (10 shown)</button>
+            <button onClick={() => setFilterTier('tier1')} className={`px-4 py-2 rounded-lg font-semibold transition ${filterTier === 'tier1' ? 'bg-green-600 text-white' : 'bg-gray-200 text-gray-700'}`}>Tier 1 (7)</button>
+            <button onClick={() => setFilterTier('tier2')} className={`px-4 py-2 rounded-lg font-semibold transition ${filterTier === 'tier2' ? 'bg-green-600 text-white' : 'bg-gray-200 text-gray-700'}`}>Tier 2 (3)</button>
+          </div>
+        </div>
+
+        {/* PUBLICATIONS */}
+        <div className="space-y-4 mb-12">
+          {filtered.map(pub => {
+            const isGreen = pub.verdict.includes('VIABLE') && !pub.verdict.includes('WATCH');
+            const isYellow = pub.verdict.includes('CONDITIONAL');
+            const borderColor = isGreen ? 'border-green-400' : isYellow ? 'border-yellow-400' : 'border-blue-400';
+            const bgColor = isGreen ? 'bg-green-50' : isYellow ? 'bg-yellow-50' : 'bg-blue-50';
+
+            return (
+              <div key={pub.id} className={`border-2 rounded-lg overflow-hidden transition hover:shadow-lg ${borderColor} ${bgColor}`}>
+                <button onClick={() => setExpanded(expanded === pub.id ? null : pub.id)} className="w-full p-5 flex justify-between items-start hover:bg-opacity-75 transition text-left">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-2 flex-wrap">
+                      <h3 className="text-lg font-bold text-gray-900">{pub.name}</h3>
+                      <span className="text-xs font-semibold px-2 py-1 rounded bg-gray-700 text-white">{pub.category}</span>
+                    </div>
+                    <p className="text-sm text-gray-700 font-medium">{pub.contact}</p>
+                    <p className="text-sm text-gray-600 mt-2">{pub.rationale}</p>
+                  </div>
+                  <div className="ml-6 flex-shrink-0 text-right">
+                    <div className="text-lg font-bold text-gray-900 whitespace-nowrap mb-2">{pub.verdict}</div>
+                    <svg className={`w-5 h-5 ml-auto transition transform ${expanded === pub.id ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                    </svg>
+                  </div>
+                </button>
+
+                {/* EXPANDED */}
+                {expanded === pub.id && (
+                  <div className="bg-white bg-opacity-95 border-t-2 p-6 space-y-6">
+                    {/* ROLES */}
+                    <div>
+                      <h4 className="text-lg font-bold text-gray-900 mb-3">5-Role Debate</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {Object.entries(pub.roles).map(([roleName, role]) => (
+                          <div key={roleName} className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                            <div className="flex items-center gap-2 mb-2">
+                              <span className="font-bold text-sm text-gray-900 capitalize">{roleName === 'publicist' ? '🎤' : roleName === 'legal' ? '⚖️' : roleName === 'marketing' ? '📊' : roleName === 'assistant' ? '📋' : '🤝'} {roleName}</span>
+                              <span className={`text-xs font-bold px-2 py-1 rounded ${role.stance === 'FOR' ? 'bg-green-200 text-green-900' : role.stance === 'CAUTION' ? 'bg-yellow-200 text-yellow-900' : 'bg-red-200 text-red-900'}`}>
+                                {role.stance}
+                              </span>
+                            </div>
+                            <p className="text-sm text-gray-700 leading-relaxed">{role.text}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* METADATA */}
+                    <div className="grid grid-cols-3 gap-3 bg-gray-100 p-4 rounded-lg">
+                      <div>
+                        <p className="text-xs font-semibold text-gray-700 uppercase">Payment</p>
+                        <p className="text-sm font-bold text-gray-900">{pub.payment}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs font-semibold text-gray-700 uppercase">Response</p>
+                        <p className="text-sm font-bold text-gray-900">{pub.response}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs font-semibold text-gray-700 uppercase">Timeline</p>
+                        <p className="text-sm font-bold text-gray-900">{pub.timeline}</p>
+                      </div>
+                    </div>
+
+                    {/* NEXT STEPS */}
+                    <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                      <p className="text-sm font-bold text-blue-900 mb-2">→ NEXT STEPS</p>
+                      <ul className="text-sm text-blue-800 space-y-1">
+                        {pub.nextSteps.map((step, idx) => (
+                          <li key={idx} className="flex items-start gap-2">
+                            <span className="text-blue-900 font-bold mt-0.5">•</span>
+                            <span>{step}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* TOP 3 UNKNOWNS */}
+        {filterTier === 'all' && (
+          <div className="mt-12 space-y-6">
+            <h2 className="text-3xl font-bold text-red-900 bg-red-50 px-6 py-4 rounded-lg border-2 border-red-300">
+              🚨 TOP 3 UNKNOWNS (BEFORE FIRST PITCH)
+            </h2>
+
+            <div className="bg-white border-2 border-red-300 p-8 rounded-lg shadow-lg space-y-4">
+              <div>
+                <h3 className="text-2xl font-bold text-gray-900 mb-3">1. LEGAL REVIEW: Intinc Boundaries</h3>
+                <p className="text-gray-700 mb-3"><strong>The risk:</strong> Non-competes + IP agreements vary. Publishing might violate employment contract.</p>
+                <p className="text-gray-700 mb-3"><strong>What to do:</strong> Get tech employment lawyer (~$200-300). Ask: (1) Can I publish about this while employed? (2) What details are off-limits? (3) Want legal review of final draft?</p>
+                <p className="text-sm text-red-600 font-semibold bg-red-50 p-3 rounded-lg"><strong>Skip it:</strong> Cease-and-desist, forced unpublication. <strong>Do it:</strong> Peace of mind.</p>
+              </div>
+
+              <div className="border-t-2 border-red-200 pt-6">
+                <h3 className="text-2xl font-bold text-gray-900 mb-3">2. RIGHTS STRATEGY: What's Your Endgame?</h3>
+                <p className="text-gray-700 mb-3"><strong>The question:</strong> Republish everywhere? Exclusive first-pub to tier-1 then open tier-2/3? Customize per outlet?</p>
+                <p className="text-gray-700 mb-3"><strong>Why:</strong> Atlantic vs. Longreads vs. Substack all want different rights. Different answer = different pitch approach.</p>
+                <p className="text-sm text-red-600 font-semibold bg-red-50 p-3 rounded-lg"><strong>Recommendation:</strong> Republish everywhere (saturation = higher placement chance). Clarify BEFORE first submission.</p>
+              </div>
+
+              <div className="border-t-2 border-red-200 pt-6">
+                <h3 className="text-2xl font-bold text-gray-900 mb-3">3. PITCH VARIATIONS: Different Angles Per Outlet</h3>
+                <p className="text-gray-700 mb-3"><strong>Problem:</strong> Atlantic wants "construction vs. recovery" philosophically. MIT TR wants "systems thinking" technically. WIRED wants "unconventional engineer" culturally. Same essay, different pitches.</p>
+                <p className="text-gray-700 mb-3"><strong>Create:</strong> 5 pitch variations (literary, tech-culture, tech-systems, business, AI-future).</p>
+                <p className="text-sm text-red-600 font-semibold bg-red-50 p-3 rounded-lg"><strong>Generic pitches:</strong> Low open rates. <strong>Specific pitches:</strong> Each outlet sees why essay is perfect *for them*.</p>
+              </div>
+            </div>
+
+            {/* EXECUTION CHECKLIST */}
+            <div className="bg-gradient-to-r from-gray-900 to-gray-800 text-white p-8 rounded-lg">
+              <h3 className="text-2xl font-bold mb-4">✅ Execution Checklist</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
+                <div>
+                  <p className="font-bold mb-2">Week 0 (NOW)</p>
+                  <ul className="space-y-1">
+                    <li>□ Legal review scheduled</li>
+                    <li>□ Decide rights strategy</li>
+                    <li>□ Draft 5 pitch variations</li>
+                  </ul>
+                </div>
+                <div>
+                  <p className="font-bold mb-2">Week 1-2</p>
+                  <ul className="space-y-1">
+                    <li>□ Send all tier-1 pitches/submissions</li>
+                    <li>□ Expect responses 14-30 days</li>
+                    <li>□ Track in spreadsheet</li>
+                  </ul>
+                </div>
+                <div>
+                  <p className="font-bold mb-2">Week 2-3</p>
+                  <ul className="space-y-1">
+                    <li>□ Submit tier-2 outlets</li>
+                    <li>□ Prepare for revisions</li>
+                  </ul>
+                </div>
+                <div>
+                  <p className="font-bold mb-2">Week 3+</p>
+                  <ul className="space-y-1">
+                    <li>□ Saturate tier-3 (15+ more)</li>
+                    <li>□ Track all acceptances</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+ReactDOM.render(<App />, document.getElementById('root'));
+</script>
+<script src="https://cdn.jsdelivr.net/npm/react@18/umd/react.production.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.production.min.js"></script>
+</body>
+</html>
