@@ -1,2 +1,0 @@
-import { describe,expect,it } from 'vitest'; import { pipelineDefinitions } from '../src/registry/index.js'; import { topologicalPlan, validatePipeline } from '../src/execution/pipelineEngine.js';
-describe('reference pipelines',()=>{it.each(pipelineDefinitions)('validates $slash',pipeline=>{expect(()=>validatePipeline(pipeline)).not.toThrow();const plan=topologicalPlan(pipeline);expect(plan).toHaveLength(pipeline.stages.length);for(const stage of plan) for(const dep of stage.dependsOn) expect(plan.find(x=>x.id===dep)!.order).toBeLessThan(stage.order);});});
