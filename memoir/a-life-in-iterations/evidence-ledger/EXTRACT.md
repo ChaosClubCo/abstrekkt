@@ -1,40 +1,55 @@
-# Evidence Ledger Extract
+# A Life in Iterations — Evidence Ledger Extract
 
-Distilled snapshot of the current ledger state for quick reference. Source of truth remains the canonical files in this directory.
+*Generated extract of ledger state. Append-only; do not overwrite.*
 
-## Protocol status
+## Current status
 
-- Protocol is frozen and append-only.
-- Blind cross-domain interpretation is blocked until all five initial records are frozen.
+| Artifact | Domain | State |
+|---|---|---|
+| WR-001 | Cognitive / Writing | FROZEN: UNVERIFIED / NOT ADMISSIBLE / NOT SCORED |
+| COM-001 | Relational / Communication | Artifact not yet selected |
+| PHO-001 | Experiential / Photography | Artifact not yet selected |
+| EDU-001 | Developmental / Education | Artifact not yet selected |
+| EMP-001 | Functional / Employment | Artifact not yet selected |
 
-## Frozen controls
+## Frozen controls (summary)
 
-- Historical comparison window: **2015-01-01 through 2019-12-31** (inclusive).
-- Canonical artifact precedence is deterministic and must be applied before promotion/scoring.
-- Ownership/authentication is a prerequisite to admissibility and scoring.
-- Missing evidence remains `NOT SCORED` (never treated as zero).
+- Historical window: **2015-01-01 through 2019-12-31 inclusive** (frozen).
+- Canonical artifact precedence: deterministic; narrative usefulness is a forbidden tie-breaker.
+- Ownership and authentication are prerequisite to scoring.
+- Memory failure alone cannot establish STRANGER.
+- Missing evidence is NOT SCORED (not zero). Legitimate zero annotations: `0-U`, `0-M`, `0-N`.
+- Failed provenance/authentication → UNVERIFIED.
+- Cross-domain interpretation prohibited until all five initial records are frozen.
 
-## Domain state extract
+## Classification scale
 
-| Artifact | Domain | Current state | Next required action |
-|---|---|---|---|
-| WR-001 | Cognitive / Writing | Record 0 frozen: `UNVERIFIED / NOT ADMISSIBLE / NOT SCORED` | Locate an exact 2015-2019 writing artifact with provenance, preservation, and exposure history |
-| COM-001 | Relational / Communication | Artifact not selected | Identify an authenticated 2015-2019 primary communication artifact |
-| PHO-001 | Experiential / Photography | Artifact not selected | Identify an authenticated 2015-2019 photograph with date/location/person provenance |
-| EDU-001 | Developmental / Education | Artifact not selected | Identify an authenticated 2015-2019 education artifact or work product |
-| EMP-001 | Functional / Employment | Artifact not selected | Identify a primary authenticated 2015-2019 employment artifact |
+| Score | Classification |
+|---|---|
+| −4 to −2 | STRANGER |
+| −1 to +1 | INCONCLUSIVE |
+| +2 to +4 | CONTINUOUS |
+| — | UNVERIFIED (failed provenance/authentication) |
 
-## WR-001 frozen pre-assessment extract
+## WR-001 summary
 
-- Artifact content is absent.
-- Authentication/provenance/preservation are not established.
-- Prior exposure/contamination are unknown.
-- Initial scoring fields (`E/M/P/C`) are all `NOT SCORED`.
-- Initial classification is `UNVERIFIED`.
-- Initial record is frozen and must never be overwritten.
+- Artifact: absent; content and provenance unavailable at record freeze.
+- Authentication: UNVERIFIED.
+- Admissibility: NOT ADMISSIBLE.
+- Initial E/M/P/C: NOT SCORED.
+- Classification: UNVERIFIED.
+- Record status: **FROZEN AT PRE-ASSESSMENT**.
 
-## Deviation extract
+## Open excavation needs
 
-- `DEV-001` logged a repository routing correction from `Krosebrook/memoir-recorded` to `Krosebrook/abstrekkt`.
-- Effect on scoring: none.
-- Disposition: retain provenance and continue canonical mutations only in this repository.
+- WR-001: exact 2015–2019 writing artifact with source, historical date, authorship evidence, preservation evidence, canonical-version determination, and prior-exposure record.
+- COM-001: authenticated primary communication authored 2015–2019.
+- PHO-001: authenticated 2015–2019 photograph with date/location/person provenance.
+- EDU-001: authenticated 2015–2019 school, coursework, or academic work product.
+- EMP-001: primary 2015–2019 employment artifact.
+
+## Protocol deviation log (summary)
+
+| ID | Date | Summary |
+|---|---|---|
+| DEV-001 | 2026-08-26 | Repository routing correction: initial records written to `Krosebrook/memoir-recorded`; canonicalized to `Krosebrook/abstrekkt`. No scoring effect. |
