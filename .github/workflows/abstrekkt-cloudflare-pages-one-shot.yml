@@ -1,0 +1,121 @@
+name: Abstrekkt Cloudflare Pages Release One-Shot
+
+on:
+  push:
+    branches:
+      - release/abstrekkt-e1d3355-exact-pages-20260826
+    paths:
+      - .github/workflows/abstrekkt-cloudflare-pages-one-shot.yml
+
+permissions:
+  contents: read
+  deployments: write
+
+env:
+  CANDIDATE_SHA: e1d3355fd00dce8d739f2dbacbd3398e8cdefe11
+  PROJECT_NAME: abstrekkt
+
+jobs:
+  deploy:
+    name: Deploy exact SHA to Cloudflare Pages
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Require Cloudflare credentials
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$CLOUDFLARE_API_TOKEN" || { echo "STOP: CLOUDFLARE_API_TOKEN is not configured"; exit 1; }
+          test -n "$CLOUDFLARE_ACCOUNT_ID" || { echo "STOP: CLOUDFLARE_ACCOUNT_ID is not configured"; exit 1; }
+
+      - name: Checkout trusted automation revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+          path: automation
+
+      - name: Checkout exact release candidate
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.CANDIDATE_SHA }}
+          fetch-depth: 0
+          path: candidate
+
+      - name: Verify exact candidate SHA and package
+        shell: bash
+        run: |
+          set -euo pipefail
+          ACTUAL="$(git -C candidate rev-parse HEAD)"
+          test "$ACTUAL" = "$CANDIDATE_SHA" || { echo "STOP: checked out $ACTUAL, expected $CANDIDATE_SHA"; exit 1; }
+          ROOT="candidate/project/deploy/abstrekkt-com"
+          test -s "$ROOT/index.html"
+          test -s "$ROOT/founder/index.html"
+          test -s "$ROOT/pillars/index.html"
+          test -s "$ROOT/contact/index.html"
+          test -s "$ROOT/404.html"
+          if find "$ROOT" -type f \( -name '.env' -o -name '.env.*' -o -name '*.pem' -o -name '*.key' -o -name 'id_rsa*' \) -print -quit | grep -q .; then
+            echo "STOP: credential-like file present in static release package"
+            exit 1
+          fi
+
+      - name: Re-run repository authority checks on candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE_SHA="$(git -C candidate rev-parse HEAD^ 2>/dev/null || true)"
+          mkdir -p candidate/.release-tools
+          cp automation/scripts/repo_integrity.py candidate/.release-tools/repo_integrity.py
+          python candidate/.release-tools/repo_integrity.py --base "$BASE_SHA"
+
+      - name: Add Cloudflare Pages response headers
+        shell: bash
+        run: |
+          cat > candidate/project/deploy/abstrekkt-com/_headers <<'EOF'
+          /*
+            X-Content-Type-Options: nosniff
+            X-Frame-Options: DENY
+            Referrer-Policy: strict-origin-when-cross-origin
+            Permissions-Policy: camera=(), microphone=(), geolocation=()
+            Cache-Control: public, max-age=0, must-revalidate
+          EOF
+
+      - name: Deploy to Cloudflare Pages
+        id: deploy
+        uses: cloudflare/wrangler-action@v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
+          command: pages deploy candidate/project/deploy/abstrekkt-com --project-name="${{ env.PROJECT_NAME }}" --branch=main --commit-hash="${{ env.CANDIDATE_SHA }}"
+
+      - name: Record deployment evidence
+        if: success()
+        env:
+          DEPLOYMENT_URL: ${{ steps.deploy.outputs.deployment-url }}
+          DEPLOYMENT_ID: ${{ steps.deploy.outputs.pages-deployment-id }}
+          DEPLOYMENT_ALIAS: ${{ steps.deploy.outputs.pages-deployment-alias-url }}
+        shell: bash
+        run: |
+          {
+            echo "## Abstrekkt exact-SHA Cloudflare Pages release"
+            echo "- Candidate SHA: $CANDIDATE_SHA"
+            echo "- Pages project: $PROJECT_NAME"
+            echo "- Deployment URL: $DEPLOYMENT_URL"
+            echo "- Pages deployment ID: $DEPLOYMENT_ID"
+            echo "- Pages alias URL: $DEPLOYMENT_ALIAS"
+          } >> "$GITHUB_STEP_SUMMARY"
+          printf '%s\n' "$DEPLOYMENT_URL" > deployment-url.txt
+          printf '%s\n' "$DEPLOYMENT_ID" > deployment-id.txt
+
+      - name: Upload release evidence
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: abstrekkt-e1d3355-cloudflare-release
+          path: |
+            deployment-url.txt
+            deployment-id.txt
