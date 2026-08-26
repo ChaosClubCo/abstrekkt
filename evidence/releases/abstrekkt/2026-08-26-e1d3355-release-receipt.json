@@ -1,6 +1,6 @@
 {
   "schemaVersion": "AbstrekktReleaseReceipt/v1",
-  "observedAt": "2026-08-26T10:43:31-05:00",
+  "observedAt": "2026-08-26T15:00:07-05:00",
   "repository": "Krosebrook/abstrekkt",
   "releaseCandidate": {
     "sha": "e1d3355fd00dce8d739f2dbacbd3398e8cdefe11",
@@ -18,17 +18,34 @@
     }
   },
   "cloudflarePagesRelease": {
-    "workflow": ".github/workflows/abstrekkt-cloudflare-pages.yml",
+    "canonicalWorkflow": ".github/workflows/abstrekkt-cloudflare-pages.yml",
+    "executionWorkflow": ".github/workflows/abstrekkt-cloudflare-pages-one-shot.yml",
+    "executionBranch": "release/abstrekkt-e1d3355-exact-pages-20260826",
+    "executionCommit": "91cdcf7e295425e567ca042bf299ba5630cd14af",
     "projectName": "abstrekkt",
     "candidateSha": "e1d3355fd00dce8d739f2dbacbd3398e8cdefe11",
+    "runId": 33007952245,
+    "runUrl": "https://github.com/Krosebrook/abstrekkt/actions/runs/33007952245",
+    "runConclusion": "failure",
+    "failedStep": "Require Cloudflare credentials",
+    "missingGitHubActionsSecrets": [
+      "CLOUDFLARE_API_TOKEN",
+      "CLOUDFLARE_ACCOUNT_ID"
+    ],
+    "deploymentStepExecuted": false,
     "deployedSha": null,
+    "deploymentUrl": null,
+    "pagesDeploymentId": null,
     "status": "BLOCKED",
-    "reason": "The repository has zero workflow_dispatch runs and the connected GitHub toolset does not expose workflow_dispatch creation. The existing workflow intentionally requires an explicit candidate_sha input, so it was not bypassed with an unsafe push-trigger workaround."
+    "reason": "Exact-SHA release execution was initiated, but the credential preflight failed because both required Cloudflare GitHub Actions secrets were empty. No Cloudflare deployment request was made."
   },
   "productionReadBack": {
     "status": "BLOCKED",
     "hostname": "abstrekkt.com",
-    "probeResult": "DNS_UNRESOLVED_FROM_EXECUTION_ENVIRONMENT",
+    "observations": {
+      "webFetcherRoot": "HTTP_401_UNAUTHORIZED",
+      "directCurl": "DNS_UNRESOLVED_FROM_EXECUTION_ENVIRONMENT"
+    },
     "endpoints": {
       "/": "BLOCKED",
       "/founder/": "BLOCKED",
@@ -37,12 +54,13 @@
       "/__release-probe-nonexistent-20260826": "BLOCKED"
     },
     "securityHeaders": "BLOCKED",
-    "expected404": "BLOCKED"
+    "expected404": "BLOCKED",
+    "reason": "No successful exact-SHA deployment exists, and independent execution paths do not provide a consistent public production response suitable for certification."
   },
   "cloudflareWorkersBuild": {
     "status": "UNVERIFIED",
     "repositoryEvidence": "No active Abstrekkt GitHub workflow using bare npx wrangler deploy was identified; the canonical repository workflow uses wrangler pages deploy.",
-    "controlPlaneEvidence": "Cloudflare account/build configuration was not accessible in this execution context, so external Workers Builds settings cannot be certified."
+    "controlPlaneEvidence": "Cloudflare account/build configuration is not available through an installed connector in this execution context, so the external Workers Build cannot be disabled or certified here."
   },
   "repositoryCleanup": {
     "status": "PASS",
@@ -60,7 +78,7 @@
     ],
     "missingRequiredControls": [
       "pull_request requirement",
-      "required status checks including Repository Integrity",
+      "required status checks including Repository Integrity and Abstrekkt CI",
       "protection against direct workflow deletion through an unreviewed push"
     ],
     "reason": "The connected GitHub toolset exposes ruleset reads but no ruleset or branch-protection mutation action."
@@ -68,8 +86,10 @@
   "overallStatus": "BLOCKED",
   "releaseCertified": false,
   "blockingGates": [
-    "exact-SHA Cloudflare Pages workflow has not been dispatched",
-    "production hostname read-back is unavailable",
+    "CLOUDFLARE_API_TOKEN is not configured in GitHub Actions",
+    "CLOUDFLARE_ACCOUNT_ID is not configured in GitHub Actions",
+    "no successful exact-SHA Cloudflare Pages deployment exists",
+    "production route and header read-back is not verified",
     "external Cloudflare Workers Builds state is unverified",
     "required main protection/ruleset controls are not enforced"
   ]
