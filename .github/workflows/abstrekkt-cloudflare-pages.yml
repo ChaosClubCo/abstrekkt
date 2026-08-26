@@ -1,0 +1,96 @@
+name: Abstrekkt Cloudflare Pages Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      candidate_sha:
+        description: Exact commit SHA to deploy
+        required: true
+      project_name:
+        description: Existing Cloudflare Pages project name
+        required: true
+        default: abstrekkt
+
+permissions:
+  contents: read
+  deployments: write
+
+jobs:
+  deploy:
+    name: Deploy exact SHA to Cloudflare Pages
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Require Cloudflare credentials
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$CLOUDFLARE_API_TOKEN" || { echo "STOP: CLOUDFLARE_API_TOKEN is not configured"; exit 1; }
+          test -n "$CLOUDFLARE_ACCOUNT_ID" || { echo "STOP: CLOUDFLARE_ACCOUNT_ID is not configured"; exit 1; }
+
+      - name: Checkout exact candidate
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.candidate_sha }}
+          fetch-depth: 1
+
+      - name: Verify exact candidate SHA
+        shell: bash
+        run: |
+          set -euo pipefail
+          ACTUAL="$(git rev-parse HEAD)"
+          test "$ACTUAL" = "${{ inputs.candidate_sha }}" || {
+            echo "STOP: checked out $ACTUAL, expected ${{ inputs.candidate_sha }}"
+            exit 1
+          }
+
+      - name: Validate static release package
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="project/deploy/abstrekkt-com"
+          test -f "$ROOT/index.html" || { echo "STOP: missing root index.html"; exit 1; }
+          test -f "$ROOT/founder/index.html" || { echo "STOP: missing /founder"; exit 1; }
+          test -f "$ROOT/pillars/index.html" || { echo "STOP: missing /pillars"; exit 1; }
+          test -f "$ROOT/contact/index.html" || { echo "STOP: missing /contact"; exit 1; }
+          test -f "$ROOT/404.html" || { echo "STOP: missing 404.html"; exit 1; }
+
+      - name: Add Cloudflare Pages response headers to release workspace
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > project/deploy/abstrekkt-com/_headers <<'EOF'
+          /*
+            X-Content-Type-Options: nosniff
+            X-Frame-Options: DENY
+            Referrer-Policy: strict-origin-when-cross-origin
+            Permissions-Policy: camera=(), microphone=(), geolocation=()
+
+          /*.html
+            Cache-Control: public, max-age=0, must-revalidate
+          EOF
+
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
+          command: pages deploy project/deploy/abstrekkt-com --project-name=${{ inputs.project_name }} --branch=main --commit-hash=${{ inputs.candidate_sha }}
+
+      - name: Record release summary
+        if: success()
+        shell: bash
+        run: |
+          {
+            echo "## Abstrekkt Cloudflare Pages release"
+            echo
+            echo "- Candidate SHA: `${{ inputs.candidate_sha }}`"
+            echo "- Pages project: `${{ inputs.project_name }}`"
+            echo "- Static package: `project/deploy/abstrekkt-com`"
+            echo "- Custom-domain binding is intentionally separate from this workflow."
+          } >> "$GITHUB_STEP_SUMMARY"
