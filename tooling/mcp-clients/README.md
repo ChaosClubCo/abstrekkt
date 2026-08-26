@@ -14,7 +14,7 @@ export ZAPIER_MCP_URL='https://...'
 Two GitHub Copilot MCP surfaces are intentionally kept distinct:
 
 - `.github/mcp.json` is the repository/workspace MCP file used by Copilot CLI in a trusted checkout.
-- `copilot/repository-mcp.json` is the canonical JSON payload for GitHub.com repository settings under **Settings → Copilot → MCP servers**, which is shared by Copilot cloud agent and Copilot code review.
+- `tooling/mcp-clients/copilot/repository-mcp.json` is the canonical JSON payload for GitHub.com repository settings under **Settings → Copilot → MCP servers**, which is shared by Copilot cloud agent and Copilot code review.
 
 GitHub already provides a built-in read-only GitHub MCP server scoped to the current repository, so neither config duplicates it. The explicit repository MCP addition is the public Cloudflare documentation MCP endpoint used for Cloudflare Pages/platform guidance.
 
@@ -46,7 +46,7 @@ python -m json.tool tooling/mcp-clients/copilot/repository-mcp.json >/dev/null
 
 For Cursor, open Customize → MCP or Output → MCP Logs.
 
-For GitHub.com Copilot cloud agent/code review, save `copilot/repository-mcp.json` in repository MCP settings, then inspect an agent/review session's **Start MCP Servers** logs and confirm only the intended tools are available.
+For GitHub.com Copilot cloud agent/code review, save `tooling/mcp-clients/copilot/repository-mcp.json` in repository MCP settings, then inspect an agent/review session's **Start MCP Servers** logs and confirm only the intended tools are available.
 
 Verify Impeccable after installation:
 - Claude Code: `.claude/skills/impeccable/`
