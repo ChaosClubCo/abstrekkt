@@ -60,21 +60,21 @@ test('demo token fallback is restricted to the intended staging hostname', async
   const allowedHosts = new Set(['loxihart-pilot-console.netlify.app']);
   const stagingToken = 'public-demo-token';
 
-  assert.equal(mod.resolveDemoToken?.({
+  assert.strictEqual(mod.resolveDemoToken?.({
     configuredToken: '  managed-secret  ',
     requestUrl: 'https://production.example/api/loxihart',
     stagingToken,
     allowedHosts,
   }), 'managed-secret');
 
-  assert.equal(mod.resolveDemoToken?.({
+  assert.strictEqual(mod.resolveDemoToken?.({
     configuredToken: null,
     requestUrl: 'https://loxihart-pilot-console.netlify.app/api/loxihart',
     stagingToken,
     allowedHosts,
   }), stagingToken);
 
-  assert.equal(mod.resolveDemoToken?.({
+  assert.strictEqual(mod.resolveDemoToken?.({
     configuredToken: null,
     requestUrl: 'https://production.example/api/loxihart',
     stagingToken,
