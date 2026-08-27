@@ -139,7 +139,7 @@ async function probeTarget(target, proxyToken) {
   if (!/Example Domain/i.test(responseText)) {
     throw new Error('Authenticated disposable request did not return the expected example.com response');
   }
-  return { marker, probeUrl, unauthenticatedStatus: 401, authenticatedStatus: 200 };
+  return { marker, unauthenticatedStatus: 401, authenticatedStatus: 200 };
 }
 
 async function findTrace(workerName, marker, from) {
@@ -169,8 +169,7 @@ async function findTrace(workerName, marker, from) {
       };
       const eventsResult = await cloudflareQuery('events', [serviceFilter, traceFilter], from, to);
       const events = flattenEvents(eventsResult).filter((event) => eventTraceId(event) === trace.traceId);
-      const markerEvent = events.find((event) => JSON.stringify(event).includes(marker));
-      if (!markerEvent) continue;
+      if (!events.some((event) => JSON.stringify(event).includes(marker))) continue;
 
       const root = events.find((event) => !metadata(event).parentSpanId);
       const child = events.find((event) => {
@@ -196,13 +195,61 @@ async function findTrace(workerName, marker, from) {
   throw new Error(`No matching traced authenticated request found after ingestion retries; observed ${lastTraceCount} traces`);
 }
 
+function baseReceipt(verdict, failureReason = null) {
+  let deployed = null;
+  try {
+    deployed = parseDeploy(process.env.DEPLOY_LOG || '');
+  } catch {}
+  return {
+    schema: 'CloudflareObservabilityReceipt/v1',
+    repository: process.env.GITHUB_REPOSITORY || 'Krosebrook/abstrekkt',
+    source_sha: process.env.SOURCE_SHA || null,
+    trigger_origin_sha: process.env.TRIGGER_ORIGIN_SHA || null,
+    control_plane_sha: process.env.CONTROL_PLANE_SHA || null,
+    execution_sha: process.env.EXECUTION_SHA || null,
+    workflow: {
+      run_id: process.env.GITHUB_RUN_ID || null,
+      run_attempt: process.env.GITHUB_RUN_ATTEMPT || null,
+    },
+    provider: 'Cloudflare Workers',
+    worker: {
+      name: deployed?.deploy?.worker_name || process.env.WORKER_NAME || 'kr-mentor-proxy',
+      worker_tag: deployed?.deploy?.worker_tag || null,
+      traced_version_id: deployed?.deploy?.version_id || null,
+      deployment_target: deployed?.target || null,
+    },
+    observability: {
+      tracing_enabled: true,
+      payload_recording_enabled: false,
+      trace_id: null,
+      handler_span: { verified: false },
+      outbound_fetch_span: { verified: false, target_host: 'example.com' },
+    },
+    proxy_secret: {
+      mode: process.env.PROXY_TOKEN_MODE || 'unknown',
+      value_recorded: false,
+      cleanup_status: 'pending',
+    },
+    evidence_hashes: {
+      deploy_log_sha256: sha256File(process.env.DEPLOY_LOG || ''),
+      pre_versions_sha256: sha256File(process.env.PRE_VERSIONS_PATH || ''),
+      pre_deployments_sha256: sha256File(process.env.PRE_DEPLOYMENTS_PATH || ''),
+      post_versions_sha256: sha256File(process.env.POST_VERSIONS_PATH || ''),
+      post_deployments_sha256: sha256File(process.env.POST_DEPLOYMENTS_PATH || ''),
+    },
+    failure_reason: failureReason,
+    verified_at: new Date().toISOString(),
+    verdict,
+  };
+}
+
 async function verify() {
   const workerName = required('WORKER_NAME');
   const proxyToken = required('PROXY_TOKEN');
-  const sourceSha = required('SOURCE_SHA');
-  const triggerOriginSha = required('TRIGGER_ORIGIN_SHA');
-  const controlPlaneSha = required('CONTROL_PLANE_SHA');
-  const executionSha = required('EXECUTION_SHA');
+  required('SOURCE_SHA');
+  required('TRIGGER_ORIGIN_SHA');
+  required('CONTROL_PLANE_SHA');
+  required('EXECUTION_SHA');
   const deployLog = required('DEPLOY_LOG');
   const receiptPath = required('RECEIPT_PATH');
   const traceFrom = Number(required('TRACE_FROM_MS'));
@@ -217,70 +264,37 @@ async function verify() {
   const traced = await findTrace(workerName, probe.marker, traceFrom - 30_000);
   const deployVersionId = deploy.version_id || null;
   if (deployVersionId && traced.scriptVersionId && deployVersionId !== traced.scriptVersionId) {
-    throw new Error(
-      `Trace version ${traced.scriptVersionId} does not match deployed version ${deployVersionId}`,
-    );
+    throw new Error(`Trace version ${traced.scriptVersionId} does not match deployed version ${deployVersionId}`);
   }
 
-  const receipt = {
-    schema: 'CloudflareObservabilityReceipt/v1',
-    repository: process.env.GITHUB_REPOSITORY || 'Krosebrook/abstrekkt',
-    source_sha: sourceSha,
-    trigger_origin_sha: triggerOriginSha,
-    control_plane_sha: controlPlaneSha,
-    execution_sha: executionSha,
-    workflow: {
-      run_id: process.env.GITHUB_RUN_ID || null,
-      run_attempt: process.env.GITHUB_RUN_ATTEMPT || null,
+  const receipt = baseReceipt('PASS');
+  receipt.worker.traced_version_id = deployVersionId || traced.scriptVersionId || null;
+  receipt.observability = {
+    tracing_enabled: true,
+    payload_recording_enabled: false,
+    trace_id: traced.trace.traceId,
+    trace_start_ms: traced.trace.traceStartMs,
+    trace_end_ms: traced.trace.traceEndMs,
+    trace_duration_ms: traced.trace.traceDurationMs,
+    span_count: traced.trace.spans,
+    event_count: traced.eventCount,
+    handler_span: {
+      verified: true,
+      span_id: traced.root.spanId || null,
+      span_name: traced.root.spanName || traced.trace.rootSpanName || null,
     },
-    provider: 'Cloudflare Workers',
-    worker: {
-      name: deploy.worker_name || workerName,
-      worker_tag: deploy.worker_tag || null,
-      traced_version_id: deployVersionId || traced.scriptVersionId || null,
-      deployment_target: target,
+    outbound_fetch_span: {
+      verified: true,
+      span_id: traced.child.spanId || null,
+      parent_span_id: traced.child.parentSpanId || null,
+      span_name: traced.child.spanName || null,
+      target_host: 'example.com',
     },
-    observability: {
-      tracing_enabled: true,
-      payload_recording_enabled: false,
-      trace_id: traced.trace.traceId,
-      trace_start_ms: traced.trace.traceStartMs,
-      trace_end_ms: traced.trace.traceEndMs,
-      trace_duration_ms: traced.trace.traceDurationMs,
-      span_count: traced.trace.spans,
-      event_count: traced.eventCount,
-      handler_span: {
-        verified: true,
-        span_id: traced.root.spanId || null,
-        span_name: traced.root.spanName || traced.trace.rootSpanName || null,
-      },
-      outbound_fetch_span: {
-        verified: true,
-        span_id: traced.child.spanId || null,
-        parent_span_id: traced.child.parentSpanId || null,
-        span_name: traced.child.spanName || null,
-        target_host: 'example.com',
-      },
-    },
-    readback: {
-      unauthenticated_post_status: probe.unauthenticatedStatus,
-      authenticated_disposable_request_status: probe.authenticatedStatus,
-      authenticated_target_host: 'example.com',
-    },
-    proxy_secret: {
-      mode: process.env.PROXY_TOKEN_MODE || 'unknown',
-      value_recorded: false,
-      cleanup_status: 'pending',
-    },
-    evidence_hashes: {
-      deploy_log_sha256: sha256File(deployLog),
-      pre_versions_sha256: sha256File(process.env.PRE_VERSIONS_PATH || ''),
-      pre_deployments_sha256: sha256File(process.env.PRE_DEPLOYMENTS_PATH || ''),
-      post_versions_sha256: sha256File(process.env.POST_VERSIONS_PATH || ''),
-      post_deployments_sha256: sha256File(process.env.POST_DEPLOYMENTS_PATH || ''),
-    },
-    verified_at: new Date().toISOString(),
-    verdict: 'PASS',
+  };
+  receipt.readback = {
+    unauthenticated_post_status: probe.unauthenticatedStatus,
+    authenticated_disposable_request_status: probe.authenticatedStatus,
+    authenticated_target_host: 'example.com',
   };
   writeFileSync(receiptPath, `${JSON.stringify(receipt, null, 2)}\n`);
   console.log(`TRACE_ID=${receipt.observability.trace_id}`);
@@ -302,6 +316,19 @@ function finalize() {
 }
 
 const command = process.argv[2] || 'verify';
-if (command === 'verify') await verify();
-else if (command === 'finalize') finalize();
-else throw new Error(`Unknown command: ${command}`);
+if (command === 'verify') {
+  try {
+    await verify();
+  } catch (error) {
+    const receiptPath = process.env.RECEIPT_PATH;
+    if (receiptPath) {
+      writeFileSync(receiptPath, `${JSON.stringify(baseReceipt('BLOCKED', error.message), null, 2)}\n`);
+    }
+    console.error(error.message);
+    process.exitCode = 1;
+  }
+} else if (command === 'finalize') {
+  finalize();
+} else {
+  throw new Error(`Unknown command: ${command}`);
+}
