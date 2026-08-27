@@ -29,7 +29,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     env:
-      WEBHOOK_URL: ${{ secrets.ABSTREKKT_WEBHOOK_URL }}
+      WEBHOOK_URL: ${{ secrets.ABSTREKKT_WEBHOOK_URL || 'https://abstrekkt-webhook-receiver.kylerosebrook.workers.dev/github' }}
       WEBHOOK_SECRET: ${{ secrets.ABSTREKKT_WEBHOOK_SECRET }}
 
     steps:
@@ -40,11 +40,11 @@ jobs:
           set -euo pipefail
           if [[ -z "${WEBHOOK_URL:-}" || -z "${WEBHOOK_SECRET:-}" ]]; then
             echo "enabled=false" >> "$GITHUB_OUTPUT"
-            echo "Webhook dispatch skipped: ABSTREKKT_WEBHOOK_URL and/or ABSTREKKT_WEBHOOK_SECRET is not configured."
+            echo "Webhook dispatch skipped: receiver URL or ABSTREKKT_WEBHOOK_SECRET is not configured."
           else
             case "$WEBHOOK_URL" in
               https://*) ;;
-              *) echo "STOP: ABSTREKKT_WEBHOOK_URL must use https://"; exit 1 ;;
+              *) echo "STOP: webhook receiver URL must use https://"; exit 1 ;;
             esac
             echo "enabled=true" >> "$GITHUB_OUTPUT"
           fi
