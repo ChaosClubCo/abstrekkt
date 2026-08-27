@@ -1,0 +1,180 @@
+name: Abstrekkt CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: abstrekkt-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  repository-integrity:
+    name: Repository integrity
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Compile integrity checker
+        run: python -m py_compile scripts/repo_integrity.py
+
+      - name: Run integrity checks
+        env:
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PUSH_BASE_SHA: ${{ github.event.before }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE_SHA="${PR_BASE_SHA:-${PUSH_BASE_SHA:-}}"
+          if [ -z "$BASE_SHA" ]; then
+            BASE_SHA="$(git rev-parse HEAD~1 2>/dev/null || true)"
+          fi
+          python scripts/repo_integrity.py --base "$BASE_SHA"
+
+  automation-config:
+    name: Automation configuration
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Validate repository MCP JSON
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m json.tool .github/mcp.json >/dev/null
+          python -m json.tool tooling/mcp-clients/copilot/repository-mcp.json >/dev/null
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          for relative in (
+              '.github/mcp.json',
+              'tooling/mcp-clients/copilot/repository-mcp.json',
+          ):
+              config = json.loads(Path(relative).read_text(encoding='utf-8'))
+              servers = config.get('mcpServers')
+              if not isinstance(servers, dict) or not servers:
+                  raise SystemExit(f'{relative}: mcpServers must be a non-empty object')
+              for name, server in servers.items():
+                  if server.get('type') not in {'local', 'stdio', 'http', 'sse'}:
+                      raise SystemExit(f'{relative}:{name}: invalid MCP type')
+                  tools = server.get('tools')
+                  if not isinstance(tools, list) or not tools or not all(isinstance(tool, str) and tool for tool in tools):
+                      raise SystemExit(f'{relative}:{name}: tools must be a non-empty string list')
+          PY
+
+      - name: Validate Copilot repository files
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s .github/copilot-instructions.md
+          test -s AGENTS.md
+          for file in .github/agents/*.agent.md; do
+            test -s "$file"
+            head -n 1 "$file" | grep -qx -- '---'
+            grep -q '^description:' "$file"
+            grep -q '^target: github-copilot$' "$file"
+          done
+          grep -q '^tools: \["read", "search"\]$' .github/agents/security-reviewer.agent.md
+
+      - name: Validate webhook workflow contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s .github/workflows/repository-webhooks.yml
+          grep -q 'ABSTREKKT_WEBHOOK_URL' .github/workflows/repository-webhooks.yml
+          grep -q 'ABSTREKKT_WEBHOOK_SECRET' .github/workflows/repository-webhooks.yml
+          grep -q 'sha256=' .github/workflows/repository-webhooks.yml
+
+  static-release-package:
+    name: Static release package
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate required release files
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="project/deploy/abstrekkt-com"
+          for path in \
+            "$ROOT/index.html" \
+            "$ROOT/founder/index.html" \
+            "$ROOT/pillars/index.html" \
+            "$ROOT/contact/index.html" \
+            "$ROOT/404.html"; do
+            test -s "$path" || { echo "STOP: missing or empty $path"; exit 1; }
+          done
+
+      - name: Reject credential-like files in release package
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="project/deploy/abstrekkt-com"
+          if find "$ROOT" -type f \( -name '.env' -o -name '.env.*' -o -name '*.pem' -o -name '*.key' -o -name 'id_rsa*' \) -print -quit | grep -q .; then
+            echo "STOP: credential-like file present in static release package"
+            exit 1
+          fi
+
+  cloudflare-worker-config:
+    name: Cloudflare Worker config
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Validate observability verifier and deployment manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check tooling/cloudflare/verify-mentor-proxy.mjs
+          node <<'NODE'
+          const manifest = require('./project/proxy-deploy/deployment-manifest.json');
+          const sha = /^[0-9a-f]{40}$/;
+          if (manifest.schema !== 'KrMentorProxyDeploymentManifest/v1') throw new Error('manifest schema mismatch');
+          if (manifest.worker_name !== 'kr-mentor-proxy') throw new Error('manifest worker mismatch');
+          if (!sha.test(manifest.source_sha)) throw new Error('manifest source_sha invalid');
+          if (!sha.test(manifest.trigger_origin_sha)) throw new Error('manifest trigger_origin_sha invalid');
+          if (manifest.expected_tracing_enabled !== true) throw new Error('manifest tracing expectation invalid');
+          if (manifest.allowed_probe_host !== 'example.com') throw new Error('manifest probe host invalid');
+          NODE
+
+      - name: Validate mentor proxy Worker with pinned Wrangler
+        working-directory: project/proxy-deploy
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(node -p "require('./package.json').devDependencies.wrangler")" = "4.126.0"
+          grep -q '^\[observability\.traces\]$' wrangler.toml
+          grep -q '^enabled = true$' wrangler.toml
+          npx --yes wrangler@4.126.0 deploy --dry-run --config wrangler.toml
