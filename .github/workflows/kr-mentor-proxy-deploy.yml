@@ -69,8 +69,9 @@ jobs:
           echo "EXECUTION_SHA=$GITHUB_SHA" >> "$GITHUB_ENV"
 
           rm -rf candidate
-          git worktree add --detach candidate "$SOURCE_SHA"
+          GIT_LFS_SKIP_SMUDGE=1 git worktree add --detach candidate "$SOURCE_SHA"
           test "$(git -C candidate rev-parse HEAD)" = "$SOURCE_SHA"
+          echo 'CANDIDATE_READY=1' >> "$GITHUB_ENV"
 
       - name: Require Cloudflare credentials and establish disposable bearer
         shell: bash
@@ -180,7 +181,6 @@ jobs:
 
       - name: Remove ephemeral proxy secret
         if: ${{ always() }}
-        working-directory: candidate/project/proxy-deploy
         shell: bash
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -188,15 +188,21 @@ jobs:
         run: |
           set -euo pipefail
           if [ "${PROXY_TOKEN_MODE:-}" = 'ephemeral_verification_only' ] && [ "${PROXY_SECRET_INSTALLED:-}" = '1' ]; then
+            if [ ! -d candidate/project/proxy-deploy ]; then
+              echo 'STOP: proxy secret was installed but candidate config is unavailable for cleanup'
+              exit 1
+            fi
+            cd candidate/project/proxy-deploy
             printf '{"PROXY_TOKEN":null}\n' | npx --yes wrangler@${WRANGLER_VERSION} secret bulk --config wrangler.toml
             echo 'PROXY_SECRET_CLEANUP_STATUS=deleted_ephemeral_secret' >> "$GITHUB_ENV"
+          elif [ "${CANDIDATE_READY:-}" != '1' ]; then
+            echo 'PROXY_SECRET_CLEANUP_STATUS=not_required_no_candidate' >> "$GITHUB_ENV"
           else
             echo 'PROXY_SECRET_CLEANUP_STATUS=not_required' >> "$GITHUB_ENV"
           fi
 
       - name: Capture final fail-closed state
         if: ${{ always() }}
-        working-directory: candidate/project/proxy-deploy
         shell: bash
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -205,8 +211,14 @@ jobs:
           set -euo pipefail
           VERSIONS="${RUNNER_TEMP}/kr-mentor-final-versions.json"
           DEPLOYMENTS="${RUNNER_TEMP}/kr-mentor-final-deployments.json"
-          npx --yes wrangler@${WRANGLER_VERSION} versions list --name "$WORKER_NAME" --json --config wrangler.toml > "$VERSIONS" 2>/dev/null || printf '[]\n' > "$VERSIONS"
-          npx --yes wrangler@${WRANGLER_VERSION} deployments list --name "$WORKER_NAME" --json --config wrangler.toml > "$DEPLOYMENTS" 2>/dev/null || printf '[]\n' > "$DEPLOYMENTS"
+          if [ -d candidate/project/proxy-deploy ]; then
+            cd candidate/project/proxy-deploy
+            npx --yes wrangler@${WRANGLER_VERSION} versions list --name "$WORKER_NAME" --json --config wrangler.toml > "$VERSIONS" 2>/dev/null || printf '[]\n' > "$VERSIONS"
+            npx --yes wrangler@${WRANGLER_VERSION} deployments list --name "$WORKER_NAME" --json --config wrangler.toml > "$DEPLOYMENTS" 2>/dev/null || printf '[]\n' > "$DEPLOYMENTS"
+          else
+            printf '[]\n' > "$VERSIONS"
+            printf '[]\n' > "$DEPLOYMENTS"
+          fi
           echo "FINAL_VERSIONS_PATH=$VERSIONS" >> "$GITHUB_ENV"
           echo "FINAL_DEPLOYMENTS_PATH=$DEPLOYMENTS" >> "$GITHUB_ENV"
 
