@@ -1,0 +1,221 @@
+name: Abstrekkt Release Control Plane One-Shot
+
+on:
+  push:
+    branches:
+      - infra/abstrekkt-release-control-plane-20260827
+    paths:
+      - .github/workflows/abstrekkt-release-control-plane-one-shot.yml
+
+permissions:
+  contents: read
+
+env:
+  PROJECT_NAME: abstrekkt
+  WORKER_NAME: abstrekkt
+  CUSTOM_DOMAIN: abstrekkt.com
+  CANDIDATE_SHA: e1d3355fd00dce8d739f2dbacbd3398e8cdefe11
+  DEPLOYMENT_ID: ee78ba2a-7f8f-49c4-9dbd-fddc20ca57a8
+  DEPLOYMENT_URL: https://ee78ba2a.abstrekkt.pages.dev
+  NONEXISTENT_PATH: /__release-probe-nonexistent-20260827
+
+jobs:
+  verify:
+    name: Verify Pages and reconcile Workers Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Require Cloudflare credentials
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$CLOUDFLARE_API_TOKEN"
+          test -n "$CLOUDFLARE_ACCOUNT_ID"
+
+      - name: Verify Cloudflare deployment metadata
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          API="https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/pages/projects/$PROJECT_NAME/deployments/$DEPLOYMENT_ID"
+          curl --fail-with-body --silent --show-error \
+            --header "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+            "$API" > deployment.json
+          python <<'PY'
+          import json, os
+          from pathlib import Path
+          payload=json.loads(Path('deployment.json').read_text())
+          if not payload.get('success'):
+              raise SystemExit(payload.get('errors'))
+          row=payload.get('result') or {}
+          meta=((row.get('deployment_trigger') or {}).get('metadata') or {})
+          expected={
+              'id': os.environ['DEPLOYMENT_ID'],
+              'url': os.environ['DEPLOYMENT_URL'],
+              'commit_hash': os.environ['CANDIDATE_SHA'],
+          }
+          observed={'id':row.get('id'),'url':row.get('url'),'commit_hash':meta.get('commit_hash')}
+          if observed != expected:
+              raise SystemExit(f'Deployment metadata mismatch: {observed!r} != {expected!r}')
+          out={
+              'id': row.get('id'),
+              'url': row.get('url'),
+              'environment': row.get('environment'),
+              'created_on': row.get('created_on'),
+              'latest_stage': row.get('latest_stage'),
+              'deployment_trigger': row.get('deployment_trigger'),
+          }
+          Path('pages-deployment-evidence.json').write_text(json.dumps(out, indent=2))
+          print(json.dumps(observed, indent=2))
+          PY
+
+      - name: Probe preview routes and configured headers
+        shell: bash
+        run: |
+          set -euo pipefail
+          python <<'PY'
+          import json, os, subprocess
+          from pathlib import Path
+
+          base=os.environ['DEPLOYMENT_URL'].rstrip('/')
+          routes=[('/',200),('/founder/',200),('/pillars/',200),('/contact/',200),(os.environ['NONEXISTENT_PATH'],404)]
+          required={
+              'x-content-type-options':'nosniff',
+              'x-frame-options':'DENY',
+              'referrer-policy':'strict-origin-when-cross-origin',
+              'permissions-policy':'camera=(), microphone=(), geolocation=()',
+              'cache-control':'public, max-age=0, must-revalidate',
+          }
+          evidence=[]
+          for i,(path,expected) in enumerate(routes):
+              headers=f'/tmp/h{i}.txt'; body=f'/tmp/b{i}.bin'
+              p=subprocess.run([
+                  'curl','--silent','--show-error','--location','--connect-timeout','10','--max-time','30',
+                  '--dump-header',headers,'--output',body,'--write-out','%{http_code}|%{url_effective}',base+path
+              ],capture_output=True,text=True,check=True)
+              status_s,final_url=p.stdout.strip().split('|',1)
+              status=int(status_s)
+              raw=Path(headers).read_text(errors='replace').splitlines()
+              parsed={}
+              for line in raw:
+                  if ':' in line:
+                      k,v=line.split(':',1); parsed[k.strip().lower()]=v.strip()
+              missing={k:v for k,v in required.items() if parsed.get(k,'').lower()!=v.lower()}
+              if status != expected:
+                  raise SystemExit(f'{path}: HTTP {status}, expected {expected}')
+              if missing:
+                  raise SystemExit(f'{path}: configured headers mismatch: {missing}; observed={parsed}')
+              evidence.append({'path':path,'status':status,'final_url':final_url,'headers':{k:parsed.get(k) for k in required}})
+          Path('preview-http-evidence.json').write_text(json.dumps(evidence, indent=2))
+          print(json.dumps(evidence, indent=2))
+          PY
+
+      - name: Read Pages custom-domain status
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          URL="https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/pages/projects/$PROJECT_NAME/domains/$CUSTOM_DOMAIN"
+          CODE="$(curl --silent --show-error --output /tmp/domain.json --write-out '%{http_code}' --header "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "$URL" || true)"
+          python - "$CODE" <<'PY'
+          import json, sys
+          from pathlib import Path
+          code=int(sys.argv[1])
+          payload=json.loads(Path('/tmp/domain.json').read_text() or '{}')
+          row=payload.get('result') or {}
+          out={'http_status':code,'success':payload.get('success'), 'domain': {k:row.get(k) for k in ('id','name','status','zone_tag','created_on','certificate_authority')}}
+          Path('pages-domain-evidence.json').write_text(json.dumps(out, indent=2))
+          print(json.dumps(out, indent=2))
+          PY
+
+      - name: Inspect and narrowly disable bare Workers Build trigger
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          SCRIPTS_URL="https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/scripts"
+          CODE="$(curl --silent --show-error --output /tmp/scripts.json --write-out '%{http_code}' --header "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "$SCRIPTS_URL" || true)"
+          if [[ "$CODE" != 200 ]]; then
+            printf '{"status":"BLOCKED","stage":"list_workers","http_status":%s}\n' "$CODE" > workers-build-evidence.json
+            cat /tmp/scripts.json
+            exit 0
+          fi
+          TAG="$(python <<'PY'
+          import json, os
+          from pathlib import Path
+          rows=(json.loads(Path('/tmp/scripts.json').read_text()).get('result') or [])
+          matches=[r for r in rows if r.get('id')==os.environ['WORKER_NAME']]
+          if len(matches)!=1: raise SystemExit(f'Expected one Worker named {os.environ["WORKER_NAME"]}, found {len(matches)}')
+          print(matches[0].get('tag') or '')
+          PY
+          )"
+          test -n "$TAG" || { echo 'Worker tag missing'; exit 1; }
+          TRIGGERS_URL="https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/builds/workers/$TAG/triggers"
+          CODE="$(curl --silent --show-error --output /tmp/triggers-before.json --write-out '%{http_code}' --header "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "$TRIGGERS_URL" || true)"
+          if [[ "$CODE" != 200 ]]; then
+            printf '{"status":"BLOCKED","stage":"list_build_triggers","worker_tag":"%s","http_status":%s}\n' "$TAG" "$CODE" > workers-build-evidence.json
+            cat /tmp/triggers-before.json
+            exit 0
+          fi
+          python <<'PY'
+          import json
+          from pathlib import Path
+          rows=(json.loads(Path('/tmp/triggers-before.json').read_text()).get('result') or [])
+          exact=[r for r in rows if (r.get('deploy_command') or '').strip()=='npx wrangler deploy']
+          Path('/tmp/exact-trigger-ids').write_text('\n'.join(r['trigger_uuid'] for r in exact))
+          Path('/tmp/trigger-summary-before.json').write_text(json.dumps([
+              {'trigger_uuid':r.get('trigger_uuid'),'trigger_name':r.get('trigger_name'),'deploy_command':r.get('deploy_command'),'branch_includes':r.get('branch_includes'),'branch_excludes':r.get('branch_excludes')}
+              for r in rows
+          ], indent=2))
+          PY
+          if [[ -s /tmp/exact-trigger-ids ]]; then
+            while IFS= read -r UUID; do
+              test -n "$UUID" || continue
+              DELETE_CODE="$(curl --silent --show-error --output /tmp/delete.json --write-out '%{http_code}' --request DELETE --header "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/builds/triggers/$UUID" || true)"
+              [[ "$DELETE_CODE" == 200 || "$DELETE_CODE" == 204 ]] || { echo "STOP: trigger deletion returned $DELETE_CODE"; cat /tmp/delete.json; exit 1; }
+            done < /tmp/exact-trigger-ids
+          fi
+          curl --fail-with-body --silent --show-error --header "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "$TRIGGERS_URL" > /tmp/triggers-after.json
+          python <<'PY'
+          import json
+          from pathlib import Path
+          before=json.loads(Path('/tmp/trigger-summary-before.json').read_text())
+          after=(json.loads(Path('/tmp/triggers-after.json').read_text()).get('result') or [])
+          remaining=[r for r in after if (r.get('deploy_command') or '').strip()=='npx wrangler deploy']
+          if remaining: raise SystemExit(f'Bare wrangler deploy trigger remains: {remaining}')
+          out={'status':'PASS','before':before,'removed_trigger_uuids':Path('/tmp/exact-trigger-ids').read_text().splitlines(),'bare_wrangler_deploy_remaining':0}
+          Path('workers-build-evidence.json').write_text(json.dumps(out, indent=2))
+          print(json.dumps(out, indent=2))
+          PY
+
+      - name: Probe apex without mutating DNS
+        shell: bash
+        run: |
+          set -euo pipefail
+          CODE="$(curl --silent --show-error --location --connect-timeout 10 --max-time 30 --dump-header apex.headers --output apex.body --write-out '%{http_code}|%{url_effective}' "https://$CUSTOM_DOMAIN/" || true)"
+          printf '%s\n' "$CODE" > apex-status.txt
+          echo "Apex read-back: $CODE"
+
+      - name: Upload control-plane evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: abstrekkt-e1d3355-control-plane-evidence
+          path: |
+            pages-deployment-evidence.json
+            preview-http-evidence.json
+            pages-domain-evidence.json
+            workers-build-evidence.json
+            apex.headers
+            apex.body
+            apex-status.txt
+          if-no-files-found: error
+          retention-days: 90
