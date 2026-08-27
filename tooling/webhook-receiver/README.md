@@ -47,6 +47,33 @@ npm test
 
 The tests cover method rejection, missing configuration, header validation, signature-before-parse ordering, invalid JSON, delivery/event mismatches, successful delivery, replay rejection, and oversized bodies.
 
+## Controlled provisioning
+
+`.github/workflows/abstrekkt-webhook-receiver-provision.yml` is intentionally dormant on ordinary `main` pushes. It runs only through `workflow_dispatch` or a push to `deploy/abstrekkt-webhook-receiver`.
+
+Required GitHub Actions secrets:
+
+- `CLOUDFLARE_API_TOKEN`
+- `CLOUDFLARE_ACCOUNT_ID`
+- `ABSTREKKT_WEBHOOK_SECRET`
+
+The Cloudflare token needs the narrow account permissions required to create/update the receiver and replay database: Workers Scripts Edit and D1 Edit. If the same token is also used by the existing Abstrekkt Pages release workflow, it additionally needs Cloudflare Pages Edit. Restrict the token to the intended Cloudflare account.
+
+The provisioning workflow:
+
+1. runs the receiver test suite;
+2. resolves or creates `abstrekkt-webhook-replay` in D1;
+3. applies `schema.sql` remotely;
+4. creates the Worker with `workers_dev` disabled;
+5. installs `WEBHOOK_SECRET` with Wrangler secret storage;
+6. enables `workers_dev` only for the final deployment;
+7. captures Wrangler's structured deployment output;
+8. requires an HTTPS deployment target;
+9. verifies an unauthenticated GET returns `405`;
+10. uploads a non-secret `AbstrekktWebhookReceiverProvisionReceipt/v1` artifact.
+
+After a successful first provision, copy the emitted `receiver_url` into GitHub Actions as `ABSTREKKT_WEBHOOK_URL`. The existing sender can then perform the live signed-delivery and replay tests.
+
 ## Deployment gate
 
 Do not mark the receiver production-ready until all of these are independently proven against the deployed HTTPS endpoint:
