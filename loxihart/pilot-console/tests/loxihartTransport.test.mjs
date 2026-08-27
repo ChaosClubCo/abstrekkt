@@ -111,7 +111,7 @@ test('network failure generates 502 only', async () => {
     identity,
     fetchImpl: async () => { throw new TypeError('fetch failed'); },
   });
-  assert.equal(response.status, 502);
+  assert.strictEqual(response.status, 502);
   assert.deepEqual(JSON.parse(await response.text()), CONTROL_API_UNREACHABLE_BODY);
 });
 
