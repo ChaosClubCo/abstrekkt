@@ -1,0 +1,94 @@
+name: Loxihart RG-02 Extract Control API Source
+
+on:
+  push:
+    branches:
+      - loxihart/production-gates-2026-08-21
+    paths:
+      - .github/workflows/loxihart-rg02-extract-control-api.yml
+  pull_request:
+    branches:
+      - main
+    paths:
+      - .github/workflows/loxihart-rg02-extract-control-api.yml
+      - loxihart/control-api/**
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  FROZEN_BUNDLE_GIT_BLOB: e2b30d3d602c6f657732c29c446acf0cdb5a2fae
+
+jobs:
+  extract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: loxihart/production-gates-2026-08-21
+          fetch-depth: 0
+
+      - name: Verify exact frozen bundle identity
+        id: bundle
+        working-directory: loxihart/control-api
+        shell: bash
+        run: |
+          set -euo pipefail
+          ACTUAL_GIT_BLOB="$(git hash-object bundle.tgz)"
+          ACTUAL_SHA256="$(sha256sum bundle.tgz | awk '{print $1}')"
+          RECORDED_SHA256="$(awk '{print $1}' BUNDLE_SHA256)"
+          echo "git_blob=$ACTUAL_GIT_BLOB"
+          echo "sha256=$ACTUAL_SHA256"
+          echo "recorded_sha256=$RECORDED_SHA256"
+          test "$ACTUAL_GIT_BLOB" = "$FROZEN_BUNDLE_GIT_BLOB" || { echo 'STOP: control-api bundle is not the frozen candidate blob'; exit 2; }
+          echo "sha256=$ACTUAL_SHA256" >> "$GITHUB_OUTPUT"
+          if test "$ACTUAL_SHA256" != "$RECORDED_SHA256"; then
+            echo 'BUNDLE_SHA256 is stale and will be corrected only because the Git blob exactly matches the frozen candidate.'
+          fi
+
+      - name: Extract to reviewable source tree
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/loxihart-control-api
+          mkdir -p /tmp/loxihart-control-api
+          tar -xzf loxihart/control-api/bundle.tgz -C /tmp/loxihart-control-api
+          echo '--- bundle contents ---'
+          find /tmp/loxihart-control-api -maxdepth 5 -type f -print | sort
+          rm -rf loxihart/control-api/source
+          mkdir -p loxihart/control-api/source
+          cp -a /tmp/loxihart-control-api/. loxihart/control-api/source/
+
+      - name: Reject obvious secret material
+        shell: bash
+        run: |
+          set -euo pipefail
+          if grep -RInE --exclude-dir=node_modules --exclude='*.map' \
+            'BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY|AKIA[0-9A-Z]{16}|ghp_[A-Za-z0-9]{30,}|github_pat_[A-Za-z0-9_]{30,}|xox[baprs]-[A-Za-z0-9-]{20,}|sk-(proj-)?[A-Za-z0-9_-]{20,}' \
+            loxihart/control-api/source; then
+            echo 'STOP: possible secret material in extracted bundle'
+            exit 2
+          fi
+
+      - name: Upload extracted source for review
+        uses: actions/upload-artifact@v4
+        with:
+          name: loxihart-control-api-source-review
+          path: loxihart/control-api/source/
+
+      - name: Commit source and corrected checksum on branch push
+        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+        shell: bash
+        run: |
+          set -euo pipefail
+          printf '%s  bundle.tgz\n' '${{ steps.bundle.outputs.sha256 }}' > loxihart/control-api/BUNDLE_SHA256
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add loxihart/control-api/source loxihart/control-api/BUNDLE_SHA256
+          if git diff --cached --quiet; then
+            echo 'No extraction/checksum change to commit.'
+            exit 0
+          fi
+          git commit -m 'chore(loxihart): materialize verified control-api source for RG-02'
+          git push origin HEAD:loxihart/production-gates-2026-08-21
