@@ -139,7 +139,7 @@ test('non-timeout abort errors generate 502', async () => {
       throw Object.assign(new Error('aborted upstream'), { name: 'AbortError' });
     },
   });
-  assert.equal(response.status, 502);
+  assert.strictEqual(response.status, 502);
   assert.deepEqual(JSON.parse(await response.text()), CONTROL_API_UNREACHABLE_BODY);
 });
 
