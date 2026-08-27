@@ -1,9 +1,7 @@
 name: Bind Abstrekkt Custom Domain One-Shot
 
 on:
-  push:
-    branches:
-      - infra/bind-abstrekkt-custom-domain-20260827
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -121,6 +119,8 @@ jobs:
           relevant = [r for r in rows if r.get('name') == os.environ['CUSTOM_DOMAIN'] and r.get('type') in {'A','AAAA','CNAME'}]
           Path('/tmp/dns-relevant.json').write_text(json.dumps(relevant, indent=2))
           cnames = [r for r in relevant if r.get('type') == 'CNAME']
+          if len(cnames) > 1:
+              raise SystemExit(f"Multiple apex CNAME records found ({len(cnames)}); resolve duplicates before running this workflow")
           if cnames:
               Path('/tmp/cname-id').write_text(cnames[0]['id'])
           conflicts = [r['id'] for r in relevant if r.get('type') in {'A','AAAA'}]
@@ -248,8 +248,8 @@ jobs:
           DEPLOYMENT_SHA256="$(sha256sum /tmp/deployment.body | awk '{print $1}')"
           test "$CUSTOM_SHA256" = "$DEPLOYMENT_SHA256" || { echo 'STOP: custom domain body differs from certified deployment'; exit 1; }
           test "$CUSTOM_SHA256" = "$EXPECTED_READBACK_SHA256" || { echo 'STOP: custom domain body differs from certified read-back hash'; exit 1; }
-          grep -qi '^x-frame-options: *DENY\r\{0,1\}$' /tmp/custom.headers || { echo 'STOP: X-Frame-Options DENY missing'; exit 1; }
-          grep -qi '^x-content-type-options: *nosniff\r\{0,1\}$' /tmp/custom.headers || { echo 'STOP: X-Content-Type-Options nosniff missing'; exit 1; }
+          grep -qi $'^x-frame-options: *DENY\r\{0,1\}$' /tmp/custom.headers || { echo 'STOP: X-Frame-Options DENY missing'; exit 1; }
+          grep -qi $'^x-content-type-options: *nosniff\r\{0,1\}$' /tmp/custom.headers || { echo 'STOP: X-Content-Type-Options nosniff missing'; exit 1; }
 
           echo "CUSTOM_STATUS=$CUSTOM_STATUS" >> "$GITHUB_ENV"
           echo "CUSTOM_FINAL_URL=$CUSTOM_FINAL_URL" >> "$GITHUB_ENV"
