@@ -29,7 +29,6 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        shell: bash
         run: |
           set -euo pipefail
           test -n "$CLOUDFLARE_API_TOKEN"
@@ -39,7 +38,6 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        shell: bash
         run: |
           set -euo pipefail
           API="https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/pages/projects/$PROJECT_NAME/deployments/$DEPLOYMENT_ID"
@@ -60,7 +58,6 @@ jobs:
           PY
 
       - name: Probe preview routes and configured headers
-        shell: bash
         run: |
           set -euo pipefail
           python <<'PY'
@@ -68,24 +65,24 @@ jobs:
           from pathlib import Path
           base=os.environ['DEPLOYMENT_URL'].rstrip('/')
           routes=[('/',200),('/founder/',200),('/pillars/',200),('/contact/',200),(os.environ['NONEXISTENT_PATH'],404)]
-          required_security={'x-content-type-options':'nosniff','x-frame-options':'DENY','referrer-policy':'strict-origin-when-cross-origin','permissions-policy':'camera=(), microphone=(), geolocation=()'}
+          security={'x-content-type-options':'nosniff','x-frame-options':'DENY','referrer-policy':'strict-origin-when-cross-origin','permissions-policy':'camera=(), microphone=(), geolocation=()'}
           configured_cache='public, max-age=0, must-revalidate'
           evidence=[]
           for i,(path,expected) in enumerate(routes):
-              headers=f'/tmp/h{i}.txt'; body=f'/tmp/b{i}.bin'
-              p=subprocess.run(['curl','--silent','--show-error','--location','--connect-timeout','10','--max-time','30','--dump-header',headers,'--output',body,'--write-out','%{http_code}|%{url_effective}',base+path],capture_output=True,text=True,check=True)
+              h=f'/tmp/h{i}.txt'; b=f'/tmp/b{i}.bin'
+              p=subprocess.run(['curl','-sS','-L','--connect-timeout','10','--max-time','30','-D',h,'-o',b,'-w','%{http_code}|%{url_effective}',base+path],capture_output=True,text=True,check=True)
               status_s,final_url=p.stdout.strip().split('|',1); status=int(status_s)
-              parsed={}
-              for line in Path(headers).read_text(errors='replace').splitlines():
+              headers={}
+              for line in Path(h).read_text(errors='replace').splitlines():
                   if ':' in line:
-                      k,v=line.split(':',1); parsed[k.strip().lower()]=v.strip()
+                      k,v=line.split(':',1); headers[k.strip().lower()]=v.strip()
               if status != expected: raise SystemExit(f'{path}: HTTP {status}, expected {expected}')
-              missing={k:v for k,v in required_security.items() if parsed.get(k,'').lower()!=v.lower()}
-              if missing: raise SystemExit(f'{path}: security headers mismatch: {missing}; observed={parsed}')
-              cache=parsed.get('cache-control','')
-              cache_ok=(cache.lower()==configured_cache.lower()) or (status==404 and cache.lower()=='no-store')
-              if not cache_ok: raise SystemExit(f'{path}: unacceptable cache-control {cache!r}')
-              evidence.append({'path':path,'status':status,'final_url':final_url,'headers':{**{k:parsed.get(k) for k in required_security},'cache-control':cache},'cache_policy':'cloudflare_404_no_store_override' if status==404 and cache.lower()=='no-store' else 'configured'})
+              missing={k:v for k,v in security.items() if headers.get(k,'').lower()!=v.lower()}
+              if missing: raise SystemExit(f'{path}: security headers mismatch: {missing}')
+              cache=headers.get('cache-control','')
+              if not (cache.lower()==configured_cache or (status==404 and cache.lower()=='no-store')):
+                  raise SystemExit(f'{path}: unacceptable cache-control {cache!r}')
+              evidence.append({'path':path,'status':status,'final_url':final_url,'headers':{**{k:headers.get(k) for k in security},'cache-control':cache},'cache_policy':'cloudflare_404_no_store_override' if status==404 and cache.lower()=='no-store' else 'configured'})
           Path('preview-http-evidence.json').write_text(json.dumps(evidence, indent=2))
           print(json.dumps(evidence, indent=2))
           PY
@@ -94,11 +91,10 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        shell: bash
         run: |
           set -euo pipefail
           URL="https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/pages/projects/$PROJECT_NAME/domains/$CUSTOM_DOMAIN"
-          CODE="$(curl --silent --show-error --output /tmp/domain.json --write-out '%{http_code}' --header "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "$URL" || true)"
+          CODE="$(curl -sS -o /tmp/domain.json -w '%{http_code}' -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "$URL" || true)"
           python - "$CODE" <<'PY'
           import json, sys
           from pathlib import Path
@@ -107,81 +103,113 @@ jobs:
           Path('pages-domain-evidence.json').write_text(json.dumps(out, indent=2)); print(json.dumps(out, indent=2))
           PY
 
-      - name: Inspect and fail-safe disable bare Workers Build trigger
+      - name: Reconcile external Workers Build safely
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        shell: bash
         run: |
           set -euo pipefail
-          SCRIPTS_URL="https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/scripts"
-          curl --fail-with-body --silent --show-error --header "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "$SCRIPTS_URL" > /tmp/scripts.json
-          TAG="$(python <<'PY'
-          import json, os
-          from pathlib import Path
-          rows=(json.loads(Path('/tmp/scripts.json').read_text()).get('result') or [])
-          matches=[r for r in rows if r.get('id')==os.environ['WORKER_NAME']]
-          if len(matches)!=1: raise SystemExit(f'Expected one Worker named {os.environ["WORKER_NAME"]}, found {len(matches)}')
-          print(matches[0].get('tag') or '')
-          PY
-          )"
-          test -n "$TAG"
-          TRIGGERS_URL="https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/builds/workers/$TAG/triggers"
-          curl --fail-with-body --silent --show-error --header "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "$TRIGGERS_URL" > /tmp/triggers-before.json
           python <<'PY'
-          import json
+          import json, os, time, urllib.error, urllib.request
           from pathlib import Path
-          rows=(json.loads(Path('/tmp/triggers-before.json').read_text()).get('result') or [])
-          exact=[r for r in rows if (r.get('deploy_command') or '').strip()=='npx wrangler deploy']
-          Path('/tmp/exact-trigger-ids').write_text('\n'.join(r['trigger_uuid'] for r in exact))
-          Path('/tmp/trigger-summary-before.json').write_text(json.dumps([{'trigger_uuid':r.get('trigger_uuid'),'trigger_name':r.get('trigger_name'),'deploy_command':r.get('deploy_command'),'branch_includes':r.get('branch_includes'),'branch_excludes':r.get('branch_excludes')} for r in rows], indent=2))
-          PY
-          if [[ -s /tmp/exact-trigger-ids ]]; then
-            while IFS= read -r UUID; do
-              test -n "$UUID" || continue
-              DELETE_CODE="$(curl --silent --show-error --output "/tmp/delete-$UUID.json" --write-out '%{http_code}' --request DELETE --header "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/builds/triggers/$UUID" || true)"
-              [[ "$DELETE_CODE" == 200 || "$DELETE_CODE" == 204 ]] || { echo "STOP: trigger deletion returned $DELETE_CODE"; cat "/tmp/delete-$UUID.json"; exit 1; }
-            done < /tmp/exact-trigger-ids
-          fi
-          sleep 3
-          curl --fail-with-body --silent --show-error --header "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "$TRIGGERS_URL" > /tmp/triggers-after-delete.json
-          python <<'PY'
-          import json
-          from pathlib import Path
-          rows=(json.loads(Path('/tmp/triggers-after-delete.json').read_text()).get('result') or [])
-          exact=[r for r in rows if (r.get('deploy_command') or '').strip()=='npx wrangler deploy']
-          Path('/tmp/persistent-trigger-ids').write_text('\n'.join(r['trigger_uuid'] for r in exact))
-          PY
-          if [[ -s /tmp/persistent-trigger-ids ]]; then
-            while IFS= read -r UUID; do
-              test -n "$UUID" || continue
-              PATCH_CODE="$(curl --silent --show-error --output "/tmp/patch-$UUID.json" --write-out '%{http_code}' --request PATCH --header "Authorization: Bearer $CLOUDFLARE_API_TOKEN" --header 'Content-Type: application/json' --data '{"trigger_name":"DISABLED - use exact-SHA Pages release","deploy_command":"echo Workers-Build-disabled-use-GitHub-Actions-Pages-release","branch_includes":["__disabled_abstrekkt_workers_build__"],"branch_excludes":[]}' "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/builds/triggers/$UUID" || true)"
-              [[ "$PATCH_CODE" == 200 ]] || { echo "STOP: fail-safe trigger patch returned $PATCH_CODE"; cat "/tmp/patch-$UUID.json"; exit 1; }
-            done < /tmp/persistent-trigger-ids
-          fi
-          sleep 2
-          curl --fail-with-body --silent --show-error --header "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "$TRIGGERS_URL" > /tmp/triggers-after.json
-          python <<'PY'
-          import json
-          from pathlib import Path
-          before=json.loads(Path('/tmp/trigger-summary-before.json').read_text())
-          after=(json.loads(Path('/tmp/triggers-after.json').read_text()).get('result') or [])
-          dangerous=[r for r in after if (r.get('deploy_command') or '').strip()=='npx wrangler deploy' or ('main' in (r.get('branch_includes') or []) and (r.get('deploy_command') or '').strip()=='npx wrangler deploy')]
-          if dangerous: raise SystemExit(f'Bare wrangler deploy trigger remains dangerous: {dangerous}')
-          summary=[{'trigger_uuid':r.get('trigger_uuid'),'trigger_name':r.get('trigger_name'),'deploy_command':r.get('deploy_command'),'branch_includes':r.get('branch_includes'),'branch_excludes':r.get('branch_excludes'),'deleted_on':r.get('deleted_on')} for r in after]
-          out={'status':'PASS','before':before,'delete_requested':Path('/tmp/exact-trigger-ids').read_text().splitlines(),'fallback_patch_requested':Path('/tmp/persistent-trigger-ids').read_text().splitlines(),'after':summary,'bare_wrangler_deploy_remaining':0}
-          Path('workers-build-evidence.json').write_text(json.dumps(out, indent=2)); print(json.dumps(out, indent=2))
+
+          account=os.environ['CLOUDFLARE_ACCOUNT_ID']
+          token=os.environ['CLOUDFLARE_API_TOKEN']
+          worker_name=os.environ['WORKER_NAME']
+          api_root=f'https://api.cloudflare.com/client/v4/accounts/{account}'
+
+          def call(method, path, data=None):
+              body=None if data is None else json.dumps(data).encode()
+              req=urllib.request.Request(api_root+path, data=body, method=method, headers={'Authorization':f'Bearer {token}','Content-Type':'application/json'})
+              try:
+                  with urllib.request.urlopen(req, timeout=30) as r:
+                      raw=r.read().decode() or '{}'; return r.status, json.loads(raw)
+              except urllib.error.HTTPError as e:
+                  raw=e.read().decode() or '{}'
+                  try: payload=json.loads(raw)
+                  except Exception: payload={'raw':raw}
+                  return e.code, payload
+
+          def require_success(status, payload, label):
+              if status < 200 or status >= 300 or payload.get('success') is False:
+                  raise SystemExit(f'{label} failed: HTTP {status} {payload.get("errors") or payload}')
+
+          status,scripts_payload=call('GET','/workers/scripts')
+          require_success(status,scripts_payload,'list workers')
+          scripts=scripts_payload.get('result') or []
+          target=[s for s in scripts if s.get('id')==worker_name]
+          if len(target)!=1: raise SystemExit(f'Expected exactly one {worker_name} Worker, found {len(target)}')
+          tag=target[0].get('tag')
+          if not tag: raise SystemExit('Target Worker tag missing')
+
+          def target_triggers():
+              s,p=call('GET',f'/builds/workers/{tag}/triggers')
+              require_success(s,p,'list target triggers')
+              return p.get('result') or []
+
+          before=target_triggers()
+          dangerous=[t for t in before if (t.get('deploy_command') or '').strip()=='npx wrangler deploy']
+          actions=[]
+
+          for trigger in dangerous:
+              uuid=trigger['trigger_uuid']
+              s,p=call('DELETE',f'/builds/triggers/{uuid}')
+              require_success(s,p,'delete bare wrangler trigger')
+              actions.append({'action':'delete_trigger','trigger_uuid':uuid,'http_status':s})
+
+          time.sleep(3)
+          remaining=[t for t in target_triggers() if (t.get('deploy_command') or '').strip()=='npx wrangler deploy']
+
+          for trigger in remaining:
+              uuid=trigger['trigger_uuid']
+              s,p=call('PATCH',f'/builds/triggers/{uuid}',{'deploy_command':'npx wrangler versions upload'})
+              require_success(s,p,'correct deploy command')
+              actions.append({'action':'patch_to_versions_upload','trigger_uuid':uuid,'http_status':s})
+
+          time.sleep(3)
+          remaining=[t for t in target_triggers() if (t.get('deploy_command') or '').strip()=='npx wrangler deploy']
+
+          if remaining:
+              connection_ids={((t.get('repo_connection') or {}).get('repo_connection_uuid')) for t in remaining}
+              connection_ids.discard(None)
+              if len(connection_ids)!=1: raise SystemExit(f'Cannot safely disconnect ambiguous repository connections: {connection_ids}')
+              connection_id=next(iter(connection_ids))
+              consumers=[]
+              for script in scripts:
+                  sid=script.get('id'); stag=script.get('tag')
+                  if not sid or not stag: continue
+                  s,p=call('GET',f'/builds/workers/{stag}/triggers')
+                  if s==404: continue
+                  require_success(s,p,f'list triggers for {sid}')
+                  for t in p.get('result') or []:
+                      if ((t.get('repo_connection') or {}).get('repo_connection_uuid'))==connection_id and not t.get('deleted_on'):
+                          consumers.append({'worker':sid,'trigger_uuid':t.get('trigger_uuid'),'deploy_command':t.get('deploy_command')})
+              foreign=[c for c in consumers if c['worker']!=worker_name]
+              if foreign: raise SystemExit(f'Repository connection is shared; refusing disconnect: {foreign}')
+              s,p=call('DELETE',f'/builds/repos/connections/{connection_id}')
+              require_success(s,p,'disconnect repository connection')
+              actions.append({'action':'delete_repository_connection','repo_connection_uuid':connection_id,'http_status':s,'verified_consumers':consumers})
+              time.sleep(4)
+
+          after=target_triggers()
+          dangerous_after=[t for t in after if (t.get('deploy_command') or '').strip()=='npx wrangler deploy' and not t.get('deleted_on')]
+          if dangerous_after: raise SystemExit(f'Bare wrangler deploy remains after bounded remediation: {dangerous_after}')
+          summary=lambda rows:[{'trigger_uuid':t.get('trigger_uuid'),'trigger_name':t.get('trigger_name'),'deploy_command':t.get('deploy_command'),'branch_includes':t.get('branch_includes'),'deleted_on':t.get('deleted_on'),'repo_connection_uuid':((t.get('repo_connection') or {}).get('repo_connection_uuid'))} for t in rows]
+          evidence={'status':'PASS','worker':worker_name,'worker_tag':tag,'before':summary(before),'actions':actions,'after':summary(after),'bare_wrangler_deploy_remaining':0}
+          Path('workers-build-evidence.json').write_text(json.dumps(evidence, indent=2))
+          print(json.dumps(evidence, indent=2))
           PY
 
       - name: Probe apex without mutating DNS
-        shell: bash
+        if: always()
         run: |
           set -euo pipefail
-          CODE="$(curl --silent --show-error --location --connect-timeout 10 --max-time 30 --dump-header apex.headers --output apex.body --write-out '%{http_code}|%{url_effective}' "https://$CUSTOM_DOMAIN/" || true)"
+          CODE="$(curl -sS -L --connect-timeout 10 --max-time 30 -D apex.headers -o apex.body -w '%{http_code}|%{url_effective}' "https://$CUSTOM_DOMAIN/" || true)"
           printf '%s\n' "$CODE" > apex-status.txt
           echo "Apex read-back: $CODE"
 
       - name: Upload control-plane evidence
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: abstrekkt-e1d3355-control-plane-evidence
@@ -193,5 +221,5 @@ jobs:
             apex.headers
             apex.body
             apex-status.txt
-          if-no-files-found: error
+          if-no-files-found: warn
           retention-days: 90
