@@ -15,6 +15,8 @@ concurrency:
 env:
   PROJECT_NAME: abstrekkt
   CUSTOM_DOMAIN: abstrekkt.com
+  ZONE_ID: 418c205318b9d95b1758c23d19bf6195
+  DNS_TARGET: abstrekkt.pages.dev
   CANDIDATE_SHA: 1a7da25a5de89489c9d0e82c42bcce06c3f64034
   DEPLOYMENT_ID: e037b4c4-be20-4457-a341-ade84220df5f
   DEPLOYMENT_URL: https://e037b4c4.abstrekkt.pages.dev
@@ -52,7 +54,6 @@ jobs:
           python <<'PY'
           import json, os
           from pathlib import Path
-
           payload = json.loads(Path('/tmp/deployment.json').read_text())
           if not payload.get('success'):
               raise SystemExit(f"Cloudflare deployment lookup failed: {payload.get('errors')}")
@@ -95,6 +96,95 @@ jobs:
             cat /tmp/domain-before.json || true
             exit 1
           fi
+
+      - name: Reconcile apex DNS to certified Pages project
+        shell: bash
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          DNS_API="https://api.cloudflare.com/client/v4/zones/$ZONE_ID/dns_records"
+          LIST_STATUS="$(curl --silent --show-error \
+            --output /tmp/dns-before.json \
+            --write-out '%{http_code}' \
+            --header "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+            "$DNS_API?name=$CUSTOM_DOMAIN")"
+          test "$LIST_STATUS" = '200' || { echo "STOP: DNS list returned HTTP $LIST_STATUS"; cat /tmp/dns-before.json; exit 1; }
+
+          python <<'PY'
+          import json, os
+          from pathlib import Path
+          payload = json.loads(Path('/tmp/dns-before.json').read_text())
+          if not payload.get('success'):
+              raise SystemExit(payload.get('errors'))
+          rows = payload.get('result') or []
+          relevant = [r for r in rows if r.get('name') == os.environ['CUSTOM_DOMAIN'] and r.get('type') in {'A','AAAA','CNAME'}]
+          Path('/tmp/dns-relevant.json').write_text(json.dumps(relevant, indent=2))
+          cnames = [r for r in relevant if r.get('type') == 'CNAME']
+          if cnames:
+              Path('/tmp/cname-id').write_text(cnames[0]['id'])
+          conflicts = [r['id'] for r in relevant if r.get('type') in {'A','AAAA'}]
+          Path('/tmp/conflict-ids').write_text('\n'.join(conflicts))
+          PY
+
+          if [[ -s /tmp/conflict-ids ]]; then
+            while IFS= read -r RECORD_ID; do
+              [[ -n "$RECORD_ID" ]] || continue
+              curl --fail-with-body --silent --show-error \
+                --request DELETE \
+                --header "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+                "$DNS_API/$RECORD_ID" > /tmp/dns-delete.json
+            done < /tmp/conflict-ids
+          fi
+
+          if [[ -s /tmp/cname-id ]]; then
+            RECORD_ID="$(cat /tmp/cname-id)"
+            curl --fail-with-body --silent --show-error \
+              --request PATCH \
+              --header "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+              --header 'Content-Type: application/json' \
+              --data "{\"content\":\"$DNS_TARGET\",\"proxied\":true,\"ttl\":1}" \
+              "$DNS_API/$RECORD_ID" > /tmp/dns-write.json
+          else
+            curl --fail-with-body --silent --show-error \
+              --request POST \
+              --header "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+              --header 'Content-Type: application/json' \
+              --data "{\"type\":\"CNAME\",\"name\":\"$CUSTOM_DOMAIN\",\"content\":\"$DNS_TARGET\",\"proxied\":true,\"ttl\":1,\"comment\":\"Abstrekkt Cloudflare Pages production\"}" \
+              "$DNS_API" > /tmp/dns-write.json
+          fi
+
+          curl --fail-with-body --silent --show-error \
+            --header "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+            "$DNS_API?name=$CUSTOM_DOMAIN&type=CNAME" > /tmp/dns-after.json
+          python <<'PY'
+          import json, os
+          from pathlib import Path
+          payload = json.loads(Path('/tmp/dns-after.json').read_text())
+          rows = payload.get('result') or []
+          matches = [r for r in rows if r.get('name') == os.environ['CUSTOM_DOMAIN'] and r.get('type') == 'CNAME']
+          if len(matches) != 1:
+              raise SystemExit(f'Expected one apex CNAME, found {len(matches)}')
+          row = matches[0]
+          if row.get('content') != os.environ['DNS_TARGET']:
+              raise SystemExit(f"Unexpected CNAME target: {row.get('content')}")
+          if row.get('proxied') is not True:
+              raise SystemExit('Apex CNAME is not proxied')
+          print(json.dumps({'id': row.get('id'), 'name': row.get('name'), 'content': row.get('content'), 'proxied': row.get('proxied')}, indent=2))
+          PY
+
+      - name: Retry Pages domain validation
+        shell: bash
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          curl --fail-with-body --silent --show-error \
+            --request PATCH \
+            --header "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+            "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/pages/projects/$PROJECT_NAME/domains/$CUSTOM_DOMAIN" \
+            > /tmp/domain-retry.json
 
       - name: Wait for active custom domain
         shell: bash
@@ -174,9 +264,8 @@ jobs:
           import json, os
           from datetime import datetime, timezone
           from pathlib import Path
-
-          payload = json.loads(Path('/tmp/domain.json').read_text())
-          domain = payload.get('result') or {}
+          domain = (json.loads(Path('/tmp/domain.json').read_text()).get('result') or {})
+          dns = (json.loads(Path('/tmp/dns-after.json').read_text()).get('result') or [None])[0] or {}
           receipt = {
               'schema': 'AbstrekktCustomDomainBindingReceipt/v1',
               'repository': os.environ['GITHUB_REPOSITORY'],
@@ -192,6 +281,13 @@ jobs:
               'zone_tag': domain.get('zone_tag'),
               'created_on': domain.get('created_on'),
               'certificate_authority': domain.get('certificate_authority'),
+              'dns': {
+                  'record_id': dns.get('id'),
+                  'type': dns.get('type'),
+                  'name': dns.get('name'),
+                  'content': dns.get('content'),
+                  'proxied': dns.get('proxied'),
+              },
               'verified_at': datetime.now(timezone.utc).isoformat(),
               'custom_readback': {
                   'url': os.environ['CUSTOM_FINAL_URL'],
@@ -209,9 +305,7 @@ jobs:
                   'x_content_type_options': 'nosniff',
               },
           }
-          Path('abstrekkt-custom-domain-binding-receipt.json').write_text(
-              json.dumps(receipt, indent=2), encoding='utf-8'
-          )
+          Path('abstrekkt-custom-domain-binding-receipt.json').write_text(json.dumps(receipt, indent=2), encoding='utf-8')
           PY
 
       - name: Upload custom-domain receipt
