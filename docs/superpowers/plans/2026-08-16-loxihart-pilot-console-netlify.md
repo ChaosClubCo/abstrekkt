@@ -34,7 +34,7 @@
 ### Task 2: Add the Netlify proxy contract
 
 **Files:**
-- Create: `loxihart/pilot-console/src/server/loxihartTransport.ts`
+- Create: `loxihart/pilot-console/src/server/loxihartTransport.mjs`
 - Create: `loxihart/pilot-console/netlify/functions/loxihart.mts`
 - Create: `loxihart/pilot-console/tests/loxihartTransport.test.mjs`
 

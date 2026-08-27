@@ -130,6 +130,19 @@ test('timeout generates 504 only', async () => {
   assert.deepEqual(JSON.parse(await response.text()), CONTROL_API_TIMEOUT_BODY);
 });
 
+test('non-timeout abort errors generate 502', async () => {
+  const response = await forwardLoxihart({
+    url: 'https://control.example/test',
+    identity,
+    timeoutMs: 1_000,
+    fetchImpl: async () => {
+      throw Object.assign(new Error('aborted upstream'), { name: 'AbortError' });
+    },
+  });
+  assert.equal(response.status, 502);
+  assert.deepEqual(JSON.parse(await response.text()), CONTROL_API_UNREACHABLE_BODY);
+});
+
 test('real 500 before timeout remains 500', async () => {
   const raw = JSON.stringify({ error: { code: 'INTERNAL_ERROR', message: 'upstream' } });
   const response = await forwardLoxihart({

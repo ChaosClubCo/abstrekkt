@@ -155,7 +155,7 @@ export async function forwardLoxihart({
       },
     });
   } catch (error) {
-    if (timedOut || error?.name === 'AbortError') {
+    if (timedOut) {
       return jsonResponse(CONTROL_API_TIMEOUT_BODY, 504);
     }
     return jsonResponse(CONTROL_API_UNREACHABLE_BODY, 502);
