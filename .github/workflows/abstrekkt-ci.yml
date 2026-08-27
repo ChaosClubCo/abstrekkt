@@ -139,3 +139,26 @@ jobs:
             echo "STOP: credential-like file present in static release package"
             exit 1
           fi
+
+  cloudflare-worker-config:
+    name: Cloudflare Worker config
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Validate mentor proxy Worker with pinned Wrangler
+        working-directory: project/proxy-deploy
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(node -p "require('./package.json').devDependencies.wrangler")" = "4.126.0"
+          grep -q '^\[observability\.traces\]$' wrangler.toml
+          grep -q '^enabled = true$' wrangler.toml
+          npx --yes wrangler@4.126.0 deploy --dry-run --config wrangler.toml
