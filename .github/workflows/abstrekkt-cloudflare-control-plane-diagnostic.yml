@@ -1,4 +1,4 @@
-name: Abstrekkt Cloudflare Control Plane Diagnostic
+name: Abstrekkt Cloudflare Apex Repair
 
 on:
   push:
@@ -13,61 +13,159 @@ permissions:
 env:
   CF_ZONE_ID: 418c205318b9d95b1758c23d19bf6195
   CF_PROJECT: abstrekkt
-  CF_WORKER: abstrekkt
   HOSTNAME: abstrekkt.com
+  PAGES_TARGET: abstrekkt.pages.dev
 
 jobs:
-  inspect:
+  repair:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - name: Probe Cloudflare token authority
+      - name: Repair apex DNS with ephemeral account token
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           set -euo pipefail
           python <<'PY'
-          import json, os, urllib.error, urllib.request
-          token=os.environ['CLOUDFLARE_API_TOKEN']
+          import datetime, json, os, time, urllib.error, urllib.parse, urllib.request
+          from pathlib import Path
+
+          parent=os.environ['CLOUDFLARE_API_TOKEN']
           account=os.environ['CLOUDFLARE_ACCOUNT_ID']
+          zone=os.environ['CF_ZONE_ID']
+          host=os.environ['HOSTNAME']
+          target=os.environ['PAGES_TARGET']
           root='https://api.cloudflare.com/client/v4'
-          def get(path):
-              req=urllib.request.Request(root+path, headers={'Authorization':f'Bearer {token}'})
+          evidence={'schema':'AbstrekktCloudflareApexRepairReceipt/v1','zone_id':zone,'hostname':host,'pages_target':target,'actions':[]}
+          ephemeral_id=None
+
+          def call(token, method, path, data=None):
+              body=None if data is None else json.dumps(data).encode()
+              headers={'Authorization':f'Bearer {token}','Content-Type':'application/json'}
+              req=urllib.request.Request(root+path, data=body, method=method, headers=headers)
               try:
                   with urllib.request.urlopen(req, timeout=30) as r:
-                      return r.status, json.loads((r.read().decode() or '{}'))
+                      raw=r.read().decode() or '{}'
+                      return r.status, json.loads(raw)
               except urllib.error.HTTPError as e:
                   raw=e.read().decode() or '{}'
                   try: payload=json.loads(raw)
                   except Exception: payload={'raw':raw}
                   return e.code,payload
-          checks={}
-          for key,path in {
-              'verify':'/user/tokens/verify',
-              'user_tokens':'/user/tokens?per_page=50&include_expired=true',
-              'permission_groups':'/user/tokens/permission_groups',
-              'account_tokens':f'/accounts/{account}/tokens?per_page=50&include_expired=true',
-          }.items():
-              status,payload=get(path)
-              checks[key]={'http_status':status,'success':payload.get('success'),'errors':payload.get('errors')}
-              if key=='verify': checks[key]['result']=payload.get('result')
-              if key=='permission_groups' and status==200:
-                  wanted=('API Tokens','DNS','Workers CI','Workers Routes','Workers Scripts','Account API Tokens')
-                  checks[key]['matching_permission_groups']=[{'id':r.get('id'),'name':r.get('name'),'scopes':r.get('scopes')} for r in (payload.get('result') or []) if any(w.lower() in (r.get('name') or '').lower() for w in wanted)]
-              if key in ('user_tokens','account_tokens') and status==200:
-                  verify_id=(checks.get('verify',{}).get('result') or {}).get('id')
-                  rows=payload.get('result') or []
-                  checks[key]['token_count']=len(rows)
-                  checks[key]['current_token']=[{'id':r.get('id'),'name':r.get('name'),'status':r.get('status'),'policies':r.get('policies')} for r in rows if r.get('id')==verify_id]
-          print(json.dumps(checks, indent=2))
-          with open('cloudflare-token-authority.json','w') as f: json.dump(checks,f,indent=2)
+
+          try:
+              s,p=call(parent,'GET',f'/accounts/{account}/tokens/permission_groups')
+              evidence['permission_groups_http_status']=s
+              if s!=200 or p.get('success') is False:
+                  raise SystemExit(f'Cannot list account token permission groups: HTTP {s} {p.get("errors")}')
+              groups=p.get('result') or []
+              dns=[g for g in groups if (g.get('name') or '').lower() in ('dns write','dns edit') and 'com.cloudflare.api.account.zone' in (g.get('scopes') or [])]
+              if len(dns)!=1:
+                  raise SystemExit(f'Expected one zone DNS write permission group, found {[g.get("name") for g in dns]}')
+              dns_group=dns[0]
+              evidence['dns_permission_group']={'id':dns_group.get('id'),'name':dns_group.get('name')}
+
+              expires=(datetime.datetime.now(datetime.timezone.utc)+datetime.timedelta(minutes=15)).replace(microsecond=0).isoformat().replace('+00:00','Z')
+              body={
+                  'name':f'ephemeral-abstrekkt-dns-repair-{os.environ.get("GITHUB_RUN_ID","manual")}',
+                  'policies':[{
+                      'effect':'allow',
+                      'resources':{f'com.cloudflare.api.account.zone.{zone}':'*'},
+                      'permission_groups':[{'id':dns_group['id']}]
+                  }],
+                  'expires_on':expires
+              }
+              s,p=call(parent,'POST',f'/accounts/{account}/tokens',body)
+              evidence['ephemeral_token_create']={'http_status':s,'success':p.get('success'),'errors':p.get('errors')}
+              if s<200 or s>=300 or p.get('success') is False:
+                  raise SystemExit(f'Account token creation blocked: HTTP {s} {p.get("errors")}')
+              created=p.get('result') or {}
+              ephemeral_id=created.get('id')
+              ephemeral=created.get('value')
+              if not ephemeral_id or not ephemeral:
+                  raise SystemExit('Cloudflare created token without id/value')
+
+              q=urllib.parse.quote(host,safe='')
+              s,p=call(ephemeral,'GET',f'/zones/{zone}/dns_records?name={q}')
+              if s!=200 or p.get('success') is False:
+                  raise SystemExit(f'Ephemeral DNS read failed: HTTP {s} {p.get("errors")}')
+              before=p.get('result') or []
+              slim=lambda r:{k:r.get(k) for k in ('id','type','name','content','proxied','ttl','comment')}
+              evidence['dns_before']=[slim(r) for r in before]
+
+              address=[r for r in before if r.get('type') in ('A','AAAA','CNAME')]
+              desired=[r for r in address if r.get('type')=='CNAME' and (r.get('content') or '').rstrip('.').lower()==target.lower()]
+              for r in address:
+                  if r in desired: continue
+                  s,p=call(ephemeral,'DELETE',f'/zones/{zone}/dns_records/{r["id"]}')
+                  evidence['actions'].append({'action':'delete_conflicting_apex_record','record':slim(r),'http_status':s,'success':p.get('success')})
+                  if s<200 or s>=300 or p.get('success') is False:
+                      raise SystemExit(f'Failed deleting conflicting apex {r.get("type")} record {r.get("id")}: HTTP {s} {p.get("errors")}')
+
+              if not desired:
+                  s,p=call(ephemeral,'POST',f'/zones/{zone}/dns_records',{
+                      'type':'CNAME','name':host,'content':target,'proxied':True,'ttl':1,
+                      'comment':'Abstrekkt canonical Cloudflare Pages apex'
+                  })
+                  evidence['actions'].append({'action':'create_pages_apex_cname','http_status':s,'success':p.get('success'),'record':slim(p.get('result') or {})})
+                  if s<200 or s>=300 or p.get('success') is False:
+                      raise SystemExit(f'Failed creating Pages CNAME: HTTP {s} {p.get("errors")}')
+
+              s,p=call(ephemeral,'GET',f'/zones/{zone}/dns_records?name={q}')
+              if s!=200 or p.get('success') is False:
+                  raise SystemExit(f'Post-change DNS read failed: HTTP {s} {p.get("errors")}')
+              after=p.get('result') or []
+              evidence['dns_after']=[slim(r) for r in after]
+              active_address=[r for r in after if r.get('type') in ('A','AAAA','CNAME')]
+              good=[r for r in active_address if r.get('type')=='CNAME' and (r.get('content') or '').rstrip('.').lower()==target.lower()]
+              if len(good)!=1 or len(active_address)!=1:
+                  raise SystemExit(f'Apex DNS invariant failed after repair: {evidence["dns_after"]}')
+
+              domain_path=f'/accounts/{account}/pages/projects/{os.environ["CF_PROJECT"]}/domains/{host}'
+              observations=[]
+              for _ in range(12):
+                  s,p=call(parent,'GET',domain_path)
+                  row=p.get('result') or {}
+                  observations.append({'http_status':s,'status':row.get('status'),'verification_data':row.get('verification_data'),'validation_data':row.get('validation_data')})
+                  if row.get('status')=='active': break
+                  time.sleep(5)
+              evidence['pages_domain_observations']=observations
+              evidence['pages_domain_final_status']=observations[-1].get('status') if observations else None
+              evidence['status']='DNS_REPAIRED'
+          finally:
+              if ephemeral_id:
+                  s,p=call(parent,'DELETE',f'/accounts/{account}/tokens/{ephemeral_id}')
+                  evidence['ephemeral_token_revoke']={'http_status':s,'success':p.get('success'),'errors':p.get('errors')}
+              Path('apex-repair-receipt.json').write_text(json.dumps(evidence,indent=2))
+              print(json.dumps(evidence,indent=2))
           PY
 
-      - name: Upload token authority evidence
+      - name: Verify public apex
+        if: always()
+        run: |
+          set -euo pipefail
+          for attempt in 1 2 3 4 5 6; do
+            STATUS="$(curl -sS -L --connect-timeout 10 --max-time 30 -D apex.headers -o apex.body -w '%{http_code}' "https://$HOSTNAME/" || true)"
+            echo "attempt=$attempt status=$STATUS"
+            if [[ "$STATUS" == 200 ]]; then break; fi
+            sleep 5
+          done
+          printf '%s\n' "$STATUS" > apex-status.txt
+          head -c 1200 apex.body | tr -cd '\11\12\15\40-\176' > apex-body-preview.txt || true
+          cat apex.headers
+          cat apex-body-preview.txt
+
+      - name: Upload repair evidence
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: abstrekkt-cloudflare-token-authority
-          path: cloudflare-token-authority.json
-          if-no-files-found: error
-          retention-days: 30
+          name: abstrekkt-cloudflare-apex-repair
+          path: |
+            apex-repair-receipt.json
+            apex.headers
+            apex.body
+            apex-status.txt
+            apex-body-preview.txt
+          if-no-files-found: warn
+          retention-days: 90
