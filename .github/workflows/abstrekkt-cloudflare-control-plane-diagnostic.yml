@@ -1,4 +1,4 @@
-name: Abstrekkt Cloudflare Apex Repair
+name: Abstrekkt Cloudflare Access Repair
 
 on:
   push:
@@ -11,17 +11,16 @@ permissions:
   contents: read
 
 env:
-  CF_ZONE_ID: 418c205318b9d95b1758c23d19bf6195
-  CF_PROJECT: abstrekkt
   HOSTNAME: abstrekkt.com
-  PAGES_TARGET: abstrekkt.pages.dev
+  CF_PROJECT: abstrekkt
+  EXPECTED_TITLE: Abstrekkt, Progress. Not pretending.
 
 jobs:
   repair:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - name: Repair apex DNS with ephemeral account token
+      - name: Remove exact Access application with ephemeral account token
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
@@ -33,139 +32,161 @@ jobs:
 
           parent=os.environ['CLOUDFLARE_API_TOKEN']
           account=os.environ['CLOUDFLARE_ACCOUNT_ID']
-          zone=os.environ['CF_ZONE_ID']
-          host=os.environ['HOSTNAME']
-          target=os.environ['PAGES_TARGET']
+          hostname=os.environ['HOSTNAME'].lower()
           root='https://api.cloudflare.com/client/v4'
-          evidence={'schema':'AbstrekktCloudflareApexRepairReceipt/v1','zone_id':zone,'hostname':host,'pages_target':target,'actions':[]}
+          evidence={'schema':'AbstrekktCloudflareAccessRepairReceipt/v1','hostname':hostname,'actions':[]}
           ephemeral_id=None
 
           def call(token, method, path, data=None):
               body=None if data is None else json.dumps(data).encode()
-              headers={'Authorization':f'Bearer {token}','Content-Type':'application/json'}
-              req=urllib.request.Request(root+path, data=body, method=method, headers=headers)
+              req=urllib.request.Request(root+path,data=body,method=method,headers={'Authorization':f'Bearer {token}','Content-Type':'application/json'})
               try:
-                  with urllib.request.urlopen(req, timeout=30) as r:
-                      raw=r.read().decode() or '{}'
-                      return r.status, json.loads(raw)
+                  with urllib.request.urlopen(req,timeout=30) as r:
+                      raw=r.read().decode() or '{}'; return r.status,json.loads(raw)
               except urllib.error.HTTPError as e:
                   raw=e.read().decode() or '{}'
                   try: payload=json.loads(raw)
                   except Exception: payload={'raw':raw}
                   return e.code,payload
 
+          def app_host(domain):
+              raw=(domain or '').strip()
+              if not raw: return ''
+              probe=raw if '://' in raw else 'https://'+raw
+              try: return (urllib.parse.urlparse(probe).hostname or '').lower()
+              except Exception: return ''
+
           try:
               s,p=call(parent,'GET',f'/accounts/{account}/tokens/permission_groups')
-              evidence['permission_groups_http_status']=s
               if s!=200 or p.get('success') is False:
                   raise SystemExit(f'Cannot list account token permission groups: HTTP {s} {p.get("errors")}')
               groups=p.get('result') or []
-              dns=[g for g in groups if (g.get('name') or '').lower() in ('dns write','dns edit') and 'com.cloudflare.api.account.zone' in (g.get('scopes') or [])]
-              if len(dns)!=1:
-                  raise SystemExit(f'Expected one zone DNS write permission group, found {[g.get("name") for g in dns]}')
-              dns_group=dns[0]
-              evidence['dns_permission_group']={'id':dns_group.get('id'),'name':dns_group.get('name')}
+              candidates=[g for g in groups if (g.get('name') or '').lower() in ('access: apps and policies write','access: apps and policies edit') and 'com.cloudflare.api.account' in (g.get('scopes') or [])]
+              if len(candidates)!=1:
+                  raise SystemExit(f'Expected one Access Apps/Policies write group, found {[(g.get("name"),g.get("scopes")) for g in candidates]}')
+              group=candidates[0]
+              evidence['access_permission_group']={'id':group.get('id'),'name':group.get('name')}
 
               expires=(datetime.datetime.now(datetime.timezone.utc)+datetime.timedelta(minutes=15)).replace(microsecond=0).isoformat().replace('+00:00','Z')
-              body={
-                  'name':f'ephemeral-abstrekkt-dns-repair-{os.environ.get("GITHUB_RUN_ID","manual")}',
-                  'policies':[{
-                      'effect':'allow',
-                      'resources':{f'com.cloudflare.api.account.zone.{zone}':'*'},
-                      'permission_groups':[{'id':dns_group['id']}]
-                  }],
+              s,p=call(parent,'POST',f'/accounts/{account}/tokens',{
+                  'name':f'ephemeral-abstrekkt-access-repair-{os.environ.get("GITHUB_RUN_ID","manual")}',
+                  'policies':[{'effect':'allow','resources':{f'com.cloudflare.api.account.{account}':'*'},'permission_groups':[{'id':group['id']}]}],
                   'expires_on':expires
-              }
-              s,p=call(parent,'POST',f'/accounts/{account}/tokens',body)
+              })
               evidence['ephemeral_token_create']={'http_status':s,'success':p.get('success'),'errors':p.get('errors')}
               if s<200 or s>=300 or p.get('success') is False:
-                  raise SystemExit(f'Account token creation blocked: HTTP {s} {p.get("errors")}')
-              created=p.get('result') or {}
-              ephemeral_id=created.get('id')
-              ephemeral=created.get('value')
-              if not ephemeral_id or not ephemeral:
-                  raise SystemExit('Cloudflare created token without id/value')
+                  raise SystemExit(f'Access token creation failed: HTTP {s} {p.get("errors")}')
+              created=p.get('result') or {}; ephemeral_id=created.get('id'); token=created.get('value')
+              if not ephemeral_id or not token: raise SystemExit('Created Access token missing id/value')
 
-              q=urllib.parse.quote(host,safe='')
-              s,p=call(ephemeral,'GET',f'/zones/{zone}/dns_records?name={q}')
+              apps=[]; page=1
+              while True:
+                  s,p=call(token,'GET',f'/accounts/{account}/access/apps?per_page=100&page={page}')
+                  if s!=200 or p.get('success') is False:
+                      raise SystemExit(f'Access app inventory failed: HTTP {s} {p.get("errors")}')
+                  rows=p.get('result') or []; apps.extend(rows)
+                  info=p.get('result_info') or {}
+                  if page >= int(info.get('total_pages') or 1): break
+                  page+=1
+              compact=lambda a:{k:a.get(k) for k in ('id','name','domain','type','created_at','updated_at','app_launcher_visible','skip_interstitial')}
+              evidence['apps_before']=[compact(a) for a in apps]
+              matching=[a for a in apps if app_host(a.get('domain'))==hostname]
+              if len(matching)!=1:
+                  raise SystemExit(f'Expected exactly one Access app protecting {hostname}; found {[compact(a) for a in matching]}')
+              app=matching[0]; app_id=app.get('id')
+              evidence['matched_app']=compact(app)
+
+              s,p=call(token,'GET',f'/accounts/{account}/access/apps/{app_id}/policies?per_page=100')
               if s!=200 or p.get('success') is False:
-                  raise SystemExit(f'Ephemeral DNS read failed: HTTP {s} {p.get("errors")}')
-              before=p.get('result') or []
-              slim=lambda r:{k:r.get(k) for k in ('id','type','name','content','proxied','ttl','comment')}
-              evidence['dns_before']=[slim(r) for r in before]
+                  raise SystemExit(f'Access policy read failed: HTTP {s} {p.get("errors")}')
+              evidence['matched_app_policies']=p.get('result') or []
 
-              address=[r for r in before if r.get('type') in ('A','AAAA','CNAME')]
-              desired=[r for r in address if r.get('type')=='CNAME' and (r.get('content') or '').rstrip('.').lower()==target.lower()]
-              for r in address:
-                  if r in desired: continue
-                  s,p=call(ephemeral,'DELETE',f'/zones/{zone}/dns_records/{r["id"]}')
-                  evidence['actions'].append({'action':'delete_conflicting_apex_record','record':slim(r),'http_status':s,'success':p.get('success')})
-                  if s<200 or s>=300 or p.get('success') is False:
-                      raise SystemExit(f'Failed deleting conflicting apex {r.get("type")} record {r.get("id")}: HTTP {s} {p.get("errors")}')
+              s,p=call(token,'DELETE',f'/accounts/{account}/access/apps/{app_id}')
+              evidence['actions'].append({'action':'delete_exact_access_app','app_id':app_id,'http_status':s,'success':p.get('success'),'errors':p.get('errors')})
+              if s<200 or s>=300 or p.get('success') is False:
+                  raise SystemExit(f'Access application deletion failed: HTTP {s} {p.get("errors")}')
 
-              if not desired:
-                  s,p=call(ephemeral,'POST',f'/zones/{zone}/dns_records',{
-                      'type':'CNAME','name':host,'content':target,'proxied':True,'ttl':1,
-                      'comment':'Abstrekkt canonical Cloudflare Pages apex'
-                  })
-                  evidence['actions'].append({'action':'create_pages_apex_cname','http_status':s,'success':p.get('success'),'record':slim(p.get('result') or {})})
-                  if s<200 or s>=300 or p.get('success') is False:
-                      raise SystemExit(f'Failed creating Pages CNAME: HTTP {s} {p.get("errors")}')
-
-              s,p=call(ephemeral,'GET',f'/zones/{zone}/dns_records?name={q}')
+              time.sleep(3)
+              s,p=call(token,'GET',f'/accounts/{account}/access/apps?per_page=100&page=1')
               if s!=200 or p.get('success') is False:
-                  raise SystemExit(f'Post-change DNS read failed: HTTP {s} {p.get("errors")}')
+                  raise SystemExit(f'Post-delete Access inventory failed: HTTP {s} {p.get("errors")}')
               after=p.get('result') or []
-              evidence['dns_after']=[slim(r) for r in after]
-              active_address=[r for r in after if r.get('type') in ('A','AAAA','CNAME')]
-              good=[r for r in active_address if r.get('type')=='CNAME' and (r.get('content') or '').rstrip('.').lower()==target.lower()]
-              if len(good)!=1 or len(active_address)!=1:
-                  raise SystemExit(f'Apex DNS invariant failed after repair: {evidence["dns_after"]}')
-
-              domain_path=f'/accounts/{account}/pages/projects/{os.environ["CF_PROJECT"]}/domains/{host}'
-              observations=[]
-              for _ in range(12):
-                  s,p=call(parent,'GET',domain_path)
-                  row=p.get('result') or {}
-                  observations.append({'http_status':s,'status':row.get('status'),'verification_data':row.get('verification_data'),'validation_data':row.get('validation_data')})
-                  if row.get('status')=='active': break
-                  time.sleep(5)
-              evidence['pages_domain_observations']=observations
-              evidence['pages_domain_final_status']=observations[-1].get('status') if observations else None
-              evidence['status']='DNS_REPAIRED'
+              still=[a for a in after if app_host(a.get('domain'))==hostname]
+              evidence['matching_apps_after']=[compact(a) for a in still]
+              if still: raise SystemExit(f'Access application still protects {hostname}: {evidence["matching_apps_after"]}')
+              evidence['status']='ACCESS_GATE_REMOVED'
           finally:
               if ephemeral_id:
                   s,p=call(parent,'DELETE',f'/accounts/{account}/tokens/{ephemeral_id}')
                   evidence['ephemeral_token_revoke']={'http_status':s,'success':p.get('success'),'errors':p.get('errors')}
-              Path('apex-repair-receipt.json').write_text(json.dumps(evidence,indent=2))
+              Path('access-repair-receipt.json').write_text(json.dumps(evidence,indent=2))
               print(json.dumps(evidence,indent=2))
           PY
 
-      - name: Verify public apex
-        if: always()
+      - name: Verify public Pages content and routes
         run: |
           set -euo pipefail
-          for attempt in 1 2 3 4 5 6; do
-            STATUS="$(curl -sS -L --connect-timeout 10 --max-time 30 -D apex.headers -o apex.body -w '%{http_code}' "https://$HOSTNAME/" || true)"
-            echo "attempt=$attempt status=$STATUS"
-            if [[ "$STATUS" == 200 ]]; then break; fi
-            sleep 5
-          done
-          printf '%s\n' "$STATUS" > apex-status.txt
-          head -c 1200 apex.body | tr -cd '\11\12\15\40-\176' > apex-body-preview.txt || true
-          cat apex.headers
-          cat apex-body-preview.txt
+          python <<'PY'
+          import json, os, re, subprocess, time
+          from pathlib import Path
+          host='https://'+os.environ['HOSTNAME']
+          routes=[('/',200),('/founder/',200),('/pillars/',200),('/contact/',200),('/__public-release-probe-20260827',404)]
+          security={'x-content-type-options':'nosniff','x-frame-options':'DENY','referrer-policy':'strict-origin-when-cross-origin','permissions-policy':'camera=(), microphone=(), geolocation=()'}
+          results=[]
+          for path,expected in routes:
+              observed=None
+              for attempt in range(1,13):
+                  h='/tmp/h'; b='/tmp/b'
+                  p=subprocess.run(['curl','-sS','--connect-timeout','10','--max-time','30','-D',h,'-o',b,'-w','%{http_code}|%{url_effective}',host+path],capture_output=True,text=True,check=True)
+                  status_s,url=p.stdout.strip().split('|',1); status=int(status_s)
+                  headers={}
+                  for line in Path(h).read_text(errors='replace').splitlines():
+                      if ':' in line:
+                          k,v=line.split(':',1); headers[k.strip().lower()]=v.strip()
+                  body=Path(b).read_text(errors='replace')
+                  observed=(status,url,headers,body)
+                  if status==expected and 'cloudflareaccess.com' not in headers.get('location','').lower() and 'Sign in - Cloudflare Access' not in body and 'Sign in  Cloudflare Access' not in body:
+                      break
+                  time.sleep(5)
+              status,url,headers,body=observed
+              if status!=expected: raise SystemExit(f'{path}: HTTP {status}, expected {expected}; headers={headers}')
+              if 'cloudflareaccess.com' in headers.get('location','').lower() or 'Cloudflare Access' in body[:2000]:
+                  raise SystemExit(f'{path}: Cloudflare Access gate still present')
+              missing={k:v for k,v in security.items() if headers.get(k,'').lower()!=v.lower()}
+              if missing: raise SystemExit(f'{path}: security headers mismatch {missing}; observed={headers}')
+              if path=='/':
+                  title=re.search(r'<title>(.*?)</title>',body,re.I|re.S)
+                  actual=(title.group(1).strip() if title else None)
+                  if actual!=os.environ['EXPECTED_TITLE']:
+                      raise SystemExit(f'Root title mismatch: {actual!r}')
+              results.append({'path':path,'status':status,'url':url,'headers':{k:headers.get(k) for k in security}})
+          Path('public-site-verification.json').write_text(json.dumps(results,indent=2))
+          print(json.dumps(results,indent=2))
+          PY
 
-      - name: Upload repair evidence
+      - name: Read Pages custom-domain status
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          curl -sS --fail-with-body -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+            "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/pages/projects/$CF_PROJECT/domains/$HOSTNAME" > pages-domain-after.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p=json.loads(Path('pages-domain-after.json').read_text()); r=p.get('result') or {}
+          print(json.dumps({k:r.get(k) for k in ('id','name','status','verification_data','validation_data')},indent=2))
+          PY
+
+      - name: Upload Access repair evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: abstrekkt-cloudflare-apex-repair
+          name: abstrekkt-cloudflare-access-repair
           path: |
-            apex-repair-receipt.json
-            apex.headers
-            apex.body
-            apex-status.txt
-            apex-body-preview.txt
+            access-repair-receipt.json
+            public-site-verification.json
+            pages-domain-after.json
           if-no-files-found: warn
           retention-days: 90
