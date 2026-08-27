@@ -1,0 +1,118 @@
+name: Abstrekkt Cloudflare Control Plane Diagnostic
+
+on:
+  push:
+    branches:
+      - fix/abstrekkt-apex-workers-build-20260827
+    paths:
+      - .github/workflows/abstrekkt-cloudflare-control-plane-diagnostic.yml
+
+permissions:
+  contents: read
+
+env:
+  CF_ZONE_ID: 418c205318b9d95b1758c23d19bf6195
+  CF_PROJECT: abstrekkt
+  CF_WORKER: abstrekkt
+  HOSTNAME: abstrekkt.com
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Require Cloudflare credentials
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          test -n "$CLOUDFLARE_API_TOKEN"
+          test -n "$CLOUDFLARE_ACCOUNT_ID"
+
+      - name: Inventory apex control plane
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          python <<'PY'
+          import json, os, urllib.error, urllib.parse, urllib.request
+          from pathlib import Path
+
+          token=os.environ['CLOUDFLARE_API_TOKEN']
+          account=os.environ['CLOUDFLARE_ACCOUNT_ID']
+          zone=os.environ['CF_ZONE_ID']
+          host=os.environ['HOSTNAME']
+          project=os.environ['CF_PROJECT']
+          root='https://api.cloudflare.com/client/v4'
+
+          def get(path):
+              req=urllib.request.Request(root+path, headers={'Authorization':f'Bearer {token}'})
+              try:
+                  with urllib.request.urlopen(req, timeout=30) as r:
+                      raw=r.read().decode() or '{}'
+                      return {'http_status':r.status,'payload':json.loads(raw)}
+              except urllib.error.HTTPError as e:
+                  raw=e.read().decode() or '{}'
+                  try: payload=json.loads(raw)
+                  except Exception: payload={'raw':raw}
+                  return {'http_status':e.code,'payload':payload}
+
+          qhost=urllib.parse.quote(host, safe='')
+          calls={
+              'token_verify': get('/user/tokens/verify'),
+              'worker_domains': get(f'/accounts/{account}/workers/domains?hostname={qhost}'),
+              'worker_routes': get(f'/zones/{zone}/workers/routes'),
+              'dns_apex': get(f'/zones/{zone}/dns_records?name={qhost}'),
+              'pages_domain': get(f'/accounts/{account}/pages/projects/{project}/domains/{host}'),
+          }
+
+          # Find the target Worker tag before reading its Builds trigger set.
+          scripts=get(f'/accounts/{account}/workers/scripts')
+          calls['workers_scripts']=scripts
+          tag=None
+          if scripts['http_status']==200:
+              for row in (scripts['payload'].get('result') or []):
+                  if row.get('id')==os.environ['CF_WORKER']:
+                      tag=row.get('tag')
+                      break
+          calls['workers_build_triggers'] = get(f'/accounts/{account}/builds/workers/{tag}/triggers') if tag else {'http_status':0,'payload':{'error':'target worker tag not found'}}
+
+          Path('cloudflare-control-plane-before.json').write_text(json.dumps(calls, indent=2))
+
+          def compact(name, result):
+              payload=result.get('payload') or {}
+              return {
+                  'name': name,
+                  'http_status': result.get('http_status'),
+                  'success': payload.get('success'),
+                  'errors': payload.get('errors'),
+                  'result': payload.get('result')
+              }
+
+          for key in ('token_verify','worker_domains','worker_routes','dns_apex','pages_domain','workers_build_triggers'):
+              print(json.dumps(compact(key,calls[key]), indent=2))
+          PY
+
+      - name: Probe public apex
+        run: |
+          set -euo pipefail
+          curl -sS -L --connect-timeout 10 --max-time 30 -D apex.headers -o apex.body -w '%{http_code}|%{url_effective}\n' "https://$HOSTNAME/" | tee apex-status.txt
+          head -c 1200 apex.body | tr -cd '\11\12\15\40-\176' > apex-body-preview.txt || true
+          cat apex.headers
+          cat apex-body-preview.txt
+
+      - name: Upload diagnostic evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: abstrekkt-cloudflare-control-plane-diagnostic
+          path: |
+            cloudflare-control-plane-before.json
+            apex.headers
+            apex.body
+            apex-status.txt
+            apex-body-preview.txt
+          if-no-files-found: warn
+          retention-days: 30
