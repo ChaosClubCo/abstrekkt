@@ -220,13 +220,23 @@ jobs:
             exit 1
           }
 
-          STATUS="$(curl --silent --show-error \
-            --connect-timeout 10 --max-time 30 \
-            --output /tmp/receiver-readback.txt \
-            --write-out '%{http_code}' \
-            "$RECEIVER_URL")"
-          test "$STATUS" = '405' || {
-            echo "STOP: receiver GET read-back returned HTTP $STATUS, expected 405"
+          STATUS='000'
+          for ATTEMPT in 1 2 3 4 5 6 7 8; do
+            STATUS="$(curl --silent --show-error \
+              --connect-timeout 10 --max-time 30 \
+              --request POST \
+              --output /tmp/receiver-readback.txt \
+              --write-out '%{http_code}' \
+              "$RECEIVER_URL" || true)"
+            if [[ "$STATUS" = '400' ]]; then
+              break
+            fi
+            echo "Read-back attempt $ATTEMPT returned HTTP $STATUS; retrying after edge propagation."
+            sleep 2
+          done
+
+          test "$STATUS" = '400' || {
+            echo "STOP: unauthenticated receiver POST returned HTTP $STATUS, expected 400"
             exit 1
           }
 
@@ -234,13 +244,18 @@ jobs:
           const fs = require('node:fs');
           const receipt = JSON.parse(fs.readFileSync('provision-receipt.json', 'utf8'));
           receipt.verified_at = new Date().toISOString();
-          receipt.readback = { method: 'GET', status: 405 };
+          receipt.readback = {
+            method: 'POST',
+            authenticated: false,
+            status: 400,
+            expectation: 'missing signature/delivery headers rejected',
+          };
           fs.writeFileSync('provision-receipt.json', JSON.stringify(receipt, null, 2));
           NODE
 
           echo "receiver_url=$RECEIVER_URL" >> "$GITHUB_OUTPUT"
           echo "Receiver URL: $RECEIVER_URL" >> "$GITHUB_STEP_SUMMARY"
-          echo 'Read-back: HTTP 405 PASS' >> "$GITHUB_STEP_SUMMARY"
+          echo 'Read-back: unauthenticated POST → HTTP 400 PASS' >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload provisioning receipt
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
