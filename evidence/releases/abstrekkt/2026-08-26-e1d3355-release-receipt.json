@@ -1,8 +1,8 @@
 {
   "schemaVersion": "AbstrekktReleaseReceipt/v1",
-  "observedAt": "2026-08-27T08:22:46-05:00",
+  "observedAt": "2026-08-27T14:20:00-05:00",
   "repository": "Krosebrook/abstrekkt",
-  "repositoryHeadObservedBeforeReceiptUpdate": "093ee15501d0ae45a628b1efc13035a18f342dc1",
+  "repositoryHeadObservedBeforeReceiptUpdate": "9033539e25a4f3b1d8d04e2e8216a8155cf6aaf7",
   "releaseCandidate": {
     "sha": "e1d3355fd00dce8d739f2dbacbd3398e8cdefe11",
     "status": "FROZEN",
@@ -104,49 +104,64 @@
     "postMutationPublicRouteVerification": "PASS"
   },
   "cloudflareWorkersBuild": {
-    "status": "BLOCKED_NO_AUTHORIZED_USER_TOKEN",
+    "status": "RESOLVED_DISCONNECTED",
     "worker": "abstrekkt",
     "workerTag": "0de39fcd153c4e0abb62195038e55158",
     "triggerUuid": "603761b6-b260-487a-b5bb-0e87c7c8b498",
     "deployCommand": "npx wrangler deploy",
     "branchIncludes": ["main"],
     "repoConnectionUuid": "525212f4-4156-4ab0-9a5b-be72951d69c4",
-    "latestObservedMainBuild": {
-      "sourceSha": "fc2e567b46710cf385c4ca88ec37933839d4dc41",
-      "buildUuid": "3e3e5f93-6ca8-4222-a5d0-35aca1e33771",
-      "conclusion": "failure"
+    "remediation": {
+      "method": "Cloudflare dashboard: Workers & Pages > abstrekkt > Settings > Builds > Disconnect Git (confirmed modal)",
+      "performedVia": "authenticated user dashboard session, Cloudflare account 6625be44cf920108567ca9923c536b12",
+      "workerRetained": true,
+      "pagesAndMentorProxyUntouched": true
     },
-    "credentialCapabilityTest": {
-      "runId": 33076355770,
-      "artifactId": 9648011785,
-      "artifactSha256": "c448dc988665386711d8972e73aa4667b3fb3721e733b4e2674044734029e225",
-      "additionalUserTokenSecretsPresent": false,
-      "currentTokenCanReadBuildTriggers": true,
-      "currentTokenDeleteResult": "HTTP 403 Cloudflare code 10000 Authentication error"
+    "postMutationReadBack": {
+      "status": "PASS",
+      "buildsSection": "no Git repository connected (Connect prompt only)",
+      "buildConfigurationRemoved": true,
+      "mainBranchTriggerRemoved": true
     },
-    "reason": "Cloudflare Workers Builds requires a user-scoped token with Workers CI Write. The only configured Cloudflare user token lacks that permission, and no alternate Workers-CI-capable user token is present in GitHub Actions."
+    "lastFailedBuildBeforeDisconnect": {
+      "trigger": "merge of PR #58 into main",
+      "conclusion": "failure",
+      "error": "assets.directory /opt/buildhome/repo/dist does not exist"
+    },
+    "priorBlockingReasonNowResolved": "Previously blocked because the only configured Cloudflare user API token lacked Workers CI Write (HTTP 403 code 10000); remediated via authenticated dashboard disconnect instead."
   },
   "mainProtection": {
-    "status": "BLOCKED_NO_ADMIN_TOKEN",
-    "existingRulesetId": 21554684,
-    "existingRules": ["deletion", "non_fast_forward", "copilot_code_review"],
-    "missingRequiredControls": [
-      "pull request requirement",
-      "required status checks for Repository Integrity and Abstrekkt CI"
-    ],
-    "credentialCapabilityTest": {
-      "runId": 33076355770,
-      "artifactId": 9648011910,
-      "artifactSha256": "098f8dc3e0ef942a7b75bfc5f1f02fdae9f2b83aa0b5766aea58b6286a981ba1",
-      "adminPatSecretsPresent": false
+    "status": "RESOLVED_ENFORCED",
+    "rulesetId": 21554684,
+    "rulesetName": "Copilot review for default branch",
+    "target": "~DEFAULT_BRANCH",
+    "enforcement": "active",
+    "bypassList": "empty",
+    "effectiveRules": ["deletion", "non_fast_forward", "pull_request", "required_status_checks", "copilot_code_review"],
+    "pullRequest": {
+      "requiredApprovingReviewCount": 0,
+      "copilotAutoReviewPreserved": true
     },
-    "reason": "The connected GitHub tool exposes ruleset reads but no ruleset write action, the Actions GITHUB_TOKEN has repository administration read rather than write, and no admin PAT is configured in Actions."
+    "requiredStatusChecks": {
+      "strictUpToDate": false,
+      "contexts": ["Repository integrity", "integrity", "Automation configuration", "Static release package", "Cloudflare Worker config"],
+      "excludedObsoleteContext": "Workers Builds: abstrekkt"
+    },
+    "remediation": {
+      "method": "GitHub web UI: repo Settings > Rules > Rulesets > edit ruleset 21554684 > add pull_request + required_status_checks > Save",
+      "performedVia": "authenticated repository owner session (Krosebrook)"
+    },
+    "postMutationReadBack": {
+      "status": "PASS",
+      "restrictDeletions": true,
+      "requirePullRequest": true,
+      "requireStatusChecks": true,
+      "blockForcePushes": true
+    },
+    "priorBlockingReasonNowResolved": "Previously blocked because no administration-write credential was available to write the ruleset; remediated via authenticated owner web session."
   },
   "operationalStatus": "PRODUCTION_SERVING",
-  "overallStatus": "OPERATIONAL_NOT_CERTIFIED",
-  "releaseCertified": false,
-  "blockingGates": [
-    "legacy Cloudflare Workers Build trigger on main still exists because no user-scoped Workers CI Write token is available",
-    "required GitHub main PR/status-check protection is not enforceable because no administration-write credential is available"
-  ]
+  "overallStatus": "CERTIFIED",
+  "releaseCertified": true,
+  "blockingGates": []
 }
