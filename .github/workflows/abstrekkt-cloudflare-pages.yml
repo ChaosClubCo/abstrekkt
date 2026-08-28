@@ -15,6 +15,10 @@ permissions:
   contents: read
   deployments: write
 
+concurrency:
+  group: abstrekkt-cloudflare-production
+  cancel-in-progress: false
+
 jobs:
   deploy:
     name: Deploy exact SHA to Cloudflare Pages
@@ -32,38 +36,73 @@ jobs:
           test -n "$CLOUDFLARE_API_TOKEN" || { echo "STOP: CLOUDFLARE_API_TOKEN is not configured"; exit 1; }
           test -n "$CLOUDFLARE_ACCOUNT_ID" || { echo "STOP: CLOUDFLARE_ACCOUNT_ID is not configured"; exit 1; }
 
-      - name: Checkout exact candidate
-        uses: actions/checkout@v6
+      - name: Checkout trusted automation revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+          path: automation
+
+      - name: Checkout exact release candidate
+        uses: actions/checkout@v4
         with:
           ref: ${{ inputs.candidate_sha }}
-          fetch-depth: 1
+          fetch-depth: 0
+          path: candidate
 
       - name: Verify exact candidate SHA
         shell: bash
         run: |
           set -euo pipefail
-          ACTUAL="$(git rev-parse HEAD)"
+          ACTUAL="$(git -C candidate rev-parse HEAD)"
           test "$ACTUAL" = "${{ inputs.candidate_sha }}" || {
             echo "STOP: checked out $ACTUAL, expected ${{ inputs.candidate_sha }}"
             exit 1
           }
 
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Validate trusted automation configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m py_compile automation/scripts/repo_integrity.py
+          python -m json.tool automation/.github/mcp.json >/dev/null
+          test -s automation/.github/copilot-instructions.md
+          test -s automation/.github/workflows/repository-webhooks.yml
+
+      - name: Re-run repository authority checks on candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE_SHA="$(git -C candidate rev-parse HEAD^ 2>/dev/null || true)"
+          mkdir -p candidate/.release-tools
+          cp automation/scripts/repo_integrity.py candidate/.release-tools/repo_integrity.py
+          python candidate/.release-tools/repo_integrity.py --base "$BASE_SHA"
+
       - name: Validate static release package
         shell: bash
         run: |
           set -euo pipefail
-          ROOT="project/deploy/abstrekkt-com"
-          test -f "$ROOT/index.html" || { echo "STOP: missing root index.html"; exit 1; }
-          test -f "$ROOT/founder/index.html" || { echo "STOP: missing /founder"; exit 1; }
-          test -f "$ROOT/pillars/index.html" || { echo "STOP: missing /pillars"; exit 1; }
-          test -f "$ROOT/contact/index.html" || { echo "STOP: missing /contact"; exit 1; }
-          test -f "$ROOT/404.html" || { echo "STOP: missing 404.html"; exit 1; }
+          ROOT="candidate/project/deploy/abstrekkt-com"
+          test -s "$ROOT/index.html" || { echo "STOP: missing root index.html"; exit 1; }
+          test -s "$ROOT/founder/index.html" || { echo "STOP: missing /founder"; exit 1; }
+          test -s "$ROOT/pillars/index.html" || { echo "STOP: missing /pillars"; exit 1; }
+          test -s "$ROOT/contact/index.html" || { echo "STOP: missing /contact"; exit 1; }
+          test -s "$ROOT/404.html" || { echo "STOP: missing 404.html"; exit 1; }
+          if find "$ROOT" -type f \( -name '.env' -o -name '.env.*' -o -name '*.pem' -o -name '*.key' -o -name 'id_rsa*' \) -print -quit | grep -q .; then
+            echo "STOP: credential-like file present in static release package"
+            exit 1
+          fi
 
       - name: Add Cloudflare Pages response headers to release workspace
         shell: bash
         run: |
           set -euo pipefail
-          cat > project/deploy/abstrekkt-com/_headers <<'EOF'
+          cat > candidate/project/deploy/abstrekkt-com/_headers <<'EOF'
           /*
             X-Content-Type-Options: nosniff
             X-Frame-Options: DENY
@@ -80,7 +119,7 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           gitHubToken: ${{ secrets.GITHUB_TOKEN }}
-          command: pages deploy project/deploy/abstrekkt-com --project-name=${{ inputs.project_name }} --branch=main --commit-hash=${{ inputs.candidate_sha }}
+          command: pages deploy candidate/project/deploy/abstrekkt-com --project-name="${{ inputs.project_name }}" --branch=main --commit-hash="${{ inputs.candidate_sha }}"
 
       - name: Record release summary
         if: success()
@@ -90,7 +129,9 @@ jobs:
             echo "## Abstrekkt Cloudflare Pages release"
             echo
             echo "- Candidate SHA: `${{ inputs.candidate_sha }}`"
+            echo "- Trusted automation SHA: `${{ github.sha }}`"
             echo "- Pages project: `${{ inputs.project_name }}`"
             echo "- Static package: `project/deploy/abstrekkt-com`"
-            echo "- Custom-domain binding is intentionally separate from this workflow."
+            echo "- Repository authority checks: trusted checker applied to exact candidate"
+            echo "- Custom-domain binding and independent public read-back remain separate release evidence."
           } >> "$GITHUB_STEP_SUMMARY"
