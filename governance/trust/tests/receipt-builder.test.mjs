@@ -8,7 +8,7 @@ import {
 
 const SOURCE_SHA = 'f'.repeat(40);
 const CONTENT = 'policy bytes\n';
-const CONTENT_SHA = '2a481adc0a9a0bd5d66443b72ba8a4276c62c447008291d5e294a77dd3ae7730';
+const CONTENT_SHA = 'b321d1344ba9d315fbc20fe2731270df82c0a1d7592bfc2127bfc449284c1d9d';
 
 function registrySource(overrides = {}) {
   return {
