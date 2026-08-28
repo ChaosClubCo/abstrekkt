@@ -1,28 +1,52 @@
-# CODING AGENTS: READ THIS FIRST
+# Abstrekkt
 
-This is a **handoff bundle** from Claude Design (claude.ai/design).
+This repository is the governed source and preservation boundary for **Abstrekkt publishing, public-site source, approved editorial artifacts, portfolio/press evidence, and historical material retained for provenance**.
 
-A user mocked up designs in HTML/CSS/JS using an AI design tool, then exported this bundle so a coding agent can implement the designs for real.
+It is **not** the canonical production repository for Loxihart runtime or product code. Loxihart operating/product ownership belongs in [`Krosebrook/Loxihart`](https://github.com/Krosebrook/Loxihart). Existing `loxihart/` paths in this repository are frozen historical/reference source until their migration and hash verification are complete.
 
-## What you should do — IMPORTANT
+## Start here
 
-**Read `project/Repository Operations Hub.html` in full.** The user had this file open when they triggered the handoff, so it's almost certainly the primary design they want built. Read it top to bottom — don't skim. Then **follow its imports**: open every file it pulls in (shared components, CSS, scripts) so you understand how the pieces fit together before you start implementing.
+Repository work must follow this authority order:
 
-**If anything is ambiguous, ask the user to confirm before you start implementing.** It's much cheaper to clarify scope up front than to build the wrong thing.
+1. [`AGENTS.md`](AGENTS.md) — mutation rules and agent bootstrap.
+2. [`REPOSITORY.md`](REPOSITORY.md) — repository purpose, boundaries, and source-authority model.
+3. [`repository-registry.yaml`](repository-registry.yaml) — machine-readable domain ownership.
+4. [`project/CANON.md`](project/CANON.md) — canonical artifact registry **only for the legacy `project/` content/design corpus**.
+5. [`docs/export/`](docs/export/) — forensic inventory, migration contradictions, and evidence receipts.
 
-## About the design files
+## Repository boundary
 
-The design medium is **HTML/CSS/JS** — these are prototypes, not production code. Your job is to **recreate them pixel-perfectly** in whatever technology makes sense for the target codebase (React, Vue, native, whatever fits). Match the visual output; don't copy the prototype's internal structure unless it happens to fit.
+| Domain | Authority here | Notes |
+| --- | --- | --- |
+| Abstrekkt public/editorial | Canonical | Publishing, public-site source, press/portfolio, approved derivatives |
+| `project/` design/content corpus | Canonical within its lane | Governed by `project/CANON.md` after repository-level routing |
+| Loxihart runtime/product | External canonical | Owned by `Krosebrook/Loxihart`; local copies are frozen reference/history |
+| FlashFusion historical material | Historical or subordinate-brand evidence | Classify by role and provenance, never by name alone |
+| INT/Intinc | Excluded | Separate operating lane; repository residence does not grant authority |
+| Private memoir/clinical/family source | Restricted | Never infer publication authority from presence in this repository |
+| Vendored/imported systems | Noncanonical | Preserve provenance; do not silently promote into Abstrekkt architecture |
 
-**Don't render these files in a browser or take screenshots unless the user asks you to.** Everything you need — dimensions, colors, layout rules — is spelled out in the source. Read the HTML and CSS directly; a screenshot won't tell you anything they don't.
+## Production trust status
 
-## Bundle contents
+The production-trust layer uses strict maturity states. `IMPLEMENTED`, `VERIFIED`, `DEPLOYED`, and `CERTIFIED` are not synonyms and are never inferred from one another.
 
-- `README.md` — this file
-- `CLAUDE.md` — agent guidance for this repo; read it alongside this note
-- `project/` — the `abstrekkt` project files (HTML prototypes, assets, components)
-- `project/CANON.md` — the artifact registry; read it before touching anything
+Audit base for the first production-trust conformance build: `6fbfada9cfd164b08c6941622d882b07c8fde71f`.
 
----
+| Area | State | Current evidence boundary |
+| --- | --- | --- |
+| Durable verification-before-completion policy | IMPLEMENTED | Canonical policy, registry source, and acceptance suite under `governance/trust/` |
+| Deterministic behavioral evaluator | IMPLEMENTED | Provider-neutral evaluator with fail-closed revision/task/projection/provider binding |
+| Distribution conformance | IMPLEMENTED | Anthropic/OpenAI/Gemini adapter projections and deterministic receipt contract; exact-head CI evidence required for VERIFIED |
+| Live multi-provider behavioral execution | BLOCKED | No live provider execution receipt has been produced by this layer |
+| Production signing | BLOCKED | No external production KMS signature evidence exists in this layer |
+| Provenance service | BLOCKED | Read-only provenance runtime is not deployed by this layer |
+| Exact live runtime revision | INCONCLUSIVE | Existing deployment workflow is candidate-SHA-aware, but runtime read-back/version evidence is a separate gate |
+| Production certification | BLOCKED | Requires compatible live behavior, signing, provenance, and deployment evidence |
 
-*Restored Jul 29, 2026 — this handoff note had been overwritten by the Arc System documentation index, which now lives at [`ARC_SYSTEM_README.md`](ARC_SYSTEM_README.md).*
+See [`docs/PRODUCTION_TRUST_ARCHITECTURE.md`](docs/PRODUCTION_TRUST_ARCHITECTURE.md), [`docs/DOCUMENTATION_STANDARDS.md`](docs/DOCUMENTATION_STANDARDS.md), and [`roadmap.md`](roadmap.md).
+
+## Mutation rule
+
+**Authority before cleanup.** Do not move, delete, rewrite, or promote material merely because its current path looks untidy. Establish ownership, preserve source revision/hash, migrate, verify target bytes, record a receipt, and only then archive or remove the old location.
+
+The repository intentionally retains a large historical corpus. Clean architecture here means **explicit authority and verified provenance**, not pretending history never happened.
