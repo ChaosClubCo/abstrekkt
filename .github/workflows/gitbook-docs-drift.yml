@@ -1,0 +1,41 @@
+name: GitBook documentation drift
+
+on:
+  pull_request:
+    paths:
+      - 'docs/gitbook/**'
+      - 'governance/execution-architect/**'
+      - 'scripts/verify-gitbook-docs.mjs'
+      - '.github/workflows/gitbook-docs-drift.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'docs/gitbook/**'
+      - 'governance/execution-architect/**'
+      - 'scripts/verify-gitbook-docs.mjs'
+      - '.github/workflows/gitbook-docs-drift.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  drift:
+    name: Verify repository and GitBook bindings
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout candidate
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Verify GitBook documentation invariants
+        env:
+          GITBOOK_TOKEN: ${{ secrets.GITBOOK_TOKEN }}
+          GITBOOK_API_BASE_URL: https://api.gitbook.com/v1
+        run: node scripts/verify-gitbook-docs.mjs
