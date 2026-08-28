@@ -119,12 +119,17 @@ export function buildDistributionReceipt(registry, providerIds) {
     active_assets: activeAssets,
   }));
 
-  return {
+  const receipt = {
     schema: 'AgentDistributionConformanceReceipt/v1',
     repository_sha: normalized.repository_sha,
     registry_hash: registryHash,
     adapters,
     conformant: new Set(adapters.map((item) => item.projection_hash)).size === 1,
+  };
+
+  return {
+    ...receipt,
+    receipt_id: sha256Canonical(receipt),
   };
 }
 
