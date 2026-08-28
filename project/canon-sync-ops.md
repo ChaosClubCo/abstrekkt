@@ -87,6 +87,11 @@ const STALE = [
 > incident from this mechanism. Follow-up worth 30 min: render the CANON tab
 > from one pasted source block instead of a maintained array.
 
+**RESOLVED Aug 11, 2026:** implemented — `abstrekkt-author-hub.jsx` now stores CANON.md §1 as one
+pasted `CANON_SOURCE` template string; `parseCanonSource()` derives lane groups, rows, and a
+best-effort stale list from it for `CanonTab()`. Syncing CANON.md into the hub is now a single
+copy-paste (escape backticks/`${` on paste) instead of a manual field-by-field transcription.
+
 ---
 
 ## 3. Upload set
@@ -118,3 +123,44 @@ const STALE = [
 | D8 | Breathe RECOVERED file | MOOT — already absent from live project |
 | D9 | 9-file mount gap | MOOT — mount-refresh lag, files live in project |
 | D10 | Load-Bearing publish status | **OPEN** — needs one-line answer |
+| D11 | abstrekkt.com domain gate — bare apex bound to Dispatch/ChatGPT-Apps sign-in wall instead of the studio site | **OPEN** — Kyle must act on two systems this project has no write access to (see §6) |
+
+---
+
+## 6. Aug 11, 2026 — abstrekkt.com domain gate (open, action required)
+
+**Finding:** `https://abstrekkt.com` and `https://abstrekkt.com/playbook` both return HTTP 401
+with an OpenAI ChatGPT-Apps "Continue with ChatGPT" sign-in page (assets under
+`/_sites/dispatch-assets/`, `openai-logo.png`) — this is Kyle's Dispatch tool (the
+LinkedIn/X post generator, `dispatch.jsx` in this project — see Press & Pitch lane), not
+this repo's own Worker (`kr-mentor-proxy` in `proxy-deploy/` has no route on this domain).
+
+DNS (Cloudflare-hosted zone, checked live via DoH):
+- NS: `elle.ns.cloudflare.com`, `kenneth.ns.cloudflare.com`
+- Apex A: `104.21.53.197`, `172.67.218.64` (generic Cloudflare proxy IPs)
+- Apex TXT: one unlabeled UUID (`4b6db064-5a12-4214-ad6f-aa307c1b7c17`) alongside the two
+  Google verification TXTs and SPF — likely the platform's domain-ownership token
+- MX: Google Workspace, untouched
+- `kyle.abstrekkt.com`, `www.abstrekkt.com`, `dispatch.abstrekkt.com`: **no DNS records at
+  all** (NXDOMAIN) — only the bare apex is affected, and `kyle.abstrekkt.com` itself isn't
+  deployed yet either (matches the still-open "Deploy step 1" item in `todo.md`)
+
+This contradicts the property plan this file and `domain-map.html` already record: root =
+studio, kyle. = press landing. Dispatch was never assigned a live domain in CANON.md.
+
+**Two systems this project has no write access to — cannot be executed from here:**
+1. Whatever ChatGPT-Apps/OpenAI dashboard created Dispatch's custom-domain binding — needs
+   the binding moved from the bare `abstrekkt.com` apex to `dispatch.abstrekkt.com`.
+2. The Cloudflare zone's DNS records for `abstrekkt.com` — no DNS-write tool is connected to
+   this project's sessions (only Workers/D1/KV/R2 management, no zone-level API).
+
+**Once Dispatch is off the apex, the DNS side is:**
+1. Remove/replace whatever A or CNAME record currently answers the bare apex (`104.21.53.197`
+   / `172.67.218.64`) with a Cloudflare Pages custom-domain binding pointed at a deploy of
+   `deploy/abstrekkt-com/` (see Abstrekkt Studio Marketing lane in `CANON.md`).
+2. Add a CNAME for `dispatch` → whatever target the ChatGPT-Apps dashboard gives once Dispatch
+   is re-pointed at `dispatch.abstrekkt.com`.
+3. Leave MX, SPF, and the two Google verification TXTs untouched — unrelated to this gate.
+
+The apex TXT verification UUID may need to move or be re-issued as part of step 1, depending
+on how the platform re-validates a changed custom domain — check its dashboard once reached.

@@ -1,0 +1,1067 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Song Mining Excavation Hub</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background: #ffffff;
+      color: #1a1a1a;
+      line-height: 1.6;
+      padding: 2rem;
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+    
+    @media (prefers-color-scheme: dark) {
+      body {
+        background: #0a0a0a;
+        color: #f5f5f5;
+      }
+      input, textarea, select {
+        background: #1a1a1a !important;
+        border-color: #333 !important;
+        color: #f5f5f5 !important;
+      }
+      .section-group {
+        background: #1a1a1a !important;
+        border-color: #333 !important;
+      }
+      .candidate-card {
+        background: #1a1a1a !important;
+        border-color: #333 !important;
+      }
+      .candidate-card:hover {
+        background: #0a0a0a !important;
+        border-color: #555 !important;
+      }
+      .lyrics-display {
+        background: #0a0a0a !important;
+        border-color: #333 !important;
+      }
+      .prompt-box {
+        background: #0a0a0a !important;
+        border-color: #333 !important;
+      }
+    }
+    
+    .nav-tabs {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 1.5rem;
+      border-bottom: 1px solid #e0e0e0;
+      padding-bottom: 0;
+    }
+    
+    @media (prefers-color-scheme: dark) {
+      .nav-tabs {
+        border-bottom-color: #333;
+      }
+    }
+    
+    .nav-tab {
+      padding: 0.75rem 1rem;
+      border: none;
+      background: transparent;
+      color: #666;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      border-bottom: 2px solid transparent;
+      transition: all 0.2s;
+    }
+    
+    @media (prefers-color-scheme: dark) {
+      .nav-tab {
+        color: #999;
+      }
+    }
+    
+    .nav-tab:hover {
+      color: #1a1a1a;
+    }
+    
+    @media (prefers-color-scheme: dark) {
+      .nav-tab:hover {
+        color: #f5f5f5;
+      }
+    }
+    
+    .nav-tab.active {
+      color: #1a1a1a;
+      border-bottom-color: #1a1a1a;
+    }
+    
+    @media (prefers-color-scheme: dark) {
+      .nav-tab.active {
+        color: #f5f5f5;
+        border-bottom-color: #f5f5f5;
+      }
+    }
+    
+    .section {
+      display: none;
+    }
+    
+    .section.active {
+      display: block;
+    }
+    
+    .candidate-card {
+      background: #f9f9f9;
+      border: 1px solid #e0e0e0;
+      border-radius: 12px;
+      padding: 1rem 1.25rem;
+      margin-bottom: 1rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .candidate-card:hover {
+      border-color: #ccc;
+      background: #fff;
+    }
+    
+    .candidate-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: start;
+      gap: 1rem;
+    }
+    
+    .candidate-title {
+      font-weight: 500;
+      font-size: 15px;
+      margin: 0 0 0.5rem 0;
+    }
+    
+    .candidate-genre {
+      font-size: 12px;
+      color: #666;
+      margin: 0;
+    }
+    
+    @media (prefers-color-scheme: dark) {
+      .candidate-genre {
+        color: #999;
+      }
+    }
+    
+    .candidate-details {
+      display: none;
+      margin-top: 1rem;
+      padding-top: 1rem;
+      border-top: 1px solid #e0e0e0;
+    }
+    
+    @media (prefers-color-scheme: dark) {
+      .candidate-details {
+        border-top-color: #333;
+      }
+    }
+    
+    .candidate-details.expanded {
+      display: block;
+    }
+    
+    .detail-section {
+      margin-bottom: 1rem;
+    }
+    
+    .detail-label {
+      font-size: 12px;
+      color: #666;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 0.5rem;
+    }
+    
+    @media (prefers-color-scheme: dark) {
+      .detail-label {
+        color: #999;
+      }
+    }
+    
+    .detail-text {
+      font-size: 14px;
+      line-height: 1.6;
+      margin: 0;
+    }
+    
+    .song-spec {
+      background: #f9f9f9;
+      border: 1px solid #e0e0e0;
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+    }
+    
+    .song-title {
+      font-size: 18px;
+      font-weight: 500;
+      margin: 0 0 1rem 0;
+    }
+    
+    .tabs-inner {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+      border-bottom: 1px solid #e0e0e0;
+    }
+    
+    @media (prefers-color-scheme: dark) {
+      .tabs-inner {
+        border-bottom-color: #333;
+      }
+    }
+    
+    .tab-button {
+      padding: 0.5rem 0.75rem;
+      border: none;
+      background: transparent;
+      color: #666;
+      cursor: pointer;
+      font-size: 13px;
+      border-bottom: 2px solid transparent;
+    }
+    
+    @media (prefers-color-scheme: dark) {
+      .tab-button {
+        color: #999;
+      }
+    }
+    
+    .tab-button.active {
+      color: #1a1a1a;
+      border-bottom-color: #1a1a1a;
+    }
+    
+    @media (prefers-color-scheme: dark) {
+      .tab-button.active {
+        color: #f5f5f5;
+        border-bottom-color: #f5f5f5;
+      }
+    }
+    
+    .tab-content {
+      display: none;
+    }
+    
+    .tab-content.active {
+      display: block;
+    }
+    
+    .lyrics-display {
+      background: #fff;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      padding: 1rem;
+      font-family: 'Monaco', 'Courier New', monospace;
+      font-size: 13px;
+      line-height: 1.8;
+      max-height: 400px;
+      overflow-y: auto;
+      margin-bottom: 1rem;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    
+    .copy-button {
+      background: transparent;
+      border: 1px solid #ddd;
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 13px;
+      color: #1a1a1a;
+      transition: all 0.2s;
+    }
+    
+    @media (prefers-color-scheme: dark) {
+      .copy-button {
+        border-color: #444;
+        color: #f5f5f5;
+      }
+    }
+    
+    .copy-button:hover {
+      border-color: #999;
+      background: #f5f5f5;
+    }
+    
+    @media (prefers-color-scheme: dark) {
+      .copy-button:hover {
+        background: #222;
+      }
+    }
+    
+    .copy-button.copied {
+      background: #4CAF50;
+      border-color: #4CAF50;
+      color: white;
+    }
+    
+    .prompt-box {
+      background: #fff;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      padding: 1rem;
+      margin-bottom: 1rem;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+    
+    .prompt-box strong {
+      display: block;
+      margin-bottom: 0.5rem;
+      color: #1a1a1a;
+    }
+    
+    @media (prefers-color-scheme: dark) {
+      .prompt-box strong {
+        color: #f5f5f5;
+      }
+    }
+    
+    .section-group {
+      background: #f9f9f9;
+      border: 1px solid #e0e0e0;
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+    
+    .section-title {
+      font-size: 14px;
+      font-weight: 500;
+      color: #1a1a1a;
+      margin: 0 0 1rem 0;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    @media (prefers-color-scheme: dark) {
+      .section-title {
+        color: #f5f5f5;
+      }
+    }
+    
+    .best-practices-list {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 1rem;
+    }
+    
+    .practice-item {
+      background: #fff;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      padding: 1rem;
+    }
+    
+    .practice-title {
+      font-weight: 500;
+      font-size: 14px;
+      margin: 0 0 0.5rem 0;
+    }
+    
+    .practice-desc {
+      font-size: 13px;
+      color: #666;
+      margin: 0;
+      line-height: 1.6;
+    }
+    
+    @media (prefers-color-scheme: dark) {
+      .practice-desc {
+        color: #999;
+      }
+    }
+    
+    p {
+      margin: 0 0 1rem 0;
+    }
+  </style>
+</head>
+<body>
+
+<div style="margin-bottom: 2rem;">
+  <h1 style="font-size: 28px; margin: 0 0 0.5rem 0;">Song Mining Excavation Hub</h1>
+  <p style="color: #666; margin: 0; font-size: 14px;">Complete lyrics, Suno prompts, and production notes. Click tabs to expand content and use copy buttons.</p>
+</div>
+
+<div style="margin-bottom: 2rem;">
+  <div class="nav-tabs">
+    <button class="nav-tab active" onclick="switchTab('candidates')">7 Song Candidates</button>
+    <button class="nav-tab" onclick="switchTab('practices')">Suno Best Practices</button>
+    <button class="nav-tab" onclick="switchTab('songs')">3 Complete Songs</button>
+  </div>
+
+  <!-- SECTION 1: SONG CANDIDATES -->
+  <div id="candidates" class="section active">
+    <div class="section-group">
+      <p class="section-title">7 Previously Mined Song Candidates</p>
+      
+      <div class="candidate-card" onclick="toggleCandidate(this)">
+        <div class="candidate-header">
+          <div style="flex: 1;">
+            <p class="candidate-title">Candidate #1: Hardware / Software</p>
+            <p class="candidate-genre">Indie rock meets hip-hop logic</p>
+          </div>
+          <span style="font-weight: 300; font-size: 20px; flex-shrink: 0;">+</span>
+        </div>
+        <div class="candidate-details">
+          <div class="detail-section">
+            <p class="detail-label">Emotional Core</p>
+            <p class="detail-text">Broken hardware can do things the original version couldn't. That's not recovery. That's emergence.</p>
+          </div>
+          <div class="detail-section">
+            <p class="detail-label">Metaphors</p>
+            <p class="detail-text">Hardware = brain. Software = systems. Firmware = meditation as foundation.</p>
+          </div>
+          <div class="detail-section">
+            <p class="detail-label">Uncertainty</p>
+            <p class="detail-text">Is "emergence" felt truth or retrospective framing?</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="candidate-card" onclick="toggleCandidate(this)">
+        <div class="candidate-header">
+          <div style="flex: 1;">
+            <p class="candidate-title">Candidate #2: Friday Goodbye</p>
+            <p class="candidate-genre">Folk-noir / gut-punch</p>
+          </div>
+          <span style="font-weight: 300; font-size: 20px; flex-shrink: 0;">+</span>
+        </div>
+        <div class="candidate-details">
+          <div class="detail-section">
+            <p class="detail-label">Emotional Core</p>
+            <p class="detail-text">Showing up every Friday knowing both will hurt. The permanent consequence earned.</p>
+          </div>
+          <div class="detail-section">
+            <p class="detail-label">Specific Details</p>
+            <p class="detail-text">Mundelein parking lot. 2 o'clock. 60% of weekends.</p>
+          </div>
+          <div class="detail-section">
+            <p class="detail-label">Production</p>
+            <p class="detail-text">Sparse folk-noir. 65 BPM. Dry/room-recorded quality. Cello at chorus.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="candidate-card" onclick="toggleCandidate(this)">
+        <div class="candidate-header">
+          <div style="flex: 1;">
+            <p class="candidate-title">Candidate #3: Meditation Was the Thing</p>
+            <p class="candidate-genre">Indie-folk turning electronic</p>
+          </div>
+          <span style="font-weight: 300; font-size: 20px; flex-shrink: 0;">+</span>
+        </div>
+        <div class="candidate-details">
+          <div class="detail-section">
+            <p class="detail-label">Emotional Core</p>
+            <p class="detail-text">The thing dismissed became the foundation. Engineer reverse-engineered his own nervous system.</p>
+          </div>
+          <div class="detail-section">
+            <p class="detail-label">Special</p>
+            <p class="detail-text">Box-breathing rhythm embedded in percussion (4-4-4-4).</p>
+          </div>
+          <div class="detail-section">
+            <p class="detail-label">Production</p>
+            <p class="detail-text">Kurt Vile meets Jon Hopkins. Builds from sparse to fuller.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="candidate-card" onclick="toggleCandidate(this)">
+        <div class="candidate-header">
+          <div style="flex: 1;">
+            <p class="candidate-title">Candidate #4: Dopamine Channels</p>
+            <p class="candidate-genre">Hip-hop / electronic</p>
+          </div>
+          <span style="font-weight: 300; font-size: 20px; flex-shrink: 0;">+</span>
+        </div>
+        <div class="candidate-details">
+          <div class="detail-section">
+            <p class="detail-label">Emotional Core</p>
+            <p class="detail-text">Dopamine system unchanged—redirected with guardrails. Not healed, functional by engineering.</p>
+          </div>
+          <div class="detail-section">
+            <p class="detail-label">Hook</p>
+            <p class="detail-text">"Dopamine doesn't disappear / It just finds a different gear"</p>
+          </div>
+          <div class="detail-section">
+            <p class="detail-label">Distribution</p>
+            <p class="detail-text">65% problem-solving, 25% helping others, 10% still chasing the hit.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="candidate-card" onclick="toggleCandidate(this)">
+        <div class="candidate-header">
+          <div style="flex: 1;">
+            <p class="candidate-title">Candidate #5: I Was an Abuser</p>
+            <p class="candidate-genre">Nick Cave darkness / voice + one instrument</p>
+          </div>
+          <span style="font-weight: 300; font-size: 20px; flex-shrink: 0;">+</span>
+        </div>
+        <div class="candidate-details">
+          <div class="detail-section">
+            <p class="detail-label">Emotional Core</p>
+            <p class="detail-text">The thing that can't be reconstructed away. No redemption arc. Memory gaps as lyrical structure—holes in the verse.</p>
+          </div>
+          <div class="detail-section">
+            <p class="detail-label">Prototype Line</p>
+            <p class="detail-text">"I don't remember pushing her down / All I know is the sirens sound."</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="candidate-card" onclick="toggleCandidate(this)">
+        <div class="candidate-header">
+          <div style="flex: 1;">
+            <p class="candidate-title">Candidate #6: Constructed</p>
+            <p class="candidate-genre">Anthem or quiet folk</p>
+          </div>
+          <span style="font-weight: 300; font-size: 20px; flex-shrink: 0;">+</span>
+        </div>
+        <div class="candidate-details">
+          <div class="detail-section">
+            <p class="detail-label">Emotional Core</p>
+            <p class="detail-text">I didn't recover what was lost—I built what never existed. Celebrating construction as legitimate.</p>
+          </div>
+          <div class="detail-section">
+            <p class="detail-label">Uncertainty</p>
+            <p class="detail-text">Song or manifesto? Too concept-heavy?</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="candidate-card" onclick="toggleCandidate(this)">
+        <div class="candidate-header">
+          <div style="flex: 1;">
+            <p class="candidate-title">Candidate #7: Michael (The Pattern)</p>
+            <p class="candidate-genre">Narrative hip-hop / indie rock</p>
+          </div>
+          <span style="font-weight: 300; font-size: 20px; flex-shrink: 0;">+</span>
+        </div>
+        <div class="candidate-details">
+          <div class="detail-section">
+            <p class="detail-label">Emotional Core</p>
+            <p class="detail-text">Recognized the pattern while trapped in it. Not about Michael—about the pattern repeating.</p>
+          </div>
+          <div class="detail-section">
+            <p class="detail-label">Structure</p>
+            <p class="detail-text">Call-and-response (her voice / your realization).</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top: 2rem; padding: 1.5rem; background: #f5f5f5; border: 1px solid #e0e0e0; border-radius: 12px;">
+      <p style="font-weight: 500; margin: 0 0 1rem 0; font-size: 15px;">Three Thematic Arcs</p>
+      
+      <div style="margin-bottom: 1.5rem;">
+        <p style="font-weight: 500; font-size: 13px; margin: 0 0 0.5rem 0;">Arc 1: The Hardware Is Broken</p>
+        <p style="font-size: 13px; margin: 0; color: #666; line-height: 1.6;">Hardware/Software → I Was an Abuser → Meditation Was the Thing<br><em>Damage → denial → acknowledgment → finding what actually works</em></p>
+      </div>
+
+      <div style="margin-bottom: 1.5rem;">
+        <p style="font-weight: 500; font-size: 13px; margin: 0 0 0.5rem 0;">Arc 2: What You Build Now</p>
+        <p style="font-size: 13px; margin: 0; color: #666; line-height: 1.6;">Dopamine Channels → Constructed → Friday Goodbye (as consequence and grounding)<br><em>Living with dysregulation by engineering around it, while carrying permanent scars</em></p>
+      </div>
+
+      <div>
+        <p style="font-weight: 500; font-size: 13px; margin: 0 0 0.5rem 0;">Arc 3: The Patterns That Repeat</p>
+        <p style="font-size: 13px; margin: 0; color: #666; line-height: 1.6;">Michael (The Pattern) → Friday Goodbye → Hardware/Software<br><em>Recognition without escape; seeing the cycle while caught in it</em></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION 2: SUNO BEST PRACTICES -->
+  <div id="practices" class="section">
+    <div class="section-group">
+      <p class="section-title">Suno v5 Best Practices (10 Core Strategies)</p>
+      
+      <div class="best-practices-list">
+        <div class="practice-item">
+          <p class="practice-title">1. Custom Mode, Not Simple</p>
+          <p class="practice-desc">Custom Mode gives you full control over production, vocals, instrumentation, and style. Simple mode is too generic for distinctive songs.</p>
+        </div>
+        
+        <div class="practice-item">
+          <p class="practice-title">2. Avoid Artist Names</p>
+          <p class="practice-desc">Don't say "sound like Taylor Swift." Use style descriptors instead: "sparse folk confessional," "ambient electronic," "gritty hip-hop."</p>
+        </div>
+        
+        <div class="practice-item">
+          <p class="practice-title">3. Specific Instrumentation</p>
+          <p class="practice-desc">Name exact instruments (acoustic guitar fingerpicking, 808 bass, cello, trap snare). Not "orchestral" or "synths"—be precise.</p>
+        </div>
+        
+        <div class="practice-item">
+          <p class="practice-title">4. Set BPM and Key Explicitly</p>
+          <p class="practice-desc">State tempo (65 BPM, 140 BPM) and key (E minor, G major). This anchors the generation and prevents weird pacing.</p>
+        </div>
+        
+        <div class="practice-item">
+          <p class="practice-title">5. Describe Vocal Character in Detail</p>
+          <p class="practice-desc">Not just "male voice." Say "weathered male vocals, contemplative but not performative" or "rhythmic but conversational, not aggressive."</p>
+        </div>
+        
+        <div class="practice-item">
+          <p class="practice-title">6. Generate 2-3 Variations Per Song</p>
+          <p class="practice-desc">Suno often needs multiple attempts to nail the vibe. Generate at least 2 versions, pick the strongest, iterate on the prompt.</p>
+        </div>
+        
+        <div class="practice-item">
+          <p class="practice-title">7. Iterate Based on Output</p>
+          <p class="practice-desc">First generation is rarely final. If the beat is too bouncy, add "tight, measured" to the production description. If vocals are too AI-sounding, specify "organic delivery."</p>
+        </div>
+        
+        <div class="practice-item">
+          <p class="practice-title">8. Export Stems Via Suno Studio</p>
+          <p class="practice-desc">Suno Studio (v5+) exports up to 12 WAV stems. Use this to mix/adjust individual tracks if you want to polish in a DAW.</p>
+        </div>
+        
+        <div class="practice-item">
+          <p class="practice-title">9. Always Use v5</p>
+          <p class="practice-desc">v5 is current and studio-quality. Don't upgrade old v4.5 work—regenerate from scratch with v5 for better results.</p>
+        </div>
+
+        <div class="practice-item">
+          <p class="practice-title">10. Expected Timeline</p>
+          <p class="practice-desc">Generation takes 30-60 seconds per track. You'll generate 3 versions of your first pick, so ~3 minutes for your first song. Then iterate 2-3 times for refinement (~6-10 minutes total).</p>
+        </div>
+
+        <div class="practice-item">
+          <p class="practice-title">11. Use Your Own Vocal Samples (No Rerecording)</p>
+          <p class="practice-desc">Suno v5 lets you upload reference audio clips—including your own vocal samples—to influence the generation. This is powerful: Suno won't clone your voice verbatim, but it will use your sample as a style/tone reference to shape the generated vocals. Your unique cadence, breathiness, accent, and emotional register influence the final output without requiring you to rerecord.</p>
+        </div>
+      </div>
+
+      <div style="margin-top: 2rem; padding: 1.5rem; background: #f5f5f5; border: 1px solid #e0e0e0; border-radius: 12px;">
+        <p style="font-weight: 500; margin: 0 0 1rem 0; font-size: 14px;">TL;DR Workflow (With Vocal Samples)</p>
+        <p style="font-size: 13px; margin: 0; color: #666; line-height: 1.8;">1) Copy lyrics with [Verse]/[Chorus]/[Bridge] tags → 2) Custom Mode → 3) <strong>UPLOAD YOUR VOCAL SAMPLE</strong> (5-30 sec audio file of you singing/speaking) → 4) Set Audio Influence slider (40-60% recommended) → 5) Paste lyrics → 6) Write production description → 7) Set BPM & key → 8) Click "Create" → Wait 30-60 sec → Get 2 versions with YOUR vocal character → 9) Generate 2-3 variations → 10) Pick strongest → Export</p>
+      </div>
+
+      <div style="margin-top: 2rem; padding: 1.5rem; background: #f5f5f5; border: 1px solid #e0e0e0; border-radius: 12px;">
+        <p style="font-weight: 500; margin: 0 0 1rem 0; font-size: 15px;">HOW TO USE YOUR VOCAL SAMPLES WITH SUNO</p>
+        
+        <div style="margin-bottom: 1.5rem;">
+          <p style="font-weight: 500; font-size: 13px; margin: 0 0 0.5rem 0;">Step 1: Prepare Your Sample</p>
+          <p style="font-size: 13px; margin: 0; color: #666; line-height: 1.6;">
+            • <strong>Format:</strong> WAV, MP3, or OGG (any common audio format works)<br>
+            • <strong>Length:</strong> 5-30 seconds is ideal. Longer samples (30-60 sec) work but may slow generation.<br>
+            • <strong>Quality:</strong> Clear vocals preferred, but some background is fine. Suno uses this as a style reference, not an exact clone source.<br>
+            • <strong>Content:</strong> A few bars of singing, spoken word, or even humming works. Just needs to capture YOUR specific tone/accent/delivery.
+          </p>
+        </div>
+
+        <div style="margin-bottom: 1.5rem;">
+          <p style="font-weight: 500; font-size: 13px; margin: 0 0 0.5rem 0;">Step 2: Go to Suno Studio → Custom Mode</p>
+          <p style="font-size: 13px; margin: 0; color: #666; line-height: 1.6;">
+            Open suno.com → Create → Custom Mode → Look for "Audio Upload" or "Reference Audio" field (usually appears below the lyrics input). This is where you upload your sample.
+          </p>
+        </div>
+
+        <div style="margin-bottom: 1.5rem;">
+          <p style="font-weight: 500; font-size: 13px; margin: 0 0 0.5rem 0;">Step 3: Upload Your Sample</p>
+          <p style="font-size: 13px; margin: 0; color: #666; line-height: 1.6;">
+            Click the upload button → Select your audio file. Suno will preview it (you'll hear a snippet). The system now knows: "This is the vocal character we're aiming for."
+          </p>
+        </div>
+
+        <div style="margin-bottom: 1.5rem;">
+          <p style="font-weight: 500; font-size: 13px; margin: 0 0 0.5rem 0;">Step 4: Adjust Audio Influence Slider</p>
+          <p style="font-size: 13px; margin: 0; color: #666; line-height: 1.6;">
+            • <strong>Low (10-30%):</strong> Your sample is a subtle hint. Suno generates more "typically AI" vocals that just carry echoes of your tone.<br>
+            • <strong>Medium (40-60%):</strong> Sweet spot. Your accent, cadence, and emotional delivery clearly influence the output. Sounds distinctly like YOUR voice without being an exact copy.<br>
+            • <strong>High (70-100%):</strong> Your sample heavily shapes the vocal output. Use this if you want the generated vocals to feel almost like you sang it.
+          </p>
+        </div>
+
+        <div style="margin-bottom: 1.5rem;">
+          <p style="font-weight: 500; font-size: 13px; margin: 0 0 0.5rem 0;">Step 5: Fill in Production Description + Paste Lyrics</p>
+          <p style="font-size: 13px; margin: 0; color: #666; line-height: 1.6;">
+            Even with a vocal sample uploaded, still provide your production brief (mood, tempo, instruments, style) and paste your song lyrics with [Verse]/[Chorus]/[Bridge] tags. Suno uses all of these inputs together: your lyrics + your vocal style + your production vision = final track.
+          </p>
+        </div>
+
+        <div style="margin-bottom: 1.5rem;">
+          <p style="font-weight: 500; font-size: 13px; margin: 0 0 0.5rem 0;">Step 6: Generate</p>
+          <p style="font-size: 13px; margin: 0; color: #666; line-height: 1.6;">
+            Click "Create" → Wait 30-60 seconds. Suno generates a version where the vocals carry YOUR unique character: your breath patterns, your accent, your emotional delivery, your timing quirks—all without requiring a new recording session.
+          </p>
+        </div>
+
+        <div style="padding: 1rem; background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; margin-bottom: 1.5rem;">
+          <p style="font-weight: 500; font-size: 13px; margin: 0 0 0.5rem 0;">Pro Tips:</p>
+          <p style="font-size: 12px; margin: 0; color: #666; line-height: 1.7;">
+            <strong>→ Use a sample that matches the emotional tone of your song.</strong> If you're generating "Friday Goodbye" (grief, acceptance), a somber or weathered vocal sample will guide better than a bright, energetic one.<br>
+            <br>
+            <strong>→ Try 3 different influence levels.</strong> Generate with 30%, 60%, and 90% influence on the same song. The middle version often feels most "you."<br>
+            <br>
+            <strong>→ Your accent stays recognizable.</strong> If you have a particular accent, speech pattern, or vocal quirk, it persists in the generated vocals. This is a feature, not a bug—it makes the output uniquely yours.<br>
+            <br>
+            <strong>→ Mix samples from different recordings.</strong> You can upload a sample from one voice memo, generate a track, then upload a sample from another session and regenerate to explore different vocal personalities.<br>
+            <br>
+            <strong>→ Pitch & range flexibility.</strong> Your sample influences tone/character, but Suno still generates vocals that fit the key and vocal range you specified in your production brief. You don't have to match the sample's pitch exactly.
+          </p>
+        </div>
+
+        <p style="font-size: 12px; margin: 0; color: #666; line-height: 1.6;">
+          <strong>Bottom line:</strong> You're not rerecording. You're giving Suno a 10-30 second style reference—like showing a vocalist a reference track and saying "sound like THIS character, but sing THESE words in THIS key." Suno does the heavy lifting. You just provide your vocal fingerprint.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION 3: 3 COMPLETE SONGS -->
+  <div id="songs" class="section">
+    <div class="song-spec">
+      <p class="song-title">1. Friday Goodbye</p>
+      
+      <div class="tabs-inner">
+        <button class="tab-button active" onclick="switchSongTab(this, 'song1-lyrics')">Lyrics</button>
+        <button class="tab-button" onclick="switchSongTab(this, 'song1-prompt')">Suno Prompt</button>
+        <button class="tab-button" onclick="switchSongTab(this, 'song1-production')">Production Notes</button>
+      </div>
+
+      <div id="song1-lyrics" class="tab-content active">
+        <div class="lyrics-display">[Verse 1]
+Two o'clock on a Friday and the car won't move
+Parking lot, both of us knowing what we're about to lose
+Sixty percent of the weekends, the math checks out
+Built a thousand tools to manage what I broke
+Can't meditate my way out of this one
+
+[Pre-Chorus]
+This is the consequence
+That doesn't end
+
+[Chorus]
+Friday at two o'clock
+This is the consequence that doesn't end
+This is what I earned and she's still paying
+Built a thousand tools to manage what I broke
+Can't meditate my way out of this one
+
+[Verse 2]
+She's seven now, asks why I can't come home
+Why weekends are split down the middle like a divorce agreement
+I tell her it's because I broke something and I'm trying to fix it
+But the truth is I broke her and the fix is watching her leave
+Every single Friday at two o'clock
+
+[Pre-Chorus]
+This is the consequence
+That doesn't fade
+
+[Chorus]
+Friday at two o'clock
+This is the consequence that doesn't end
+This is what I earned and she's still paying
+Built a thousand systems, none of them work
+On the thing that matters
+
+[Bridge]
+I don't get redemption songs
+I don't get to rebuild this
+The consequence is permanent
+And it drives home every Friday at two
+
+[Outro]
+Sunday at three o'clock
+I watch her drive away
+Because this is what I built
+This is what I deserve
+And she's still in it</div>
+        <button class="copy-button" onclick="copyToClipboard(document.getElementById('song1-lyrics').innerText, this)">Copy Lyrics</button>
+      </div>
+
+      <div id="song1-prompt" class="tab-content">
+        <div class="prompt-box">
+          <strong>Song Title:</strong> Friday Goodbye
+          
+          <strong style="margin-top: 1rem;">Style/Genre Description:</strong>
+          Sparse folk-noir with deceptive minimalism. Production clarity but emotional weight. Think Nick Cave meets Bon Iver—deliberate, no wasted motion. Male vocals, weathered and unsentimental. Acoustic guitar fingerpicking (slight imperfection, not polished). Cello entering at chorus—mournful but not cinematic. 65 BPM, E minor or A minor. Production: dry, room-recorded quality. Feels like a confession in a quiet room.
+
+          <strong style="margin-top: 1rem;">Vocal:</strong> Male, weathered, unsentimental. Delivery is direct—not emotionally performed, just stated.
+
+          <strong style="margin-top: 1rem;">Instruments:</strong> Acoustic guitar (fingerpicking), cello (entering at chorus), sparse bass, minimal drums (if any).
+          
+          <strong style="margin-top: 1rem;">Tempo/Key:</strong> 65 BPM. E minor or A minor.
+        </div>
+        <button class="copy-button" onclick="copyToClipboard(document.getElementById('song1-prompt').innerText, this)">Copy Prompt</button>
+      </div>
+
+      <div id="song1-production" class="tab-content">
+        <div class="prompt-box">
+          <strong>Production Strategy:</strong>
+          This song doesn't seek forgiveness. It states consequence. The production should feel like watching something happen that you can't change. Cello as the only element that "feels"—everything else is factual.
+
+          <strong style="margin-top: 1rem;">Avoid:</strong> Redemption arc, inspirational arc, growth narrative. No inspiring string swells. This is damage, not a learning moment. Don't soften it.
+
+          <strong style="margin-top: 1rem;">Energy Arc:</strong> Sparse and held throughout. No dynamic builds. The emotional weight comes from what's NOT played.
+        </div>
+        <button class="copy-button" onclick="copyToClipboard(document.getElementById('song1-production').innerText, this)">Copy Notes</button>
+      </div>
+    </div>
+
+    <div class="song-spec">
+      <p class="song-title">2. Meditation Was the Thing</p>
+      
+      <div class="tabs-inner">
+        <button class="tab-button active" onclick="switchSongTab(this, 'song2-lyrics')">Lyrics</button>
+        <button class="tab-button" onclick="switchSongTab(this, 'song2-prompt')">Suno Prompt</button>
+        <button class="tab-button" onclick="switchSongTab(this, 'song2-production')">Production Notes</button>
+      </div>
+
+      <div id="song2-lyrics" class="tab-content active">
+        <div class="lyrics-display">[Verse 1]
+Thought it was bullshit, homeopathic nothing
+Everyone talking about their chakras and their zen
+I was flunking out of college, stealing from my parents
+Sixty milligrams of Xanax every three days
+And all they kept telling me was "just breathe"
+Fuck that, I said
+
+[Pre-Chorus]
+But then my mom said go west
+Met a guy who wasn't gonna save me
+Just teach me how to regulate my own nervous system
+
+[Chorus]
+Meditation was the thing
+The thing I said was nothing
+The thing that held
+When everything else let go
+
+Box breathing, four counts in
+Four counts hold, four counts out
+Four counts nothing
+And suddenly I could predict my own mind
+
+[Verse 2]
+Learned the physiology, not the spirituality
+Parasympathetic activation, vagal tone, predictable outcomes
+The guided meditations, I followed them like code
+Like debugging a system that was running catastrophic loops
+And one day I woke up and I wasn't black-out angry anymore
+I was just angry
+
+That was progress
+
+[Pre-Chorus]
+Taught my daughter the same breath work
+Built her an app to help her remember
+She's seven and she's already stronger than I was at thirty
+
+[Chorus]
+Meditation was the thing
+The thing I said was nothing
+The thing that held
+When everything else let go
+
+Box breathing, four counts in
+Four counts hold, four counts out
+Four counts nothing
+And suddenly I could predict my own mind
+
+[Bridge]
+TBI showed up after and said "hey, you're gonna need this more"
+And I was already there
+Already practicing
+Already built on something that wouldn't break
+
+[Outro]
+Meditation was the thing
+Not because it fixed me
+Because it held me
+Long enough to build something real</div>
+        <button class="copy-button" onclick="copyToClipboard(document.getElementById('song2-lyrics').innerText, this)">Copy Lyrics</button>
+      </div>
+
+      <div id="song2-prompt" class="tab-content">
+        <div class="prompt-box">
+          <strong>Song Title:</strong> Meditation Was the Thing
+          
+          <strong style="margin-top: 1rem;">Style/Genre Description:</strong>
+          Indie-folk turning into something harder and more electronic. Starts sparse—single acoustic guitar, breathing sounds (actual box breathing pattern as percussion), male vocals almost confessional. By chorus, adds drums (kick-snare pattern matching breath rhythm—4/4 but intentional). Second verse: subtle synths or ambient layer. Bridge: fuller production, drums lock in. Think Kurt Vile meets Jon Hopkins—technical precision disguised as confession.
+
+          <strong style="margin-top: 1rem;">Vocal:</strong> Male, contemplative but not performative, technical vocabulary delivered matter-of-factly
+
+          <strong style="margin-top: 1rem;">Instruments:</strong> Acoustic guitar (fingerpicking, fingertap percussion), breathing/ambient soundscape underneath, drums entering at verse 2, synth pad in bridge
+          
+          <strong style="margin-top: 1rem;">Special:</strong> Consider layering actual box-breathing pattern as a rhythmic element (4 in, 4 hold, 4 out, 4 nothing)
+          
+          <strong style="margin-top: 1rem;">Tempo/Key:</strong> 80 BPM starting, builds to 95 BPM at chorus. Key: G major or A major
+        </div>
+        <button class="copy-button" onclick="copyToClipboard(document.getElementById('song2-prompt').innerText, this)">Copy Prompt</button>
+      </div>
+
+      <div id="song2-production" class="tab-content">
+        <div class="prompt-box">
+          <strong>Production Strategy:</strong>
+          This song builds confidence without losing humility. Verse 1 = skepticism + resistance. Verse 2 = realization + technical understanding. By chorus, the discovery has solidified into something reliable.
+
+          <strong style="margin-top: 1rem;">Avoid:</strong> New-age language, soft-focus spiritual vibes. This is a systems engineer explaining what works, not a spiritual seeker finding enlightenment.
+
+          <strong style="margin-top: 1rem;">Energy Arc:</strong> Sparse → fuller → confident. The progression mirrors the narrative: dismissive → practicing → mastery.
+        </div>
+        <button class="copy-button" onclick="copyToClipboard(document.getElementById('song2-production').innerText, this)">Copy Notes</button>
+      </div>
+    </div>
+
+    <div class="song-spec">
+      <p class="song-title">3. Dopamine Doesn't Disappear</p>
+      
+      <div class="tabs-inner">
+        <button class="tab-button active" onclick="switchSongTab(this, 'song3-lyrics')">Lyrics</button>
+        <button class="tab-button" onclick="switchSongTab(this, 'song3-prompt')">Suno Prompt</button>
+        <button class="tab-button" onclick="switchSongTab(this, 'song3-production')">Production Notes</button>
+      </div>
+
+      <div id="song3-lyrics" class="tab-content active">
+        <div class="lyrics-display">[Verse 1]
+Video games, Xanax, and the dopamine hit
+Novelty seeking, reward pathways lit
+Then it was AI, and tools, and spinning up side projects
+All of it firing the same neurons
+Just different outputs now
+
+[Pre-Chorus]
+I built a thousand things to keep myself from building nothing
+Documented it all, audited every move
+
+[Chorus]
+Dopamine doesn't disappear
+It just finds a different gear
+Sixty-five percent solves problems
+Twenty-five helps others
+Ten is still just chasing the high
+But at least now we can see it
+
+[Verse 2]
+Guardrails in the system, built by someone who knows
+The spiral's still there, I just installed the guard rails
+Told my AI assistant to stop me when I'm scope creeping
+And it works because I designed it knowing I would break it
+That's not recovery
+That's engineering around the broken part
+
+[Pre-Chorus]
+I still crave the hit, I still want the new thing
+I just measure it now
+
+[Chorus]
+Dopamine doesn't disappear
+It just finds a different gear
+Sixty-five percent solves problems
+Twenty-five helps others
+Ten is still just chasing the high
+But at least now we can see it
+
+[Bridge]
+The addiction didn't change, the hardware stayed the same
+I just rewired the output
+Built measurement systems around my own dysregulation
+It's not pretty, it's not fixed
+It's functional
+
+And sometimes functional is enough
+
+[Outro]
+Dopamine doesn't disappear
+I just made it honest now
+240 tools later and I'm still the same person
+Just running cleaner code</div>
+        <button class="copy-button" onclick="copyToClipboard(document.getElementById('song3-lyrics').innerText, this)">Copy Lyrics</button>
+      </div>
+
+      <div id="song3-prompt" class="tab-content">
+        <div class="prompt-box">
+          <strong>Song Title:</strong> Dopamine Doesn't Disappear
+          
+          <strong style="margin-top: 1rem;">Style/Genre Description:</strong>
+          Hip-hop meets indie-electronic. Think early Kanye production values meets Run the Jewels precision—beat-driven but lyrically intricate, internal rhymes and pattern recognition. Male vocals over a sparse but hypnotic beat. 808 bass underneath, minimal snare hits, electronic hi-hats. Secondary production: layered synths creating tension (building/falling pressure patterns).
+
+          <strong style="margin-top: 1rem;">Vocal:</strong> Male, rhythmic but conversational (not aggressive), cadence matches internal rhyming
+
+          <strong style="margin-top: 1rem;">Beat:</strong> Trap-adjacent (140 BPM half-time feel) but sparse—808 sub bass, minimal hi-hats, snare on 2/4
+          
+          <strong style="margin-top: 1rem;">Instruments:</strong> Synth pad (tension-building), 808 bass, drums (quantized, almost robotic precision), minor synth melody line
+          
+          <strong style="margin-top: 1rem;">Tempo/Key:</strong> 140 BPM (or 70 BPM if you want a slower, spoken-word hip-hop vibe). Minor key (E minor or F# minor)
+        </div>
+        <button class="copy-button" onclick="copyToClipboard(document.getElementById('song3-prompt').innerText, this)">Copy Prompt</button>
+      </div>
+
+      <div id="song3-production" class="tab-content">
+        <div class="prompt-box">
+          <strong>Production Strategy:</strong>
+          This song is about pattern recognition and honest accounting. The beat should feel like a system running—tight, measured, no wasted motion. But underneath, there's psychological tension (the synth pads) that the lyrics acknowledge but don't resolve.
+
+          <strong style="margin-top: 1rem;">Avoid:</strong> Redemption language. This isn't "I overcame dopamine." It's "I architected around it."
+
+          <strong style="margin-top: 1rem;">Energy Arc:</strong> Propulsive but controlled. Beat keeps things moving, lyrics keep things grounded. No cathartic drops or releases—just the steady pulse of a functional system.
+        </div>
+        <button class="copy-button" onclick="copyToClipboard(document.getElementById('song3-production').innerText, this)">Copy Notes</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function switchTab(tabName) {
+  const sections = document.querySelectorAll('.section');
+  sections.forEach(s => s.classList.remove('active'));
+  document.getElementById(tabName).classList.add('active');
+  
+  const tabs = document.querySelectorAll('.nav-tab');
+  tabs.forEach(t => t.classList.remove('active'));
+  event.target.classList.add('active');
+}
+
+function toggleCandidate(card) {
+  const details = card.querySelector('.candidate-details');
+  details.classList.toggle('expanded');
+  const toggle = card.querySelector('span:last-child');
+  toggle.textContent = details.classList.contains('expanded') ? '−' : '+';
+}
+
+function switchSongTab(button, tabId) {
+  const tabs = button.parentElement.querySelectorAll('.tab-button');
+  tabs.forEach(t => t.classList.remove('active'));
+  button.classList.add('active');
+  
+  const tabsContainer = button.parentElement.parentElement;
+  const contents = tabsContainer.querySelectorAll('.tab-content');
+  contents.forEach(c => c.classList.remove('active'));
+  document.getElementById(tabId).classList.add('active');
+}
+
+function copyToClipboard(text, button) {
+  navigator.clipboard.writeText(text).then(() => {
+    button.classList.add('copied');
+    button.textContent = 'Copied!';
+    setTimeout(() => {
+      button.classList.remove('copied');
+      button.textContent = 'Copy ' + (text.includes('[Verse]') ? 'Lyrics' : (text.includes('Song Title') ? 'Prompt' : 'Notes'));
+    }, 2000);
+  });
+}
+</script>
+
+</body>
+</html>

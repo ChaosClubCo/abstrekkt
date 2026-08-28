@@ -1,0 +1,266 @@
+name: Abstrekkt Webhook Receiver Provision
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - deploy/abstrekkt-webhook-receiver
+
+permissions:
+  contents: read
+
+concurrency:
+  group: abstrekkt-webhook-receiver-production
+  cancel-in-progress: false
+
+env:
+  WRANGLER_VERSION: '4.126.0'
+  WORKER_NAME: abstrekkt-webhook-receiver
+  DB_NAME: abstrekkt-webhook-replay
+
+jobs:
+  provision:
+    name: Provision signed receiver
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Require deployment credentials
+        shell: bash
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          WEBHOOK_SECRET: ${{ secrets.ABSTREKKT_WEBHOOK_SECRET }}
+        run: |
+          set -euo pipefail
+          test -n "${CLOUDFLARE_API_TOKEN:-}" || {
+            echo 'STOP: CLOUDFLARE_API_TOKEN is not configured'
+            exit 1
+          }
+          test -n "${CLOUDFLARE_ACCOUNT_ID:-}" || {
+            echo 'STOP: CLOUDFLARE_ACCOUNT_ID is not configured'
+            exit 1
+          }
+          test -n "${WEBHOOK_SECRET:-}" || {
+            echo 'STOP: ABSTREKKT_WEBHOOK_SECRET is not configured'
+            exit 1
+          }
+
+      - name: Checkout exact provisioning revision
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+
+      - name: Set up Node 22
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+
+      - name: Verify receiver tests
+        working-directory: tooling/webhook-receiver
+        run: npm test
+
+      - name: Resolve or create D1 replay database
+        id: d1
+        shell: bash
+        working-directory: tooling/webhook-receiver
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          WRANGLER="npx --yes wrangler@${WRANGLER_VERSION}"
+
+          resolve_db_id() {
+            ${WRANGLER} d1 list --json | node -e '
+              let input = "";
+              process.stdin.on("data", c => input += c);
+              process.stdin.on("end", () => {
+                const parsed = JSON.parse(input);
+                const rows = Array.isArray(parsed) ? parsed : (parsed.result || []);
+                const row = rows.find(x => x.name === process.env.DB_NAME);
+                if (row) process.stdout.write(String(row.uuid || row.id || ""));
+              });
+            '
+          }
+
+          DB_ID="$(resolve_db_id)"
+          if [[ -z "$DB_ID" ]]; then
+            ${WRANGLER} d1 create "$DB_NAME" \
+              --binding DB \
+              --update-config=false
+            DB_ID="$(resolve_db_id)"
+          fi
+
+          test -n "$DB_ID" || {
+            echo "STOP: could not resolve D1 database ID for $DB_NAME"
+            exit 1
+          }
+
+          echo "database_id=$DB_ID" >> "$GITHUB_OUTPUT"
+          echo "D1_DATABASE_ID=$DB_ID" >> "$GITHUB_ENV"
+
+      - name: Generate private-first Wrangler config
+        shell: bash
+        working-directory: tooling/webhook-receiver
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs = require('node:fs');
+          const config = {
+            name: process.env.WORKER_NAME,
+            main: './worker.mjs',
+            compatibility_date: '2026-08-27',
+            workers_dev: false,
+            preview_urls: false,
+            d1_databases: [{
+              binding: 'DB',
+              database_name: process.env.DB_NAME,
+              database_id: process.env.D1_DATABASE_ID,
+            }],
+          };
+          fs.writeFileSync('.wrangler.generated.json', JSON.stringify(config, null, 2));
+          NODE
+
+      - name: Apply replay ledger schema
+        shell: bash
+        working-directory: tooling/webhook-receiver
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          npx --yes wrangler@${WRANGLER_VERSION} d1 execute "$DB_NAME" \
+            --remote \
+            --file=schema.sql \
+            --yes \
+            --config=.wrangler.generated.json
+
+      - name: Create private worker and install HMAC secret
+        shell: bash
+        working-directory: tooling/webhook-receiver
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          WEBHOOK_SECRET: ${{ secrets.ABSTREKKT_WEBHOOK_SECRET }}
+        run: |
+          set -euo pipefail
+          npx --yes wrangler@${WRANGLER_VERSION} deploy \
+            --config=.wrangler.generated.json
+          printf '%s' "$WEBHOOK_SECRET" | \
+            npx --yes wrangler@${WRANGLER_VERSION} secret put WEBHOOK_SECRET \
+              --config=.wrangler.generated.json
+
+      - name: Enable public target for final deployment
+        shell: bash
+        working-directory: tooling/webhook-receiver
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs = require('node:fs');
+          const path = '.wrangler.generated.json';
+          const config = JSON.parse(fs.readFileSync(path, 'utf8'));
+          config.workers_dev = true;
+          fs.writeFileSync(path, JSON.stringify(config, null, 2));
+          NODE
+
+      - name: Deploy final version and capture structured evidence
+        shell: bash
+        working-directory: tooling/webhook-receiver
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          WRANGLER_OUTPUT_FILE_PATH: ${{ runner.temp }}/wrangler-deploy.ndjson
+        run: |
+          set -euo pipefail
+          npx --yes wrangler@${WRANGLER_VERSION} deploy \
+            --config=.wrangler.generated.json
+
+      - name: Verify HTTPS endpoint and write receipt
+        id: evidence
+        shell: bash
+        working-directory: tooling/webhook-receiver
+        env:
+          DEPLOY_LOG: ${{ runner.temp }}/wrangler-deploy.ndjson
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs = require('node:fs');
+          const lines = fs.readFileSync(process.env.DEPLOY_LOG, 'utf8')
+            .split(/\r?\n/)
+            .filter(Boolean)
+            .map(line => JSON.parse(line));
+          const deploy = [...lines].reverse().find(row => row.type === 'deploy');
+          if (!deploy) throw new Error('No structured Wrangler deploy record found');
+          const target = (deploy.targets || []).find(x => /^https:\/\//.test(x));
+          if (!target) throw new Error('No HTTPS deployment target found');
+          const receiverUrl = `${target.replace(/\/$/, '')}/github`;
+          const receipt = {
+            schema: 'AbstrekktWebhookReceiverProvisionReceipt/v1',
+            repository: process.env.GITHUB_REPOSITORY,
+            source_sha: process.env.GITHUB_SHA,
+            workflow_run_id: process.env.GITHUB_RUN_ID,
+            workflow_run_attempt: process.env.GITHUB_RUN_ATTEMPT,
+            provider: 'Cloudflare Workers',
+            worker_name: deploy.worker_name,
+            worker_tag: deploy.worker_tag || null,
+            worker_version_id: deploy.version_id || null,
+            deployed_at: deploy.timestamp,
+            deployment_target: target,
+            receiver_url: receiverUrl,
+            d1_database_name: process.env.DB_NAME,
+            d1_database_id: process.env.D1_DATABASE_ID,
+          };
+          fs.writeFileSync('provision-receipt.json', JSON.stringify(receipt, null, 2));
+          NODE
+
+          RECEIVER_URL="$(node -e "const fs=require('node:fs');const r=JSON.parse(fs.readFileSync('provision-receipt.json','utf8'));process.stdout.write(r.receiver_url)")"
+          test -n "$RECEIVER_URL" || {
+            echo 'STOP: receiver URL was not written to provisioning receipt'
+            exit 1
+          }
+
+          STATUS='000'
+          for ATTEMPT in 1 2 3 4 5 6 7 8; do
+            STATUS="$(curl --silent --show-error \
+              --connect-timeout 10 --max-time 30 \
+              --request POST \
+              --output /tmp/receiver-readback.txt \
+              --write-out '%{http_code}' \
+              "$RECEIVER_URL" || true)"
+            if [[ "$STATUS" = '400' ]]; then
+              break
+            fi
+            echo "Read-back attempt $ATTEMPT returned HTTP $STATUS; retrying after edge propagation."
+            sleep 2
+          done
+
+          test "$STATUS" = '400' || {
+            echo "STOP: unauthenticated receiver POST returned HTTP $STATUS, expected 400"
+            exit 1
+          }
+
+          node <<'NODE'
+          const fs = require('node:fs');
+          const receipt = JSON.parse(fs.readFileSync('provision-receipt.json', 'utf8'));
+          receipt.verified_at = new Date().toISOString();
+          receipt.readback = {
+            method: 'POST',
+            authenticated: false,
+            status: 400,
+            expectation: 'missing signature/delivery headers rejected',
+          };
+          fs.writeFileSync('provision-receipt.json', JSON.stringify(receipt, null, 2));
+          NODE
+
+          echo "receiver_url=$RECEIVER_URL" >> "$GITHUB_OUTPUT"
+          echo "Receiver URL: $RECEIVER_URL" >> "$GITHUB_STEP_SUMMARY"
+          echo 'Read-back: unauthenticated POST → HTTP 400 PASS' >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload provisioning receipt
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: abstrekkt-webhook-receiver-provision-receipt
+          path: tooling/webhook-receiver/provision-receipt.json
+          if-no-files-found: error
+          retention-days: 90

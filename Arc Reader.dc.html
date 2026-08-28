@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/flashfusion-design-system-455b583a-992a-42cb-ae6a-2c862e3b31e7/fonts-selfhosted.css">
+<link rel="stylesheet" href="_ds/flashfusion-design-system-455b583a-992a-42cb-ae6a-2c862e3b31e7/styles.css">
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; background:oklch(0.08 0.02 270); }
+  *::-webkit-scrollbar { width:9px; height:9px; }
+  *::-webkit-scrollbar-thumb { background:#2a2a33; border-radius:6px; }
+  *::-webkit-scrollbar-track { background:transparent; }
+  .mono { font-family:'JetBrains Mono',ui-monospace,monospace; }
+  .serif { font-family:'Instrument Serif',serif; }
+  @keyframes slideIn { from { transform:translateX(100%); } to { transform:translateX(0); } }
+  @media (max-width: 900px){
+    .rdr-grid{ grid-template-columns:1fr !important; }
+    .rdr-rail{ position:static !important; height:auto !important; max-height:46vh; border-right:none !important; border-bottom:1px solid oklch(0.27 0.03 270) !important; }
+    .rdr-main{ padding:28px 22px 90px !important; }
+    .asst-panel{ width:100vw !important; }
+  }
+  @media (max-width: 620px){
+    .rdr-head{ grid-template-columns:1fr !important; gap:18px !important; }
+    .rdr-2col{ grid-template-columns:1fr !important; gap:18px !important; }
+    .rdr-main{ padding:24px 16px 80px !important; }
+  }
+</style>
+</helmet>
+<div class="mono" style="{{ themeVars }}; min-height:100vh; background:radial-gradient(ellipse 70% 45% at 78% -8%, var(--glow), transparent 60%), var(--bg); color:var(--fg); font-size:14px; line-height:1.55;">
+  <div class="rdr-grid" style="display:grid; grid-template-columns:262px 1fr; align-items:start;">
+
+    <!-- RAIL -->
+    <aside class="rdr-rail" style="position:sticky; top:0; height:100vh; overflow-y:auto; border-right:1px solid oklch(0.27 0.03 270); background:oklch(0.08 0.02 270); padding:22px 0 40px;">
+      <div style="padding:0 18px 16px;">
+        <div class="mono" style="font-size:10px; letter-spacing:.22em; text-transform:uppercase; color:oklch(0.40 0.02 270); margin-bottom:5px;">Learning Ops</div>
+        <div class="serif" style="font-size:25px; font-style:italic; color:oklch(0.97 0.005 270); line-height:1;">The Arcs.</div>
+        <div class="mono" style="font-size:10px; color:oklch(0.40 0.02 270); margin-top:7px; letter-spacing:.04em;">74 arcs · 9 series · deep reader</div>
+      </div>
+      <sc-for list="{{ railGroups }}" as="g" hint-placeholder-count="3">
+        <div style="margin-top:10px;">
+          <div class="mono" style="padding:8px 18px 6px; font-size:9px; letter-spacing:.2em; text-transform:uppercase; color:oklch(0.40 0.02 270); display:flex; justify-content:space-between;"><span>{{ g.label }}</span><span style="color:oklch(0.40 0.02 270);">{{ g.count }}</span></div>
+          <sc-for list="{{ g.arcs }}" as="a" hint-placeholder-count="8">
+            <button style="{{ a.style }}" onClick="{{ a.onClick }}">
+              <span style="width:7px; height:7px; border-radius:50%; background:{{ a.accent }}; flex:none;"></span>
+              <span style="flex:1; text-align:left; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ a.label }}</span>
+              <span class="mono" style="font-size:9px; color:{{ a.laneColor }};">{{ a.laneTag }}</span>
+            </button>
+          </sc-for>
+        </div>
+      </sc-for>
+    </aside>
+
+    <!-- CONTENT -->
+    <main class="rdr-main" style="padding:42px 40px 100px; max-width:1040px;">
+      <sc-if value="{{ loading }}" hint-placeholder-val="{{ true }}">
+        <div class="mono" style="color:oklch(0.40 0.02 270); font-size:13px; padding:60px 0;">Loading arc library…</div>
+      </sc-if>
+
+      <sc-if value="{{ ready }}" hint-placeholder-val="{{ false }}">
+        <div>
+          <!-- HEADER -->
+          <div class="rdr-head" style="display:grid; grid-template-columns:1fr auto; gap:30px; align-items:end; padding-bottom:26px; border-bottom:1px solid var(--border); margin-bottom:30px;">
+            <div>
+              <div class="mono" style="font-size:11px; text-transform:uppercase; letter-spacing:.22em; color:var(--accent); margin-bottom:14px; display:flex; align-items:center; gap:8px;">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"></polygon></svg>
+                {{ arc.kicker }}
+              </div>
+              <h1 class="serif" style="font-size:clamp(42px,5.6vw,74px); line-height:.95; letter-spacing:-.02em; margin:0; font-weight:400; color:var(--fg);">The <em style="color:var(--accent); font-style:italic;">{{ arc.em }}</em> Arc.</h1>
+              <p style="font-size:13px; color:var(--fg-dim); margin:15px 0 0; max-width:60ch; line-height:1.65;">{{ arc.sub }}</p>
+            </div>
+            <div class="mono" style="text-align:right; font-size:10.5px; color:var(--fg-dim); text-transform:uppercase; letter-spacing:.1em; display:flex; flex-direction:column; gap:5px;">
+              <sc-for list="{{ arc.meta }}" as="ml" hint-placeholder-count="4">
+                <div>{{ ml.label }} <strong style="color:var(--accent); font-weight:500;">{{ ml.value }}</strong></div>
+              </sc-for>
+            </div>
+          </div>
+
+          <!-- TRADEOFF -->
+          <sc-if value="{{ hasTradeoff }}" hint-placeholder-val="{{ false }}">
+            <div style="border:1px solid var(--border); border-left:3px solid var(--accent); background:var(--card); padding:18px 22px; margin-bottom:24px;">
+              <div style="display:grid; grid-template-columns:auto 1fr; gap:12px; align-items:start;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="margin-top:2px;"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                <div>
+                  <div class="serif" style="font-style:italic; font-size:19px; color:var(--accent); line-height:1.25; margin-bottom:8px;">{{ tradeoff.headline }}</div>
+                  <div style="font-size:12.5px; color:var(--fg); line-height:1.7;">{{ tradeoff.intro }}</div>
+                </div>
+              </div>
+              <div class="rdr-2col" style="display:grid; grid-template-columns:1fr 1fr; gap:26px; margin-top:18px;">
+                <div>
+                  <div class="mono" style="font-size:9px; letter-spacing:.22em; text-transform:uppercase; color:var(--fg-dim); margin-bottom:10px;">What you gain</div>
+                  <div style="display:flex; flex-direction:column; gap:8px;">
+                    <sc-for list="{{ tradeoff.gain }}" as="g" hint-placeholder-count="5">
+                      <div style="display:grid; grid-template-columns:13px 1fr; gap:9px; font-size:12px; color:var(--fg); line-height:1.55;"><span style="color:var(--accent); font-weight:600;">+</span><span>{{ g }}</span></div>
+                    </sc-for>
+                  </div>
+                </div>
+                <div>
+                  <div class="mono" style="font-size:9px; letter-spacing:.22em; text-transform:uppercase; color:var(--fg-dim); margin-bottom:10px;">{{ tradeoff.giveLabel }}</div>
+                  <div style="display:flex; flex-direction:column; gap:8px;">
+                    <sc-for list="{{ tradeoff.giveUp }}" as="g" hint-placeholder-count="4">
+                      <div style="display:grid; grid-template-columns:13px 1fr; gap:9px; font-size:12px; color:var(--fg-dim); line-height:1.55;"><span style="color:var(--fg-mute); font-weight:600;">−</span><span>{{ g }}</span></div>
+                    </sc-for>
+                  </div>
+                </div>
+              </div>
+              <sc-if value="{{ tradeoff.hasNote }}" hint-placeholder-val="{{ false }}">
+                <div style="margin-top:16px; padding:13px 16px; border:1px dashed var(--border-bright); background:var(--glow); font-size:12px; color:var(--fg-dim); line-height:1.65;">{{ tradeoff.note }}</div>
+              </sc-if>
+            </div>
+          </sc-if>
+
+          <!-- PROGRESS -->
+          <div style="position:sticky; top:0; z-index:10; background:var(--bg); padding:12px 0 14px; margin-bottom:22px; border-bottom:1px solid var(--border);">
+            <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:8px;">
+              <span class="mono" style="font-size:10px; letter-spacing:.2em; color:var(--fg-dim); text-transform:uppercase;">Weekly sprints complete</span>
+              <span class="serif" style="font-style:italic; font-size:19px; color:var(--accent);">{{ doneCount }} / 48 · {{ pct }}%</span>
+            </div>
+            <div style="height:3px; background:var(--track); position:relative; overflow:hidden; border-radius:9999px;"><div style="{{ progressFill }}"></div></div>
+          </div>
+
+          <!-- QUARTER RAIL -->
+          <div style="display:grid; grid-template-columns:repeat(4,1fr); border-top:1px solid var(--border); border-bottom:1px solid var(--border); margin-bottom:26px;">
+            <sc-for list="{{ quarters }}" as="q" hint-placeholder-count="4">
+              <button style="{{ q.style }}" onClick="{{ q.onClick }}">
+                <div class="mono" style="font-size:10px; letter-spacing:.18em; color:var(--accent); text-transform:uppercase;">{{ q.range }}</div>
+                <div class="serif" style="font-style:italic; font-size:20px; line-height:1.1; margin:6px 0 4px; color:{{ q.phaseColor }};">{{ q.phase }}</div>
+                <div class="mono" style="font-size:10.5px; color:var(--fg-dim); line-height:1.4;">{{ q.subtitle }}</div>
+              </button>
+            </sc-for>
+          </div>
+
+          <!-- MONTHS -->
+          <div style="display:grid; gap:14px;">
+            <sc-for list="{{ months }}" as="m" hint-placeholder-count="3">
+              <div style="{{ m.cardStyle }}">
+                <div style="padding:18px 22px; cursor:pointer; display:grid; grid-template-columns:74px 1fr auto; gap:20px; align-items:center;" onClick="{{ m.onToggle }}">
+                  <div class="serif" style="font-style:italic; font-size:44px; line-height:1; color:var(--accent);">M{{ m.nn }}</div>
+                  <div>
+                    <div style="font-size:14.5px; font-weight:500; color:var(--fg); margin-bottom:4px; letter-spacing:-.01em;">{{ m.title }}</div>
+                    <div style="font-size:11.5px; color:var(--fg-dim); line-height:1.5; max-width:64ch;">{{ m.why }}</div>
+                  </div>
+                  <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="var(--fg-dim)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="{{ m.chevron }}"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                </div>
+                <sc-if value="{{ m.open }}" hint-placeholder-val="{{ false }}">
+                  <div style="padding:4px 22px 22px; border-top:1px dashed var(--border); margin-top:2px;">
+                    <div style="display:grid; gap:7px; margin:15px 0 18px;">
+                      <sc-for list="{{ m.weeks }}" as="w" hint-placeholder-count="4">
+                        <div style="{{ w.rowStyle }}" onClick="{{ w.onToggle }}">
+                          <span class="mono" style="font-size:10px; color:var(--accent); letter-spacing:.12em; padding-top:2px; white-space:nowrap; font-weight:500;">W{{ w.w }}</span>
+                          <span style="{{ w.textStyle }}">{{ w.text }}</span>
+                          <span style="{{ w.checkStyle }}"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="{{ w.checkMark }}"><polyline points="20 6 9 17 4 12"></polyline></svg></span>
+                        </div>
+                      </sc-for>
+                    </div>
+                    <div style="display:grid; grid-template-columns:auto 1fr; gap:11px; padding:13px 15px; border:1px solid var(--gate-border); background:var(--gate-bg); align-items:start;">
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--gate)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="margin-top:2px;"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path><line x1="4" y1="22" x2="4" y2="15"></line></svg>
+                      <div>
+                        <div class="mono" style="font-size:10px; text-transform:uppercase; letter-spacing:.2em; color:var(--gate); margin-bottom:4px;">Gate · M{{ m.n }}</div>
+                        <div class="serif" style="font-style:italic; font-size:14.5px; color:var(--fg); line-height:1.45;">{{ m.gate }}</div>
+                      </div>
+                    </div>
+                  </div>
+                </sc-if>
+              </div>
+            </sc-for>
+          </div>
+
+          <!-- CLAIMS -->
+          <sc-if value="{{ hasClaims }}" hint-placeholder-val="{{ false }}">
+            <div style="margin-top:30px; padding:24px 26px; border:1px solid var(--border); background:var(--card);">
+              <div class="mono" style="font-size:10px; letter-spacing:.24em; text-transform:uppercase; color:var(--fg); margin-bottom:15px; display:flex; align-items:center; gap:8px;">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"></polygon></svg>
+                Claims &amp; assumptions
+              </div>
+              <div style="display:flex; flex-direction:column; gap:12px;">
+                <sc-for list="{{ claims }}" as="c" hint-placeholder-count="6">
+                  <div style="display:grid; grid-template-columns:20px 1fr; gap:11px; align-items:start;">
+                    <span class="mono" style="color:var(--accent); font-size:11px; padding-top:3px;">{{ c.n }}</span>
+                    <div style="font-size:12.5px; color:var(--fg-dim); line-height:1.7;"><strong style="color:var(--fg); font-weight:600;">{{ c.lead }}</strong> {{ c.body }}</div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </sc-if>
+        </div>
+      </sc-if>
+    </main>
+  </div>
+
+  <!-- ASSISTANT FAB -->
+  <button style="{{ fabStyle }}" onClick="{{ asstToggle }}" title="Arc Assistant">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1H2a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2z"></path><circle cx="8.5" cy="14" r="1.2" fill="currentColor"></circle><circle cx="15.5" cy="14" r="1.2" fill="currentColor"></circle></svg>
+  </button>
+
+  <!-- ASSISTANT PANEL -->
+  <sc-if value="{{ asstOpen }}" hint-placeholder-val="{{ false }}">
+  <div class="mono asst-panel" style="position:fixed; top:0; right:0; bottom:0; width:380px; z-index:60; background:oklch(0.08 0.02 270); border-left:1px solid oklch(0.27 0.03 270); box-shadow:-24px 0 60px rgba(0,0,0,.5); display:flex; flex-direction:column; animation:slideIn .26s cubic-bezier(.4,0,.2,1);">
+    <div style="padding:16px 18px; border-bottom:1px solid oklch(0.27 0.03 270); display:flex; align-items:center; justify-content:space-between; gap:12px;">
+      <div>
+        <div class="serif" style="font-style:italic; font-size:20px; color:oklch(0.97 0.005 270); line-height:1;">Arc Assistant.</div>
+        <div style="font-size:9.5px; color:oklch(0.40 0.02 270); margin-top:4px; letter-spacing:.04em;">{{ arcCount }} arcs · edit · create · delete</div>
+      </div>
+      <button style="background:transparent; border:1px solid oklch(0.35 0.04 270); color:oklch(0.58 0.02 270); width:28px; height:28px; cursor:pointer; display:flex; align-items:center; justify-content:center;" onClick="{{ asstToggle }}">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+      </button>
+    </div>
+
+    <!-- mode selector -->
+    <div style="padding:12px 18px 0;">
+      <div style="font-size:9px; letter-spacing:.22em; text-transform:uppercase; color:oklch(0.40 0.02 270); margin-bottom:7px;">Mode</div>
+      <div style="display:flex; border:1px solid oklch(0.35 0.04 270); overflow:hidden;">
+        <sc-for list="{{ modeTabs }}" as="mt" hint-placeholder-count="2">
+          <button style="{{ mt.style }}" onClick="{{ mt.onClick }}">{{ mt.label }}</button>
+        </sc-for>
+      </div>
+      <div style="font-size:10px; color:oklch(0.40 0.02 270); line-height:1.5; margin-top:6px;">{{ modeNote }}</div>
+    </div>
+
+    <!-- provider selector -->
+    <div style="padding:12px 18px 0;">
+      <div style="font-size:9px; letter-spacing:.22em; text-transform:uppercase; color:oklch(0.40 0.02 270); margin-bottom:7px;">Provider / API</div>
+      <div style="display:flex; border:1px solid oklch(0.35 0.04 270); overflow:hidden;">
+        <sc-for list="{{ providerTabs }}" as="p" hint-placeholder-count="3">
+          <button style="{{ p.style }}" onClick="{{ p.onClick }}">{{ p.label }}</button>
+        </sc-for>
+      </div>
+      <div style="font-size:10px; color:oklch(0.40 0.02 270); line-height:1.5; margin-top:8px;">{{ providerNote }}</div>
+
+      <sc-if value="{{ needKey }}" hint-placeholder-val="{{ false }}">
+        <div style="margin-top:10px; display:grid; grid-template-columns:1fr auto; gap:6px;">
+          <input value="{{ keyDraft }}" onInput="{{ onKeyDraft }}" placeholder="{{ keyHint }}" type="password" style="background:oklch(0.12 0.02 270); border:1px solid oklch(0.35 0.04 270); color:oklch(0.97 0.005 270); padding:8px 10px; font-family:'JetBrains Mono',monospace; font-size:11px; outline:none;"/>
+          <button style="background:oklch(0.12 0.02 270); border:1px solid oklch(0.35 0.04 270); color:var(--accent); padding:0 14px; cursor:pointer; font-family:'JetBrains Mono',monospace; font-size:11px;" onClick="{{ saveKey }}">Save</button>
+        </div>
+        <div style="font-size:9.5px; color:oklch(0.40 0.02 270); margin-top:6px; line-height:1.5;">Stored only in this browser's localStorage. Never sent anywhere but the provider.</div>
+      </sc-if>
+      <sc-if value="{{ hasKey }}" hint-placeholder-val="{{ false }}">
+        <div style="margin-top:9px; display:flex; align-items:center; justify-content:space-between; font-size:10px; color:#4ade80;">
+          <span>● Key saved for this provider</span>
+          <button style="background:transparent; border:none; color:oklch(0.40 0.02 270); cursor:pointer; font-family:'JetBrains Mono',monospace; font-size:10px; text-decoration:underline;" onClick="{{ clearKey }}">Remove</button>
+        </div>
+      </sc-if>
+    </div>
+
+    <!-- chat log -->
+    <div style="flex:1; overflow-y:auto; padding:16px 18px; display:flex; flex-direction:column; gap:10px;">
+      <sc-if value="{{ hasChat }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex; flex-direction:column; gap:10px;">
+          <sc-for list="{{ chatRows }}" as="m" hint-placeholder-count="0">
+            <div style="{{ m.wrapStyle }}">
+              <div style="{{ m.bubbleStyle }}">
+                {{ m.text }}
+                <sc-if value="{{ m.hasOps }}" hint-placeholder-val="{{ false }}">
+                  <div style="margin-top:7px; display:flex; flex-direction:column; gap:4px;">
+                    <sc-for list="{{ m.ops }}" as="o" hint-placeholder-count="0">
+                      <div style="font-size:9.5px; letter-spacing:.04em; color:var(--accent); background:rgba(255,255,255,.04); padding:3px 7px; border-left:2px solid var(--accent);">✓ {{ o.label }}</div>
+                    </sc-for>
+                  </div>
+                </sc-if>
+                <sc-if value="{{ m.docActions }}" hint-placeholder-val="{{ false }}">
+                  <div style="margin-top:9px; padding-top:8px; border-top:1px dashed rgba(74,222,128,.25); display:flex; gap:14px;">
+                    <button style="background:transparent; border:none; color:#4ade80; cursor:pointer; font-family:'JetBrains Mono',monospace; font-size:9.5px; text-decoration:underline;" onClick="{{ m.copyDoc }}">Copy</button>
+                    <button style="background:transparent; border:none; color:#4ade80; cursor:pointer; font-family:'JetBrains Mono',monospace; font-size:9.5px; text-decoration:underline;" onClick="{{ m.exportDoc }}">Export PDF</button>
+                  </div>
+                </sc-if>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+      </sc-if>
+      <sc-if value="{{ hasChat }}" hint-placeholder-val="{{ true }}">
+        <div style="margin:auto 0; text-align:center; color:oklch(0.40 0.02 270); font-size:11px; line-height:1.7; padding:20px 10px;">
+          <div class="serif" style="font-style:italic; font-size:18px; color:oklch(0.40 0.02 270); margin-bottom:8px;">{{ emptyHeadline }}</div>
+          {{ emptyBody }}
+        </div>
+      </sc-if>
+    </div>
+
+    <!-- input -->
+    <div style="border-top:1px solid oklch(0.27 0.03 270); padding:12px 18px 14px;">
+      <div style="font-size:9.5px; color:oklch(0.40 0.02 270); line-height:1.5; margin-bottom:8px;" innerHTML="{{ tryLine }}"></div>
+      <div style="display:grid; grid-template-columns:1fr auto; gap:7px; align-items:end;">
+        <textarea value="{{ input }}" onInput="{{ onInput }}" onKeyDown="{{ onKeyDown }}" placeholder="{{ inputPlaceholder }}" style="background:oklch(0.12 0.02 270); border:1px solid oklch(0.35 0.04 270); color:oklch(0.97 0.005 270); padding:9px 11px; font-family:'JetBrains Mono',monospace; font-size:11.5px; line-height:1.5; outline:none; resize:none; min-height:62px;"></textarea>
+        <button style="{{ sendBtnStyle }}" onClick="{{ send }}" disabled="{{ sendDisabled }}">{{ sendLabel }}</button>
+      </div>
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-top:9px; font-size:9.5px; color:oklch(0.40 0.02 270);">
+        <span>⌘/Ctrl + Enter to send</span>
+        <sc-if value="{{ hasOverlay }}" hint-placeholder-val="{{ false }}">
+          <button style="background:transparent; border:none; color:#fb923c; cursor:pointer; font-family:'JetBrains Mono',monospace; font-size:9.5px; text-decoration:underline;" onClick="{{ undoAI }}">Undo {{ overlayCount }} AI edit(s)</button>
+        </sc-if>
+      </div>
+    </div>
+  </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1240,&quot;height&quot;:960}}">
+class Component extends DCLogic {
+  constructor(props){
+    super(props);
+    this.state = { data:null, prose:null, lane:'claude', activeQ:0, openMonth:1, done:{},
+      asstOpen:false, mode:'edit', provider:'anthropic', keys:{}, keyDraft:'', input:'', busy:false, chat:[], overlayCount:0, _v:0 };
+    this.ai = null; this.overlay = { edits:{}, created:{}, deleted:[] };
+
+    // series + lane + nice label, keyed by arc id (live — mutated by AI ops)
+    this.SEED = {
+      mastery:['Gemini',1,null], claude:['Claude',1,null], copilot:['Copilot',1,null], openai:['OpenAI',1,null],
+      practitioner:['Practitioner',1,null], aiaas:['AIaaS',1,null], mcp:['MCP Builder',1,null], security:['Security',1,null],
+      rag:['RAG & Data',1,null], n8n:['n8n Automation',1,null], brand:['Personal Brand',1,null], teaching:['Teaching',1,null],
+      gcp:['GCP / Vertex',2,null], fullstack:['Full-Stack App',2,null], azure:['Azure Foundry',2,null], eval:['Agentic Eval',2,null],
+      voice:['Voice & Realtime',2,null], strategy:['Product Strategy',2,null], cloudflare:['Cloudflare Edge',2,null],
+      book:['Book',3,'B'], course:['Course',3,'B'], saas:['SaaS',3,'B'], partner:['Partner Anchor',3,'B'],
+      regulated:['Regulated AI Sec',3,'A'], evalexpert:['Eval & Safety',3,'A'], enterprise:['Enterprise Arch',3,'A'],
+    };
+    this.names = JSON.parse(JSON.stringify(this.SEED));
+    this.SERIES = [
+      { n:1, label:'Series One \u00b7 Foundation' },
+      { n:2, label:'Series Two \u00b7 Leverage' },
+      { n:3, label:'Series Three \u00b7 Output + Production' },
+      { n:4, label:'Series Four \u00b7 Principal Layer' },
+      { n:5, label:'Series Five \u00b7 Depth Layer' },
+      { n:6, label:'Series Six \u00b7 Leverage & Assets' },
+      { n:7, label:'Series Seven \u00b7 Influence Layer' },
+      { n:8, label:'Series Eight \u00b7 Meta Layer' },
+      { n:9, label:'Personal \u00b7 Ventures & Voice' },
+    ];
+  }
+
+  componentDidMount(){
+    Promise.all([
+      fetch('arcs-data.json').then(r=>r.json()),
+      fetch('arcs-prose.json').then(r=>r.json()).catch(()=>({})),
+      import('./arc-ai.js').catch(e=>{ console.error('arc-ai load failed', e); return null; })
+    ]).then(([data, prose, ai])=>{
+      this.ai = ai;
+      let done = {};
+      try { const raw = localStorage.getItem('arc-reader-done-v1'); if(raw) done = JSON.parse(raw); } catch(e){}
+      let keys = {}, overlayCount = 0;
+      if(ai){
+        keys = ai.loadKeys();
+        this.overlay = ai.loadOverlay();
+        ai.mergeOverlay(data, prose, this.names, this.overlay);
+        overlayCount = Object.keys(this.overlay.edits).length + Object.keys(this.overlay.created).length + this.overlay.deleted.length;
+      }
+      // backfill names for expanded-catalog arcs not present in the SEED
+      Object.keys(data).forEach(id=>{ if(!this.names[id]) this.names[id]=[data[id].em||id, data[id].series||1, data[id].lane||null]; });
+      let lane = this.state.lane; if(!data[lane]) lane = Object.keys(this.names)[0];
+      this.setState({ data, prose, done, keys, overlayCount, lane });
+      import('./arc-sync.js').then(sync=>{
+        this.sync = sync;
+        const cfg = sync.loadSyncConfig();
+        if(!sync.isConfigured(cfg)) return;
+        sync.startPolling((remoteOverlay)=>{
+          const data2 = JSON.parse(JSON.stringify(this.state.data));
+          const prose2 = JSON.parse(JSON.stringify(this.state.prose));
+          if(this.ai) this.ai.mergeOverlay(data2, prose2, this.names, remoteOverlay);
+          this.setState({ data:data2, prose:prose2, _v:Date.now() });
+        }, cfg.pollMs);
+      }).catch(()=>{});
+    }).catch(e=>{ console.error('arc data load failed', e); });
+  }
+
+  componentWillUnmount(){ if(this.sync) this.sync.stopPolling(); }
+
+  // ---- Assistant ----
+  setProvider(p){ this.setState({ provider:p }); }
+  saveKeyDraft(){
+    if(!this.ai) return;
+    const { provider, keyDraft } = this.state;
+    this.ai.saveKey(provider, keyDraft.trim());
+    this.setState({ keys:this.ai.loadKeys(), keyDraft:'' });
+  }
+  clearKey(){ if(!this.ai) return; this.ai.saveKey(this.state.provider, ''); this.setState({ keys:this.ai.loadKeys() }); }
+
+  async send(){
+    const { input, provider, busy } = this.state;
+    const msg = (input||'').trim();
+    if(!msg || busy || !this.ai) return;
+    const chat = [...this.state.chat, { role:'user', text:msg }];
+    this.setState({ chat, input:'', busy:true });
+    try {
+      const summary = Object.keys(this.names).map(id=>`${id} — ${this.names[id][0]} — S${this.names[id][1]}${this.names[id][2]?'/Lane '+this.names[id][2]:''}`).join('\n');
+      const { reply, operations } = await this.ai.runAssistant({ provider, userMsg:msg, contextSummary:summary });
+      const labels = [];
+      operations.forEach(op=>{ try { labels.push(this.ai.applyOp(op, { data:this.state.data, prose:this.state.prose, names:this.names, overlay:this.overlay })); } catch(e){ labels.push('error: '+e.message); } });
+      if(operations.length) this.ai.saveOverlay(this.overlay);
+      const overlayCount = Object.keys(this.overlay.edits).length + Object.keys(this.overlay.created).length + this.overlay.deleted.length;
+      let lane = this.state.lane;
+      const created = operations.find(o=>o.op==='create_arc');
+      if(created) lane = created.id;
+      if(!this.state.data[lane]) lane = Object.keys(this.names)[0];
+      this.setState({ chat:[...chat, { role:'assistant', text:reply, ops:labels }], busy:false, overlayCount, lane, activeQ:0, openMonth:1, _v:Date.now() });
+    } catch(e){
+      this.setState({ chat:[...chat, { role:'error', text:e.message||String(e) }], busy:false });
+    }
+  }
+
+  setMode(m){ this.setState({ mode:m }); }
+
+  async sendDoc(){
+    const { input, provider, busy } = this.state;
+    const msg = (input||'').trim();
+    if(!msg || busy || !this.ai) return;
+    const chat = [...this.state.chat, { role:'user', text:msg }];
+    this.setState({ chat, input:'', busy:true });
+    try {
+      const summary = Object.keys(this.names).map(id=>`${id} — ${this.names[id][0]} — S${this.names[id][1]}${this.names[id][2]?'/Lane '+this.names[id][2]:''}`).join('\n');
+      const system = 'You are a writing assistant for a personal learning-arc planning system. Write exactly what is asked \u2014 a doc, a summary, a message \u2014 in plain text, no markdown fences. Ground every claim in the arc list below; never invent arcs or numbers that aren\u2019t implied by it.\n\nArc library (id — name — series):\n'+summary;
+      const text = await this.ai.completeText({ provider, system, userMsg: msg });
+      this.setState({ chat:[...chat, { role:'assistant', text: text||'(no response)', isDoc:true }], busy:false });
+    } catch(e){
+      this.setState({ chat:[...chat, { role:'error', text:e.message||String(e) }], busy:false });
+    }
+  }
+
+  copyDocText(t){ try { navigator.clipboard.writeText(t); } catch(e){} }
+  async exportDocText(t){
+    const { openPrintable } = await import('./arc-export.js');
+    const esc = String(t||'').replace(/[&<>]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+    openPrintable({ title:'Generated document', kicker:'Arc Assistant \u00b7 Doc mode', meta:[{k:'Generated', v:new Date().toLocaleDateString()}], bodyHtml:'<div style="font-size:13px; line-height:1.8; white-space:pre-wrap;">'+esc+'</div>' });
+  }
+
+  undoAI(){
+    if(!this.ai) return;
+    this.ai.resetOverlay();
+    this.overlay = { edits:{}, created:{}, deleted:[] };
+    // hard reload base data
+    Promise.all([ fetch('arcs-data.json').then(r=>r.json()), fetch('arcs-prose.json').then(r=>r.json()).catch(()=>({})) ])
+      .then(([data, prose])=>{
+        this.names = JSON.parse(JSON.stringify(this.SEED));
+        Object.keys(data).forEach(id=>{ if(!this.names[id]) this.names[id]=[data[id].em||id, data[id].series||1, data[id].lane||null]; });
+        let lane = this.state.lane; if(!data[lane]) lane = Object.keys(this.names)[0];
+        this.setState({ data, prose, overlayCount:0, lane, chat:[...this.state.chat, { role:'system', text:'All AI edits reverted to the original library.' }], _v:Date.now() });
+      });
+  }
+
+  persist(done){ try { localStorage.setItem('arc-reader-done-v1', JSON.stringify(done)); } catch(e){} }
+  toggleWeek(key){
+    this.setState(s=>{ const done={...s.done}; if(done[key]) delete done[key]; else done[key]=true; this.persist(done); return {done}; });
+  }
+  pick(id){ this.setState({ lane:id, activeQ:0, openMonth:1 }); }
+
+  shade(hex, a){ const n=parseInt(hex.slice(1),16); return `rgba(${(n>>16)&255},${(n>>8)&255},${n&255},${a})`; }
+
+  themeVars(t){
+    const accent = t.accent || '#8b5cf6';
+    const gate = t.gate && t.gate!==accent ? t.gate : '#22d3ee';
+    return `--accent:${accent}; --gate:${gate}; --bg:oklch(0.08 0.02 270); --bg-2:oklch(0.12 0.02 270); --card:oklch(0.12 0.02 270); --fg:oklch(0.97 0.005 270); --fg-dim:oklch(0.58 0.02 270);`
+      + `--border:oklch(0.27 0.03 270); --border-bright:oklch(0.35 0.04 270); --track:oklch(0.27 0.03 270); --glow:${this.shade(accent,.10)};`
+      + `--gate-border:${this.shade(gate,.32)}; --gate-bg:${this.shade(gate,.05)};`;
+  }
+
+  asstVals(){
+    const { asstOpen, mode, provider, keys, keyDraft, input, busy, chat, overlayCount } = this.state;
+    const modeTabs = [ {id:'edit',label:'Edit'}, {id:'doc',label:'Doc'} ].map(mt=>({
+      label:mt.label, onClick:()=>this.setMode(mt.id),
+      style:`flex:1; padding:6px 4px; border:none; cursor:pointer; font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:.08em; transition:all .15s;`
+        + (mode===mt.id ? `background:var(--accent); color:oklch(0.08 0.02 270); font-weight:600;` : `background:transparent; color:oklch(0.58 0.02 270);`),
+    }));
+    const modeNote = mode==='doc'
+      ? 'Free-form documents — summaries, briefs, messages. Nothing here touches your arc data.'
+      : 'Structured edits — create, edit, or delete arcs, applied live.';
+    const tryLine = mode==='doc'
+      ? 'Try: <span style="color:oklch(0.58 0.02 270);">"Write a one-pager on the Security arc\u2019s tradeoffs for my manager"</span> \u00b7 <span style="color:oklch(0.58 0.02 270);">"Summarize this month\u2019s gates as a Slack update"</span> \u00b7 <span style="color:oklch(0.58 0.02 270);">"Draft a LinkedIn post about the Claude arc"</span>'
+      : 'Try: <span style="color:oklch(0.58 0.02 270);">"Change the Security arc accent to teal"</span> \u00b7 <span style="color:oklch(0.58 0.02 270);">"Rewrite M3 gate for Claude"</span> \u00b7 <span style="color:oklch(0.58 0.02 270);">"Create a LangGraph arc in series 2"</span> \u00b7 <span style="color:oklch(0.58 0.02 270);">"Delete the n8n arc"</span>';
+    const inputPlaceholder = mode==='doc' ? 'Ask for a doc, summary, or message…' : 'Ask the assistant to edit, create, or delete…';
+    const emptyHeadline = mode==='doc' ? 'Ask for anything written.' : 'Edit the library in plain language.';
+    const emptyBody = mode==='doc'
+      ? 'Free-form requests render here as copyable, exportable text — a briefing, a summary, a social post. Nothing is saved to the arc library.'
+      : 'The assistant reads every arc and returns structured operations — create, edit, manipulate, or delete — applied live and saved to this browser.';
+    const PROV = [ {id:'anthropic',label:'Anthropic',accent:'#e07856',needsKey:false}, {id:'openai',label:'OpenAI',accent:'#10a37f',needsKey:true,hint:'sk-…'}, {id:'gemini',label:'Gemini',accent:'#4285f4',needsKey:true,hint:'AIza…'} ];
+    const cur = PROV.find(p=>p.id===provider) || PROV[0];
+    const notes = {
+      anthropic:'Built in — no key needed. Haiku, 1024-token replies, runs on the viewer’s quota.',
+      openai:'Calls api.openai.com directly from your browser with your key (gpt-4o-mini).',
+      gemini:'Calls generativelanguage.googleapis.com directly with your key (gemini-2.0-flash).',
+    };
+    const providerTabs = PROV.map(p=>({
+      label:p.label, onClick:()=>this.setProvider(p.id),
+      style:`flex:1; padding:7px 4px; border:none; cursor:pointer; font-family:'JetBrains Mono',monospace; font-size:10.5px; letter-spacing:.06em; transition:all .15s;`
+        + (provider===p.id ? `background:${p.accent}; color:oklch(0.08 0.02 270); font-weight:600;` : `background:transparent; color:oklch(0.58 0.02 270);`),
+    }));
+    const needKey = cur.needsKey && !keys[provider];
+    const hasKey = cur.needsKey && !!keys[provider];
+    const chatRows = chat.map(m=>{
+      const isUser = m.role==='user', isErr = m.role==='error', isSys = m.role==='system', isDoc = !!m.isDoc;
+      return {
+        text:m.text, hasOps:!!(m.ops && m.ops.length), ops:(m.ops||[]).map(l=>({ label:l })),
+        docActions:isDoc, copyDoc:()=>this.copyDocText(m.text), exportDoc:()=>this.exportDocText(m.text),
+        wrapStyle:`display:flex; ${isUser?'justify-content:flex-end;':'justify-content:flex-start;'}`,
+        bubbleStyle:`max-width:88%; padding:9px 12px; font-size:11.5px; line-height:1.55; border-radius:9px;`
+          + (isUser ? `background:var(--accent); color:oklch(0.08 0.02 270);`
+            : isErr ? `background:rgba(239,68,68,.1); color:#fca5a5; border:1px solid rgba(239,68,68,.3);`
+            : isSys ? `background:transparent; color:oklch(0.40 0.02 270); font-style:italic; border:1px dashed oklch(0.35 0.04 270);`
+            : isDoc ? `background:#161a14; color:oklch(0.97 0.005 270); border:1px solid rgba(74,222,128,.25); white-space:pre-wrap;`
+            : `background:oklch(0.12 0.02 270); color:oklch(0.97 0.005 270); border:1px solid oklch(0.35 0.04 270);`),
+      };
+    });
+    return {
+      asstOpen,
+      asstToggle:()=>this.setState(s=>({ asstOpen:!s.asstOpen })),
+      asstPanelStyle:`position:fixed; top:0; right:0; bottom:0; width:380px; z-index:60; background:oklch(0.08 0.02 270); border-left:1px solid oklch(0.27 0.03 270); box-shadow:-24px 0 60px rgba(0,0,0,.5); display:flex; flex-direction:column; transition:transform .28s cubic-bezier(.4,0,.2,1); transform:translateX(${asstOpen?'0':'100%'});`,
+      fabStyle:`position:fixed; bottom:24px; right:24px; z-index:55; width:54px; height:54px; border-radius:50%; border:1px solid oklch(0.35 0.04 270); background:linear-gradient(135deg,oklch(0.12 0.02 270),#101015); color:var(--accent); cursor:pointer; display:${asstOpen?'none':'flex'}; align-items:center; justify-content:center; box-shadow:0 12px 30px rgba(0,0,0,.5);`,
+      providerTabs, providerNote:notes[provider]||'',
+      needKey, hasKey, keyHint:cur.hint||'', keyDraft,
+      onKeyDraft:e=>this.setState({ keyDraft:e.target.value }),
+      saveKey:()=>this.saveKeyDraft(), clearKey:()=>this.clearKey(),
+      chatRows, hasChat:chat.length>0,
+      mode, modeTabs, modeNote, tryLine, inputPlaceholder, emptyHeadline, emptyBody,
+      input, onInput:e=>this.setState({ input:e.target.value }),
+      onKeyDown:e=>{ if(e.key==='Enter' && (e.metaKey||e.ctrlKey)){ e.preventDefault(); mode==='doc'?this.sendDoc():this.send(); } },
+      send: mode==='doc' ? ()=>this.sendDoc() : ()=>this.send(), busy, sendDisabled:busy||needKey,
+      sendLabel:busy?'Working…':'Send',
+      sendBtnStyle:`background:${(busy||needKey)?'oklch(0.12 0.02 270)':'var(--accent)'}; border:1px solid ${(busy||needKey)?'oklch(0.35 0.04 270)':'var(--accent)'}; color:${(busy||needKey)?'oklch(0.40 0.02 270)':'oklch(0.08 0.02 270)'}; padding:0 16px; height:62px; cursor:${(busy||needKey)?'not-allowed':'pointer'}; font-family:'JetBrains Mono',monospace; font-size:11.5px; font-weight:600; letter-spacing:.04em;`,
+      overlayCount, hasOverlay:overlayCount>0, undoAI:()=>this.undoAI(),
+      arcCount:Object.keys(this.names).length,
+    };
+  }
+
+  renderVals(){
+    const { data, lane, activeQ, openMonth, done } = this.state;
+
+    // rail (always available)
+    const railGroups = this.SERIES.map(ser => {
+      const ids = Object.keys(this.names).filter(id => this.names[id][1]===ser.n);
+      return {
+        label: ser.label, count: ids.length,
+        arcs: ids.map(id => {
+          const [label,, ln] = this.names[id];
+          const accent = data && data[id] ? data[id].accent : '#555';
+          const active = id===lane;
+          return {
+            label, accent,
+            laneTag: ln ? ('Lane '+ln) : '',
+            laneColor: ln==='A' ? '#a855f7' : (ln==='B' ? '#22d3ee' : 'transparent'),
+            onClick: ()=>this.pick(id),
+            style: `width:100%; display:flex; align-items:center; gap:9px; padding:8px 18px; border:none; cursor:pointer;`
+              + `font-family:'JetBrains Mono',monospace; font-size:12px; transition:background .12s;`
+              + (active ? `background:${this.shade(accent,.12)}; color:#fff; box-shadow:inset 3px 0 0 ${accent};`
+                        : `background:transparent; color:#9a9aa6;`),
+          };
+        }),
+      };
+    });
+
+    if(!data || !data[lane]){
+      return { loading:true, ready:false, railGroups, themeVars:this.themeVars({}), ...this.asstVals() };
+    }
+
+    const arc = data[lane];
+    const t = this.themeVars(arc);
+    const pr = (this.state.prose && this.state.prose[lane]) || null;
+
+    const quarters = arc.quarters.map((q,i) => {
+      const active = i===activeQ;
+      const ms = q.months;
+      const first = ms[0] ? (ms[0].n) : '';
+      const last = ms.length ? ms[ms.length-1].n : '';
+      return {
+        range: (q.q||('Q'+(i+1)))+' \u00b7 M'+first+'\u2013M'+last,
+        phase: q.phase || ('Quarter '+(i+1)), phaseColor: active?'var(--fg)':'var(--fg-dim)',
+        subtitle: q.subtitle || '',
+        onClick: ()=>this.setState({ activeQ:i, openMonth: ms[0]?ms[0].n:1 }),
+        style: `padding:18px 17px; cursor:pointer; background:${active?'var(--bg-2)':'transparent'}; border:none; border-right:1px solid var(--border); text-align:left;`
+          + `box-shadow:${active?'inset 0 2px 0 var(--accent)':'none'};`,
+      };
+    });
+
+    const months = (arc.quarters[activeQ] ? arc.quarters[activeQ].months : []).map(m => {
+      const open = openMonth===m.n;
+      return {
+        n: m.n, nn: m.n<10?('0'+m.n):(''+m.n),
+        title: m.title, why: m.why, gate: m.gate,
+        open,
+        onToggle: ()=>this.setState(s=>({ openMonth: s.openMonth===m.n?null:m.n })),
+        chevron: `transition:transform .2s;${open?'transform:rotate(90deg);':''}`,
+        cardStyle: `border:1px solid ${open?'var(--accent)':'var(--border)'}; background:var(--card); transition:border-color .2s;`,
+        weeks: m.weeks.map((w,wi) => {
+          const key = lane+'-'+m.n+'-'+wi;
+          const wd = !!done[key];
+          return {
+            w: wi+1, text:w,
+            onToggle: ()=>this.toggleWeek(key),
+            rowStyle: `display:grid; grid-template-columns:34px 1fr 16px; gap:13px; align-items:start; padding:10px 13px; background:var(--bg-2);`
+              + `cursor:pointer; border-left:2px solid ${wd?'var(--accent)':'var(--border-bright)'}; ${wd?'opacity:.62;':''}`,
+            textStyle: `font-size:12.5px; color:var(--fg); line-height:1.55;${wd?'text-decoration:line-through; text-decoration-color:var(--fg-dim);':''}`,
+            checkStyle: `width:15px; height:15px; border:1.5px solid ${wd?'var(--accent)':'var(--fg-dim)'}; background:${wd?'var(--accent)':'transparent'}; color:var(--bg); display:flex; align-items:center; justify-content:center; border-radius:3px; margin-top:1px;`,
+            checkMark: wd?'opacity:1;':'opacity:0;',
+          };
+        }),
+      };
+    });
+
+    let doneCount = 0;
+    arc.quarters.forEach(q=>q.months.forEach(m=>m.weeks.forEach((w,wi)=>{ if(done[lane+'-'+m.n+'-'+wi]) doneCount++; })));
+    const pct = Math.round(doneCount/48*100);
+
+    return {
+      ...this.asstVals(),
+      loading:false, ready:true, railGroups, themeVars:t,
+      arc: { em:arc.em, kicker:arc.kicker||'Learning Ops', sub:arc.sub, meta:arc.meta||[] },
+      hasTradeoff: !!(pr && (pr.gain.length || pr.giveUp.length)),
+      tradeoff: pr ? { headline:pr.headline, intro:pr.intro, gain:pr.gain, giveUp:pr.giveUp, giveLabel:pr.giveLabel||'What you give up', note:pr.note||'', hasNote:!!pr.note } : { headline:'', intro:'', gain:[], giveUp:[], giveLabel:'', note:'', hasNote:false },
+      hasClaims: !!(pr && pr.claims && pr.claims.length),
+      claims: pr && pr.claims ? pr.claims.map((c,i)=>({ n:(i+1)<10?('0'+(i+1)):(''+(i+1)), lead:c.lead, body:c.body })) : [],
+      quarters, months,
+      doneCount, pct,
+      progressFill: `position:absolute; top:0; left:0; bottom:0; width:${pct}%; background:var(--accent); transition:width .4s ease; border-radius:9999px;`,
+    };
+  }
+}
+</script>
+</body>
+</html>

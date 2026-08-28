@@ -1,0 +1,885 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>INT Inc. AI Assessment App v3.1.0 PRD</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+    <style>
+        /* ─── FlashFusion Design Tokens ─────────────────────────────── */
+        :root {
+            --surface-base:    #0F0618;
+            --surface-raised:  #1A0B2E;
+            --surface-overlay: #251443;
+
+            --border-primary:   rgba(168, 85, 247, 0.2);
+            --border-active:    rgba(168, 85, 247, 0.4);
+
+            --accent-primary:   #A855F7;
+            --accent-secondary: #F472B6;
+            --accent-cyan:      #22D3EE;
+
+            --gradient-accent: linear-gradient(90deg, #A855F7 0%, #F472B6 55%, #22D3EE 100%);
+
+            --glow-primary:   0 0 20px rgba(168, 85, 247, 0.4);
+            --glow-secondary: 0 0 20px rgba(244, 114, 182, 0.3);
+            --glow-subtle:    0 0 12px rgba(168, 85, 247, 0.2);
+
+            --text-primary:   #F8FAFC;
+            --text-secondary: #CBD5E1;
+            --text-tertiary:  #64748B;
+
+            --font-heading: 'Poppins', 'Nunito', sans-serif;
+            --font-body:    'Inter', 'DM Sans', system-ui, sans-serif;
+            --font-code:    'JetBrains Mono', 'Fira Code', monospace;
+
+            --text-xs:   12px;
+            --text-sm:   14px;
+            --text-base: 16px;
+            --text-md:   20px;
+            --text-lg:   24px;
+            --text-xl:   32px;
+            --text-2xl:  48px;
+            --text-3xl:  64px;
+
+            --space-1:  4px;
+            --space-2:  8px;
+            --space-3:  12px;
+            --space-4:  16px;
+            --space-5:  20px;
+            --space-6:  24px;
+            --space-8:  32px;
+            --space-10: 40px;
+            --space-12: 48px;
+            --space-16: 64px;
+
+            --radius-sm:  8px;
+            --radius-md:  12px;
+            --radius-lg:  16px;
+            --radius-xl:  24px;
+            --radius-full: 999px;
+
+            --glass-bg: rgba(15, 6, 24, 0.6);
+
+            --color-success: #4ade80;
+            --color-warning: #fbbf24;
+            --color-error:   #f87171;
+            --color-info:    #22D3EE;
+
+            --color-success-bg: rgba(74, 222, 128, 0.1);
+            --color-warning-bg: rgba(251, 191, 36, 0.1);
+            --color-error-bg:   rgba(248, 113, 113, 0.1);
+            --color-info-bg:    rgba(34, 211, 238, 0.1);
+
+            --shadow-sm: 0 1px 4px rgba(0, 0, 0, 0.5);
+            --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.6);
+            --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.7);
+        }
+
+        /* ─── Reset & Base ───────────────────────────────────────────── */
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            background-color: var(--surface-base);
+            background-image:
+                radial-gradient(ellipse 80% 60% at 20% -10%, rgba(168, 85, 247, 0.12) 0%, transparent 60%),
+                radial-gradient(ellipse 60% 50% at 80% 110%, rgba(244, 114, 182, 0.08) 0%, transparent 60%);
+            color: var(--text-primary);
+            font-family: var(--font-body);
+            font-size: var(--text-base);
+            line-height: 1.6;
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        h1, h2, h3, h4, h5, h6 {
+            font-family: var(--font-heading);
+            line-height: 1.2;
+        }
+
+        /* ─── Layout ─────────────────────────────────────────────────── */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 var(--space-6);
+        }
+
+        section {
+            padding: var(--space-16) 0;
+        }
+
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-8); }
+        .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-8); }
+        .col-span-2 { grid-column: span 2; }
+
+        @media (max-width: 900px) {
+            .grid-2 { grid-template-columns: 1fr; }
+            .grid-3 { grid-template-columns: 1fr; }
+            .col-span-2 { grid-column: span 1; }
+        }
+
+        /* ─── Glass Card ─────────────────────────────────────────────── */
+        .card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--border-primary);
+            border-radius: var(--radius-lg);
+            padding: var(--space-8);
+            transition: border-color 200ms ease, box-shadow 200ms ease;
+        }
+
+        .card:hover {
+            border-color: var(--border-active);
+            box-shadow: var(--glow-subtle);
+        }
+
+        /* ─── Typography ─────────────────────────────────────────────── */
+        .gradient-text {
+            background: var(--gradient-accent);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .section-title {
+            font-size: var(--text-xl);
+            font-weight: 700;
+            text-align: center;
+            margin-bottom: var(--space-10);
+        }
+
+        .card-title {
+            font-size: var(--text-md);
+            font-weight: 600;
+            color: var(--accent-primary);
+            margin-bottom: var(--space-4);
+        }
+
+        /* ─── Badges ─────────────────────────────────────────────────── */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: var(--space-1) var(--space-4);
+            border-radius: var(--radius-full);
+            font-family: var(--font-body);
+            font-size: var(--text-sm);
+            font-weight: 500;
+            letter-spacing: 0.03em;
+            backdrop-filter: blur(4px);
+        }
+
+        .badge--purple  { background: rgba(168, 85, 247, 0.12); color: var(--accent-primary);   border: 1px solid rgba(168, 85, 247, 0.3); }
+        .badge--cyan    { background: rgba(34, 211, 238, 0.12);  color: var(--accent-cyan);      border: 1px solid rgba(34, 211, 238, 0.3); }
+        .badge--pink    { background: rgba(244, 114, 182, 0.12); color: var(--accent-secondary); border: 1px solid rgba(244, 114, 182, 0.3); }
+        .badge--success { background: var(--color-success-bg);   color: var(--color-success);    border: 1px solid rgba(74, 222, 128, 0.3); }
+        .badge--warning { background: var(--color-warning-bg);   color: var(--color-warning);    border: 1px solid rgba(251, 191, 36, 0.3); }
+
+        /* ─── Lists ──────────────────────────────────────────────────── */
+        ul, ol { padding-left: var(--space-6); }
+
+        ul li, ol li {
+            color: var(--text-secondary);
+            margin-bottom: var(--space-2);
+            font-size: var(--text-base);
+            line-height: 1.6;
+        }
+
+        ul li::marker { color: var(--accent-primary); }
+        ol li::marker { color: var(--accent-cyan); font-weight: 600; }
+
+        li strong { color: var(--text-primary); }
+
+        /* ─── Table ──────────────────────────────────────────────────── */
+        .table-wrapper {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border-primary);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: var(--space-4) var(--space-6);
+            text-align: left;
+            border-bottom: 1px solid var(--border-primary);
+            font-size: var(--text-base);
+        }
+
+        th {
+            background: rgba(168, 85, 247, 0.08);
+            font-family: var(--font-heading);
+            font-weight: 600;
+            color: var(--text-primary);
+            text-transform: uppercase;
+            font-size: var(--text-xs);
+            letter-spacing: 0.08em;
+        }
+
+        td { color: var(--text-secondary); }
+        td strong { color: var(--text-primary); }
+
+        tr:last-child td { border-bottom: none; }
+
+        tr:hover td { background: rgba(168, 85, 247, 0.04); }
+
+        td ul { padding-left: var(--space-5); }
+        td ul li { font-size: var(--text-sm); margin-bottom: var(--space-1); }
+
+        /* ─── Code Block ─────────────────────────────────────────────── */
+        .code-block {
+            background: rgba(9, 3, 18, 0.8);
+            border: 1px solid var(--border-primary);
+            border-radius: var(--radius-md);
+            padding: var(--space-6);
+            overflow-x: auto;
+            font-family: var(--font-code);
+            font-size: 13px;
+            line-height: 1.7;
+            color: var(--text-secondary);
+        }
+
+        .code-block .method-get    { color: var(--color-success); font-weight: 600; }
+        .code-block .method-post   { color: var(--accent-cyan); font-weight: 600; }
+        .code-block .method-put    { color: var(--color-warning); font-weight: 600; }
+        .code-block .endpoint      { color: var(--accent-primary); }
+        .code-block .value         { color: #fbbf24; }
+        .code-block .table-name    { color: var(--accent-primary); }
+        .code-block .comment       { color: var(--text-tertiary); font-style: italic; }
+
+        /* ─── Header ─────────────────────────────────────────────────── */
+        header {
+            text-align: center;
+            padding: var(--space-16) 0 var(--space-12);
+        }
+
+        .header-title {
+            font-size: clamp(42px, 8vw, var(--text-3xl));
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            margin-bottom: var(--space-4);
+            text-shadow: 0 0 40px rgba(168, 85, 247, 0.3);
+        }
+
+        .header-sub {
+            font-size: var(--text-md);
+            color: var(--text-secondary);
+            margin-bottom: var(--space-8);
+            font-weight: 400;
+        }
+
+        .header-badges {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: var(--space-3);
+        }
+
+        /* ─── Divider Line ───────────────────────────────────────────── */
+        .divider {
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--border-active), transparent);
+            margin: 0;
+        }
+
+        /* ─── Timeline ───────────────────────────────────────────────── */
+        .timeline {
+            position: relative;
+            padding-left: var(--space-10);
+        }
+
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: linear-gradient(180deg, var(--accent-primary), var(--accent-secondary), var(--accent-cyan));
+            border-radius: var(--radius-full);
+        }
+
+        .timeline-item {
+            position: relative;
+            margin-bottom: var(--space-10);
+        }
+
+        .timeline-item:last-child { margin-bottom: 0; }
+
+        .timeline-dot {
+            position: absolute;
+            left: calc(-1 * var(--space-10) - 7px);
+            top: var(--space-5);
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: var(--accent-primary);
+            box-shadow: var(--glow-subtle);
+            animation: pulseDot 2s ease-in-out infinite;
+        }
+
+        @keyframes pulseDot {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(168, 85, 247, 0.4); }
+            50%       { box-shadow: 0 0 0 6px rgba(168, 85, 247, 0); }
+        }
+
+        .timeline-phase {
+            font-size: var(--text-md);
+            font-weight: 600;
+            font-family: var(--font-heading);
+            color: var(--accent-primary);
+            margin-bottom: var(--space-2);
+        }
+
+        .timeline-desc {
+            color: var(--text-secondary);
+            margin-bottom: var(--space-3);
+        }
+
+        /* ─── Goal Card Icon ─────────────────────────────────────────── */
+        .goal-icon {
+            font-size: 40px;
+            margin-bottom: var(--space-4);
+            display: block;
+        }
+
+        /* ─── Stat Highlight ─────────────────────────────────────────── */
+        .stat-highlight {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        /* ─── OWASP Grid ─────────────────────────────────────────────── */
+        .owasp-col { list-style: none; padding: 0; }
+        .owasp-col li {
+            padding: var(--space-3) 0;
+            border-bottom: 1px solid var(--border-primary);
+            font-size: var(--text-base);
+        }
+        .owasp-col li:last-child { border-bottom: none; }
+
+        .owasp-key {
+            font-family: var(--font-heading);
+            font-weight: 600;
+            color: var(--accent-cyan);
+            display: inline;
+        }
+
+        /* ─── Animated gradient border (hero card) ───────────────────── */
+        .glow-card {
+            position: relative;
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-radius: var(--radius-lg);
+            padding: var(--space-8);
+            overflow: hidden;
+        }
+
+        .glow-card::before {
+            content: '';
+            position: absolute;
+            inset: -1px;
+            border-radius: var(--radius-lg);
+            background: var(--gradient-accent);
+            z-index: -1;
+            opacity: 0.4;
+        }
+
+        .glow-card::after {
+            content: '';
+            position: absolute;
+            inset: 1px;
+            border-radius: calc(var(--radius-lg) - 1px);
+            background: rgba(15, 6, 24, 0.9);
+            z-index: -1;
+        }
+
+        /* ─── Fade-in animation ──────────────────────────────────────── */
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(24px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        .fade-in { animation: fadeInUp 0.5s ease-out forwards; }
+        .delay-1 { animation-delay: 0.1s; opacity: 0; }
+        .delay-2 { animation-delay: 0.2s; opacity: 0; }
+        .delay-3 { animation-delay: 0.3s; opacity: 0; }
+        .delay-4 { animation-delay: 0.4s; opacity: 0; }
+        .delay-5 { animation-delay: 0.5s; opacity: 0; }
+        .delay-6 { animation-delay: 0.6s; opacity: 0; }
+        .delay-7 { animation-delay: 0.7s; opacity: 0; }
+        .delay-8 { animation-delay: 0.8s; opacity: 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+
+        <!-- ── Header ──────────────────────────────────────────────── -->
+        <header class="fade-in">
+            <h1 class="header-title gradient-text">
+                AI Assessment App v3.1.0
+            </h1>
+            <p class="header-sub">Product Requirements Document — INT Inc.</p>
+            <div class="header-badges">
+                <span class="badge badge--purple">Version 1.0</span>
+                <span class="badge badge--cyan">Jan 20, 2026</span>
+                <span class="badge badge--pink">Engineering · Design · QA</span>
+            </div>
+        </header>
+
+        <div class="divider"></div>
+
+        <main>
+
+            <!-- ── Executive Summary ────────────────────────────────── -->
+            <section class="fade-in delay-1" id="executive-summary">
+                <h2 class="section-title gradient-text">Executive Summary</h2>
+                <div class="glow-card">
+                    <p style="color: var(--text-secondary); font-size: var(--text-md); line-height: 1.7;">
+                        The INT Inc. AI Assessment App v3.1.0 is a strategic enterprise application designed to centralize, standardize, and manage the implications and compliance of Artificial Intelligence (AI) initiatives across INT Inc. departments — Operations, Finance & Accounting, HR, and Legal/Compliance. It empowers stakeholders to conduct thorough assessments, mitigate risks, ensure regulatory adherence, and foster responsible AI adoption. The app improves decision-making, enhances operational efficiency, and provides a clear view of the organization's AI landscape by consolidating AI-related data and processes into a single source of truth.
+                    </p>
+                </div>
+            </section>
+
+            <!-- ── Problem Statement ─────────────────────────────────── -->
+            <section class="fade-in delay-2" id="problem-statement">
+                <h2 class="section-title gradient-text">Problem Statement & User Impact</h2>
+                <div class="grid-2">
+                    <div class="card">
+                        <h3 class="card-title">The Challenge</h3>
+                        <p style="color: var(--text-secondary); margin-bottom: var(--space-5);">INT Inc.'s increasing AI integration presents challenges in consistently assessing, managing, and ensuring compliance across departments due to fragmented, manual, and siloed processes.</p>
+                        <ul>
+                            <li><strong>Inconsistent Assessments:</strong> Varied quality and incomplete data due to lack of a unified framework.</li>
+                            <li><strong>Compliance Gaps:</strong> Difficulty tracking AI regulations and internal policies, increasing non-compliance and reputational risk.</li>
+                            <li><strong>Operational Inefficiencies:</strong> Significant manual effort for data collection, analysis, and reporting.</li>
+                            <li><strong>Lack of Centralized Visibility:</strong> Stakeholders lack a comprehensive, real-time view of AI initiatives, hindering strategic planning.</li>
+                        </ul>
+                    </div>
+                    <div class="card">
+                        <h3 class="card-title">User Impact</h3>
+                        <ul>
+                            <li><strong>Operations Managers:</strong> Struggle with understanding AI efficiency, resource implications, and assessment progress.</li>
+                            <li><strong>Finance & Accounting Teams:</strong> Lack visibility into AI project costs, ROI, and financial risks.</li>
+                            <li><strong>HR Professionals:</strong> Challenged to assess AI's impact on workforce planning, job roles, training, and ethics.</li>
+                            <li><strong>Legal & Compliance Officers:</strong> Face difficulties defining, monitoring, and enforcing AI governance and data privacy.</li>
+                            <li><strong>Senior Leadership:</strong> Lacks a holistic dashboard for AI maturity, risk exposure, and strategic alignment.</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ── Goals ─────────────────────────────────────────────── -->
+            <section class="fade-in delay-3" id="goals">
+                <h2 class="section-title gradient-text">Goals & Success Metrics</h2>
+                <div class="grid-3">
+                    <div class="card">
+                        <span class="goal-icon">🎯</span>
+                        <h3 class="card-title">Streamline & Standardize</h3>
+                        <p style="color: var(--text-secondary); margin-bottom: var(--space-4); font-size: var(--text-sm);">AI Assessment Processes</p>
+                        <ol>
+                            <li><span class="stat-highlight">Reduce data collection time 30%</span> within 6 months.</li>
+                            <li><span class="stat-highlight">Achieve 90% completion rate</span> for mandatory assessments.</li>
+                            <li><span class="stat-highlight">Increase user satisfaction 20%</span> within 9 months.</li>
+                        </ol>
+                    </div>
+                    <div class="card">
+                        <span class="goal-icon">🛡️</span>
+                        <h3 class="card-title">Enhance Governance & Risk</h3>
+                        <p style="color: var(--text-secondary); margin-bottom: var(--space-4); font-size: var(--text-sm);">Management & Compliance</p>
+                        <ol>
+                            <li><span class="stat-highlight">Implement 100% of critical checks</span> in V1 release.</li>
+                            <li><span class="stat-highlight">Decrease compliance violations 25%</span> year-over-year.</li>
+                            <li><span class="stat-highlight">Provide comprehensive audit trail</span> meeting requirements.</li>
+                        </ol>
+                    </div>
+                    <div class="card">
+                        <span class="goal-icon">🤝</span>
+                        <h3 class="card-title">Improve Visibility & Collaboration</h3>
+                        <p style="color: var(--text-secondary); margin-bottom: var(--space-4); font-size: var(--text-sm);">on AI Initiatives</p>
+                        <ol>
+                            <li><span class="stat-highlight">Increase active user engagement 50%</span> within 6 months.</li>
+                            <li><span class="stat-highlight">Reduce ad-hoc reporting requests 40%</span> within the first year.</li>
+                        </ol>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ── User Stories ───────────────────────────────────────── -->
+            <section class="fade-in delay-4" id="user-stories">
+                <h2 class="section-title gradient-text">User Stories & Acceptance Criteria</h2>
+                <div class="card" style="padding: 0;">
+                    <div class="table-wrapper">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th style="width: 30%;">User Story</th>
+                                    <th style="width: 70%;">Acceptance Criteria</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><strong>AI Project Lead</strong> — Submit new AI project for assessment.</td>
+                                    <td>
+                                        <ul>
+                                            <li>Initiate new project assessment form.</li>
+                                            <li>Form includes project name, description, module ownership, initial scope.</li>
+                                            <li>Project marked "Pending Assessment" upon submission.</li>
+                                            <li>Relevant module owners notified.</li>
+                                        </ul>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Operations Manager</strong> — View AI project status under my domain.</td>
+                                    <td>
+                                        <ul>
+                                            <li>Dashboard shows AI projects owned by/relevant to Operations.</li>
+                                            <li>Project displays current assessment status (Pending, In Progress, Completed, Flagged).</li>
+                                            <li>Filter projects by status, due date, assigned assessor.</li>
+                                        </ul>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Legal/Compliance Officer</strong> — Define and apply compliance rules to AI projects.</td>
+                                    <td>
+                                        <ul>
+                                            <li>Create, edit, archive compliance rules (name, description, severity, modules).</li>
+                                            <li>Link rules to assessment questions or project types.</li>
+                                            <li>System flags non-compliant answers or project attributes.</li>
+                                        </ul>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><strong>HR Specialist</strong> — Access assessments related to AI's workforce impact.</td>
+                                    <td>
+                                        <ul>
+                                            <li>View specific assessment sections on HR impact (job displacement, skill gaps, training).</li>
+                                            <li>Filter HR findings by project and department.</li>
+                                            <li>Generate summary reports on workforce impact.</li>
+                                        </ul>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Finance Controller</strong> — Review financial implications of AI projects.</td>
+                                    <td>
+                                        <ul>
+                                            <li>View project budget vs. actuals (if integrated).</li>
+                                            <li>See financial assessment results (cost savings, ROI projections).</li>
+                                            <li>Export financial data for AI projects.</li>
+                                        </ul>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Assessor</strong> — Complete assigned assessment questionnaires.</td>
+                                    <td>
+                                        <ul>
+                                            <li>View list of assigned assessments.</li>
+                                            <li>Access and fill out dynamic questionnaires (text, number, multiple choice).</li>
+                                            <li>Save progress and submit completed assessment.</li>
+                                            <li>Input validation prevents incomplete form submission.</li>
+                                        </ul>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><strong>System Administrator</strong> — Manage user roles and permissions.</td>
+                                    <td>
+                                        <ul>
+                                            <li>Add, edit, deactivate user accounts.</li>
+                                            <li>Assign predefined roles (Project Lead, Assessor, Admin, Viewer).</li>
+                                            <li>RBAC enforced across the application.</li>
+                                        </ul>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Authorized User</strong> — View audit trail of changes.</td>
+                                    <td>
+                                        <ul>
+                                            <li>Access log showing who made what changes, to which entity, and when.</li>
+                                            <li>Audit logs are immutable with timestamps and user identifiers.</li>
+                                            <li>Audit trail is searchable and filterable.</li>
+                                        </ul>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ── Technical Requirements ─────────────────────────────── -->
+            <section class="fade-in delay-5" id="technical-requirements">
+                <h2 class="section-title gradient-text">Technical Requirements</h2>
+                <div class="grid-2" style="margin-bottom: var(--space-8);">
+                    <div class="card">
+                        <h3 class="card-title">Frontend</h3>
+                        <p style="color: var(--text-secondary); margin-bottom: var(--space-5);">React-first, TypeScript throughout, zero runtime type surprises:</p>
+                        <ul>
+                            <li><strong>Next.js (App Router)</strong> — SSR/SSG + API Routes</li>
+                            <li><strong>TypeScript</strong> — Strict mode, end-to-end typing</li>
+                            <li><strong>React</strong> — Component layer, hooks-based state</li>
+                            <li><strong>Recharts</strong> — Data visualization for dashboards and reports</li>
+                        </ul>
+                    </div>
+                    <div class="card">
+                        <h3 class="card-title">Backend & Infrastructure</h3>
+                        <p style="color: var(--text-secondary); margin-bottom: var(--space-5);">Serverless-first with enforced RLS at the data layer:</p>
+                        <ul>
+                            <li><strong>Supabase</strong> — PostgreSQL, Auth, pgvector, RLS, Realtime, Storage</li>
+                            <li><strong>Upstash Redis</strong> — Session caching, rate limiting, job queues</li>
+                            <li><strong>Vercel</strong> — Deployment, serverless functions, edge middleware</li>
+                            <li><strong>Cloudflare Workers</strong> — AI proxy layer; keeps provider keys server-side</li>
+                        </ul>
+                    </div>
+                    <div class="card">
+                        <h3 class="card-title">AI Layer</h3>
+                        <p style="color: var(--text-secondary); margin-bottom: var(--space-5);">Claude as the silent OS; Gemini as fallback; all calls proxied through Cloudflare:</p>
+                        <ul>
+                            <li><strong>Claude (Anthropic)</strong> — Primary LLM for assessment assist, summarization, compliance flagging</li>
+                            <li><strong>Gemini</strong> — Fallback provider; cost-optimized for high-volume batch tasks</li>
+                            <li><strong>pgvector (Supabase)</strong> — Semantic search over assessment history and compliance rules</li>
+                        </ul>
+                    </div>
+                    <div class="card">
+                        <h3 class="card-title">Observability & Ops</h3>
+                        <p style="color: var(--text-secondary); margin-bottom: var(--space-5);">Full-stack visibility from user event to LLM trace:</p>
+                        <ul>
+                            <li><strong>PostHog</strong> — Product analytics, feature flags, session replay</li>
+                            <li><strong>LangSmith</strong> — LLM call tracing, prompt versioning, eval pipelines</li>
+                            <li><strong>Stripe</strong> — Billing hooks if external licensing is introduced post-V1</li>
+                            <li><strong>n8n</strong> — Notification workflows, assessment reminders, webhook automations</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- API Endpoints -->
+                <div class="card" style="margin-bottom: var(--space-8);">
+                    <h3 class="card-title">Proposed API Endpoints</h3>
+                    <p style="color: var(--text-secondary); margin-bottom: var(--space-5);">RESTful, served via Next.js API Routes. Authentication via Supabase Auth + Next.js middleware.</p>
+                    <div class="code-block">
+<pre><code><span class="method-post">POST</span> <span class="endpoint">/api/auth/login</span>
+  Request:  <span class="value">{ email: string, password: string }</span>
+  Response: <span class="value">{ access_token, refresh_token, user }</span>
+
+<span class="method-get">GET</span>  <span class="endpoint">/api/projects</span>
+  Params:   <span class="value">status, module_id, search</span>
+  Response: <span class="value">[{ id, name, description, status, ... }]</span>
+
+<span class="method-post">POST</span> <span class="endpoint">/api/projects</span>
+  Request:  <span class="value">{ name, description, module_owner_id, ... }</span>
+  Response: <span class="value">{ id, ... }</span>
+
+<span class="method-put">PUT</span>  <span class="endpoint">/api/assessments/[id]/answer</span>
+  Request:  <span class="value">{ question_id, answer_value }</span>
+  Response: <span class="value">{ message: "Answer saved" }</span>
+
+<span class="method-get">GET</span>  <span class="endpoint">/api/compliance/rules</span>
+  Response: <span class="value">[{ id, name, description, severity, ... }]</span>
+
+<span class="method-get">GET</span>  <span class="endpoint">/api/reports/summary</span>
+  Response: <span class="value">{ ...summary_data }</span>
+</code></pre>
+                    </div>
+                </div>
+
+                <!-- Schema -->
+                <div class="card">
+                    <h3 class="card-title">Proposed Data Models — Supabase PostgreSQL</h3>
+                    <p style="color: var(--text-secondary); margin-bottom: var(--space-5);">Key tables and primary fields:</p>
+                    <div class="code-block">
+<pre><code><span class="table-name">users</span>               id, email, created_at, updated_at
+<span class="table-name">user_profiles</span>       id (PK, FK), full_name, role_id (FK), department
+<span class="table-name">roles</span>               id (PK), name (UNIQUE), permissions (JSONB)
+<span class="table-name">ai_projects</span>         id (PK), name, description, status, module_owner_id (FK), created_by (FK)
+<span class="table-name">assessments</span>         id (PK), project_id (FK), assessment_template_id (FK), status, assigned_to_user_id (FK)
+<span class="table-name">assessment_templates</span> id (PK), name, description, target_module_id (FK)
+<span class="table-name">assessment_questions</span> id (PK), section_id (FK), question_text, question_type, options (JSONB)
+<span class="table-name">question_answers</span>    id (PK), assessment_id (FK), question_id (FK), answer_value, answered_by (FK)
+<span class="table-name">compliance_rules</span>    id (PK), name, description, severity, module_id (FK), enforcement_logic (JSONB)
+<span class="table-name">compliance_violations</span> id (PK), rule_id (FK), project_id (FK), assessment_id (FK), violation_details
+<span class="table-name">audit_logs</span>          id (PK), user_id (FK), action, entity_type, entity_id, old_value (JSONB), new_value (JSONB), timestamp
+</code></pre>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ── Non-Functional Requirements ───────────────────────── -->
+            <section class="fade-in delay-5" id="non-functional-requirements">
+                <h2 class="section-title gradient-text">Non-Functional Requirements</h2>
+                <div class="grid-3">
+                    <div class="card">
+                        <h3 class="card-title">Performance</h3>
+                        <ul>
+                            <li>API response times &lt; 200ms (90th percentile)</li>
+                            <li>Page load times &lt; 2s for core views</li>
+                            <li>Reporting queries &lt; 5s</li>
+                        </ul>
+                    </div>
+                    <div class="card">
+                        <h3 class="card-title">Security</h3>
+                        <ul>
+                            <li>OWASP Top 10 adherence</li>
+                            <li>Data encrypted at rest & in transit (TLS 1.2+)</li>
+                            <li>Strict RBAC via Supabase RLS</li>
+                            <li>Regular security audits</li>
+                        </ul>
+                    </div>
+                    <div class="card">
+                        <h3 class="card-title">Scalability</h3>
+                        <ul>
+                            <li>Support 1,000 concurrent active users</li>
+                            <li>Database capacity for 1TB within year 1</li>
+                            <li>Horizontal scaling via Vercel</li>
+                        </ul>
+                    </div>
+                    <div class="card">
+                        <h3 class="card-title">Reliability & Availability</h3>
+                        <ul>
+                            <li>Target 99.9% uptime SLA</li>
+                            <li>Robust error logging & monitoring</li>
+                            <li>Automated daily database backups</li>
+                        </ul>
+                    </div>
+                    <div class="card">
+                        <h3 class="card-title">Usability & Accessibility</h3>
+                        <ul>
+                            <li>Intuitive UI/UX across all user roles</li>
+                            <li>Responsive design for all devices</li>
+                            <li>WCAG 2.1 AA adherence where feasible</li>
+                        </ul>
+                    </div>
+                    <div class="card">
+                        <h3 class="card-title">Maintainability</h3>
+                        <ul>
+                            <li>Clean, well-documented codebase</li>
+                            <li>Automated testing (unit, integration, E2E)</li>
+                            <li>Easy deployment & rollback via Vercel</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ── Timeline ──────────────────────────────────────────── -->
+            <section class="fade-in delay-6" id="timeline">
+                <h2 class="section-title gradient-text">Timeline & Milestones</h2>
+                <div class="timeline">
+                    <div class="timeline-item">
+                        <div class="timeline-dot"></div>
+                        <div class="card">
+                            <h3 class="timeline-phase">Phase 0 — Planning & Setup (Weeks 1–2)</h3>
+                            <p class="timeline-desc">Finalize PRD/mockups, setup Supabase/Vercel/Next.js, basic auth, initial schema.</p>
+                            <span class="badge badge--success">Target: Project Kickoff</span>
+                        </div>
+                    </div>
+                    <div class="timeline-item">
+                        <div class="timeline-dot"></div>
+                        <div class="card">
+                            <h3 class="timeline-phase">Phase 1 — MVP (Weeks 3–10)</h3>
+                            <p class="timeline-desc">Core app shell, AI Project Management (CRUD), Basic Assessment Workflow, User/Role Management, CI/CD setup.</p>
+                            <span class="badge badge--success">Target: Internal Dogfooding</span>
+                        </div>
+                    </div>
+                    <div class="timeline-item">
+                        <div class="timeline-dot"></div>
+                        <div class="card">
+                            <h3 class="timeline-phase">Phase 2 — Beta Release (Weeks 11–18)</h3>
+                            <p class="timeline-desc">Operations Module integration, Legal/Compliance Module (rules, violations), Initial Reporting, Notifications.</p>
+                            <span class="badge badge--warning">Target: Broader Internal Beta</span>
+                        </div>
+                    </div>
+                    <div class="timeline-item">
+                        <div class="timeline-dot"></div>
+                        <div class="card">
+                            <h3 class="timeline-phase">Phase 3 — Version 1.0 GA (Weeks 19–26)</h3>
+                            <p class="timeline-desc">Finance & Accounting Module, HR Module, Advanced Reporting/Analytics, Audit Logging, Performance Optimizations, Security Audit.</p>
+                            <span class="badge badge--cyan">Target: General Availability</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ── Dependencies & Risks ──────────────────────────────── -->
+            <section class="fade-in delay-7" id="dependencies-risks">
+                <h2 class="section-title gradient-text">Dependencies & Risks</h2>
+                <div class="grid-2">
+                    <div class="card">
+                        <h3 class="card-title">Dependencies</h3>
+                        <ul>
+                            <li>Internal Stakeholder Engagement — Timely input from Legal/Compliance, HR, Finance, Operations.</li>
+                            <li>Supabase Stability & Features — Reliance on Supabase backend services.</li>
+                            <li>Vercel Platform — Dependence on Vercel infrastructure.</li>
+                            <li>Security Review & Compliance Team — Clear internal security policies and external regulatory guidelines.</li>
+                            <li>Design & UX Team — Availability for designs and flows.</li>
+                            <li>IT Infrastructure — Cooperation for network configurations or integrations.</li>
+                        </ul>
+                    </div>
+                    <div class="card">
+                        <h3 class="card-title">Risks & Mitigation</h3>
+                        <ul>
+                            <li><strong>Scope Creep:</strong> Strict adherence to "Out of Scope," clear prioritization.</li>
+                            <li><strong>Data Migration Complexity:</strong> Dedicated migration strategy, thorough testing.</li>
+                            <li><strong>Security Vulnerabilities:</strong> Secure coding practices, regular reviews, external penetration testing.</li>
+                            <li><strong>Performance Bottlenecks:</strong> Proactive performance testing, query optimization, Supabase scaling.</li>
+                            <li><strong>Integration Challenges:</strong> Loose coupling design, well-defined APIs, early research.</li>
+                            <li><strong>User Adoption:</strong> User involvement in design, comprehensive training, iterative feedback.</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ── Out of Scope ───────────────────────────────────────── -->
+            <section class="fade-in delay-7" id="out-of-scope">
+                <h2 class="section-title gradient-text">Out of Scope</h2>
+                <div class="card">
+                    <p style="color: var(--text-secondary); margin-bottom: var(--space-5);">To maintain focus for V1, the following features are explicitly out of scope:</p>
+                    <ul>
+                        <li>Direct AI model performance evaluation.</li>
+                        <li>Integration with external AI/MLOps platforms.</li>
+                        <li>Advanced NLP/Generative AI features within the app itself.</li>
+                        <li>Full multi-tenancy for external clients.</li>
+                        <li>Mobile native applications (iOS/Android).</li>
+                        <li>Direct real-time integration with INT Inc.'s core ERP/accounting systems.</li>
+                        <li>Advanced workflow automation engines.</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- ── Security Considerations ───────────────────────────── -->
+            <section class="fade-in delay-8" id="security-considerations">
+                <h2 class="section-title gradient-text">Security Considerations</h2>
+                <div class="glow-card">
+                    <p style="color: var(--text-secondary); margin-bottom: var(--space-8);">Leveraging Next.js, Supabase, and Vercel — adherence to OWASP Top 10 is a hard requirement, not a guideline:</p>
+                    <div class="grid-2">
+                        <ul class="owasp-col">
+                            <li><span class="owasp-key">A01 Broken Access Control:</span> <span style="color: var(--text-secondary);">Strict RBAC via Supabase RLS.</span></li>
+                            <li><span class="owasp-key">A02 Cryptographic Failures:</span> <span style="color: var(--text-secondary);">TLS 1.2+, Supabase encryption at rest.</span></li>
+                            <li><span class="owasp-key">A03 Injection:</span> <span style="color: var(--text-secondary);">Parameterized queries, input sanitization.</span></li>
+                            <li><span class="owasp-key">A04 Insecure Design:</span> <span style="color: var(--text-secondary);">"Secure by design" approach, threat modeling.</span></li>
+                            <li><span class="owasp-key">A05 Security Misconfiguration:</span> <span style="color: var(--text-secondary);">Proper RLS, secure deployment config.</span></li>
+                        </ul>
+                        <ul class="owasp-col">
+                            <li><span class="owasp-key">A06 Vulnerable Components:</span> <span style="color: var(--text-secondary);">Regular dependency updates, Snyk scanning.</span></li>
+                            <li><span class="owasp-key">A07 Authentication Failures:</span> <span style="color: var(--text-secondary);">Full Supabase Auth, robust session management.</span></li>
+                            <li><span class="owasp-key">A08 Data Integrity Failures:</span> <span style="color: var(--text-secondary);">Input validation, database constraints.</span></li>
+                            <li><span class="owasp-key">A09 Logging & Monitoring:</span> <span style="color: var(--text-secondary);">Comprehensive event logging and monitoring solutions.</span></li>
+                            <li><span class="owasp-key">A10 SSRF:</span> <span style="color: var(--text-secondary);">Rigorous URL validation for all external requests.</span></li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+
+        <div class="divider" style="margin: var(--space-12) 0 var(--space-8);"></div>
+        <footer style="text-align: center; color: var(--text-tertiary); font-size: var(--text-sm); padding-bottom: var(--space-12);">
+            INT Inc. AI Assessment App v3.1.0 PRD &nbsp;·&nbsp; FlashFusion Design System &nbsp;·&nbsp; Confidential Internal Document
+        </footer>
+
+    </div>
+</body>
+</html>

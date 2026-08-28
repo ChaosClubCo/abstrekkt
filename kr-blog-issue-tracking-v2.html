@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Issue Tracking Didn't Die. It Got Promoted. — Kyle Rosebrook</title>
+<meta name="description" content="Karri Saarinen eulogized the bug tracker in March. Then OpenAI shipped Symphony and Linear became a control plane. He was right about one thing and wrong about everything that follows from it."/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,SOFT,WONK@9..144,300..900,0..100,0..1&family=Crimson+Pro:ital,wght@0,300..600;1,300..600&family=JetBrains+Mono:wght@300;400&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --ink:#0a0907;
+  --paper:#f2efe9;
+  --paper-dim:#a09888;
+  --paper-faint:#6b6557;
+  --brass:#c4935a;
+  --brass-deep:#7a5a35;
+  --brass-faint:rgba(196,147,90,0.18);
+  --rule:rgba(255,255,255,0.06);
+  --rule-bright:rgba(196,147,90,0.25);
+  --measure:42rem;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{
+  background:var(--ink);
+  color:var(--paper);
+  font-family:'Crimson Pro',Georgia,serif;
+  font-size:1.225rem;
+  line-height:1.76;
+  min-height:100vh;
+  padding:4rem 1.5rem 6rem;
+}
+article{
+  max-width:var(--measure);
+  margin:0 auto;
+}
+.kicker{
+  font-family:'Fraunces',Georgia,serif;
+  font-size:11px;
+  letter-spacing:.15em;
+  text-transform:uppercase;
+  color:var(--brass);
+  margin-bottom:1.5rem;
+}
+h1{
+  font-family:'Fraunces',Georgia,serif;
+  font-size:clamp(2rem,5.5vw,2.75rem);
+  font-weight:500;
+  line-height:1.1;
+  color:#ede8df;
+  letter-spacing:-.022em;
+  margin-bottom:1.25rem;
+}
+.byline{
+  font-size:13px;
+  color:var(--paper-faint);
+  display:flex;
+  gap:8px;
+  align-items:center;
+  margin-bottom:2.75rem;
+}
+.byline .name{color:var(--brass);}
+hr.rule{
+  border:none;
+  border-top:1px solid rgba(255,255,255,0.06);
+  margin-bottom:2.75rem;
+}
+p{margin-bottom:1.65rem;}
+h2{
+  font-family:'Fraunces',Georgia,serif;
+  font-size:1.2rem;
+  font-weight:500;
+  color:#ede8df;
+  margin:3rem 0 1.1rem;
+  letter-spacing:-.01em;
+}
+.lede{
+  font-size:1.35rem;
+  line-height:1.62;
+  color:#c9c4bb;
+  margin-bottom:2rem;
+}
+strong{color:#ede8df;font-weight:600;}
+em{color:#c9c4bb;}
+blockquote{
+  border-left:2px solid var(--brass);
+  margin:2.25rem 0;
+  padding:.8rem 0 .8rem 1.5rem;
+  color:var(--brass);
+  font-style:italic;
+  font-size:1.15rem;
+  line-height:1.55;
+}
+.props{
+  background:#111009;
+  border:1px solid rgba(196,147,90,0.18);
+  border-radius:4px;
+  padding:1.5rem 1.75rem;
+  margin:2.25rem 0;
+}
+.props ol{
+  list-style:none;
+  counter-reset:props;
+  padding:0;
+}
+.props li{
+  counter-increment:props;
+  display:grid;
+  grid-template-columns:1.75rem 1fr;
+  gap:.25rem 0;
+  padding:.65rem 0;
+  border-bottom:1px solid rgba(255,255,255,0.04);
+  font-size:1.05rem;
+  color:#b5b0a8;
+  line-height:1.6;
+}
+.props li:last-child{border-bottom:none;}
+.props li::before{
+  content:counter(props);
+  color:var(--brass);
+  font-family:'Fraunces',Georgia,serif;
+  font-size:.85rem;
+  padding-top:.15rem;
+}
+.props li strong{color:#ede8df;}
+.callout{
+  background:#111009;
+  border:1px solid rgba(255,255,255,0.06);
+  border-left:2px solid var(--brass);
+  border-radius:0 4px 4px 0;
+  padding:1.25rem 1.5rem;
+  margin:2.25rem 0;
+  font-size:1.05rem;
+  color:#b5b0a8;
+  line-height:1.65;
+}
+.callout strong{color:var(--brass);}
+.diagnostic{
+  background:#111009;
+  border:1px solid rgba(255,255,255,0.06);
+  border-radius:4px;
+  padding:1.5rem 1.75rem;
+  margin:2.25rem 0;
+}
+.diagnostic p.label{
+  font-family:'Fraunces',Georgia,serif;
+  font-size:11px;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+  color:var(--brass);
+  margin-bottom:1rem;
+}
+.diagnostic ul{
+  list-style:none;
+  padding:0;
+}
+.diagnostic li{
+  display:grid;
+  grid-template-columns:1.4rem 1fr;
+  font-size:1.05rem;
+  color:#b5b0a8;
+  padding:.55rem 0;
+  border-bottom:1px solid rgba(255,255,255,0.04);
+  line-height:1.55;
+}
+.diagnostic li:last-child{border-bottom:none;}
+.diagnostic li::before{
+  content:'→';
+  color:var(--paper-faint);
+  font-size:.85rem;
+  padding-top:.1rem;
+}
+hr.footer-rule{
+  border:none;
+  border-top:1px solid rgba(255,255,255,0.06);
+  margin:4rem 0 2rem;
+}
+.footer-bio{
+  font-size:.9rem;
+  color:var(--paper-faint);
+  line-height:1.65;
+}
+.footer-bio strong{color:#7a7468;font-weight:500;}
+a{color:var(--brass);text-decoration:none;border-bottom:1px solid rgba(196,147,90,0.3);}
+a:hover{border-color:var(--brass);}
+</style>
+</head>
+<body>
+<article>
+
+  <div class="kicker">AI Infrastructure · May 2026</div>
+
+  <h1>Issue Tracking Didn't Die.<br>It Got Promoted.</h1>
+
+  <div class="byline">
+    <span class="name">Kyle Rosebrook</span>
+    <span>·</span>
+    <span>May 8, 2026</span>
+  </div>
+
+  <hr class="rule">
+
+  <p class="lede">In March, Karri Saarinen — the CEO of Linear, the company that spent a decade making issue tracking beautiful — declared the category dead. The argument was clean. Issue trackers were built for a world where human coordination was the bottleneck. Agents can read context directly. That translation step is friction. Eulogize it.</p>
+
+  <p>Then OpenAI shipped Symphony, and Linear became the literal control plane for the most ambitious autonomous coding system anyone had put in production. Teams using the integration reported significant jumps in shipped work. The thing Saarinen had just eulogized was now the substrate that made all of it function.</p>
+
+  <p>He was right about one thing. He was wrong about what that thing implied. And the gap between those two positions is where most enterprise software strategy is about to get repriced.</p>
+
+  <h2>What He Got Right</h2>
+
+  <p>The coordination layer is going away. The human updating a ticket so another human knows where something stands — that part is dead. Agents update their own state. They don't need a standup or a status field hand-typed by a developer who'd rather be coding.</p>
+
+  <p>Saarinen was looking at the thing that made issue trackers annoying — the manual overhead, the duplicate updates, the ceremony of keeping the board current — and correctly identified that agents eliminate it. That part of the thesis is sound.</p>
+
+  <h2>What He Got Wrong</h2>
+
+  <p>He conflated the coordination layer with the state layer. Those are different systems doing different jobs.</p>
+
+  <p>The coordination layer is the human work of keeping the tool current. That goes away. The state layer is the structured ground truth the coordination runs on top of. That doesn't go anywhere. It becomes more load-bearing, not less, because now something other than a human is reading it and acting on it without asking for clarification.</p>
+
+  <blockquote>The translation step is going away. The state machine is staying. Those aren't the same thing.</blockquote>
+
+  <p>Agents need external scaffolding for the same reason humans built it in the first place. No single participant — human or model — can hold the full state of a complex project in working memory. The ticket isn't the ceremony. The ticket is the persistent record that makes distributed coordination possible without everyone being in the same room at the same time.</p>
+
+  <h2>The Five Properties That Make a Tool Agent Infrastructure</h2>
+
+  <p>Not every software system is useful to an agent in the same way. Here's the actual diagnostic. Run it on anything in your stack.</p>
+
+  <div class="props">
+    <ol>
+      <li><strong>Structured state.</strong> Typed fields with defined transitions — not freeform text. An agent can read "status: blocked" and act on it. An agent cannot reliably parse "yeah so this is kind of on hold for now" from a comment thread.</li>
+      <li><strong>Audit history.</strong> A log of what changed, when, and who (or what) changed it. This is how an agent reconstructs context without a human briefing. Without history, every session starts from zero.</li>
+      <li><strong>Relationship modeling.</strong> This blocks that. This depends on that. This is a child of that. Agents traverse graphs. A flat list of tasks isn't a graph. A dependency tree is.</li>
+      <li><strong>API accessibility.</strong> Something other than a human can call it and get a structured response. Not a scraper. Not a webhook that fires into a void. An actual interface with predictable inputs and outputs.</li>
+      <li><strong>Permission scoping.</strong> The ability to define what an agent is allowed to read, write, and transition — without giving it keys to everything. This is what makes autonomous operation safe enough to actually deploy.</li>
+    </ol>
+  </div>
+
+  <p>Issue trackers built for serious engineering teams have all five. They accumulated these properties over twenty-five years of solving the human coordination problem. Agents have the same coordination problem. The infrastructure transfers.</p>
+
+  <h2>The UX Choice Was Actually a Data Choice</h2>
+
+  <p>Linear became the best agent substrate by accident. Saarinen spent a decade obsessing over clean interfaces, keyboard shortcuts, fast load times, and eliminating every unnecessary field. He wasn't designing for agents. He was designing for humans who were exhausted by Jira.</p>
+
+  <p>But the discipline that produced a clean UX also produced clean data. Consistent status taxonomy. Predictable schema. Minimal freeform fields. Every decision that made Linear feel fast to a developer also made it legible to an agent. Design taste accidentally became data hygiene.</p>
+
+  <p>This changes how tool selection works going forward. The question isn't just whether your team likes the interface. It's whether the data the tool produces is structured enough for something other than a human to act on. Those have always been correlated. They are not the same question, and the gap between them is now consequential.</p>
+
+  <h2>The Atlassian Angle</h2>
+
+  <p>Jira is the anti-Linear. Configurable to the point of incoherence. Documentation written in 2011 that somehow still governs enterprise IT. I work service desk. I have opinions about Jira that I'll spare you.</p>
+
+  <p>And yet Atlassian is one of the more interesting companies in this transition, for exactly the same reason Linear is. Decades of enterprise workflow data locked into a schema that agents can actually read. The MCP server they've shipped, the Anthropic partnership, the acquisition speculation that has been cycling through the analyst community — all of it makes more sense when you stop treating Jira's installed base as technical debt and start treating it as a strategic AI asset.</p>
+
+  <p>The cruft is a UX liability. The data is an infrastructure asset. Both of those things are true at the same time. The market is slowly figuring out that the second one outweighs the first.</p>
+
+  <h2>Which of Your Tools Survives</h2>
+
+  <p>Five questions. Run them on every system in your stack.</p>
+
+  <div class="diagnostic">
+    <p class="label">The Agent Infrastructure Diagnostic</p>
+    <ul>
+      <li>Does it store structured state — typed fields with defined transitions, not freeform notes?</li>
+      <li>Does it maintain history — a log of what changed, when, and what triggered the change?</li>
+      <li>Does it model relationships — this blocks that, this is a child of that?</li>
+      <li>Does it have an API something other than a human can call with a predictable response?</li>
+      <li>Does it have a permission model that can scope what an agent is allowed to do without giving it everything?</li>
+    </ul>
+  </div>
+
+  <p>CRMs score high if the data is clean — most aren't. ERPs score high on structure, inconsistently on API accessibility. Service desks hit all five by design; this is what they were built for. Calendars have structured state but almost no relationship modeling. Spreadsheets are the trap: they look structured because they're in rows and columns, but the schema lives in the user's head, not the file. An agent reading a spreadsheet is guessing at context a human left implicit.</p>
+
+  <div class="callout">
+    <strong>What I keep noticing:</strong> The tools that were "good enough" and never got replaced are often the ones with the cleanest underlying data. The fast-adopted shiny tool frequently optimized for the demo and neglected the audit trail. In an agentic stack, boring data hygiene beats impressive interfaces. That repricing is already happening.
+  </div>
+
+  <h2>What to Do About It</h2>
+
+  <p>Three things, in order of actual priority.</p>
+
+  <p><strong>Audit your data, not your interfaces.</strong> The question isn't whether your team likes the tool. It's whether the data it produces is structured enough to be agent-readable. If your CRM is 60% free-text notes from sales reps who write like they're texting, you don't have a CRM. You have an expensive place to store unstructured context no agent can reliably use.</p>
+
+  <p><strong>Build the MCP layer before you migrate.</strong> If a system has the right data but no API an agent can call, an MCP server is usually weeks of work, not months. You're not changing the source of truth — you're giving agents a door into it. That's almost always faster than a migration and carries a fraction of the risk.</p>
+
+  <p><strong>Treat schema discipline as a forward-looking decision.</strong> Every time someone adds a freeform field instead of a structured one, they're trading future agent leverage for present convenience. That's not always wrong. It should be a deliberate call, not a default. The teams that have clean schemas in 18 months will have a structural advantage over the ones that don't. Not because they planned for agents — because they had the discipline to build data worth acting on.</p>
+
+  <h2>The Actual Lesson</h2>
+
+  <p>Saarinen wasn't wrong about the direction. The coordination overhead — the human updating the ticket so the other human knows where things stand — that's going away. Agents update their own state. They close their own tickets. They don't need a status meeting.</p>
+
+  <p>He was wrong about the conclusion that follows from it. The coordination layer disappearing doesn't mean the state layer disappears with it. It means the state layer is now the thing that autonomous systems run on, which makes it more critical, not obsolete.</p>
+
+  <p>A bug tracker started this category in 1998. It survived because it was solving a real problem — distributed coordination without shared memory — that agents turn out to have in exactly the same form. The implementation changes. The underlying requirement doesn't.</p>
+
+  <p>Run the five questions on your stack. Figure out which of your tools just got promoted. The repricing is already underway.</p>
+
+  <hr class="footer-rule">
+
+  <p class="footer-bio"><strong>Kyle Rosebrook</strong> is a self-taught technician and builder based in Grayslake, IL. He writes about AI, operational infrastructure, and what it actually looks like to implement these tools outside a funded startup. He runs <a href="https://flashfusion.co">FlashFusion.co</a>, an AI enablement consultancy for small teams and growing businesses.</p>
+
+</article>
+</body>
+</html>

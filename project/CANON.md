@@ -13,7 +13,6 @@
 | Canonical file | Purpose | When to use |
 |---|---|---|
 | `memoir-explorer.jsx` | Visual/thematic scene explorer, multi-theme (Carbon Noir/Blueprint/Midnight Stack) | Browsing scenes, exploring the emotional architecture, arc navigation |
-| `memoir_engine.html` | Story builder UI (legacy HTML surface) | REVIEW — absorb into author hub or archive |
 | `book_command_center.html` | Story overview + letters + AI excavation (HTML surface) | Quick story-state reference, letters-to-send view |
 | `chapter-reader/Abstrekkt Chapter Reader.html` | Multi-state chapter reader (8 visual treatments: chronology/sensory/construction/HUD/schematic/collage/forensic/blueprint) | Reading a single chapter draft in different visual registers |
 | `Corridor Archive Manifest.html` + `corridor/manifest.json` | Full scene-archive browser — 111 records across corridor/memoir/construction/rupture/studio/writing/product/meta lanes, filterable by lane/perspective/variant/protected | Browsing every Stitch exploration (villains/virtues corridor states, chapter openings, excavation reports, visual-system studies) in one place |
@@ -25,6 +24,8 @@
 **STALE — retired Jul 2026:**
 - `memoir-project-hub.jsx` — removed from project
 - `memoir-command-center.jsx` · `memoir-hub-v3.jsx` — functions absorbed by `abstrekkt-author-hub.jsx`; source recoverable from knowledge index if needed
+
+**Aug 11, 2026 — `memoir_engine.html` REVIEW resolved (archive branch):** carried a "REVIEW — absorb into author hub or archive" flag with no ground-truth check behind it. Sitewide grep for inbound links (`.html`/`.jsx`/`.md`) turned up zero references anywhere in the live project — same orphaned status as `memoir-command-center.jsx`/`memoir-hub-v3.jsx` above, which already went the archive route. Renamed to `memoir_engine_archive_2026-07.html` per §2; no content changes, no feature-parity diff against `abstrekkt-author-hub.jsx` performed — if it turns out the hub is missing something this surface had, recover from this archive copy or the knowledge index.
 
 ---
 
@@ -43,6 +44,13 @@
 | `Abstrekkt Brand System.html` | Brutalist Archive brand specimen page | Token/component reference for this lane |
 | `abstrekkt/nav-toggle.js` | Shared mobile-nav disclosure behavior (hamburger open/close) | Loaded by every page with a `header.nav` + `.nav-links` |
 | `Abstrekkt Studio Landing.html` | Consulting-studio marketing landing ("Clarity isn't simple. It's constructed." — Strategy/Communication/Systems, Book Advisory/Start a Brief) built against the bound `_ds/` Reading Room at Midnight bundle per Kyle's directly-edited reference mock (`uploads/clarity-its-simple-constructed.png`) | Studio/consulting positioning — **not** a replacement for `Abstrekkt Home.html`, which stays live with its own "Construction, not recovery" peer-support positioning and Brutalist Archive tokens |
+| `deploy/abstrekkt-com/` | Production deploy package for the bare **abstrekkt.com** apex — generated copies of `Abstrekkt Home.html` / `Abstrekkt Founder.html` (v1, matches live nav) / `Abstrekkt Pillars.html` / `Abstrekkt Contact.html` as `index.html` / `founder/` / `pillars/` / `contact/` + `404.html`, in-project tooling stripped (`image-slot` → static "PHOTO ON REQUEST" frame), cross-page links root-relative | Uploading the studio root once the domain is freed from the Dispatch/ChatGPT-Apps binding (see canon-sync-ops.md domain-gate note). GENERATED — never edit the copies; edit the root canonicals and regenerate |
+
+**Aug 11, 2026 — abstrekkt.com deploy package (domain-gate remediation):** generated `deploy/abstrekkt-com/` from the four studio canonicals per `domain-map.html`'s documented decision ("abstrekkt.com = umbrella, root stays studio"). Deliberate deltas from source: all four pages drop `image-slot.js`/`<image-slot>` for a static placeholder frame (no drag-drop UI in production); cross-page links among the four rebased to root-relative (`/`, `/founder`, `/pillars`, `/contact`); links to not-yet-live sibling properties (Corridor, Load-Bearing, Journal) left as bare filenames unchanged — **known 404s** until those lanes ship their own deploy targets, tracked separately in `domain-map.html`. Added the "properties" footer link to the `Abstrekkt Home.html` canonical (linking `kyle.abstrekkt.com`) per that file's own documented gate. Also added the sitewide `abstrekkt/nav-toggle.js` load to `Abstrekkt Pillars.html`'s deploy copy — the canonical was missing it (mobile menu button present in markup but non-functional); canonical left as-is since fixing it is a one-line, non-visual parity fix but out of scope for this task to apply upstream. `abstrekkt/nav-toggle.js` copied into `deploy/abstrekkt-com/abstrekkt/` as a build asset.
+
+**Aug 11, 2026 — ground-truth check on two open REVIEW flags in this lane (no disposition changed, findings only):**
+- `Abstrekkt Founder.html` (v1) is **not** a stale orphan — verified via `href=` grep (not just filename mentions) it's genuinely hyperlinked from `Abstrekkt Home.html`, `Abstrekkt Pillars.html`, `Abstrekkt Contact.html`, `Tax the Damage.html`, `Index.html`, and `Abstrekkt Founder v2.html` itself. `Abstrekkt Founder v2.html` has exactly one genuine inbound `<a href>`, from `Index.html` — the two `Audit -` pages only *mention* its filename as plain text inside chip/item markup, not as a link (`Audit - Ecosystem, Jul 8.html` says outright that v2 is "reachable only through the Index"). Retiring v1 in favor of v2 means repointing five live nav links — an active editorial/content decision, not bookkeeping. Leaving REVIEW as-is for Kyle rather than resolving unilaterally.
+- `Abstrekkt Design.html` has exactly one inbound link sitewide, from `Index.html` (a sitemap/index page — weak evidence of active use, not proof of orphan status either). Relationship to the studio site remains genuinely unclear; REVIEW left open.
 
 **Jul 11, 2026 — first Reading Room at Midnight build in this lane:** built from Kyle's edited reference image, using the real `_ds/` component bundle (Button/Card) rather than recreating look-alike markup. Deliberately net-new, not a restyle of `Abstrekkt Home.html` — that file's copy is a different product narrative (peer support / no-baseline-required) and wasn't touched. This makes the design-system conflict flagged below concrete rather than hypothetical: this lane now has one live page in each system. Still not resolved — see the flag.
 
@@ -78,7 +86,7 @@ Kyle Rosebrook personal, Memoir/Corridor incl. the stitch scene archive) are que
 
 **✓ RESOLVED — Jul 13, 2026, hybrid policy (interim, until Kyle rules definitively):** two systems exist — CLAUDE.md's **Brutalist Archive** (carbon `#131315`/`#0A0A0C`, amber `#ffbf00`/`#ffe2ab`, EB Garamond/Literata/JetBrains Mono) and the bound `_ds/abstrekkt-design-system-00b28ec4-...` **Reading Room at Midnight** (ink `#0d0c0a`, brass `#C8A86A`, Fraunces/Crimson Pro/JetBrains Mono). Rather than pick a winner or mass-restyle, the two are kept as **separate, non-mixing registers**:
 - **Existing corpus (all ~182 pre-Jul-13 files) stays on Brutalist Archive.** No silent restyle. This is the identity readers/journalists/pitches already saw.
-- **`_ds/` Reading Room bundle is reserved for net-new Studio-lane builds** that explicitly load the bundle (`Abstrekkt Studio Landing.html` today) — treat it as this lane's "quiet variant," not a replacement.
+- **`_ds/` Reading Room bundle is reserved for net-new Studio-lane builds** that explicitly load the bundle — treat it as this lane's "quiet variant," not a replacement. As of Aug 11, 2026, three files genuinely load it via `<link>`/`<script>` tags: `Abstrekkt Studio Landing.html` (the original), `Abstrekkt Operator Console.html`, and `Repository Operations Hub.html` (registered Aug 11, 2026 — see Operations & Handoff lane). A fourth file, `Audit - Full Corpus, Jul 13.html`, only *mentions* `_ds/` in prose describing this policy — it does not load the bundle. Sitewide grep for the `_ds/` substring in `.html` files confirms no others beyond these four occurrences.
 - **Never mix token sets in one file.** A page either loads `_ds/` and uses its components, or defines Brutalist Archive tokens inline — not both.
 - Both share the same structural DNA (dark ink base, single warm accent, serif display + mono meta) so cross-lane visits don't feel like different brands, just different rooms of the same studio.
 - This is the working default for this audit pass. Still flagged for a real founder ruling — revisit if Kyle wants one system going forward.
@@ -149,7 +157,8 @@ All four use `colors_and_type.css` (the versioned, self-hosted-font FlashFusion 
 | `Load-Bearing Home.html` | Sub-brand essay index ("AI Tools, Tested Under Load") | Landing page for the Load-Bearing editorial line |
 | `Load-Bearing Archive.html` / `Load-Bearing Bench.html` / `Load-Bearing Subscribe.html` | Archive listing / about ("Bench") / subscribe | Full site sections, share `loadbearing/site.css` |
 | `Load-Bearing - Claude Code at Ninety Days.html` / `- Make vs n8n.html` / `- The MCPs That Earned Their Keep.html` / `- When the Stack Falls Over.html` | The four published essays in the "Tested Under Load" series | Essay content |
-| `Load-Bearing Catalog.html` / `Load-Bearing Article.html` | Additional catalog/article templates | REVIEW — relationship to the 4-essay series above unverified |
+| `Load-Bearing Catalog.html` | Stitch-style 83-screen design catalog (`<title>Load-Bearing Catalog, 83 Screens</title>`) — a visual-system reference, not editorial content. Hyperlinked from `Load-Bearing Archive.html`, `Load-Bearing Bench.html`, and `Index.html` | Browsing screen variants; distinct purpose from the essay series, not a duplicate |
+| `Load-Bearing Article.html` | A fifth essay ("The brittle nature of local-first LLMs, Load-Bearing") not currently listed among the four "Tested Under Load" essays above. Hyperlinked only from `Index.html` — not from `Archive.html`/`Bench.html`, which link `Catalog.html` instead | REVIEW — whether this is a 5th published essay pending addition to the series list, or held back deliberately, is a publishing-status call; overlaps with the open D10 decision (see `canon-sync-ops.md`) — not resolved here |
 
 **Jul 13, 2026 — registered (previously unregistered), first-pass audit:** existed fully built, not previously in this table. `Load-Bearing Home.html` footer carries two `href="#"` placeholders (Privacy/Terms) — acceptable as not-yet-written policy pages, not treated as a bug.
 
@@ -184,8 +193,11 @@ is wrong, restore from knowledge index. Known open defect carried with it:
 | `design.md` | Load-Bearing design contract (5-screen newsletter) | Load-Bearing build reference |
 | `project-focus-evolution.html` | Career/project evolution timeline | Narrative reference for pitches and About copy |
 | `char-diagnostic-instinct.md` | The diagnostic instinct character profile | Voice/origin reference for scripts and pitches |
-| `kyle-origin-video-scripts-v4.md` | Origin story scripts (YouTube / LinkedIn / TikTok) | Video recording reference, updated with piano/pattern beat |
+| `kyle-origin-video-scripts.md` | Origin story scripts (YouTube / LinkedIn / TikTok) | Video recording reference, updated with piano/pattern beat. `uploads/kyle-origin-video-scripts-v4.md` is a leftover source-dump copy under the same v4 name, not a live duplicate — same treatment as the other `uploads/`-only source originals in this table |
 | `abstrekkt-author-hub.jsx` | Author command center — memoir/pitch/content/canon, one surface | Session entry point for author-lane work |
+| `antigravity-build-prompts.md` | Antigravity build-prompt reference | Drafting build prompts for new artifacts; also present verbatim in `uploads/` as the sourced original — root copy is the live/editable one |
+| `stitch-prompts.md` | Stitch export-prompt reference | Drafting Stitch scene-export prompts; also present verbatim in `uploads/` as the sourced original — root copy is the live/editable one |
+| `uploads/writing-fixer.jsx` | Writing-fixer utility, source-package-only | Reference only — lives solely in `uploads/` (the flat Jul 11 portable-package dump), not deployed as a standalone root artifact. Registering here rather than leaving it as a false "live but unregistered" claim |
 | `voice_map.jsx` | Voice analysis across lanes (essay/lyrics), self-healing API | Mapping voice signatures across writing lanes |
 | `the-evidence-board.md` | Evidence board — memoir source ledger | Cross-checking memoir claims against primary sources |
 | `assets/clinical-source/` | Primary clinical documents (SPECT scan renders ×4, Amen Clinics eval, TBR cognitive assessment, CPT3, sleep scale, brain-system handout) | Grounding evidence-board claims in the actual source docs; financial/insurance paperwork from the same upload was deliberately excluded |
@@ -194,8 +206,15 @@ is wrong, restore from knowledge index. Known open defect carried with it:
 **STALE:**
 - `project-focus-evolution_archive_2026-07.html` — was the `_v2` canonical; content promoted to the suffix-free name above
 
-**REVIEW — live but unregistered (purpose unverified; register or archive, don't leave):**
-`writing-fixer.jsx` · `voice-generator.html` · `antigravity-build-prompts.md` · `stitch-prompts.md` · `kyle_brilliant_moments.html` · `matt-wolfe-tldr.html`
+**REVIEW list resolved Aug 11, 2026 (ground-truth check against disk):** of the 6 files previously listed here, `voice-generator.html`, `kyle_brilliant_moments.html`, and `matt-wolfe-tldr.html` no longer exist anywhere in the project tree — sitewide `find` turned up nothing; dropped from this list rather than left as a stale claim. `writing-fixer.jsx`, `antigravity-build-prompts.md`, and `stitch-prompts.md` do exist and are now registered above (Cross-lane reference table).
+
+**Aug 11, 2026 — `abstrekkt-author-hub.jsx` CANON-drift mechanism closed:** the hub's `CanonTab()`
+previously hardcoded a parallel copy of this table (`CANON_TABLE`/`STALE` arrays) — third drift
+incident per `canon-sync-ops.md`. Replaced with a single pasted `CANON_SOURCE` block (verbatim
+copy of §1, from this heading through the divider before §2) parsed client-side by
+`parseCanonSource()`. Future syncs: finish editing §1 first, then paste it into `CANON_SOURCE` —
+in that order, so the pasted copy includes its own sync notes instead of omitting itself. See
+`canon-sync-ops.md` for the parser spec.
 
 ---
 
@@ -203,11 +222,14 @@ is wrong, restore from knowledge index. Known open defect carried with it:
 
 | Canonical file | Purpose | When to use |
 |---|---|---|
-| `Abstrekkt Operator Console.html` + `operator-console/*` | Interactive console rendering the Jul 11, 2026 portable project package (`uploads/README.md` + 30 registers/briefs \u2014 executive summary, Milestone-0 tracker, roadmap, business/product requirements, system architecture, 9 decision/risk registers, handoff docs) | Tracking the pre-revenue gate (B-1..B-5), checking Milestone 0/1/2 acceptance criteria off, browsing the risk/decision/contradiction registers, resuming work in a fresh AI session |
+| `Abstrekkt Operator Console.html` + `operator-console/*` | Interactive console rendering the Jul 11, 2026 portable project package (`uploads/README.md` + 30 registers/briefs — executive summary, Milestone-0 tracker, roadmap, business/product requirements, system architecture, 9 decision/risk registers, handoff docs) | Tracking the pre-revenue gate (B-1..B-5), checking Milestone 0/1/2 acceptance criteria off, browsing the risk/decision/contradiction registers, resuming work in a fresh AI session |
+| `Repository Operations Hub.html` | Single-file React field-notes reference for repository lifecycle operations — creation, upgrade/maintenance, observability, agents, MCP servers, webhooks, mapping/architecture, org. Built on the `_ds/` Reading Room bundle's components. The design open at handoff export; the root `README.md` handoff note names it as the primary design | Orienting a coding agent entering via the handoff note; referencing repo-ops patterns (lifecycle, observability, agent/MCP/webhook wiring) before implementing them for real |
 
-**Jul 11, 2026 \u2014 built from the portable package, incorporating Kyle's direct edits to the source `.md` files.** The uploads package (generated by Claude Cowork from the 225-doc KB) existed only as flat markdown in `uploads/`, no live counterpart in this project. Built as one interactive console rather than a flat document render so the Milestone-0 checklist and the 9 registers (decisions, contradictions, risks, gaps, bottlenecks, blindspots, failure modes, unknown-unknowns, open loops) are actually usable, not just read \u2014 checklist state persists per-browser via localStorage. Did not alter any existing FlashFusion/LLC-kit canonical file. Where the package's own Contradiction Log flags something the live project already resolved \u2014 C-2, the obsolete "Chaos Club Co. LLC" two-entity plan \u2014 that's already fixed in `LLC Formation Kit.html` per the Jul 8 audit fix log; the console reports the package's finding as-is (this registry entry is the cross-reference, the package source wasn't edited). This lane is Kyle-owned business/legal fact, not design content \u2014 do not "resolve" a flagged contradiction (Ryan $ amount, chaosclub.co naming, cert name) on Kyle's behalf; those stay open pending Kyle.
+**Jul 11, 2026 — built from the portable package, incorporating Kyle's direct edits to the source `.md` files.** The uploads package (generated by Claude Cowork from the 225-doc KB) existed only as flat markdown in `uploads/`, no live counterpart in this project. Built as one interactive console rather than a flat document render so the Milestone-0 checklist and the 9 registers (decisions, contradictions, risks, gaps, bottlenecks, blindspots, failure modes, unknown-unknowns, open loops) are actually usable, not just read — checklist state persists per-browser via localStorage. Did not alter any existing FlashFusion/LLC-kit canonical file. Where the package's own Contradiction Log flags something the live project already resolved — C-2, the obsolete "Chaos Club Co. LLC" two-entity plan — that's already fixed in `LLC Formation Kit.html` per the Jul 8 audit fix log; the console reports the package's finding as-is (this registry entry is the cross-reference, the package source wasn't edited). This lane is Kyle-owned business/legal fact, not design content — do not "resolve" a flagged contradiction (Ryan $ amount, chaosclub.co naming, cert name) on Kyle's behalf; those stay open pending Kyle.
 
-**STALE:** none yet \u2014 first artifact in this lane.
+**Aug 11, 2026 — registered `Repository Operations Hub.html` (previously live but unregistered).** The root handoff `README.md` names this file as the design open at export — the primary design of the handoff — yet it had no registry entry, violating §4 ("any artifact not in this table doesn't exist officially"). Registered as-is; no content edits. It loads the `_ds/` Reading Room bundle (tokens + `_ds_bundle.js` components), which is worth knowing before assuming the Studio-lane `_ds/` usage notes elsewhere in this file are exhaustive.
+
+**STALE:** none.
 
 ---
 
@@ -256,4 +278,4 @@ NEVER:       pitch_console_v2.html                ← v2 implies v1 is still ali
 
 ---
 
-*Reconciled Jul 9, 2026 — synced canonical set to 9 directly-edited/added artifacts (book_command_center, editorial-framework, pitch_console, pitch_generator, memoir_engine, kyle-abstrekkt-index, playbook, project-focus-evolution, publishing_command_center).*
+*Reconciled Jul 9, 2026 — synced canonical set to 9 directly-edited/added artifacts (book_command_center, editorial-framework, pitch_console, pitch_generator, memoir_engine, kyle-abstrekkt-index, playbook, project-focus-evolution, publishing_command_center). Last touched Aug 11, 2026 — see dated notes throughout §1 for the full history; this line records the most recent full-file bookkeeping pass, not every incremental edit since.*

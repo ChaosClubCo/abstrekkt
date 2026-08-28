@@ -1,0 +1,260 @@
+
+<style>
+*{box-sizing:border-box}
+.et{padding:.5rem 0;font-family:var(--font-sans)}
+.et-hd{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1.25rem;padding-bottom:12px;border-bottom:.5px solid var(--color-border-tertiary)}
+.et-tt{font-size:15px;font-weight:500;color:var(--color-text-primary);margin:0}
+.et-st{font-size:12px;color:var(--color-text-secondary);margin:3px 0 0}
+.sec{margin-bottom:10px;border:.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);overflow:hidden}
+.sec-hd{display:flex;justify-content:space-between;align-items:center;padding:8px 14px;background:var(--color-background-secondary);border-bottom:.5px solid var(--color-border-tertiary)}
+.sec-lbl{font-size:11px;font-weight:500;color:var(--color-text-secondary);letter-spacing:.07em;text-transform:uppercase;display:flex;align-items:center;gap:7px}
+.mod-dot{width:5px;height:5px;border-radius:50%;background:#639922;flex-shrink:0;display:inline-block}
+.draft{padding:16px;font-size:13.5px;line-height:1.85;color:var(--color-text-primary);white-space:pre-wrap;transition:opacity .2s}
+.pzone{padding:12px 14px;background:var(--color-background-secondary);border-top:.5px solid var(--color-border-tertiary)}
+.pzone-hint{font-size:11px;color:var(--color-text-tertiary);margin:0 0 10px}
+.pitem{margin-bottom:10px}
+.plbl{font-size:12px;color:var(--color-text-secondary);margin:0 0 4px;line-height:1.5}
+textarea{width:100%;font-size:13px;line-height:1.5;min-height:38px;resize:none;overflow:hidden;font-family:var(--font-sans)}
+.prow{display:flex;justify-content:flex-end;align-items:center;gap:10px;margin-top:8px}
+.pst{font-size:11px;color:var(--color-text-tertiary)}
+.et-ft{text-align:center;padding:.75rem 0 .25rem;border-top:.5px solid var(--color-border-tertiary);margin-top:6px}
+</style>
+
+<div class="et">
+<div class="et-hd">
+  <div>
+    <p class="et-tt">What the Scan Said</p>
+    <p class="et-st">Answer prompts · refine · draft updates live · green dot = modified</p>
+  </div>
+  <button onclick="copyAll()">Copy full essay</button>
+</div>
+<div id="sct"></div>
+<div class="et-ft"><button onclick="copyAll()">Copy full essay ↗</button></div>
+</div>
+
+<script>
+const SS=[
+{id:'s1',lbl:'01 · The setup',
+draft:`July 7, 2022. A 36-year-old bartender walked into a clinic in Bannockburn, Illinois, and sat still while a radioactive tracer mapped the blood flow in his brain. The intake form asked for occupation. He wrote: Bartender. Timothy O'Tools, Libertyville IL.
+
+The scan took four days. He came back on July 11 for the second one.
+
+The report came August 2.`,
+ps:[
+{q:"What do you actually remember about walking into that building? Specific — what it looked like, smelled like, what you were wearing."},
+{q:"Who knew you were going? Did you tell anyone, or did you keep it quiet?"},
+{q:"What were you telling yourself in the car on the way there — the real story running in your head, not the official reason."}
+]},
+{id:'s2',lbl:'02 · The numbers',
+draft:`I'll tell you what it showed because the numbers are the story, and I'm tired of telling the story without the numbers.
+
+Processing Speed: 99th percentile.
+Recall Memory: 12th percentile.
+Resilience: 2nd percentile.
+Flexibility: 17th percentile.
+Stress Control: 27th percentile.
+
+Engine at full speed. Storage almost empty. No brakes. Almost no capacity to bounce back when the system gets hit.
+
+The radiologist's summary described what he saw as "evidence of past brain injury and encephalopathic process." He used the word scalloping — areas on the brain's surface where blood isn't flowing the way it should, consistent with toxic exposure and oxygen deprivation.
+
+It looked like something had been eating at the outside of it for years.
+
+It had.`,
+ps:[
+{q:"Which number hit hardest when you first read it? Not the one that should have — the one that actually did."},
+{q:"Where were you when you read the report? Physical detail — alone, not alone, what you were sitting on, time of day."},
+{q:"The word 'scalloping.' When you read that for the first time, what was your immediate next physical action?"}
+]},
+{id:'s3',lbl:'03 · The contradiction',
+draft:`There's something the report does that I didn't notice until I read it a second time. On page two, it dates the hypoxia event — the overdose that caused the oxygen deprivation — as "summer 2020." On page three, the same event is dated October 2021.
+
+The physicians produced an unreliable narrator about the event they were documenting.
+
+I'm not correcting it. I kept the contradiction because the clinical record demonstrating my memory problem is the clearest example I have of my memory problem. A 15-page neurological evaluation that can't agree with itself about when the injury happened. I gave them the intake interview. They wrote it down. Somewhere in the transfer, the timeline blurred.
+
+That's the book I'm writing. Not about addiction. Not about recovery. About what happens to the record of a life when the person living it can't be trusted to remember it accurately. The Amen Clinics didn't catch the contradiction because I didn't catch it. We were both working from the same degraded source.`,
+ps:[
+{q:"When you noticed the two dates didn't match — what were you doing, how far into reading, what time of day?"},
+{q:"What's your best current theory about what actually happened? The two events you think got conflated."},
+{q:"Have you ever told anyone about this contradiction out loud? What did they say — or what do you think they'd say?"}
+]},
+{id:'s4',lbl:'04 · 27/64',
+draft:`When I got that report, I was working at a bar. I had been sober from hard drugs for about ten months. I was living with my parents. My hope score — the eval actually measured hope, 64-point scale — came back at 27.
+
+Readiness to Change: 10 out of 10.
+
+That combination is what I want you to understand. Not optimism. Not rock bottom inspiration. Willingness without hope. I'll try anything because I have nothing left to protect, including the story I was telling about why the old way might still work.
+
+The construction started from that.`,
+ps:[
+{q:"27/64 hope — what were the 27 points? What were you still holding onto at that point?"},
+{q:"10/10 readiness — what did that actually feel like in your body? Not the idea of it."},
+{q:"What did you do immediately after reading the full report? The specific physical action, not an emotional summary."}
+]},
+{id:'s5',lbl:'05 · The arsenal',
+draft:`What I built after the scan wasn't a productivity system. I want to be clear about that because the vocabulary of tools and workflows has been colonized by people who are optimizing something that already works. That's not what I was doing.
+
+Every external system I built after July 2022 was compensating for a specific gap the scan made legible. The documentation wasn't a habit. The note-taking wasn't a personality trait. I document everything because the internal system for storing things — 12th percentile recall — can't be trusted to hold them. Every note is a handoff from the brain I have to the brain I needed.
+
+Not because I'm organized. Because I can't afford not to be.
+
+I've catalogued somewhere north of 240 configurations and tools at this point. I know about 30 of them well. The rest are the archaeological evidence of a process that's still ongoing — each one marking a moment when I discovered another function that had become unreliable and needed external scaffolding.
+
+Memory doesn't fail gracefully. It doesn't give you an error code or a stack trace. One day you just reach for something that should be there — a name, a date, a sequence of events you lived through — and it isn't.`,
+ps:[
+{q:"What was the first thing you built — before it had a name, before you knew it was a system? What were you trying not to lose?"},
+{q:"One specific moment where a tool caught something your memory dropped. What was the thing. What would have happened without it."},
+{q:"Is there a tool in the stack that reveals how bad it actually got — not performance-embarrassing, the kind that shows the real magnitude."}
+]},
+{id:'s6',lbl:'06 · The frame',
+draft:`Recovery assumes there's a previous state to return to. I can't return to a baseline I can't verify. I don't know with confidence what the pre-injury version of my memory could hold, because the injury changed what I can access about the before.
+
+So I didn't recover. I built.
+
+The distinction matters. Recovery is a story about getting something back. Construction is a story about making something that never existed in the form you need. Different project. Different materials. Different definition of done.
+
+The bartender in the intake form is still in there somewhere. What he didn't know yet — sitting in that chair while the tracer moved through his brain — was that the scan would give him the technical specifications for what needed to be built. That it would take three more years to understand what he was building. That he'd still be building.
+
+That's not a recovery arc.
+
+That's an architecture project with no scheduled completion date.`,
+ps:[
+{q:"What would the version of you who wrote 'Bartender' on that intake form think of where you are right now? Be specific — not inspirational."},
+{q:"Is there something permanently lost that construction can't replace? Something you've actually had to accept is gone."},
+{q:"'No scheduled completion date' — what does that feel like day to day? Peace, dread, something else?"}
+]}
+];
+
+const ST={};
+SS.forEach(s=>{ST[s.id]={cur:s.draft,mod:false};});
+
+const SYS=`Rewrite this section of a standalone literary nonfiction essay in the author's exact voice. Do not reference any larger project, memoir, or book.
+
+Voice rules (non-negotiable):
+- Declarative observations, first person
+- Engineering metaphors are how the author actually thinks — not decoration
+- Short sentences for impact. Longer for complexity. Short again.
+- Profanity: rare, lands precisely on the beat. Never performative.
+- NEVER: "and that's when I realized", "looking back", soft realizations, recovery language, epiphanies, LinkedIn inspiration
+- Technical descriptions of emotional states
+- Contradictions held, not resolved. Prose does not choose.
+- Uncertainty about memory acknowledged — not apologized for
+- End on an image or question. Never a summary that wraps too neatly.
+- Humor that doesn't defuse tension prematurely.
+
+Fold the answers into the prose as if they were always there. Answers disappear into the voice — do not organize around the Q&A structure. Do not add a sentence that explains or summarizes an answer. Keep approximately the same length. Leave room for the reader to work.
+
+Return only the rewritten section text. No preamble, no title, no explanation.`;
+
+function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+function renderSec(s){
+  return `<div class="sec" id="sec-${s.id}">
+    <div class="sec-hd">
+      <div class="sec-lbl" id="lbl-${s.id}">${esc(s.lbl)}</div>
+      <button id="rst-${s.id}" onclick="resetSec('${s.id}')" style="font-size:11px;opacity:0;pointer-events:none">Reset</button>
+    </div>
+    <div class="draft" id="d-${s.id}"></div>
+    <div class="pzone">
+      <p class="pzone-hint">Answer any prompt · click refine · your words fold into the draft</p>
+      ${s.ps.map((p,i)=>`<div class="pitem">
+        <p class="plbl">${esc(p.q)}</p>
+        <textarea id="p-${s.id}-${i}" oninput="az(this)" placeholder="answer here..."></textarea>
+      </div>`).join('')}
+      <div class="prow">
+        <span class="pst" id="st-${s.id}"></span>
+        <button id="btn-${s.id}" onclick="ref('${s.id}')">Refine this section ↗</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function renderAll(){
+  document.getElementById('sct').innerHTML=SS.map(renderSec).join('');
+  SS.forEach(s=>{
+    const d=document.getElementById('d-'+s.id);
+    if(d) d.textContent=ST[s.id].cur;
+  });
+}
+
+function az(el){el.style.height='auto';el.style.height=el.scrollHeight+'px';}
+
+function resetSec(id){
+  const s=SS.find(x=>x.id===id);
+  ST[id].cur=s.draft;ST[id].mod=false;
+  const d=document.getElementById('d-'+id);
+  if(d) d.textContent=s.draft;
+  const rb=document.getElementById('rst-'+id);
+  if(rb){rb.style.opacity='0';rb.style.pointerEvents='none';}
+  const lbl=document.getElementById('lbl-'+id);
+  const dot=lbl?.querySelector('.mod-dot');
+  if(dot) dot.remove();
+  const st=document.getElementById('st-'+id);
+  if(st) st.textContent='';
+}
+
+async function ref(id){
+  const s=SS.find(x=>x.id===id);
+  const ans=s.ps.map((p,i)=>{
+    const v=(document.getElementById('p-'+id+'-'+i)?.value||'').trim();
+    return v?'Q: '+p.q+'\nA: '+v:null;
+  }).filter(Boolean);
+
+  const stEl=document.getElementById('st-'+id);
+  if(!ans.length){stEl.textContent='Answer at least one prompt first.';return;}
+
+  const btn=document.getElementById('btn-'+id);
+  const dEl=document.getElementById('d-'+id);
+  btn.disabled=true;btn.textContent='Rewriting...';
+  dEl.style.opacity='.3';stEl.textContent='';
+
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens:1000,
+        system:SYS,
+        messages:[{role:'user',content:'Section draft:\n'+ST[id].cur+'\n\nAnswers:\n'+ans.join('\n\n')}]
+      })
+    });
+    const data=await res.json();
+    const txt=data.content?.find(b=>b.type==='text')?.text||'';
+    if(txt){
+      ST[id].cur=txt;ST[id].mod=true;
+      dEl.textContent=txt;
+      const rb=document.getElementById('rst-'+id);
+      if(rb){rb.style.opacity='1';rb.style.pointerEvents='auto';}
+      const lbl=document.getElementById('lbl-'+id);
+      if(lbl&&!lbl.querySelector('.mod-dot')){
+        const dot=document.createElement('span');
+        dot.className='mod-dot';
+        lbl.prepend(dot);
+      }
+      stEl.textContent='Updated.';
+      setTimeout(()=>{if(stEl.textContent==='Updated.')stEl.textContent='';},3000);
+    } else {
+      stEl.textContent='No response — try again.';
+    }
+  }catch(e){
+    stEl.textContent='Error — try again.';
+  }finally{
+    btn.disabled=false;btn.textContent='Refine this section ↗';
+    dEl.style.opacity='1';
+  }
+}
+
+function copyAll(){
+  const txt=SS.map(s=>ST[s.id].cur).join('\n\n---\n\n');
+  navigator.clipboard.writeText(txt).then(()=>{
+    document.querySelectorAll('[onclick="copyAll()"]').forEach(b=>{
+      const o=b.textContent;b.textContent='Copied!';
+      setTimeout(()=>b.textContent=o,2000);
+    });
+  }).catch(()=>{});
+}
+
+renderAll();
+</script>

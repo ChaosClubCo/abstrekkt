@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+
+<helmet>
+<link rel="stylesheet" href="_ds/flashfusion-design-system-455b583a-992a-42cb-ae6a-2c862e3b31e7/fonts-selfhosted.css">
+<link rel="stylesheet" href="_ds/flashfusion-design-system-455b583a-992a-42cb-ae6a-2c862e3b31e7/styles.css">
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; background:oklch(0.08 0.02 270); }
+  a { color:#93c5fd; text-decoration:none; } a:hover { color:#bfdbfe; }
+  *::-webkit-scrollbar { width:9px; height:9px; }
+  *::-webkit-scrollbar-thumb { background:oklch(0.35 0.04 270); border-radius:6px; }
+  *::-webkit-scrollbar-track { background:transparent; }
+  .mono { font-family:'JetBrains Mono',ui-monospace,monospace; }
+  .serif { font-family:'Instrument Serif',serif; }
+  input { font-family:'JetBrains Mono',ui-monospace,monospace; }
+  input::placeholder { color:oklch(0.35 0.02 270); }
+  @media (max-width:720px){ .statusgrid{ grid-template-columns:1fr !important; } }
+</style>
+</helmet>
+<div class="mono" data-screen-label="Finish the Sync" style="--fg:oklch(0.97 0.005 270); --dim:oklch(0.58 0.02 270); --mute:oklch(0.40 0.02 270); --bg2:oklch(0.12 0.02 270); --bg3:oklch(0.16 0.025 270); --bd:oklch(0.27 0.03 270); --bdb:oklch(0.35 0.04 270); --blue:#93c5fd; --green:#4ade80; --amber:#fcd34d; min-height:100vh; background:radial-gradient(ellipse 80% 40% at 50% -10%, rgba(147,197,253,.04), transparent 60%), oklch(0.08 0.02 270); color:var(--fg); font-size:14px; line-height:1.6; padding:56px 24px 120px;">
+  <div style="max-width:860px; margin:0 auto;">
+
+    <!-- HEADER -->
+    <div style="padding-bottom:26px; border-bottom:1px solid var(--bd); margin-bottom:32px;">
+      <div class="mono" style="font-size:11px; text-transform:uppercase; letter-spacing:.24em; color:var(--dim); margin-bottom:14px; display:flex; align-items:center; gap:8px;">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+        Arc System // Persistence handoff
+      </div>
+      <h1 class="serif" style="font-size:clamp(40px,6vw,68px); line-height:.96; letter-spacing:-.02em; margin:0; font-weight:400;">Let <em style="color:var(--blue); font-style:italic;">Claude</em> finish the sync.</h1>
+      <p style="font-size:13px; color:var(--dim); margin:16px 0 0; max-width:62ch;">Every tool here runs fine on localStorage alone — this is optional. It's a durable Supabase copy of the overlay, so edits survive a wiped browser, plus the groundwork for an MCP server that can act on your arcs without a tab open. Four things need <em class="serif" style="color:var(--fg);">your</em> choices below.</p>
+    </div>
+
+    <!-- STATUS -->
+    <div class="statusgrid" style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:36px;">
+      <div style="border:1px solid var(--bd); border-left:2px solid var(--green); background:var(--bg2); padding:16px 18px;">
+        <div class="mono" style="font-size:9px; letter-spacing:.22em; text-transform:uppercase; color:var(--green); margin-bottom:10px;">✓ Live now — no setup</div>
+        <ul style="margin:0; padding-left:16px; font-size:12px; color:var(--fg); line-height:1.85;">
+          <li>Every op fire-and-forget pushes through <span class="mono" style="color:var(--dim);">arc-sync.js</span>, <span class="mono" style="color:var(--dim);">arc-github.js</span> and <span class="mono" style="color:var(--dim);">arc-obsidian.js</span> (each no-ops until configured)</li>
+          <li>All seven tools poll and fold in remote changes once Supabase is configured</li>
+          <li>Additive only — none of the three can corrupt the local overlay</li>
+        </ul>
+      </div>
+      <div style="border:1px solid var(--bd); border-left:2px solid var(--amber); background:var(--bg2); padding:16px 18px;">
+        <div class="mono" style="font-size:9px; letter-spacing:.22em; text-transform:uppercase; color:var(--amber); margin-bottom:10px;">◷ Needs your setup</div>
+        <ul style="margin:0; padding-left:16px; font-size:12px; color:var(--fg); line-height:1.85;">
+          <li>Supabase: project + schema + URL/key in step 04 (Edge Function optional)</li>
+          <li>GitHub: a repo + fine-grained token in step 05 (optional)</li>
+          <li>Obsidian: the Local REST API plugin running + its key in step 06 (optional)</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- STEP 01 -->
+    <div style="display:flex; align-items:baseline; gap:12px; margin-bottom:6px;">
+      <span class="serif" style="font-style:italic; font-size:30px; color:var(--blue);">01</span>
+      <h2 class="serif" style="font-size:26px; font-weight:400; margin:0;">Create the project</h2>
+    </div>
+    <p style="font-size:12.5px; color:var(--dim); margin:0 0 30px; max-width:64ch;">At <a href="https://supabase.com/dashboard">supabase.com/dashboard</a> — new project, any region, free tier is plenty for one user's overlay log. Copy the <span class="mono" style="color:var(--fg);">Project URL</span> and the <span class="mono" style="color:var(--fg);">anon public</span> key from Settings → API for step 04.</p>
+
+    <!-- STEP 02 -->
+    <div style="display:flex; align-items:baseline; gap:12px; margin-bottom:6px;">
+      <span class="serif" style="font-style:italic; font-size:30px; color:var(--blue);">02</span>
+      <h2 class="serif" style="font-size:26px; font-weight:400; margin:0;">Run the schema</h2>
+    </div>
+    <p style="font-size:12.5px; color:var(--dim); margin:0 0 16px; max-width:64ch;">Paste <span class="mono" style="color:var(--fg);">supabase-schema.sql</span> into the dashboard's SQL Editor and run it — three tables (<span class="mono">arcs</span>, <span class="mono">prose</span>, <span class="mono">overlay_log</span>) plus RLS. Or hand Claude the official Supabase MCP with this prompt:</p>
+    <div style="margin-bottom:36px;">
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
+        <div class="mono" style="font-size:9px; letter-spacing:.2em; text-transform:uppercase; color:var(--dim);">Schema prompt</div>
+        <button onClick="{{ copySchemaPrompt }}" style="{{ copyBtnStyle }}">{{ schemaPromptLabel }}</button>
+      </div>
+      <pre class="mono" style="{{ preStyle }}">{{ schemaPrompt }}</pre>
+    </div>
+
+    <!-- STEP 03 -->
+    <div style="display:flex; align-items:baseline; gap:12px; margin-bottom:6px;">
+      <span class="serif" style="font-style:italic; font-size:30px; color:var(--blue);">03</span>
+      <h2 class="serif" style="font-size:26px; font-weight:400; margin:0;">Deploy the MCP server</h2>
+    </div>
+    <p style="font-size:12.5px; color:var(--dim); margin:0 0 16px; max-width:64ch;">Optional until you want an agent acting on arcs with no tab open. <span class="mono" style="color:var(--fg);">arc-mcp-server.js</span> is the Edge Function source — this ships it:</p>
+    <div style="margin-bottom:36px;">
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
+        <div class="mono" style="font-size:9px; letter-spacing:.2em; text-transform:uppercase; color:var(--dim);">Deploy — CLI</div>
+        <button onClick="{{ copyDeployCmd }}" style="{{ copyBtnStyle }}">{{ deployLabel }}</button>
+      </div>
+      <pre class="mono" style="{{ preStyle }}">{{ deployCmd }}</pre>
+    </div>
+
+    <!-- STEP 04 -->
+    <div style="display:flex; align-items:baseline; gap:12px; margin-bottom:6px;">
+      <span class="serif" style="font-style:italic; font-size:30px; color:var(--blue);">04</span>
+      <h2 class="serif" style="font-size:26px; font-weight:400; margin:0;">Connect this suite</h2>
+    </div>
+    <p style="font-size:12.5px; color:var(--dim); margin:0 0 16px; max-width:64ch;">Paste the two values from step 01. This writes straight to <span class="mono" style="color:var(--fg);">arc-sync-config-v1</span> — every tool that reads it picks up the change on its next load, no rebuild needed.</p>
+    <div style="border:1px solid var(--bd); background:var(--bg2); padding:18px 20px; margin-bottom:16px; display:flex; flex-direction:column; gap:10px;">
+      <div>
+        <div class="mono" style="font-size:9px; letter-spacing:.16em; text-transform:uppercase; color:var(--dim); margin-bottom:6px;">Project URL</div>
+        <input style="{{ inputStyle }}" placeholder="https://xxxxx.supabase.co" value="{{ urlVal }}" onInput="{{ onUrlInput }}"></input>
+      </div>
+      <div>
+        <div class="mono" style="font-size:9px; letter-spacing:.16em; text-transform:uppercase; color:var(--dim); margin-bottom:6px;">Anon public key</div>
+        <input style="{{ inputStyle }}" placeholder="eyJ...." value="{{ keyVal }}" onInput="{{ onKeyInput }}"></input>
+      </div>
+      <div style="display:flex; align-items:center; gap:10px; margin-top:6px; flex-wrap:wrap;">
+        <button style="{{ primaryBtnStyle }}" onClick="{{ saveAndEnable }}">{{ saveLabel }}</button>
+        <button style="{{ ghostBtnStyle }}" onClick="{{ testConn }}" disabled="{{ testing }}">{{ testLabel }}</button>
+        <button style="{{ ghostBtnStyle }}" onClick="{{ pushBootstrap }}" disabled="{{ pushing }}">{{ pushLabel }}</button>
+        <span style="{{ enabledDotStyle }}"></span>
+        <span style="font-size:11px; color:var(--dim);">{{ enabledLabel }}</span>
+      </div>
+      <sc-if value="{{ hasNote }}" hint-placeholder-val="{{ false }}">
+        <div style="font-size:11.5px; color:{{ noteColor }};">{{ noteText }}</div>
+      </sc-if>
+    </div>
+
+    <!-- STEP 05 -->
+    <div style="display:flex; align-items:baseline; gap:12px; margin-bottom:6px; margin-top:30px;">
+      <span class="serif" style="font-style:italic; font-size:30px; color:var(--blue);">05</span>
+      <h2 class="serif" style="font-size:26px; font-weight:400; margin:0;">Wire GitHub</h2>
+    </div>
+    <p style="font-size:12.5px; color:var(--dim); margin:0 0 16px; max-width:64ch;">Optional, on top of Supabase. Low-risk ops (<span class="mono" style="color:var(--fg);">edit_gate</span>, <span class="mono" style="color:var(--fg);">edit_week</span>, <span class="mono" style="color:var(--fg);">edit_meta</span>) commit straight to your branch; <span class="mono" style="color:var(--fg);">create_arc</span> / <span class="mono" style="color:var(--fg);">delete_arc</span> open a PR instead — the diff view is the approval gate. Needs a fine-grained token scoped to this repo with <span class="mono" style="color:var(--fg);">Contents: write</span> and <span class="mono" style="color:var(--fg);">Pull requests: write</span>.</p>
+    <div style="border:1px solid var(--bd); background:var(--bg2); padding:18px 20px; margin-bottom:36px; display:flex; flex-direction:column; gap:10px;">
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+        <div>
+          <div class="mono" style="font-size:9px; letter-spacing:.16em; text-transform:uppercase; color:var(--dim); margin-bottom:6px;">Owner</div>
+          <input style="{{ inputStyle }}" placeholder="owner" value="{{ ghOwnerVal }}" onInput="{{ onGhOwnerInput }}"></input>
+        </div>
+        <div>
+          <div class="mono" style="font-size:9px; letter-spacing:.16em; text-transform:uppercase; color:var(--dim); margin-bottom:6px;">Repo</div>
+          <input style="{{ inputStyle }}" placeholder="arc-system" value="{{ ghRepoVal }}" onInput="{{ onGhRepoInput }}"></input>
+        </div>
+      </div>
+      <div>
+        <div class="mono" style="font-size:9px; letter-spacing:.16em; text-transform:uppercase; color:var(--dim); margin-bottom:6px;">Branch</div>
+        <input style="{{ inputStyle }}" placeholder="main" value="{{ ghBranchVal }}" onInput="{{ onGhBranchInput }}"></input>
+      </div>
+      <div>
+        <div class="mono" style="font-size:9px; letter-spacing:.16em; text-transform:uppercase; color:var(--dim); margin-bottom:6px;">Fine-grained token</div>
+        <input style="{{ inputStyle }}" placeholder="github_pat_...." value="{{ ghTokenVal }}" onInput="{{ onGhTokenInput }}"></input>
+      </div>
+      <div style="display:flex; align-items:center; gap:10px; margin-top:6px; flex-wrap:wrap;">
+        <button style="{{ primaryBtnStyle }}" onClick="{{ saveGithub }}">Save</button>
+        <button style="{{ ghostBtnStyle }}" onClick="{{ testGithub }}" disabled="{{ ghTesting }}">{{ ghTestLabel }}</button>
+      </div>
+      <sc-if value="{{ ghHasNote }}" hint-placeholder-val="{{ false }}">
+        <div style="font-size:11.5px; color:{{ ghNoteColor }};">{{ ghNoteText }}</div>
+      </sc-if>
+    </div>
+
+    <!-- STEP 06 -->
+    <div style="display:flex; align-items:baseline; gap:12px; margin-bottom:6px;">
+      <span class="serif" style="font-style:italic; font-size:30px; color:var(--blue);">06</span>
+      <h2 class="serif" style="font-size:26px; font-weight:400; margin:0;">Wire Obsidian</h2>
+    </div>
+    <p style="font-size:12.5px; color:var(--dim); margin:0 0 16px; max-width:64ch;">The human-readable layer — one note per arc in a vault folder. Needs the <span class="mono" style="color:var(--fg);">Local REST API</span> community plugin installed and running; only works while Obsidian is open on this machine. First connection may need a one-time click through the self-signed cert warning.</p>
+    <div style="border:1px solid var(--bd); background:var(--bg2); padding:18px 20px; margin-bottom:16px; display:flex; flex-direction:column; gap:10px;">
+      <div>
+        <div class="mono" style="font-size:9px; letter-spacing:.16em; text-transform:uppercase; color:var(--dim); margin-bottom:6px;">Local REST API base URL</div>
+        <input style="{{ inputStyle }}" placeholder="https://127.0.0.1:27124" value="{{ obUrlVal }}" onInput="{{ onObUrlInput }}"></input>
+      </div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+        <div>
+          <div class="mono" style="font-size:9px; letter-spacing:.16em; text-transform:uppercase; color:var(--dim); margin-bottom:6px;">API key</div>
+          <input style="{{ inputStyle }}" placeholder="from plugin settings" value="{{ obKeyVal }}" onInput="{{ onObKeyInput }}"></input>
+        </div>
+        <div>
+          <div class="mono" style="font-size:9px; letter-spacing:.16em; text-transform:uppercase; color:var(--dim); margin-bottom:6px;">Vault folder</div>
+          <input style="{{ inputStyle }}" placeholder="Arcs" value="{{ obFolderVal }}" onInput="{{ onObFolderInput }}"></input>
+        </div>
+      </div>
+      <div style="display:flex; align-items:center; gap:10px; margin-top:6px; flex-wrap:wrap;">
+        <button style="{{ primaryBtnStyle }}" onClick="{{ saveObsidian }}">Save</button>
+        <button style="{{ ghostBtnStyle }}" onClick="{{ testObsidian }}" disabled="{{ obTesting }}">{{ obTestLabel }}</button>
+        <button style="{{ ghostBtnStyle }}" onClick="{{ generateNotes }}" disabled="{{ obGenerating }}">{{ obGenerateLabel }}</button>
+      </div>
+      <sc-if value="{{ obHasNote }}" hint-placeholder-val="{{ false }}">
+        <div style="font-size:11.5px; color:{{ obNoteColor }};">{{ obNoteText }}</div>
+      </sc-if>
+    </div>
+
+    <!-- REFERENCE -->
+    <div style="display:flex; align-items:baseline; gap:12px; margin-bottom:14px; margin-top:30px;">
+      <span class="serif" style="font-style:italic; font-size:30px; color:var(--blue);">07</span>
+      <h2 class="serif" style="font-size:26px; font-weight:400; margin:0;">Reference</h2>
+    </div>
+    <div style="border:1px solid var(--bd); background:var(--bg2);">
+      <sc-for list="{{ refs }}" as="r" hint-placeholder-count="8">
+        <div style="display:grid; grid-template-columns:170px 1fr; gap:14px; padding:11px 16px; border-bottom:1px solid var(--bd); align-items:baseline;">
+          <div class="mono" style="font-size:9px; letter-spacing:.16em; text-transform:uppercase; color:var(--dim);">{{ r.k }}</div>
+          <div class="mono" style="font-size:11.5px; color:var(--fg); word-break:break-all;">{{ r.v }}</div>
+        </div>
+      </sc-for>
+    </div>
+    <p style="font-size:11px; color:var(--mute); margin:18px 0 0; line-height:1.6;">Everything above is additive — the local overlay stays this browser's source of truth either way. Clearing the URL/key and saving just stops the pushes/pulls; nothing local is touched.</p>
+
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:908,&quot;height&quot;:1500}}">
+class Component extends DCLogic {
+  constructor(props){
+    super(props);
+    this.state = { url:'', anonKey:'', enabled:false, testing:false, pushing:false, noteText:'', noteColor:'', copied:{},
+      ghOwner:'', ghRepo:'', ghBranch:'main', ghToken:'', ghTesting:false, ghNoteText:'', ghNoteColor:'',
+      obUrl:'https://127.0.0.1:27124', obKey:'', obFolder:'Arcs', obTesting:false, obGenerating:false, obNoteText:'', obNoteColor:'' };
+    this.schemaPrompt = [
+      'You have the official Supabase MCP connected (dev/schema mode).',
+      'Open the SQL Editor for my project and run the contents of this repo\u2019s',
+      'supabase-schema.sql verbatim \u2014 it creates arcs / prose / overlay_log with RLS.',
+      'Confirm all three tables exist and RLS is enabled before reporting back.'
+    ].join('\n');
+    this.deployCmd = 'supabase login\nsupabase link --project-ref <your-project-ref>\nsupabase functions deploy arc-mcp --no-verify-jwt\nsupabase secrets set SUPABASE_URL=<project-url> SUPABASE_SERVICE_ROLE_KEY=<service-role-key>';
+  }
+
+  componentDidMount(){
+    import('./arc-sync.js').then(sync=>{
+      this.sync = sync;
+      const cfg = sync.loadSyncConfig();
+      this.setState({ url:cfg.url||'', anonKey:cfg.anonKey||'', enabled: sync.isConfigured(cfg) });
+    }).catch(()=>{});
+    import('./arc-github.js').then(gh=>{
+      this.gh = gh;
+      const cfg = gh.loadConfig();
+      this.setState({ ghOwner:cfg.owner||'', ghRepo:cfg.repo||'', ghBranch:cfg.branch||'main', ghToken:cfg.token||'' });
+    }).catch(()=>{});
+    import('./arc-obsidian.js').then(ob=>{
+      this.ob = ob;
+      const cfg = ob.loadConfig();
+      this.setState({ obUrl:cfg.baseUrl||'https://127.0.0.1:27124', obKey:cfg.apiKey||'', obFolder:cfg.folder||'Arcs' });
+    }).catch(()=>{});
+  }
+
+  copy(key, text){
+    const done = () => this.setState(s => ({ copied: { ...s.copied, [key]: true } }));
+    try {
+      if(navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(text).then(done, done); }
+      else { const ta=document.createElement('textarea'); ta.value=text; document.body.appendChild(ta); ta.select(); try{document.execCommand('copy');}catch(e){} document.body.removeChild(ta); done(); }
+    } catch(e){ done(); }
+    clearTimeout(this['_t'+key]);
+    this['_t'+key] = setTimeout(()=>this.setState(s=>({ copied:{ ...s.copied, [key]:false } })), 1800);
+  }
+
+  saveAndEnable(){
+    if(!this.sync) return;
+    const url = (this.state.url||'').trim(), anonKey = (this.state.anonKey||'').trim();
+    const cfg = { enabled: !!(url && anonKey), url, anonKey, pollMs: 20000 };
+    this.sync.saveSyncConfig(cfg);
+    this.setState({ enabled: this.sync.isConfigured(cfg), noteText: cfg.enabled ? 'Saved \u2014 sync is on. Test the connection next.' : 'Saved as off \u2014 fill both fields to enable.', noteColor:'var(--blue)' });
+  }
+
+  async testConn(){
+    if(!this.sync) return;
+    this.setState({ testing:true, noteText:'', noteColor:'' });
+    try {
+      const cfg = { url:(this.state.url||'').trim(), anonKey:(this.state.anonKey||'').trim() };
+      const msg = await this.sync.testConnection(cfg);
+      this.setState({ testing:false, noteText:'\u2713 ' + msg, noteColor:'var(--green)' });
+    } catch(e){
+      this.setState({ testing:false, noteText:'\u26a0 ' + (e.message||String(e)), noteColor:'#ef4444' });
+    }
+  }
+
+  async pushBootstrap(){
+    if(!this.sync) return;
+    this.setState({ pushing:true, noteText:'', noteColor:'' });
+    try {
+      const ai = await import('./arc-ai.js');
+      const overlay = ai.loadOverlay();
+      const count = await this.sync.pushLocalOverlayNow(overlay);
+      this.setState({ pushing:false, noteText:'\u2713 Pushed ' + count + ' local overlay ' + (count===1?'entry':'entries') + ' to Supabase.', noteColor:'var(--green)' });
+    } catch(e){
+      this.setState({ pushing:false, noteText:'\u26a0 ' + (e.message||String(e)), noteColor:'#ef4444' });
+    }
+  }
+
+  saveGithub(){
+    if(!this.gh) return;
+    const owner=(this.state.ghOwner||'').trim(), repo=(this.state.ghRepo||'').trim(), branch=(this.state.ghBranch||'').trim()||'main', token=(this.state.ghToken||'').trim();
+    const cfg = { enabled: !!(owner&&repo&&token), owner, repo, branch, token, dataPath:'arcs-data.json', prosePath:'arcs-prose.json' };
+    this.gh.saveConfig(cfg);
+    this.setState({ ghNoteText: cfg.enabled ? 'Saved \u2014 commits/PRs are on.' : 'Saved as off \u2014 fill owner, repo, and token to enable.', ghNoteColor:'var(--blue)' });
+  }
+  async testGithub(){
+    if(!this.gh) return;
+    this.setState({ ghTesting:true, ghNoteText:'', ghNoteColor:'' });
+    try {
+      const cfg = { owner:(this.state.ghOwner||'').trim(), repo:(this.state.ghRepo||'').trim(), token:(this.state.ghToken||'').trim() };
+      const msg = await this.gh.testConnection(cfg);
+      this.setState({ ghTesting:false, ghNoteText:'\u2713 ' + msg, ghNoteColor:'var(--green)' });
+    } catch(e){ this.setState({ ghTesting:false, ghNoteText:'\u26a0 ' + (e.message||String(e)), ghNoteColor:'#ef4444' }); }
+  }
+  saveObsidian(){
+    if(!this.ob) return;
+    const baseUrl=(this.state.obUrl||'').trim(), apiKey=(this.state.obKey||'').trim(), folder=(this.state.obFolder||'Arcs').trim()||'Arcs';
+    const cfg = { enabled: !!(baseUrl&&apiKey), baseUrl, apiKey, folder };
+    this.ob.saveConfig(cfg);
+    this.setState({ obNoteText: cfg.enabled ? 'Saved \u2014 best-effort note pushes are on.' : 'Saved as off \u2014 fill URL and key to enable.', obNoteColor:'var(--blue)' });
+  }
+  async testObsidian(){
+    if(!this.ob) return;
+    this.setState({ obTesting:true, obNoteText:'', obNoteColor:'' });
+    try {
+      const cfg = { baseUrl:(this.state.obUrl||'').trim(), apiKey:(this.state.obKey||'').trim() };
+      const msg = await this.ob.testConnection(cfg);
+      this.setState({ obTesting:false, obNoteText:'\u2713 ' + msg, obNoteColor:'var(--green)' });
+    } catch(e){ this.setState({ obTesting:false, obNoteText:'\u26a0 ' + (e.message||String(e)), obNoteColor:'#ef4444' }); }
+  }
+  async generateNotes(){
+    if(!this.ob) return;
+    this.setState({ obGenerating:true, obNoteText:'', obNoteColor:'' });
+    try {
+      const [data, prose] = await Promise.all([ fetch('arcs-data.json').then(r=>r.json()), fetch('arcs-prose.json').then(r=>r.json()).catch(()=>({})) ]);
+      const ai = await import('./arc-ai.js');
+      try { ai.mergeOverlay(data, prose, {}, ai.loadOverlay()); } catch(e){}
+      const count = await this.ob.pushAll(data, prose);
+      this.setState({ obGenerating:false, obNoteText:'\u2713 Wrote ' + count + ' note' + (count===1?'':'s') + ' to the vault.', obNoteColor:'var(--green)' });
+    } catch(e){
+      this.setState({ obGenerating:false, obNoteText:'\u26a0 ' + (e.message||String(e)), obNoteColor:'#ef4444' });
+    }
+  }
+
+  renderVals(){
+    const preStyle = 'margin:0; background:#0b0c10; border:1px solid var(--bdb); padding:14px 16px; font-size:11.5px; line-height:1.7; color:#8b5cf6; white-space:pre-wrap; word-break:break-word; overflow-x:auto;';
+    const copyBtnStyle = 'background:var(--bg3); border:1px solid var(--bdb); color:var(--dim); font-family:\'JetBrains Mono\',monospace; font-size:9px; letter-spacing:.12em; text-transform:uppercase; padding:4px 10px; cursor:pointer;';
+    const inputStyle = 'width:100%; padding:9px 12px; background:var(--bg3); border:1px solid var(--bd); color:var(--fg); font-size:12px;';
+    const primaryBtnStyle = 'padding:9px 16px; border:1px solid var(--blue); background:rgba(147,197,253,.12); color:var(--fg); font-size:11px; cursor:pointer;';
+    const ghostBtnStyle = 'padding:9px 16px; border:1px solid var(--bdb); background:transparent; color:var(--dim); font-size:11px; cursor:pointer;';
+    const c = this.state.copied;
+
+    const refs = [
+      { k:'Supabase tables', v:'arcs \u00b7 prose \u00b7 overlay_log (supabase-schema.sql)' },
+      { k:'Edge Function', v:'arc-mcp-server.js \u2192 deploy as "arc-mcp"' },
+      { k:'MCP tools', v:'list_arcs \u00b7 get_arc \u00b7 apply_arc_op \u00b7 get_momentum \u00b7 generate_deliverable' },
+      { k:'Approval gate', v:'apply_arc_op / GitHub PRs both refuse create_arc/delete_arc without explicit approval' },
+      { k:'GitHub commit', v:'arc-github.js \u2192 low-risk ops commit direct, create_arc/delete_arc open a PR' },
+      { k:'Obsidian notes', v:'arc-obsidian.js \u2192 one note per arc via the Local REST API plugin' },
+      { k:'Config keys', v:'arc-sync-config-v1 \u00b7 arc-github-config-v1 \u00b7 arc-obsidian-config-v1 (all localStorage)' },
+      { k:'Wired into', v:'arc-ai.js (push, all tools) \u00b7 all seven catalog tools (Supabase pull/poll)' },
+    ];
+
+    return {
+      preStyle, copyBtnStyle, inputStyle, primaryBtnStyle, ghostBtnStyle,
+      schemaPrompt: this.schemaPrompt, deployCmd: this.deployCmd,
+      copySchemaPrompt: ()=>this.copy('schema', this.schemaPrompt),
+      copyDeployCmd: ()=>this.copy('deploy', this.deployCmd),
+      schemaPromptLabel: c.schema ? 'Copied' : 'Copy',
+      deployLabel: c.deploy ? 'Copied' : 'Copy',
+      urlVal: this.state.url, onUrlInput: (e)=>this.setState({ url:e.target.value }),
+      keyVal: this.state.anonKey, onKeyInput: (e)=>this.setState({ anonKey:e.target.value }),
+      saveAndEnable: ()=>this.saveAndEnable(), saveLabel:'Save',
+      testConn: ()=>this.testConn(), testing:this.state.testing, testLabel: this.state.testing?'Testing\u2026':'Test connection',
+      pushBootstrap: ()=>this.pushBootstrap(), pushing:this.state.pushing, pushLabel: this.state.pushing?'Pushing\u2026':'Push local overlay now',
+      enabledDotStyle: 'width:7px; height:7px; border-radius:50%; background:'+(this.state.enabled?'#4ade80':'var(--mute)')+'; box-shadow:'+(this.state.enabled?'0 0 8px rgba(74,222,128,.6)':'none')+';',
+      enabledLabel: this.state.enabled ? 'Sync is on' : 'Sync is off',
+      hasNote: !!this.state.noteText, noteText:this.state.noteText, noteColor:this.state.noteColor||'var(--dim)',
+      ghOwnerVal:this.state.ghOwner, onGhOwnerInput:(e)=>this.setState({ghOwner:e.target.value}),
+      ghRepoVal:this.state.ghRepo, onGhRepoInput:(e)=>this.setState({ghRepo:e.target.value}),
+      ghBranchVal:this.state.ghBranch, onGhBranchInput:(e)=>this.setState({ghBranch:e.target.value}),
+      ghTokenVal:this.state.ghToken, onGhTokenInput:(e)=>this.setState({ghToken:e.target.value}),
+      saveGithub:()=>this.saveGithub(), testGithub:()=>this.testGithub(), ghTesting:this.state.ghTesting, ghTestLabel:this.state.ghTesting?'Testing\u2026':'Test connection',
+      ghHasNote: !!this.state.ghNoteText, ghNoteText:this.state.ghNoteText, ghNoteColor:this.state.ghNoteColor||'var(--dim)',
+      obUrlVal:this.state.obUrl, onObUrlInput:(e)=>this.setState({obUrl:e.target.value}),
+      obKeyVal:this.state.obKey, onObKeyInput:(e)=>this.setState({obKey:e.target.value}),
+      obFolderVal:this.state.obFolder, onObFolderInput:(e)=>this.setState({obFolder:e.target.value}),
+      saveObsidian:()=>this.saveObsidian(), testObsidian:()=>this.testObsidian(), obTesting:this.state.obTesting, obTestLabel:this.state.obTesting?'Testing\u2026':'Test connection',
+      generateNotes:()=>this.generateNotes(), obGenerating:this.state.obGenerating, obGenerateLabel:this.state.obGenerating?'Writing\u2026':'Generate notes now',
+      obHasNote: !!this.state.obNoteText, obNoteText:this.state.obNoteText, obNoteColor:this.state.obNoteColor||'var(--dim)',
+      refs,
+    };
+  }
+}
+
+</script>
+</body>
+</html>

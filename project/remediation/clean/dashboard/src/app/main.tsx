@@ -5,7 +5,7 @@ import { router } from "./routes";
 import { SignIn } from "./components/SignIn";
 import "../styles/flashfusion.css";
 import "../styles/fonts.css";
-import "../styles/app.css";
+import "./styles/app.css";
 
 function AppRoot() {
   const [authed, setAuthed] = useState(() => !!localStorage.getItem("ff_auth"));

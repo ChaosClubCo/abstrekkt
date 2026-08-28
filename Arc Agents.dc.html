@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/flashfusion-design-system-455b583a-992a-42cb-ae6a-2c862e3b31e7/fonts-selfhosted.css">
+<link rel="stylesheet" href="_ds/flashfusion-design-system-455b583a-992a-42cb-ae6a-2c862e3b31e7/styles.css">
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; background:oklch(0.08 0.02 270); }
+  *::-webkit-scrollbar { width:9px; height:9px; }
+  *::-webkit-scrollbar-thumb { background:#2a2a33; border-radius:6px; }
+  *::-webkit-scrollbar-track { background:transparent; }
+  .mono { font-family:'JetBrains Mono',ui-monospace,monospace; }
+  .serif { font-family:'Instrument Serif',serif; }
+  input, textarea, select { font-family:'JetBrains Mono',ui-monospace,monospace; }
+  input::placeholder, textarea::placeholder { color:oklch(0.35 0.02 270); }
+  @keyframes fadeUp { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
+  @media (max-width:1000px){ .ag-main{ grid-template-columns:1fr !important; } .ag-ribbon{ grid-template-columns:repeat(2,1fr) !important; } }
+  @media (max-width:560px){ .ag-ribbon{ grid-template-columns:1fr !important; } .ag-wrap{ padding:28px 16px 90px !important; } .ag-head{ grid-template-columns:1fr !important; gap:18px !important; } }
+</style>
+</helmet>
+<div class="mono" data-screen-label="Arc Agents" style="--fg:oklch(0.97 0.005 270); --dim:oklch(0.58 0.02 270); --mute:oklch(0.40 0.02 270); --bg:oklch(0.08 0.02 270); --bg2:oklch(0.12 0.02 270); --bd:oklch(0.27 0.03 270); --bdb:oklch(0.35 0.04 270); --violet:#8b5cf6; --cyan:#22d3ee; min-height:100vh; background:radial-gradient(ellipse 62% 40% at 82% -8%, rgba(139,92,246,.09), transparent 60%), var(--bg); color:var(--fg); font-size:14px; line-height:1.55;">
+  <div class="ag-wrap" style="max-width:1280px; margin:0 auto; padding:48px 40px 120px;">
+
+    <sc-if value="{{ loading }}" hint-placeholder-val="{{ true }}">
+      <div style="color:var(--mute); font-size:13px; padding:80px 0;">Loading arcs, connectors, skills…</div>
+    </sc-if>
+
+    <sc-if value="{{ ready }}" hint-placeholder-val="{{ false }}">
+      <div>
+        <!-- HEADER -->
+        <div class="ag-head" style="display:grid; grid-template-columns:1fr auto; gap:32px; align-items:end; padding-bottom:28px; border-bottom:1px solid var(--bd); margin-bottom:28px;">
+          <div>
+            <div style="font-size:11px; text-transform:uppercase; letter-spacing:.24em; color:var(--cyan); margin-bottom:14px; display:flex; align-items:center; gap:9px;">
+              <span style="width:18px; height:1px; background:var(--cyan);"></span>Learning Ops · Agents
+            </div>
+            <h1 class="serif" style="font-size:clamp(38px,5vw,58px); line-height:.96; letter-spacing:-.015em; margin:0; color:oklch(0.97 0.005 270);">The Agent <em style="color:var(--violet); font-style:italic;">Dashboard</em>.</h1>
+            <p style="font-size:12.5px; color:var(--dim); margin:14px 0 0; max-width:66ch; line-height:1.65;">Give it a goal, or run a skill directly. It reads your arcs, calls the model, and executes — real edits to your library, real calls to whatever connectors you configure below. This suite is browser-only: connector calls are genuine fetches to the URLs/tokens you paste in, so a service that blocks browser CORS will fail visibly rather than silently.</p>
+          </div>
+          <div style="display:flex; align-items:center; gap:10px;">
+            <button style="{{ liveBtnStyle }}" onClick="{{ toggleLive }}" title="Live sends real requests to your connectors. Dry-run builds the payload and logs it, but sends nothing — safe default for testing a new connector.">{{ liveLabel }} ⓘ</button>
+          </div>
+        </div>
+
+        <!-- STAT RIBBON -->
+        <div class="ag-ribbon" style="display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:30px;">
+          <div style="border:1px solid var(--bd); background:var(--bg2); padding:15px 16px;">
+            <div class="serif" style="font-size:28px; color:var(--fg); line-height:1;">{{ connectorCount }}</div>
+            <div style="font-size:9px; letter-spacing:.16em; text-transform:uppercase; color:var(--dim); margin-top:8px;">Connectors wired</div>
+          </div>
+          <div style="border:1px solid var(--bd); background:var(--bg2); padding:15px 16px;">
+            <div class="serif" style="font-size:28px; color:var(--fg); line-height:1;">{{ skillCount }}</div>
+            <div style="font-size:9px; letter-spacing:.16em; text-transform:uppercase; color:var(--dim); margin-top:8px;">Skills available</div>
+          </div>
+          <div style="border:1px solid var(--bd); background:var(--bg2); padding:15px 16px;">
+            <div class="serif" style="font-size:28px; color:{{ pendingColor }};">{{ pendingCount }}</div>
+            <div style="font-size:9px; letter-spacing:.16em; text-transform:uppercase; color:var(--dim); margin-top:8px;">Awaiting approval</div>
+          </div>
+          <div style="border:1px solid var(--bd); background:var(--bg2); padding:15px 16px;">
+            <div class="serif" style="font-size:28px; color:var(--fg); line-height:1;">{{ focusCount }}</div>
+            <div style="font-size:9px; letter-spacing:.16em; text-transform:uppercase; color:var(--dim); margin-top:8px;">Arcs in focus</div>
+          </div>
+        </div>
+
+        <!-- MAIN GRID -->
+        <div class="ag-main" style="display:grid; grid-template-columns:1fr 380px; gap:22px; align-items:start;">
+
+          <!-- LEFT: GOAL RUNNER -->
+          <div>
+            <div style="border:1px solid var(--bd); background:var(--bg2); padding:18px 20px; margin-bottom:16px;">
+              <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:10px;">
+                <div class="serif" style="font-size:20px; color:var(--fg); font-style:italic;" title="The planner reads this goal, decides which skills/ops/connectors to use, and executes them in order. Vague goals get vague plans — name the arc, the skill, or the connector if you want a specific outcome.">Give it a goal. ⓘ</div>
+                <select style="{{ providerSelectStyle }}" value="{{ provider }}" onChange="{{ onProviderChange }}" title="Anthropic runs on the built-in model, free, ~1024-token replies. OpenAI/Gemini need a key (add one in Arc Reader — keys are shared across the suite) and handle longer plans better.">
+                  <sc-for list="{{ providers }}" as="p" hint-placeholder-count="3">
+                    <option value="{{ p.id }}">{{ p.label }}</option>
+                  </sc-for>
+                </select>
+              </div>
+              <textarea style="{{ goalInputStyle }}" placeholder="e.g. &quot;Check which focus arcs have stalled, post a Slack summary, and rename the mcp arc to MCP Builder.&quot;" value="{{ goalText }}" onInput="{{ onGoalInput }}"></textarea>
+              <div style="display:flex; align-items:center; justify-content:space-between; margin-top:10px;">
+                <div style="font-size:10px; color:var(--mute);">{{ providerNote }}</div>
+                <button style="{{ runBtnStyle }}" onClick="{{ runAgent }}" disabled="{{ busy }}">{{ runLabel }}</button>
+              </div>
+            </div>
+
+            <!-- ONE-CLICK SKILLS -->
+            <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-bottom:18px;">
+              <sc-for list="{{ quickSkills }}" as="q" hint-placeholder-count="3">
+                <button style="{{ q.style }}" onClick="{{ q.onClick }}" disabled="{{ q.busy }}">
+                  <div style="font-size:9px; letter-spacing:.14em; text-transform:uppercase; color:var(--mute); margin-bottom:6px;">{{ q.tag }}</div>
+                  <div class="serif" style="font-size:16px; font-style:italic; color:var(--fg);">{{ q.label }}</div>
+                </button>
+              </sc-for>
+            </div>
+
+            <!-- PENDING APPROVALS -->
+            <sc-if value="{{ hasPending }}" hint-placeholder-val="{{ false }}">
+              <div style="border:1px solid rgba(251,146,60,.35); background:rgba(251,146,60,.06); padding:16px 18px; margin-bottom:18px;">
+                <div style="font-size:9px; letter-spacing:.2em; text-transform:uppercase; color:#fb923c; margin-bottom:10px;" title="Everything else the agent does (edit_gate, edit_week, rename_arc, etc.) auto-applies straight to the overlay — it's reversible via Arc Reader's Undo. Create/delete are the two ops that permanently reshape the library, so they always wait here first. This queue now survives a page reload.">⚠ Needs your approval — create/delete ops don't auto-apply ⓘ</div>
+                <sc-for list="{{ pending }}" as="p" hint-placeholder-count="2">
+                  <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; padding:9px 0; border-top:1px dashed rgba(251,146,60,.25);">
+                    <div style="font-size:12px; color:var(--fg);">{{ p.label }}</div>
+                    <div style="display:flex; gap:8px; flex:none;">
+                      <button style="{{ p.approveStyle }}" onClick="{{ p.onApprove }}">Approve</button>
+                      <button style="{{ p.rejectStyle }}" onClick="{{ p.onReject }}">Reject</button>
+                    </div>
+                  </div>
+                </sc-for>
+              </div>
+            </sc-if>
+
+            <!-- CHAT / RUN TRANSCRIPT -->
+            <div style="display:flex; flex-direction:column; gap:12px;">
+              <sc-for list="{{ chat }}" as="c" hint-placeholder-count="0">
+                <div style="{{ c.bubbleStyle }}">
+                  <div style="font-size:9px; letter-spacing:.16em; text-transform:uppercase; color:{{ c.roleColor }}; margin-bottom:8px;">{{ c.roleLabel }}</div>
+                  <div style="white-space:pre-wrap; font-size:12.5px; color:var(--fg); line-height:1.65;">{{ c.text }}</div>
+                  <sc-if value="{{ c.hasSteps }}" hint-placeholder-val="{{ false }}">
+                    <div style="margin-top:12px; border-top:1px solid var(--bd); padding-top:10px; display:flex; flex-direction:column; gap:6px;">
+                      <sc-for list="{{ c.steps }}" as="s" hint-placeholder-count="0">
+                        <div style="display:flex; align-items:baseline; gap:8px; font-size:11px;">
+                          <span style="{{ s.dotStyle }}"></span>
+                          <span style="color:var(--dim);">{{ s.label }}</span>
+                          <span style="color:{{ s.statusColor }};">{{ s.statusText }}</span>
+                        </div>
+                      </sc-for>
+                    </div>
+                  </sc-if>
+                </div>
+              </sc-for>
+              <sc-if value="{{ noChat }}" hint-placeholder-val="{{ false }}">
+                <div style="border:1px dashed var(--bdb); padding:26px; text-align:center; color:var(--mute); font-size:12px;">No runs yet. Try a goal above, or a one-click skill.</div>
+              </sc-if>
+            </div>
+          </div>
+
+          <!-- RIGHT: CONNECTORS + SKILLS + FOCUS -->
+          <div style="display:flex; flex-direction:column; gap:16px;">
+
+            <!-- CONNECTORS -->
+            <div style="border:1px solid var(--bd); background:var(--bg2); padding:16px 18px;">
+              <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+                <div style="font-size:9px; letter-spacing:.2em; text-transform:uppercase; color:var(--dim);" title="Every call here is a real fetch from your browser to the URL/token you paste in. Slack/Notion/Linear/Gmail may reject direct browser calls (CORS) regardless of a valid token — webhook and MCP (routed through your own server, e.g. n8n) are the most reliable.">Connectors ⓘ</div>
+                <select style="{{ addConnSelectStyle }}" value="{{ addConnKind }}" onChange="{{ onAddConnKindChange }}">
+                  <option value="">+ Add…</option>
+                  <sc-for list="{{ kinds }}" as="k" hint-placeholder-count="6">
+                    <option value="{{ k.id }}">{{ k.label }}</option>
+                  </sc-for>
+                </select>
+              </div>
+
+              <sc-for list="{{ connectors }}" as="cn" hint-placeholder-count="1">
+                <div style="border:1px solid var(--bd); margin-bottom:8px;">
+                  <div style="display:flex; align-items:center; justify-content:space-between; padding:9px 12px; background:rgba(255,255,255,.02);">
+                    <div style="display:flex; align-items:center; gap:8px; min-width:0;">
+                      <span style="{{ cn.dotStyle }}"></span>
+                      <span style="font-size:12px; color:var(--fg); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ cn.name }}</span>
+                      <span style="font-size:8.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--mute); border:1px solid var(--bd); padding:1px 6px;">{{ cn.kindLabel }}</span>
+                    </div>
+                    <div style="display:flex; gap:6px; flex:none;">
+                      <button style="{{ cn.miniStyle }}" onClick="{{ cn.onEdit }}">{{ cn.editLabel }}</button>
+                      <button style="{{ cn.miniStyle }}" onClick="{{ cn.onTest }}" disabled="{{ cn.testing }}">{{ cn.testLabel }}</button>
+                      <button style="{{ cn.dangerStyle }}" onClick="{{ cn.onDelete }}">✕</button>
+                    </div>
+                  </div>
+                  <sc-if value="{{ cn.editing }}" hint-placeholder-val="{{ false }}">
+                    <div style="padding:10px 12px; display:flex; flex-direction:column; gap:8px; border-top:1px solid var(--bd);">
+                      <input style="{{ inputStyle }}" placeholder="Name" value="{{ cn.nameValue }}" onInput="{{ cn.onNameInput }}"></input>
+                      <sc-for list="{{ cn.fields }}" as="f" hint-placeholder-count="2">
+                        <input style="{{ inputStyle }}" placeholder="{{ f.ph }}" value="{{ f.value }}" onInput="{{ f.onInput }}"></input>
+                      </sc-for>
+                      <sc-if value="{{ cn.testNote }}" hint-placeholder-val="{{ false }}">
+                        <div style="font-size:10.5px; color:{{ cn.testNoteColor }};">{{ cn.testNote }}</div>
+                      </sc-if>
+                    </div>
+                  </sc-if>
+                </div>
+              </sc-for>
+              <sc-if value="{{ noConnectors }}" hint-placeholder-val="{{ true }}">
+                <div style="font-size:11px; color:var(--mute); font-style:italic; padding:6px 2px;">No connectors yet — add one above to let skills reach Slack, Notion, Linear, Gmail, a webhook or an MCP server.</div>
+              </sc-if>
+            </div>
+
+            <!-- SKILLS -->
+            <div style="border:1px solid var(--bd); background:var(--bg2); padding:16px 18px;">
+              <div style="font-size:9px; letter-spacing:.2em; text-transform:uppercase; color:var(--dim); margin-bottom:10px;" title="standup, stall_watch and capacity_guard only look at your focus arcs (the chips below), not all 75 — set focus first or they'll have nothing to report on.">Skills the agent can call ⓘ</div>
+              <div style="display:flex; flex-direction:column; gap:7px;">
+                <sc-for list="{{ skillList }}" as="sk" hint-placeholder-count="8">
+                  <div style="display:flex; align-items:baseline; gap:8px; font-size:11px;">
+                    <span style="color:{{ sk.color }};">●</span>
+                    <span style="color:var(--fg);">{{ sk.name }}</span>
+                    <span style="color:var(--mute); font-size:10px;">{{ sk.note }}</span>
+                  </div>
+                </sc-for>
+              </div>
+              <div style="margin-top:12px; padding-top:12px; border-top:1px solid var(--bd);">
+                <div style="font-size:9px; letter-spacing:.16em; text-transform:uppercase; color:var(--mute); margin-bottom:8px;">Custom agents</div>
+                <sc-for list="{{ customAgentsList }}" as="ca" hint-placeholder-count="0">
+                  <div style="{{ ca.rowStyle }}">
+                    <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:8px;">
+                      <div style="min-width:0;">
+                        <div style="font-size:12px; color:var(--fg);">{{ ca.name }}</div>
+                        <div style="font-size:10px; color:var(--mute); margin-top:2px; line-height:1.5;">{{ ca.description }}</div>
+                      </div>
+                      <div style="display:flex; gap:6px; flex:none;">
+                        <button style="{{ smallBtnStyle }}" onClick="{{ ca.onRun }}">Run</button>
+                        <button style="{{ smallBtnStyle }}" onClick="{{ ca.onEdit }}">{{ ca.editLabel }}</button>
+                        <button style="{{ smallBtnStyle }}" onClick="{{ ca.onDelete }}">✕</button>
+                      </div>
+                    </div>
+                    <sc-if value="{{ ca.editing }}" hint-placeholder-val="{{ false }}">
+                      <div style="margin-top:10px; display:flex; flex-direction:column; gap:6px;">
+                        <input style="{{ inputStyle }}" value="{{ ca.nameValue }}" onInput="{{ ca.onNameInput }}"></input>
+                        <input style="{{ inputStyle }}" value="{{ ca.descValue }}" onInput="{{ ca.onDescInput }}"></input>
+                        <textarea style="{{ draftTextareaStyle }}" value="{{ ca.promptValue }}" onInput="{{ ca.onPromptInput }}"></textarea>
+                      </div>
+                    </sc-if>
+                  </div>
+                </sc-for>
+                <sc-if value="{{ noCustomAgents }}" hint-placeholder-val="{{ true }}">
+                  <div style="font-size:11px; color:var(--mute); font-style:italic; margin-bottom:10px;">No custom agents yet — describe one below and let the model draft it.</div>
+                </sc-if>
+
+                <div style="font-size:9px; letter-spacing:.16em; text-transform:uppercase; color:var(--mute); margin:14px 0 4px;">Build one with AI</div>
+                <textarea style="{{ builderTextareaStyle }}" placeholder="Describe the agent, e.g. &quot;Every time I ask, check my stalled arcs and draft a Notion page with a recovery plan.&quot;" value="{{ builderDesc }}" onInput="{{ onBuilderDescInput }}"></textarea>
+                <div style="display:flex; align-items:center; gap:8px; margin-top:8px;">
+                  <select style="{{ providerSelectStyle }}" value="{{ builderProvider }}" onChange="{{ onBuilderProviderChange }}">
+                    <sc-for list="{{ providers }}" as="p" hint-placeholder-count="3">
+                      <option value="{{ p.id }}">{{ p.label }}</option>
+                    </sc-for>
+                  </select>
+                  <button style="{{ addCustomBtnStyle }}" onClick="{{ generateAgentDraft }}" disabled="{{ builderBusy }}">{{ generateBtnLabel }}</button>
+                </div>
+
+                <sc-if value="{{ hasDraft }}" hint-placeholder-val="{{ false }}">
+                  <div style="margin-top:12px; border:1px dashed var(--bdb); padding:12px; display:flex; flex-direction:column; gap:8px;">
+                    <div style="font-size:9px; letter-spacing:.14em; text-transform:uppercase; color:var(--violet);">Draft — review before saving</div>
+                    <input style="{{ inputStyle }}" value="{{ draftName }}" onInput="{{ onDraftNameInput }}"></input>
+                    <input style="{{ inputStyle }}" value="{{ draftDesc }}" onInput="{{ onDraftDescInput }}"></input>
+                    <textarea style="{{ draftTextareaStyle }}" value="{{ draftPrompt }}" onInput="{{ onDraftPromptInput }}"></textarea>
+                    <div style="display:flex; gap:8px;">
+                      <button style="{{ addCustomBtnStyle }}" onClick="{{ saveDraft }}">Save agent</button>
+                      <button style="{{ smallBtnStyle }}" onClick="{{ discardDraft }}">Discard</button>
+                    </div>
+                  </div>
+                </sc-if>
+              </div>
+            </div>
+
+            <!-- FOCUS -->
+            <div style="border:1px solid var(--bd); background:var(--bg2); padding:16px 18px;">
+              <div style="font-size:9px; letter-spacing:.2em; text-transform:uppercase; color:var(--dim); margin-bottom:10px;" title="This is literally arc-momentum-focus-v1 — the same list Arc Momentum reads and writes. Toggle one here and Momentum sees it next load, and vice versa.">Focus arcs (shared with Momentum) ⓘ</div>
+              <div style="display:flex; flex-wrap:wrap; gap:6px;">
+                <sc-for list="{{ focusChips }}" as="fc" hint-placeholder-count="6">
+                  <button style="{{ fc.style }}" onClick="{{ fc.onClick }}">
+                    <span style="width:6px; height:6px; border-radius:50%; background:{{ fc.accent }}; flex:none;"></span>{{ fc.em }}
+                  </button>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ACTIVITY LOG -->
+        <div style="margin-top:30px;">
+          <div style="display:flex; align-items:baseline; justify-content:space-between; margin-bottom:12px;">
+            <div class="serif" style="font-size:20px; color:var(--fg); font-style:italic;">Activity.</div>
+            <div style="font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:var(--mute);" title="Separate history from Arc Execution's automation log — same transports, different record. Click nothing here yet; entries are read-only.">{{ activityCount }} entries · capped 60 ⓘ</div>
+          </div>
+          <div style="border:1px solid var(--bd); background:var(--bg2);">
+            <sc-for list="{{ activity }}" as="a" hint-placeholder-count="4">
+              <div style="{{ a.rowStyle }}">
+                <span style="{{ a.dotStyle }}"></span>
+                <span style="color:var(--mute); font-size:10.5px; white-space:nowrap;">{{ a.time }}</span>
+                <span style="color:var(--fg); font-size:11.5px;">{{ a.label }}</span>
+                <span style="color:{{ a.statusColor }}; font-size:10.5px; text-align:right;">{{ a.status }}</span>
+              </div>
+            </sc-for>
+            <sc-if value="{{ noActivity }}" hint-placeholder-val="{{ true }}">
+              <div style="padding:20px; text-align:center; color:var(--mute); font-size:11.5px; font-style:italic;">Nothing yet.</div>
+            </sc-if>
+          </div>
+        </div>
+
+        <!-- FIELD NOTES -->
+        <div style="margin-top:34px;">
+          <div class="serif" style="font-size:20px; color:var(--fg); font-style:italic; margin-bottom:14px;">Field notes.</div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;" class="ag-ribbon">
+            <div style="border:1px solid var(--bd); border-top:2px solid #4ade80; background:var(--bg2); padding:16px 18px;">
+              <div style="font-size:9px; letter-spacing:.18em; text-transform:uppercase; color:#4ade80; margin-bottom:10px;">Best practices</div>
+              <ul style="margin:0; padding-left:16px; display:flex; flex-direction:column; gap:7px; font-size:11.5px; color:var(--dim); line-height:1.55;">
+                <li>New connector → leave it in Dry-run, hit <strong style="color:var(--fg);">Test</strong>, read the response, then flip Live.</li>
+                <li>Set focus arcs before running Standup / Stall watch / Capacity — they only ever look at focus, never all 74.</li>
+                <li>Leave create_arc / delete_arc gated. Everything else is safe to auto-apply since Arc Reader's Undo reverts it.</li>
+                <li>One webhook per destination is enough — route different event types through it rather than multiplying connectors.</li>
+              </ul>
+            </div>
+            <div style="border:1px solid var(--bd); border-top:2px solid var(--cyan); background:var(--bg2); padding:16px 18px;">
+              <div style="font-size:9px; letter-spacing:.18em; text-transform:uppercase; color:var(--cyan); margin-bottom:10px;">Hidden connections</div>
+              <ul style="margin:0; padding-left:16px; display:flex; flex-direction:column; gap:7px; font-size:11.5px; color:var(--dim); line-height:1.55;">
+                <li>Every op here writes to the same overlay Arc Reader reads — Reader's <strong style="color:var(--fg);">Undo</strong> clears agent-made edits too, not just Reader's own.</li>
+                <li>Focus arcs are <span class="mono" style="color:var(--fg);">arc-momentum-focus-v1</span> — shared live with Arc Momentum.</li>
+                <li>Custom agents and the goal planner both run on the same three-provider adapters and stored keys as Arc Reader's assistant — a key you add there works here.</li>
+                <li>Approved/rejected ops and connector sends land in the same activity log — scroll it as a single source of truth for what the agent actually did.</li>
+              </ul>
+            </div>
+            <div style="border:1px solid var(--bd); border-top:2px solid var(--violet); background:var(--bg2); padding:16px 18px;">
+              <div style="font-size:9px; letter-spacing:.18em; text-transform:uppercase; color:var(--violet); margin-bottom:10px;">Pro moves</div>
+              <ul style="margin:0; padding-left:16px; display:flex; flex-direction:column; gap:7px; font-size:11.5px; color:var(--dim); line-height:1.55;">
+                <li>Chain it in one goal: <em>"run stall watch, then post the result to Slack"</em> — the planner sequences skill → connector without you doing it by hand.</li>
+                <li>Wiring a new MCP server, test it first — the Test button initializes a session so you can confirm the tool name before pointing real goals at it.</li>
+                <li>Give a custom agent's description a full standing instruction and no blanks to fill — its Run button becomes a real one-click job.</li>
+                <li>Name arcs and connectors precisely in your goal text ("the mcp arc", "the n8n webhook") — the planner matches on exact ids/names, not fuzzy guesses.</li>
+              </ul>
+            </div>
+            <div style="border:1px solid var(--bd); border-top:2px solid #fb923c; background:var(--bg2); padding:16px 18px;">
+              <div style="font-size:9px; letter-spacing:.18em; text-transform:uppercase; color:#fb923c; margin-bottom:10px;">Unknown unknowns</div>
+              <ul style="margin:0; padding-left:16px; display:flex; flex-direction:column; gap:7px; font-size:11.5px; color:var(--dim); line-height:1.55;">
+                <li>A connector failure with no HTTP status (just a network error) usually means the browser blocked the request via CORS — not a bad token. Notion, Linear and Gmail commonly do this from client-side code.</li>
+                <li>The planner only sees connectors/agents/arcs that exist the moment you hit Run — add a connector, then re-run the goal so it's in scope.</li>
+                <li>Anthropic's free-tier replies cap around 1024 tokens (same limit as Reader's assistant) — a long create_arc draft or a verbose custom-agent prompt can get cut off; switch providers for those.</li>
+                <li>Overlay sync is load-time only, suite-wide — an edit made here won't show in an already-open Portfolio/Dependencies tab until it's reloaded.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </sc-if>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1280,&quot;height&quot;:1000}}">
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = {
+      ready: false, data: null, prose: null, names: {},
+      focus: {}, done: {},
+      connectors: [], live: true,
+      provider: 'anthropic',
+      goalText: '', busy: false,
+      chat: [], pending: [],
+      addConnKind: '', connEdits: {}, // connEdits[id] = draft config while editing
+      editingId: null, testState: {}, // testState[id] = {busy,note,color}
+      customAgents: [], builderDesc: '', builderBusy: false, builderDraft: null, builderProvider: 'anthropic', editingAgentId: null,
+      _tick: 0,
+    };
+    this.ai = null;
+    this.SEED_NAMES = {
+      mastery:['Gemini',1,null], claude:['Claude',1,null], copilot:['Copilot',1,null], openai:['OpenAI',1,null],
+      practitioner:['Practitioner',1,null], aiaas:['AIaaS',1,null], mcp:['MCP Builder',1,null], security:['Security',1,null],
+      rag:['RAG & Data',1,null], n8n:['n8n Automation',1,null], brand:['Personal Brand',1,null], teaching:['Teaching',1,null],
+      gcp:['GCP / Vertex',2,null], fullstack:['Full-Stack App',2,null], azure:['Azure Foundry',2,null], eval:['Agentic Eval',2,null],
+      voice:['Voice & Realtime',2,null], strategy:['Product Strategy',2,null], cloudflare:['Cloudflare Edge',2,null],
+      book:['Book',3,'B'], course:['Course',3,'B'], saas:['SaaS',3,'B'], partner:['Partner Anchor',3,'B'],
+      regulated:['Regulated AI Sec',3,'A'], evalexpert:['Eval & Safety',3,'A'], enterprise:['Enterprise Arch',3,'A'],
+    };
+  }
+
+  async componentDidMount() {
+    try {
+      const [data, prose, ai, conn] = await Promise.all([
+        fetch('arcs-data.json').then(r => r.json()),
+        fetch('arcs-prose.json').then(r => r.json()).catch(() => ({})),
+        import('./arc-ai.js').catch(() => null),
+        import('./arc-agent-connectors.js').catch(() => null),
+      ]);
+      this.ai = ai; this.conn = conn;
+      const names = JSON.parse(JSON.stringify(this.SEED_NAMES));
+      if (ai) { try { ai.mergeOverlay(data, prose, names, ai.loadOverlay()); } catch (e) {} }
+      Object.keys(data).forEach(id => { if (!names[id]) names[id] = [data[id].em || id, data[id].series || 1, data[id].lane || null]; });
+      let focus = {}, done = {};
+      try { const r = localStorage.getItem('arc-momentum-focus-v1'); if (r) focus = JSON.parse(r); } catch (e) {}
+      try { const r = localStorage.getItem('arc-reader-done-v1'); if (r) done = JSON.parse(r); } catch (e) {}
+      if (!focus || !Object.keys(focus).length) { focus = {}; ['claude', 'security', 'brand'].forEach(id => { if (data[id]) focus[id] = true; }); }
+      let customAgents = [];
+      try { const r = localStorage.getItem('arc-agents-custom-agents-v1'); if (r) customAgents = JSON.parse(r) || []; } catch (e) {}
+      const connectors = conn ? conn.loadConnectors() : [];
+      let live = true;
+      try { const r = localStorage.getItem('arc-agents-live-v1'); if (r !== null) live = r === '1'; } catch (e) {}
+      let pending = [];
+      try { const r = localStorage.getItem('arc-agents-pending-v1'); if (r) pending = JSON.parse(r) || []; } catch (e) {}
+      this.setState({ ready: true, data, prose, names, focus, done, connectors, customAgents, live, pending });
+      if (conn) this._unsub = conn.subscribeLog(() => this.setState(s => ({ _tick: s._tick + 1 })));
+      import('./arc-sync.js').then(sync => {
+        this.sync = sync;
+        const cfg = sync.loadSyncConfig();
+        if (!sync.isConfigured(cfg)) return;
+        sync.startPolling((remoteOverlay) => {
+          const data2 = JSON.parse(JSON.stringify(this.state.data));
+          const prose2 = JSON.parse(JSON.stringify(this.state.prose));
+          const names2 = JSON.parse(JSON.stringify(this.state.names));
+          if (this.ai) this.ai.mergeOverlay(data2, prose2, names2, remoteOverlay);
+          this.setState({ data: data2, prose: prose2, names: names2 });
+        }, cfg.pollMs);
+      }).catch(() => {});
+    } catch (e) { console.error('agents load failed', e); }
+  }
+  componentWillUnmount() { if (this._unsub) this._unsub(); if (this.sync) this.sync.stopPolling(); }
+
+  // ---------- persistence ----------
+  persistFocus(f) { try { localStorage.setItem('arc-momentum-focus-v1', JSON.stringify(f)); } catch (e) {} }
+  persistAgents(list) { try { localStorage.setItem('arc-agents-custom-agents-v1', JSON.stringify(list)); } catch (e) {} }
+  persistPending(list) { try { localStorage.setItem('arc-agents-pending-v1', JSON.stringify(list)); } catch (e) {} }
+  persistLive(v) { try { localStorage.setItem('arc-agents-live-v1', v ? '1' : '0'); } catch (e) {} }
+  saveConnectors(list) { if (this.conn) this.conn.saveConnectors(list); this.setState({ connectors: list }); }
+
+  toggleLive() { this.setState(s => { this.persistLive(!s.live); return { live: !s.live }; }); }
+  toggleFocus(id) { this.setState(s => { const focus = { ...s.focus }; if (focus[id]) delete focus[id]; else focus[id] = true; this.persistFocus(focus); return { focus }; }); }
+
+  // ---------- arc helpers ----------
+  shade(hex, a) { try { const n = parseInt(hex.slice(1), 16); return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`; } catch (e) { return `rgba(139,92,246,${a})`; } }
+  monthsOf(arc) { const ms = []; (arc.quarters || []).forEach(q => (q.months || []).forEach(m => ms.push(m))); ms.sort((a, b) => a.n - b.n); return ms; }
+  arcPct(arc, id) { let d = 0, t = 0; this.monthsOf(arc).forEach(m => (m.weeks || ['', '', '', '']).forEach((w, wi) => { t++; if (this.state.done[id + '-' + m.n + '-' + wi]) d++; })); return t ? Math.round(d / t * 100) : 0; }
+  currentTask(arc, id) {
+    for (const m of this.monthsOf(arc)) { const wk = m.weeks || ['—', '—', '—', '—']; for (let wi = 0; wi < wk.length; wi++) { if (!this.state.done[id + '-' + m.n + '-' + wi]) return { complete: false, monthN: m.n, monthTitle: m.title, weekIdx: wi, weekNo: wi + 1, weekText: wk[wi] || '—', gate: m.gate || '—' }; } }
+    return { complete: true };
+  }
+  loadHrs(arc) { const lm = (arc.meta || []).find(m => /load/i.test(m.label || '')); const map = { LOW: 3, MED: 6, HIGH: 9 }; return lm ? (map[String(lm.value).toUpperCase()] || 5) : 5; }
+
+  // ---------- skills ----------
+  focusIds() { const data = this.state.data; return Object.keys(this.state.focus).filter(id => data[id]); }
+
+  async skillStandup() {
+    const data = this.state.data;
+    const ids = this.focusIds();
+    if (!ids.length) return 'No focus arcs selected — nothing to summarize. Add focus arcs on the right.';
+    const lines = ids.map(id => { const a = data[id]; const ct = this.currentTask(a, id); const pct = this.arcPct(a, id); return ct.complete ? `- ${a.em}: 100% complete.` : `- ${a.em}: ${pct}% done. Next — M${ct.monthN} "${ct.monthTitle}", week ${ct.weekNo}: ${ct.weekText} (gate: ${ct.gate}).`; }).join('\n');
+    const prompt = `Write a tight first-person weekly standup, plain text, dash bullets only, under 170 words, from this real progress data (do not invent tasks):\n${lines}`;
+    if (!this.ai) throw new Error('AI engine unavailable.');
+    return await this.ai.completeText({ provider: this.state.provider, system: 'You write concise, technical, hype-free status updates.', userMsg: prompt });
+  }
+
+  skillStallWatch() {
+    const data = this.state.data;
+    const ids = this.focusIds().length ? this.focusIds() : Object.keys(data);
+    const stalled = ids.map(id => ({ id, em: data[id].em, pct: this.arcPct(data[id], id) })).filter(a => a.pct === 0);
+    if (!stalled.length) return 'No stalled arcs — every arc in scope has at least one task complete.';
+    return 'Stalled (0% complete, no recorded progress):\n' + stalled.map(a => `- ${a.em}`).join('\n');
+  }
+
+  skillCapacityGuard() {
+    const data = this.state.data;
+    const ids = this.focusIds();
+    if (!ids.length) return 'No focus arcs selected — nothing to total.';
+    const rows = ids.map(id => ({ em: data[id].em, hrs: this.loadHrs(data[id]) }));
+    const total = rows.reduce((s, r) => s + r.hrs, 0);
+    const lines = rows.map(r => `- ${r.em}: ~${r.hrs} hrs/wk`).join('\n');
+    const flag = total >= 28 ? `\n⚠ Combined load ${total} hrs/wk is at or past the unsustainable threshold (28 hrs/wk).` : `\nCombined load ${total} hrs/wk — within a sustainable range.`;
+    return lines + flag;
+  }
+
+  async runCustomAgentText(agentName, extraInput) {
+    const a = this.state.customAgents.find(x => x.name === agentName);
+    if (!a) throw new Error('Unknown custom agent: ' + agentName);
+    const userMsg = extraInput ? (a.description ? a.description + '\n\nAdditional input: ' + extraInput : extraInput) : (a.description || 'Run.');
+    if (!this.ai) throw new Error('AI engine unavailable.');
+    return await this.ai.completeText({ provider: a.provider || this.state.provider, system: a.systemPrompt || 'You are a focused assistant for a personal learning-ops system.', userMsg });
+  }
+
+  // ---------- one-click skill buttons ----------
+  async runQuickSkill(kind, label) {
+    this.setState(s => ({ chat: [...s.chat, { role: 'user', text: label }] }));
+    if (this.conn) this.conn.pushLog({ kind: 'skill', label, status: 'ok' });
+    try {
+      let text;
+      if (kind === 'standup') text = await this.skillStandup();
+      else if (kind === 'stall_watch') text = this.skillStallWatch();
+      else if (kind === 'capacity_guard') text = this.skillCapacityGuard();
+      this.setState(s => ({ chat: [...s.chat, { role: 'assistant', text }] }));
+    } catch (e) {
+      this.setState(s => ({ chat: [...s.chat, { role: 'assistant', text: '⚠ ' + (e.message || String(e)) }] }));
+    }
+  }
+
+  // ---------- connector CRUD ----------
+  onAddConnKindChange(e) {
+    const kind = e.target.value; if (!kind || !this.conn) { this.setState({ addConnKind: '' }); return; }
+    const c = this.conn.newConnector(kind);
+    this.setState(s => ({ addConnKind: '', connectors: [...s.connectors, c], editingId: c.id }), () => this.saveConnectors(this.state.connectors));
+  }
+  editConnector(id) { this.setState(s => ({ editingId: s.editingId === id ? null : id })); }
+  deleteConnector(id) { this.setState(s => { const list = s.connectors.filter(c => c.id !== id); this.saveConnectors(list); return {}; }); }
+  updateConnectorField(id, key, val) {
+    this.setState(s => {
+      const list = s.connectors.map(c => c.id === id ? { ...c, config: { ...c.config, [key]: val } } : c);
+      this.saveConnectors(list);
+      return {};
+    });
+  }
+  updateConnectorName(id, val) {
+    this.setState(s => { const list = s.connectors.map(c => c.id === id ? { ...c, name: val } : c); this.saveConnectors(list); return {}; });
+  }
+  async testConnector(cn) {
+    this.setState(s => ({ testState: { ...s.testState, [cn.id]: { busy: true } } }));
+    try {
+      const args = { title: 'Arc Agents test', body: 'Wiring check from Arc Agents.', text: 'Arc Agents wiring check ✅', subject: 'Arc Agents test', to: (cn.config || {}).to };
+      const r = await this.conn.callConnector(cn, args, { live: this.state.live });
+      this.setState(s => ({ testState: { ...s.testState, [cn.id]: { busy: false, note: r.dry ? 'Dry-run logged.' : ('OK — ' + r.summary), color: '#4ade80' } } }));
+    } catch (e) {
+      this.setState(s => ({ testState: { ...s.testState, [cn.id]: { busy: false, note: '⚠ ' + (e.message || String(e)), color: '#ef4444' } } }));
+    }
+  }
+
+  // ---------- AI-assisted custom agent builder ----------
+  async generateAgentDraft() {
+    const desc = (this.state.builderDesc || '').trim();
+    if (!desc || this.state.builderBusy || !this.ai) return;
+    this.setState({ builderBusy: true });
+    const system = `You design agent configurations for a personal learning-ops "Arc" dashboard (learning arcs across series, gates, weeks, connectors like Slack/Notion/Linear/Gmail/webhook/MCP). Given a plain-language description of an agent someone wants, return STRICT JSON only, no markdown fences:
+{ "name": "short Title Case name, 2-4 words", "description": "one sentence: what this agent does and when to run it", "systemPrompt": "a full system prompt for the agent, written to be grounded, concise, and hype-free, that a language model would follow when actually running this agent" }`;
+    try {
+      const raw = await this.ai.completeText({ provider: this.state.builderProvider, system, userMsg: 'Agent description: ' + desc });
+      const parsed = this.extractJSON(raw) || { name: 'Custom agent', description: desc, systemPrompt: raw };
+      this.setState({ builderBusy: false, builderDraft: { name: parsed.name || 'Custom agent', description: parsed.description || desc, systemPrompt: parsed.systemPrompt || '', provider: this.state.builderProvider } });
+    } catch (e) {
+      this.setState({ builderBusy: false, builderDraft: { name: 'Custom agent', description: desc, systemPrompt: '⚠ ' + (e.message || String(e)), provider: this.state.builderProvider } });
+    }
+  }
+  updateDraftField(key, val) { this.setState(s => ({ builderDraft: { ...s.builderDraft, [key]: val } })); }
+  saveDraft() {
+    const d = this.state.builderDraft; if (!d || !d.name) return;
+    const list = [...this.state.customAgents, { id: 'agent_' + Date.now().toString(36), ...d }];
+    this.persistAgents(list);
+    this.setState({ customAgents: list, builderDraft: null, builderDesc: '' });
+  }
+  discardDraft() { this.setState({ builderDraft: null }); }
+  deleteCustomAgent(id) { const list = this.state.customAgents.filter(a => a.id !== id); this.persistAgents(list); this.setState({ customAgents: list }); }
+  toggleEditAgent(id) { this.setState(s => ({ editingAgentId: s.editingAgentId === id ? null : id })); }
+  updateAgentField(id, key, val) {
+    const list = this.state.customAgents.map(a => a.id === id ? { ...a, [key]: val } : a);
+    this.persistAgents(list); this.setState({ customAgents: list });
+  }
+  async runCustomAgent(agent) {
+    this.setState(s => ({ chat: [...s.chat, { role: 'user', text: 'Run agent: ' + agent.name }] }));
+    if (this.conn) this.conn.pushLog({ kind: 'custom_agent', label: agent.name, status: 'ok' });
+    try {
+      const text = await this.runCustomAgentText(agent.name, '');
+      this.setState(s => ({ chat: [...s.chat, { role: 'assistant', text }] }));
+    } catch (e) {
+      this.setState(s => ({ chat: [...s.chat, { role: 'assistant', text: '⚠ ' + (e.message || String(e)) }] }));
+    }
+  }
+
+  // ---------- planner (freeform goal) ----------
+  extractJSON(text) {
+    if (!text) return null;
+    let t = text.trim().replace(/^```(?:json)?/i, '').replace(/```$/, '').trim();
+    const a = t.indexOf('{'), b = t.lastIndexOf('}');
+    if (a >= 0 && b > a) t = t.slice(a, b + 1);
+    try { return JSON.parse(t); } catch (e) { return null; }
+  }
+
+  buildPlannerSystem() {
+    const data = this.state.data;
+    const arcList = Object.keys(data).map(id => `${id} — ${data[id].em} — S${data[id].series || 1}`).join('\n');
+    const focusList = this.focusIds().map(id => data[id].em).join(', ') || 'none';
+    const connList = this.state.connectors.map(c => `${c.id} — ${c.name} (${c.kind})`).join('\n') || 'none configured';
+    const custom = this.state.customAgents.map(s => s.name + ' (' + (s.description || '') + ')').join('; ') || 'none';
+    return `You are the planning brain for a personal learning-ops "agent dashboard". Given a user's goal, decide which steps to take. Return STRICT JSON only, no markdown fences:
+{ "reply": "1-2 sentences to the user", "steps": [ ...steps ] }
+
+Each step is one of:
+  { "type":"skill", "skill":"standup"|"stall_watch"|"capacity_guard", "label":"short label" }
+  { "type":"custom_agent", "name":"<one of the custom agent names below>", "label":"short label" }
+  { "type":"op", "op": { "op":"edit_meta"|"edit_gate"|"edit_week"|"edit_quarter"|"edit_prose"|"rename_arc"|"create_arc"|"delete_arc", ... }, "label":"short label" }
+  { "type":"connector", "connectorId":"<id from the list below>", "args": { "text"?, "title"?, "body"?, "subject"?, "to"?, "channel"?, "description"? }, "label":"short label" }
+
+edit_* op shapes (id must be a real arc id from the list):
+  edit_meta: {id, fields:{em?,sub?,accent?,kicker?}}
+  edit_gate: {id, month:1-12, gate:"text"}
+  edit_week: {id, month:1-12, week:1-4, text:"text"}
+  edit_quarter: {id, quarter:1-4, fields:{phase?,subtitle?}}
+  edit_prose: {id, fields:{headline?,intro?,gain?,giveUp?,giveLabel?,note?,claims?}}
+  rename_arc: {id, em:"new name"}
+  create_arc / delete_arc: same shape as the Arc Reader assistant (create/delete always requires human approval, so use sparingly and only when explicitly asked).
+
+Rules:
+- Only take steps the user's goal actually implies. If it's just a question, return steps: [].
+- Prefer skills over hand-rolled ops when a skill covers the ask (standup/stall_watch/capacity_guard).
+- Never invent arc ids — use ids from the list. Never invent connector ids — use ids from the list, and only emit a connector step if a connector is actually configured for what's being asked (e.g. don't emit a slack connector step if no slack connector exists — say so in the reply instead).
+- Keep steps minimal and ordered.
+
+Arcs (id — name — series):
+${arcList}
+Focus arcs: ${focusList}
+Configured connectors (id — name — kind):
+${connList}
+Custom agents available (name — description): ${custom}`;
+  }
+
+  async runAgent() {
+    const goal = (this.state.goalText || '').trim();
+    if (!goal || this.state.busy || !this.ai) return;
+    this.setState(s => ({ busy: true, chat: [...s.chat, { role: 'user', text: goal }], goalText: '' }));
+    try {
+      const system = this.buildPlannerSystem();
+      const raw = await this.ai.completeText({ provider: this.state.provider, system, userMsg: 'Goal: ' + goal + '\n\nReturn the JSON envelope now.' });
+      const parsed = this.extractJSON(raw) || { reply: raw.slice(0, 400), steps: [] };
+      const steps = Array.isArray(parsed.steps) ? parsed.steps : [];
+      const results = [];
+      for (const step of steps) {
+        results.push(await this.executeStep(step));
+      }
+      this.setState(s => ({ busy: false, chat: [...s.chat, { role: 'assistant', text: parsed.reply || '(no reply)', steps: results }] }));
+    } catch (e) {
+      this.setState(s => ({ busy: false, chat: [...s.chat, { role: 'assistant', text: '⚠ ' + (e.message || String(e)) }] }));
+    }
+  }
+
+  async executeStep(step) {
+    const label = step.label || step.type;
+    try {
+      if (step.type === 'skill') {
+        let text;
+        if (step.skill === 'standup') text = await this.skillStandup();
+        else if (step.skill === 'stall_watch') text = this.skillStallWatch();
+        else if (step.skill === 'capacity_guard') text = this.skillCapacityGuard();
+        else throw new Error('unknown skill ' + step.skill);
+        if (this.conn) this.conn.pushLog({ kind: 'skill', label, status: 'ok' });
+        return { label, status: 'ok', detail: text };
+      }
+      if (step.type === 'custom_agent') {
+        const text = await this.runCustomAgentText(step.name, this.state.goalText);
+        if (this.conn) this.conn.pushLog({ kind: 'custom_agent', label, status: 'ok' });
+        return { label, status: 'ok', detail: text };
+      }
+      if (step.type === 'op') {
+        const op = step.op || {};
+        if (op.op === 'create_arc' || op.op === 'delete_arc') {
+          const pid = 'pend_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
+          this.setState(s => { const list = [...s.pending, { id: pid, op, label: (op.op === 'create_arc' ? 'Create arc: ' : 'Delete arc: ') + (op.em || op.id) }]; this.persistPending(list); return { pending: list }; });
+          return { label, status: 'pending', detail: 'Queued for approval.' };
+        }
+        const store = { data: this.state.data, prose: this.state.prose, names: this.state.names, overlay: this.ai.loadOverlay() };
+        const r = this.ai.applyOp(op, store);
+        this.ai.saveOverlay(store.overlay);
+        this.forceUpdate();
+        if (this.conn) this.conn.pushLog({ kind: 'op', label, status: 'ok' });
+        return { label, status: 'ok', detail: r };
+      }
+      if (step.type === 'connector') {
+        const cn = this.state.connectors.find(c => c.id === step.connectorId);
+        if (!cn) throw new Error('connector not found: ' + step.connectorId);
+        const r = await this.conn.callConnector(cn, step.args || {}, { live: this.state.live });
+        return { label, status: r.dry ? 'dry' : 'ok', detail: r.summary || (r.dry ? 'Dry-run' : 'sent') };
+      }
+      throw new Error('unknown step type ' + step.type);
+    } catch (e) {
+      if (this.conn) this.conn.pushLog({ kind: step.type, label, status: 'fail', response: e.message });
+      return { label, status: 'fail', detail: e.message || String(e) };
+    }
+  }
+
+  approvePending(id) {
+    const p = this.state.pending.find(x => x.id === id); if (!p) return;
+    try {
+      const store = { data: this.state.data, prose: this.state.prose, names: this.state.names, overlay: this.ai.loadOverlay() };
+      this.ai.applyOp(p.op, store);
+      this.ai.saveOverlay(store.overlay);
+      this.forceUpdate();
+      if (this.conn) this.conn.pushLog({ kind: 'op', label: p.label, status: 'ok', response: 'approved' });
+    } catch (e) {}
+    this.setState(s => { const list = s.pending.filter(x => x.id !== id); this.persistPending(list); return { pending: list }; });
+  }
+  rejectPending(id) {
+    const p = this.state.pending.find(x => x.id === id);
+    if (p && this.conn) this.conn.pushLog({ kind: 'op', label: p.label, status: 'off', response: 'rejected by user' });
+    this.setState(s => { const list = s.pending.filter(x => x.id !== id); this.persistPending(list); return { pending: list }; });
+  }
+
+  renderVals() {
+    const { ready, data } = this.state;
+    if (!ready || !data) return { loading: true, ready: false };
+
+    const KINDS = this.conn ? this.conn.KINDS : [];
+    const inputStyle = `width:100%; padding:8px 10px; background:var(--bg); border:1px solid var(--bd); color:var(--fg); font-size:11.5px;`;
+
+    // connectors
+    const connectors = this.state.connectors.map(cn => {
+      const meta = KINDS.find(k => k.id === cn.kind) || { label: cn.kind, fields: [] };
+      const editing = this.state.editingId === cn.id;
+      const ts = this.state.testState[cn.id] || {};
+      return {
+        id: cn.id, name: cn.name, kindLabel: meta.label, editing,
+        dotStyle: `width:7px; height:7px; border-radius:50%; background:${cn.kind === 'mcp' ? '#22d3ee' : '#8b5cf6'}; flex:none;`,
+        miniStyle: `background:transparent; border:1px solid var(--bdb); color:var(--dim); padding:4px 8px; font-size:9.5px; cursor:pointer;`,
+        dangerStyle: `background:transparent; border:1px solid rgba(239,68,68,.35); color:#ef4444; padding:4px 8px; font-size:9.5px; cursor:pointer;`,
+        editLabel: editing ? 'Close' : 'Edit', testLabel: ts.busy ? 'Testing…' : 'Test', testing: !!ts.busy,
+        onEdit: () => this.editConnector(cn.id), onDelete: () => this.deleteConnector(cn.id), onTest: () => this.testConnector(cn),
+        nameValue: cn.name, onNameInput: (e) => this.updateConnectorName(cn.id, e.target.value),
+        testNote: ts.note || '', testNoteColor: ts.color || 'var(--dim)',
+        fields: meta.fields.map(f => ({ key: f.k, ph: f.label + (f.ph ? ' — ' + f.ph : ''), value: (cn.config || {})[f.k] || '', onInput: (e) => this.updateConnectorField(cn.id, f.k, e.target.value) })),
+      };
+    });
+
+    // skills static list
+    const skillList = [
+      { name: 'standup', color: '#8b5cf6', note: '— weekly progress digest, focus arcs' },
+      { name: 'stall_watch', color: '#fb923c', note: '— flags arcs with 0% recorded progress' },
+      { name: 'capacity_guard', color: '#22d3ee', note: '— sums focus-arc load, flags ≥28 hrs/wk' },
+      { name: 'edit_gate / edit_week / edit_meta / edit_quarter / edit_prose / rename_arc', color: '#4ade80', note: '— direct library edits, auto-applied' },
+      { name: 'create_arc / delete_arc', color: '#fb923c', note: '— queued for your approval' },
+      ...this.state.customAgents.map(a => ({ name: a.name, color: '#67e8f9', note: '— custom agent · ' + (a.provider || 'anthropic') })),
+    ];
+
+    // quick skill buttons
+    const quickDefs = [
+      { kind: 'standup', tag: 'Skill', label: 'Standup' },
+      { kind: 'stall_watch', tag: 'Skill', label: 'Stall watch' },
+      { kind: 'capacity_guard', tag: 'Skill', label: 'Capacity' },
+    ];
+    const quickSkills = quickDefs.map(q => ({
+      tag: q.tag, label: q.label, busy: this.state.busy,
+      style: `border:1px solid var(--bd); background:var(--bg2); padding:12px 10px; cursor:pointer; text-align:left;`,
+      onClick: () => this.runQuickSkill(q.kind, q.label),
+    }));
+
+    // pending approvals
+    const pending = this.state.pending.map(p => ({
+      id: p.id, label: p.label,
+      approveStyle: `background:rgba(74,222,128,.1); border:1px solid rgba(74,222,128,.4); color:#4ade80; padding:5px 11px; font-size:10px; cursor:pointer;`,
+      rejectStyle: `background:transparent; border:1px solid var(--bdb); color:var(--dim); padding:5px 11px; font-size:10px; cursor:pointer;`,
+      onApprove: () => this.approvePending(p.id), onReject: () => this.rejectPending(p.id),
+    }));
+
+    // chat
+    const chat = this.state.chat.map(c => ({
+      text: c.text, hasSteps: !!(c.steps && c.steps.length), steps: (c.steps || []).map(s => ({
+        label: s.label, statusText: s.status === 'ok' ? 'done' : s.status, dotStyle: `width:6px; height:6px; border-radius:50%; background:${s.status === 'ok' ? '#4ade80' : s.status === 'fail' ? '#ef4444' : s.status === 'pending' ? '#fb923c' : '#67e8f9'};`,
+        statusColor: s.status === 'ok' ? '#4ade80' : s.status === 'fail' ? '#ef4444' : s.status === 'pending' ? '#fb923c' : '#67e8f9',
+      })),
+      roleLabel: c.role === 'user' ? 'You' : 'Agent', roleColor: c.role === 'user' ? 'var(--dim)' : 'var(--violet)',
+      bubbleStyle: c.role === 'user' ? `border:1px solid var(--bd); background:transparent; padding:14px 16px;` : `border:1px solid var(--bd); border-left:2px solid var(--violet); background:var(--bg2); padding:14px 16px;`,
+    }));
+
+    // focus chips (all arcs)
+    const focusChips = Object.keys(this.state.names).filter(id => data[id]).slice(0, 30).map(id => {
+      const on = !!this.state.focus[id]; const ac = data[id].accent || '#8b5cf6';
+      return { id, em: this.state.names[id][0], accent: ac, onClick: () => this.toggleFocus(id),
+        style: `display:inline-flex; align-items:center; gap:6px; padding:6px 11px; border-radius:9999px; font-size:10px; cursor:pointer; border:1px solid ${on ? this.shade(ac, .5) : 'var(--bdb)'}; background:${on ? this.shade(ac, .12) : 'transparent'}; color:${on ? 'var(--fg)' : 'var(--dim)'};` };
+    });
+
+    // activity log
+    const log = this.conn ? this.conn.getLog() : [];
+    const activity = log.slice(0, 30).map(l => {
+      const color = l.status === 'ok' ? '#4ade80' : l.status === 'fail' ? '#ef4444' : l.status === 'dry' ? '#67e8f9' : l.status === 'off' ? 'var(--mute)' : '#fb923c';
+      const time = new Date(l.ts).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+      return {
+        time, label: (l.connector ? l.connector + ' — ' : '') + (l.label || l.kind), status: l.response || l.status,
+        statusColor: color,
+        rowStyle: `display:grid; grid-template-columns:70px 1fr 200px; gap:14px; align-items:center; padding:9px 14px; border-top:1px solid var(--bd);`,
+        dotStyle: `width:6px; height:6px; border-radius:50%; background:${color}; margin-right:4px;`,
+      };
+    });
+
+    const customAgentsList = this.state.customAgents.map(a => {
+      const editing = this.state.editingAgentId === a.id;
+      return {
+        id: a.id, name: a.name, description: a.description, provider: a.provider || 'anthropic', editing,
+        rowStyle: `border:1px solid var(--bd); padding:10px 12px; margin-bottom:8px;`,
+        onRun: () => this.runCustomAgent(a), onEdit: () => this.toggleEditAgent(a.id), onDelete: () => this.deleteCustomAgent(a.id),
+        editLabel: editing ? 'Close' : 'Edit',
+        nameValue: a.name, onNameInput: (e) => this.updateAgentField(a.id, 'name', e.target.value),
+        descValue: a.description, onDescInput: (e) => this.updateAgentField(a.id, 'description', e.target.value),
+        promptValue: a.systemPrompt, onPromptInput: (e) => this.updateAgentField(a.id, 'systemPrompt', e.target.value),
+      };
+    });
+    const draft = this.state.builderDraft;
+    const draftVals = draft ? {
+      draftName: draft.name, onDraftNameInput: (e) => this.updateDraftField('name', e.target.value),
+      draftDesc: draft.description, onDraftDescInput: (e) => this.updateDraftField('description', e.target.value),
+      draftPrompt: draft.systemPrompt, onDraftPromptInput: (e) => this.updateDraftField('systemPrompt', e.target.value),
+    } : { draftName: '', draftDesc: '', draftPrompt: '', onDraftNameInput: () => {}, onDraftDescInput: () => {}, onDraftPromptInput: () => {} };
+
+    const providers = this.ai ? Object.values(this.ai.PROVIDERS) : [{ id: 'anthropic', label: 'Anthropic' }];
+    const provNote = this.ai ? (this.ai.PROVIDERS[this.state.provider] || {}).note || '' : '';
+
+    return {
+      loading: false, ready: true,
+      liveLabel: this.state.live ? '● Live' : '○ Dry-run', toggleLive: () => this.toggleLive(),
+      liveBtnStyle: `border:1px solid ${this.state.live ? 'rgba(74,222,128,.4)' : 'var(--bdb)'}; background:${this.state.live ? 'rgba(74,222,128,.08)' : 'transparent'}; color:${this.state.live ? '#4ade80' : 'var(--dim)'}; padding:8px 14px; font-size:11px; cursor:pointer;`,
+
+      connectorCount: connectors.length, skillCount: skillList.length,
+      pendingCount: pending.length, pendingColor: pending.length ? '#fb923c' : 'var(--fg)',
+      focusCount: this.focusIds().length,
+
+      provider: this.state.provider, providers,
+      onProviderChange: (e) => this.setState({ provider: e.target.value }),
+      providerSelectStyle: `background:var(--bg); border:1px solid var(--bd); color:var(--fg); font-size:10.5px; padding:5px 8px;`,
+      providerNote: provNote,
+
+      goalText: this.state.goalText, onGoalInput: (e) => this.setState({ goalText: e.target.value }),
+      goalInputStyle: `width:100%; min-height:78px; padding:12px 14px; background:var(--bg); border:1px solid var(--bd); color:var(--fg); font-size:12.5px; line-height:1.6; resize:vertical;`,
+      runAgent: () => this.runAgent(), busy: this.state.busy,
+      runBtnStyle: `padding:9px 18px; border:1px solid ${this.state.busy ? 'var(--bdb)' : 'var(--violet)'}; background:${this.state.busy ? 'transparent' : this.shade('#8b5cf6', .16)}; color:${this.state.busy ? 'var(--mute)' : 'var(--fg)'}; font-size:11px; cursor:${this.state.busy ? 'wait' : 'pointer'};`,
+      runLabel: this.state.busy ? 'Running…' : 'Run agent',
+
+      quickSkills,
+      hasPending: pending.length > 0, pending,
+      chat, noChat: chat.length === 0,
+
+      connectors, noConnectors: connectors.length === 0,
+      kinds: KINDS, addConnKind: this.state.addConnKind, onAddConnKindChange: (e) => this.onAddConnKindChange(e),
+      addConnSelectStyle: `background:var(--bg); border:1px solid var(--bd); color:var(--dim); font-size:10.5px; padding:5px 8px;`,
+      inputStyle,
+
+      skillList,
+      builderDesc: this.state.builderDesc, onBuilderDescInput: (e) => this.setState({ builderDesc: e.target.value }),
+      builderTextareaStyle: `width:100%; min-height:56px; margin-top:6px; padding:8px 10px; background:var(--bg); border:1px solid var(--bd); color:var(--fg); font-size:11px; line-height:1.5; resize:vertical;`,
+      builderProvider: this.state.builderProvider, onBuilderProviderChange: (e) => this.setState({ builderProvider: e.target.value }),
+      generateAgentDraft: () => this.generateAgentDraft(), builderBusy: this.state.builderBusy,
+      generateBtnLabel: this.state.builderBusy ? 'Designing…' : 'Generate with AI',
+      addCustomBtnStyle: `margin-top:8px; padding:8px 12px; background:transparent; border:1px dashed var(--bdb); color:var(--dim); font-size:10.5px; letter-spacing:.06em; text-transform:uppercase; cursor:pointer;`,
+      smallBtnStyle: `background:transparent; border:1px solid var(--bdb); color:var(--dim); padding:5px 9px; font-size:9.5px; cursor:pointer; white-space:nowrap;`,
+      draftTextareaStyle: `width:100%; min-height:110px; padding:8px 10px; background:var(--bg); border:1px solid var(--bd); color:var(--fg); font-size:11px; line-height:1.5; resize:vertical;`,
+      hasDraft: !!draft, draftName: draftVals.draftName, onDraftNameInput: draftVals.onDraftNameInput,
+      draftDesc: draftVals.draftDesc, onDraftDescInput: draftVals.onDraftDescInput,
+      draftPrompt: draftVals.draftPrompt, onDraftPromptInput: draftVals.onDraftPromptInput,
+      saveDraft: () => this.saveDraft(), discardDraft: () => this.discardDraft(),
+      customAgentsList, noCustomAgents: customAgentsList.length === 0,
+
+      focusChips,
+
+      activity, noActivity: activity.length === 0, activityCount: activity.length,
+    };
+  }
+}
+
+</script>
+</body>
+</html>
