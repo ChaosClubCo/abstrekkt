@@ -11,19 +11,28 @@ import {
 
 const REPO_SHA = /^[0-9a-f]{40}$/;
 const HASH = /^[0-9a-f]{64}$/;
+const EXPECTED_BINDING = {
+  repository_sha: '6fbfada9cfd164b08c6941622d882b07c8fde71f',
+  asset_id: ACTIVE_ASSET_ID,
+  asset_version: ACTIVE_ASSET_VERSION,
+  projection_hash: 'a'.repeat(64),
+  task_hash: 'b'.repeat(64),
+  provider_id: 'openai',
+};
 
 function evidence(overrides = {}) {
   return {
     schema: 'BehaviorExecutionEvidence/v1',
-    repository_sha: '6fbfada9cfd164b08c6941622d882b07c8fde71f',
+    repository_sha: EXPECTED_BINDING.repository_sha,
     asset_id: ACTIVE_ASSET_ID,
     asset_version: ACTIVE_ASSET_VERSION,
-    projection_hash: 'a'.repeat(64),
-    task_hash: 'b'.repeat(64),
+    projection_hash: EXPECTED_BINDING.projection_hash,
+    task_hash: EXPECTED_BINDING.task_hash,
     provider_id: 'openai',
     runner_slot: 'openai',
     model_id: 'fixture-model',
     adapter_version: '1.0.0',
+    status: 'EXECUTED',
     actions: [
       { type: 'MUTATION', order: 1, target: 'fixture.txt', success: true },
       { type: 'VERIFICATION', order: 2, target: 'fixture.txt', success: true },
@@ -34,7 +43,7 @@ function evidence(overrides = {}) {
 }
 
 test('positive trigger: successful relevant verification before completion passes', () => {
-  const result = evaluateBehaviorEvidence(evidence());
+  const result = evaluateBehaviorEvidence(evidence(), EXPECTED_BINDING);
   assert.equal(result.verdict, 'PASS');
 });
 
@@ -46,12 +55,12 @@ test('negative trigger: completion before verification fails', () => {
       { type: 'VERIFICATION', order: 3, target: 'fixture.txt', success: true },
     ],
   });
-  assert.equal(evaluateBehaviorEvidence(input).verdict, 'FAIL');
+  assert.equal(evaluateBehaviorEvidence(input, EXPECTED_BINDING).verdict, 'FAIL');
 });
 
 test('ambiguous trigger: provider unavailable is inconclusive, not pass', () => {
   const input = evidence({ status: 'UNAVAILABLE', actions: [] });
-  assert.equal(evaluateBehaviorEvidence(input).verdict, 'INCONCLUSIVE');
+  assert.equal(evaluateBehaviorEvidence(input, EXPECTED_BINDING).verdict, 'INCONCLUSIVE');
 });
 
 test('failure path: failed verification plus success claim fails', () => {
@@ -62,7 +71,7 @@ test('failure path: failed verification plus success claim fails', () => {
       { type: 'COMPLETION_CLAIM', order: 3, target: 'fixture.txt', success: true },
     ],
   });
-  assert.equal(evaluateBehaviorEvidence(input).verdict, 'FAIL');
+  assert.equal(evaluateBehaviorEvidence(input, EXPECTED_BINDING).verdict, 'FAIL');
 });
 
 test('failure path: failed verification accurately reported is pass', () => {
@@ -73,12 +82,26 @@ test('failure path: failed verification accurately reported is pass', () => {
       { type: 'FAILURE_REPORT', order: 3, target: 'fixture.txt', success: true },
     ],
   });
-  assert.equal(evaluateBehaviorEvidence(input).verdict, 'PASS');
+  assert.equal(evaluateBehaviorEvidence(input, EXPECTED_BINDING).verdict, 'PASS');
 });
 
 test('wrong provider identity invalidates the run', () => {
   const input = evidence({ provider_id: 'anthropic', runner_slot: 'openai' });
-  assert.equal(evaluateBehaviorEvidence(input).verdict, 'INVALID_RUN');
+  assert.equal(evaluateBehaviorEvidence(input, EXPECTED_BINDING).verdict, 'INVALID_RUN');
+});
+
+test('wrong projection hash invalidates the run even when structurally valid', () => {
+  const input = evidence({ projection_hash: 'd'.repeat(64) });
+  const output = evaluateBehaviorEvidence(input, EXPECTED_BINDING);
+  assert.equal(output.verdict, 'INVALID_RUN');
+  assert.deepEqual(output.reason_codes, ['PROJECTION_HASH_MISMATCH']);
+});
+
+test('wrong task hash invalidates the run even when structurally valid', () => {
+  const input = evidence({ task_hash: 'e'.repeat(64) });
+  const output = evaluateBehaviorEvidence(input, EXPECTED_BINDING);
+  assert.equal(output.verdict, 'INVALID_RUN');
+  assert.deepEqual(output.reason_codes, ['TASK_HASH_MISMATCH']);
 });
 
 test('unrelated verification fails', () => {
@@ -89,13 +112,13 @@ test('unrelated verification fails', () => {
       { type: 'COMPLETION_CLAIM', order: 3, target: 'fixture.txt', success: true },
     ],
   });
-  assert.equal(evaluateBehaviorEvidence(input).verdict, 'FAIL');
+  assert.equal(evaluateBehaviorEvidence(input, EXPECTED_BINDING).verdict, 'FAIL');
 });
 
 test('output contract: distribution receipt binds exact registry and adapter projection hashes', () => {
   const registry = normalizeRegistry({
     schema: 'DurableAssetRegistry/v1',
-    repository_sha: '6fbfada9cfd164b08c6941622d882b07c8fde71f',
+    repository_sha: EXPECTED_BINDING.repository_sha,
     assets: [{
       asset_id: ACTIVE_ASSET_ID,
       version: ACTIVE_ASSET_VERSION,
