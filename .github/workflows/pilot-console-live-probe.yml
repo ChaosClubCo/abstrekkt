@@ -1,0 +1,42 @@
+name: Pilot Console Live Probe
+
+on:
+  push:
+    branches: [loxihart-pilot-console-build]
+    paths:
+      - '.github/workflows/pilot-console-live-probe.yml'
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Probe live Netlify proxy
+        env:
+          BASE_URL: https://loxihart-pilot-console.netlify.app/api/loxihart
+        run: |
+          node <<'NODE'
+          const base = process.env.BASE_URL;
+          async function get(op) {
+            const r = await fetch(`${base}?operation=${encodeURIComponent(op)}`, { headers: { Accept: 'application/json' } });
+            const text = await r.text();
+            console.log(`PROBE ${op} STATUS=${r.status} BODY=${text}`);
+            if (!r.ok) process.exitCode = 1;
+            try { return JSON.parse(text); } catch { return null; }
+          }
+          await get('health');
+          const pilot = await get('pilot.read');
+          const head = await get('stream.head');
+          const stream = await get('stream.read');
+          console.log('SUMMARY', JSON.stringify({
+            stage: pilot?.pilot?.stage,
+            controlVersion: pilot?.pilot?.version,
+            canonicalVersion: pilot?.canonical?.currentVersion,
+            latestReceiptId: pilot?.canonical?.latestReceiptId,
+            latestVerdict: pilot?.canonical?.latestVerdict,
+            streamHead: head,
+            recordCount: Array.isArray(stream?.records) ? stream.records.length : null,
+          }));
+          NODE
