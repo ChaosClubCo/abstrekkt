@@ -51,6 +51,12 @@ Loxihart branch:
 evidence-room-v1.2.0-import
 ```
 
+Latest Loxihart documentation-package head at receipt update:
+
+```text
+578dfc09bc77c4a94e994c36c4439b7b913dae7f
+```
+
 Loxihart review PR:
 
 ```text
@@ -69,11 +75,24 @@ The target PR preserves:
 
 ```text
 docs/release/evidence-room-v1.2/LIVE_ENVIRONMENT_ACTIVATION.md
+docs/release/evidence-room-v1.2/LIVE_ENVIRONMENT_ACTIVATION_FULL.md
 docs/release/evidence-room-v1.2/PRODUCTION_CERTIFICATION_COMMANDS.md
 evidence/evidence-room/v1.2.0/VERIFICATION_v1.2.md
 evidence/evidence-room/v1.2.0/BUILD_PROVENANCE_v1.2.json
 evidence/evidence-room/v1.2.0/ARTIFACT_SHA256.txt
 ```
+
+## Target verification observed
+
+For Loxihart head `578dfc09bc77c4a94e994c36c4439b7b913dae7f`:
+
+```text
+Runtime migration verification: PASS
+Loxihart Production Candidate RG01-RG04: PASS
+CodeRabbit combined status: success
+```
+
+These target-repository checks verify the documentation/evidence branch itself; they do not substitute for the Evidence Room live WorkOS/PostgreSQL/Resend proof.
 
 ## Verification and maturity boundary
 
