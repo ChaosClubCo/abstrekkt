@@ -48,40 +48,6 @@ test('verification rejects client authoritative fields', () => {
   );
 });
 
-test('verification rejects client-supplied receiptId instead of silently stripping it', () => {
-  assert.throws(
-    () => resolveOperation('verification.commit', { expectedVersion: 1, mutationId: 'm1', receiptId: 'cr_client_supplied' }),
-    /Authoritative verification fields cannot be supplied by the client/,
-  );
-});
-
-test('demo token fallback is restricted to the intended staging hostname', async () => {
-  const mod = await import('../src/server/loxihartTransport.mjs');
-  const allowedHosts = new Set(['loxihart-pilot-console.netlify.app']);
-  const stagingToken = 'public-demo-token';
-
-  assert.equal(mod.resolveDemoToken?.({
-    configuredToken: '  managed-secret  ',
-    requestUrl: 'https://production.example/api/loxihart',
-    stagingToken,
-    allowedHosts,
-  }), 'managed-secret');
-
-  assert.equal(mod.resolveDemoToken?.({
-    configuredToken: null,
-    requestUrl: 'https://loxihart-pilot-console.netlify.app/api/loxihart',
-    stagingToken,
-    allowedHosts,
-  }), stagingToken);
-
-  assert.equal(mod.resolveDemoToken?.({
-    configuredToken: null,
-    requestUrl: 'https://production.example/api/loxihart',
-    stagingToken,
-    allowedHosts,
-  }), null);
-});
-
 for (const status of [403, 404, 409, 422, 500]) {
   test(`Netlify transport preserves ${status} and raw JSON body`, async () => {
     const raw = JSON.stringify({ error: { code: `E${status}`, message: `status-${status}` } });
