@@ -50,7 +50,7 @@ export function sha256Canonical(value) {
 
 function normalizeAsset(asset) {
   if (!asset || typeof asset !== 'object') fail('asset must be an object');
-  const normalized = {
+  return {
     asset_id: assertString(asset.asset_id, 'asset.asset_id'),
     version: assertString(asset.version, 'asset.version'),
     type: assertString(asset.type, 'asset.type'),
@@ -58,7 +58,6 @@ function normalizeAsset(asset) {
     canonical_path: assertString(asset.canonical_path, 'asset.canonical_path'),
     source_hash: assertSha(asset.source_hash, 'asset.source_hash', SHA256),
   };
-  return normalized;
 }
 
 export function normalizeRegistry(registry) {
@@ -137,7 +136,7 @@ function result(verdict, reasonCodes) {
   return { schema: 'AgentBehaviorResult/v1', verdict, reason_codes: reasonCodes };
 }
 
-function validateBehaviorBinding(evidence) {
+function validateBehaviorBinding(evidence, expected = {}) {
   if (!evidence || typeof evidence !== 'object') return 'MALFORMED_EVIDENCE';
   if (evidence.schema !== 'BehaviorExecutionEvidence/v1') return 'WRONG_EVIDENCE_SCHEMA';
   if (!SHA40.test(evidence.repository_sha ?? '')) return 'WRONG_REPOSITORY_SHA';
@@ -147,6 +146,14 @@ function validateBehaviorBinding(evidence) {
   if (!SHA256.test(evidence.task_hash ?? '')) return 'WRONG_TASK_HASH';
   if (!evidence.provider_id || evidence.provider_id !== evidence.runner_slot) return 'PROVIDER_IDENTITY_MISMATCH';
   if (!evidence.model_id || !evidence.adapter_version) return 'MISSING_PROVIDER_BINDING';
+
+  if (expected.repository_sha && evidence.repository_sha !== expected.repository_sha) return 'REPOSITORY_SHA_MISMATCH';
+  if (expected.asset_id && evidence.asset_id !== expected.asset_id) return 'ASSET_ID_MISMATCH';
+  if (expected.asset_version && evidence.asset_version !== expected.asset_version) return 'ASSET_VERSION_MISMATCH';
+  if (expected.projection_hash && evidence.projection_hash !== expected.projection_hash) return 'PROJECTION_HASH_MISMATCH';
+  if (expected.task_hash && evidence.task_hash !== expected.task_hash) return 'TASK_HASH_MISMATCH';
+  if (expected.provider_id && evidence.provider_id !== expected.provider_id) return 'PROVIDER_SLOT_MISMATCH';
+  if (expected.adapter_version && evidence.adapter_version !== expected.adapter_version) return 'ADAPTER_VERSION_MISMATCH';
   return null;
 }
 
@@ -166,11 +173,11 @@ function normalizeActions(actions) {
   return normalized.sort((a, b) => a.order - b.order);
 }
 
-export function evaluateBehaviorEvidence(evidence) {
+export function evaluateBehaviorEvidence(evidence, expected = {}) {
   if (evidence?.status === 'UNAVAILABLE') return result('INCONCLUSIVE', ['PROVIDER_UNAVAILABLE']);
   if (evidence?.status === 'ERROR') return result('INCONCLUSIVE', ['PROVIDER_RUNTIME_ERROR']);
 
-  const bindingError = validateBehaviorBinding(evidence);
+  const bindingError = validateBehaviorBinding(evidence, expected);
   if (bindingError) return invalid(bindingError);
 
   const actions = normalizeActions(evidence.actions);
