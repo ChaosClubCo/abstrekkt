@@ -1,0 +1,229 @@
+schema_version: "1.0"
+generated_at: "2026-08-17T08:39:00-05:00"
+control_repository: Krosebrook/abstrekkt
+control_path: ops/launch-control/
+
+sources:
+  audit: launch-audit.yaml
+  dependency_map: dependency-map.yaml
+  status_contract: status-contract.yaml
+
+summary:
+  products: 5
+  required_checks: 42
+  current_not_run: 35
+  current_blocked: 7
+  prerequisite_waves: 3
+  baseline_mapping_gap_records: 5
+  current_go: 0
+  current_hold: 5
+  current_stop_ship: 0
+
+execution_policy:
+  - "Run all checks in the earliest wave whose prerequisites are PASS."
+  - "Independent checks within a wave may execute in parallel."
+  - "A prerequisite FAIL prevents dependent checks from running and derives STOP_SHIP when the FAIL is trusted."
+  - "A prerequisite inconsistency keeps dependent checks BLOCKED and derives HOLD."
+  - "Resolve baseline mapping gaps concurrently with Wave 1; they are not part of the 42 checks but block GO."
+  - "Do not change a product to GO merely because its final check passed; status-contract.yaml is authoritative."
+
+waves:
+  - wave: 1
+    count: 35
+    checks:
+      crossing:
+        - C-STATUS-01
+        - C-STALE-01
+        - C-SOURCE-01
+        - C-LOC-01
+        - C-DETOUR-01
+        - C-BUILD-01
+        - C-SEC-01
+      sticker-room:
+        - S-GESTURE-01
+        - S-UNDO-01
+        - S-PERSIST-01
+        - S-ASSET-01
+        - S-RESPONSIVE-01
+        - S-BUILD-01
+      kids-radio:
+        - KR-REC-01
+        - KR-MIX-01
+        - KR-SAVE-01
+        - KR-OFFLINE-01
+        - KR-AUTH-01
+        - KR-DELETE-01
+        - KR-VOICE-01
+      voice-studio:
+        - VS-CONSENT-01
+        - VS-TRAIN-01
+        - VS-FAIL-01
+        - VS-AUTH-01
+        - VS-ISOLATION-01
+        - VS-DELETE-01
+        - VS-PREVIEW-01
+      release-tester:
+        - RT-RUN-01
+        - RT-FIXTURE-01
+        - RT-SELECTOR-01
+        - RT-NET-01
+        - RT-EVIDENCE-01
+        - RT-PROV-01
+        - RT-NOSIM-01
+        - RT-BUILD-01
+
+  - wave: 2
+    count: 6
+    checks:
+      crossing:
+        - check_id: C-FLOW-01
+          prerequisites: [C-STATUS-01, C-STALE-01, C-SOURCE-01, C-LOC-01, C-DETOUR-01]
+      sticker-room:
+        - check_id: S-PERSIST-02
+          prerequisites: [S-PERSIST-01]
+        - check_id: S-EXPORT-01
+          prerequisites: [S-GESTURE-01]
+      kids-radio:
+        - check_id: KR-E2E-01
+          prerequisites: [KR-REC-01, KR-MIX-01, KR-SAVE-01, KR-OFFLINE-01, KR-AUTH-01, KR-DELETE-01, KR-VOICE-01]
+      voice-studio:
+        - check_id: VS-E2E-01
+          prerequisites: [VS-CONSENT-01, VS-TRAIN-01, VS-FAIL-01, VS-AUTH-01, VS-ISOLATION-01, VS-DELETE-01, VS-PREVIEW-01]
+      release-tester:
+        - check_id: RT-E2E-01
+          prerequisites: [RT-RUN-01, RT-FIXTURE-01, RT-SELECTOR-01, RT-NET-01, RT-EVIDENCE-01, RT-PROV-01, RT-NOSIM-01]
+
+  - wave: 3
+    count: 1
+    checks:
+      crossing:
+        - check_id: C-STABILITY-01
+          prerequisites: [C-FLOW-01]
+
+baseline_gap_work:
+  run_concurrently_with_wave: 1
+  items:
+    - gap_id: BMG-CROSS-001
+      repository: Krosebrook/Crossing
+      path: app/src/main/java/com/example/utils/
+      products: [crossing]
+      affected_checks: [C-FLOW-01, C-STABILITY-01, C-SEC-01]
+      closure_condition: "Map to a known component/check scope or prove irrelevant; resolution_state=CLOSED."
+
+    - gap_id: BMG-TALK-001
+      repository: Krosebrook/Talk-2-me
+      path: src/components/AiMagicLab.tsx
+      products: [kids-radio, voice-studio]
+      affected_checks: [KR-E2E-01, VS-E2E-01]
+      closure_condition: "Map to a known component/check scope or prove irrelevant; resolution_state=CLOSED."
+
+    - gap_id: BMG-TALK-002
+      repository: Krosebrook/Talk-2-me
+      path: src/data.ts
+      products: [kids-radio, voice-studio]
+      affected_checks: [KR-E2E-01, VS-E2E-01]
+      closure_condition: "Map to a known component/check scope or prove irrelevant; resolution_state=CLOSED."
+
+    - gap_id: BMG-BTA-001
+      repository: Krosebrook/beta-tester-army
+      path: src/agents/
+      products: [release-tester]
+      affected_checks: [RT-RUN-01, RT-E2E-01]
+      closure_condition: "Map to a known component/check scope or prove irrelevant; resolution_state=CLOSED."
+
+    - gap_id: BMG-BTA-002
+      repository: Krosebrook/beta-tester-army
+      path: src/pages/
+      products: [release-tester]
+      affected_checks: [RT-EVIDENCE-01, RT-PROV-01, RT-E2E-01]
+      closure_condition: "Map to a known component/check scope or prove irrelevant; resolution_state=CLOSED."
+
+product_critical_paths:
+  crossing:
+    waves: 3
+    final_required_check: C-STABILITY-01
+    prerequisite_chain:
+      - [C-STATUS-01, C-STALE-01, C-SOURCE-01, C-LOC-01, C-DETOUR-01]
+      - [C-FLOW-01]
+      - [C-STABILITY-01]
+    independent_required_checks: [C-BUILD-01, C-SEC-01]
+    baseline_gaps_required_closed: [BMG-CROSS-001]
+
+  sticker-room:
+    waves: 2
+    final_required_checks: [S-PERSIST-02, S-EXPORT-01]
+    prerequisite_chains:
+      - [S-PERSIST-01, S-PERSIST-02]
+      - [S-GESTURE-01, S-EXPORT-01]
+    independent_required_checks: [S-UNDO-01, S-ASSET-01, S-RESPONSIVE-01, S-BUILD-01]
+    baseline_gaps_required_closed: []
+
+  kids-radio:
+    waves: 2
+    final_required_check: KR-E2E-01
+    prerequisites: [KR-REC-01, KR-MIX-01, KR-SAVE-01, KR-OFFLINE-01, KR-AUTH-01, KR-DELETE-01, KR-VOICE-01]
+    baseline_gaps_required_closed: [BMG-TALK-001, BMG-TALK-002]
+
+  voice-studio:
+    waves: 2
+    final_required_check: VS-E2E-01
+    prerequisites: [VS-CONSENT-01, VS-TRAIN-01, VS-FAIL-01, VS-AUTH-01, VS-ISOLATION-01, VS-DELETE-01, VS-PREVIEW-01]
+    baseline_gaps_required_closed: [BMG-TALK-001, BMG-TALK-002]
+
+  release-tester:
+    waves: 2
+    final_required_check: RT-E2E-01
+    prerequisites: [RT-RUN-01, RT-FIXTURE-01, RT-SELECTOR-01, RT-NET-01, RT-EVIDENCE-01, RT-PROV-01, RT-NOSIM-01]
+    independent_required_checks: [RT-BUILD-01]
+    baseline_gaps_required_closed: [BMG-BTA-001, BMG-BTA-002]
+
+promotion_requirements:
+  crossing:
+    required_pass: 9
+    baseline_gaps_open: 0
+    rerun_pending: 0
+    rerun_blocked: 0
+    unknown_change_impacts_open: 0
+    unresolved_invalidation_events: 0
+    release_commit_sha: d788862eabef286c4c1c71ed145c77e275b0cd0a
+    status_when_status_contract_true: GO
+
+  sticker-room:
+    required_pass: 8
+    baseline_gaps_open: 0
+    rerun_pending: 0
+    rerun_blocked: 0
+    unknown_change_impacts_open: 0
+    unresolved_invalidation_events: 0
+    release_commit_sha: edcebd9b86aac4b801861e4eade45b03d9ecb2c6
+    status_when_status_contract_true: GO
+
+  kids-radio:
+    required_pass: 8
+    baseline_gaps_open: 0
+    rerun_pending: 0
+    rerun_blocked: 0
+    unknown_change_impacts_open: 0
+    unresolved_invalidation_events: 0
+    release_commit_sha: 8205a5eefc70b677a682b76b3b81f93cd37343d2
+    status_when_status_contract_true: GO
+
+  voice-studio:
+    required_pass: 8
+    baseline_gaps_open: 0
+    rerun_pending: 0
+    rerun_blocked: 0
+    unknown_change_impacts_open: 0
+    unresolved_invalidation_events: 0
+    release_commit_sha: 8205a5eefc70b677a682b76b3b81f93cd37343d2
+    status_when_status_contract_true: GO
+
+  release-tester:
+    required_pass: 9
+    baseline_gaps_open: 0
+    rerun_pending: 0
+    rerun_blocked: 0
+    unknown_change_impacts_open: 0
+    unresolved_invalidation_events: 0
+    release_commit_sha: def23fbd2721895711db075e443cd4ceada1959d
+    status_when_status_contract_true: GO
