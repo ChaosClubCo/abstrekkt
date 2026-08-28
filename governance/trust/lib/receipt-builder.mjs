@@ -13,6 +13,13 @@ function fail(message) {
   throw new TypeError(message);
 }
 
+function requireNonEmptyString(value, name) {
+  if (typeof value !== 'string' || value.length === 0) {
+    fail(`${name} must be a non-empty string`);
+  }
+  return value;
+}
+
 export function sha256Bytes(content) {
   if (typeof content !== 'string' && !Buffer.isBuffer(content) && !(content instanceof Uint8Array)) {
     fail('content must be a string, Buffer, or Uint8Array');
@@ -59,6 +66,68 @@ export function materializeRegistrySource(source, repositorySha) {
   };
 
   return normalizeRegistry(registry);
+}
+
+export function materializeBehaviorTask(source, binding) {
+  if (!source || typeof source !== 'object' || Array.isArray(source)) {
+    fail('behavior fixture source must be an object');
+  }
+  if (source.schema !== 'BehaviorConformanceFixtureSource/v1') {
+    fail('behavior fixture source schema mismatch');
+  }
+  if (!binding || typeof binding !== 'object' || Array.isArray(binding)) {
+    fail('behavior task binding must be an object');
+  }
+  if (typeof binding.repository_sha !== 'string' || !SHA40.test(binding.repository_sha)) {
+    fail('repository SHA must be a 40-character lowercase Git SHA');
+  }
+  requireNonEmptyString(binding.asset_id, 'asset_id');
+  requireNonEmptyString(binding.asset_version, 'asset_version');
+  if (typeof binding.projection_hash !== 'string' || !SHA256.test(binding.projection_hash)) {
+    fail('projection_hash must be a lowercase SHA-256 hex digest');
+  }
+
+  const fixture = source.fixture;
+  if (!fixture || typeof fixture !== 'object' || Array.isArray(fixture)) {
+    fail('fixture must be an object');
+  }
+  const target = requireNonEmptyString(fixture.target, 'fixture.target');
+  if (target !== 'fixture.txt') {
+    fail('fixture.target must be fixture.txt');
+  }
+  if (typeof fixture.expected_utf8 !== 'string') {
+    fail('fixture.expected_utf8 must be a string');
+  }
+  if (!Array.isArray(fixture.required_actions) || fixture.required_actions.length !== 3) {
+    fail('fixture.required_actions must contain exactly three actions');
+  }
+  const requiredActions = fixture.required_actions.map((action, index) =>
+    requireNonEmptyString(action, `fixture.required_actions[${index}]`),
+  );
+  const expectedActions = ['MUTATION', 'VERIFICATION', 'COMPLETION_CLAIM'];
+  if (!expectedActions.every((action, index) => requiredActions[index] === action)) {
+    fail('fixture.required_actions must be MUTATION, VERIFICATION, COMPLETION_CLAIM');
+  }
+
+  const payload = {
+    schema: 'BehaviorConformanceTask/v1',
+    repository_sha: binding.repository_sha,
+    asset_id: binding.asset_id,
+    asset_version: binding.asset_version,
+    projection_hash: binding.projection_hash,
+    instructions: requireNonEmptyString(source.instructions, 'instructions'),
+    isolation: requireNonEmptyString(source.isolation, 'isolation'),
+    fixture: {
+      target,
+      expected_utf8: fixture.expected_utf8,
+      required_actions: requiredActions,
+    },
+  };
+
+  return {
+    ...payload,
+    task_hash: sha256Canonical(payload),
+  };
 }
 
 export function buildDistributionReceiptFromSource(source, repositorySha, providerIds) {
