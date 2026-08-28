@@ -1,0 +1,34 @@
+name: Production Trust Conformance
+
+on:
+  pull_request:
+    paths:
+      - "governance/trust/**"
+      - ".github/workflows/production-trust-conformance.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "governance/trust/**"
+      - ".github/workflows/production-trust-conformance.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deterministic-conformance:
+    name: Deterministic trust conformance
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Run deterministic trust conformance suite
+        run: node --test governance/trust/tests/*.test.mjs
