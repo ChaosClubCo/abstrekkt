@@ -1,0 +1,65 @@
+name: Production Trust Conformance
+
+on:
+  pull_request:
+    paths:
+      - "governance/trust/**"
+      - ".github/workflows/production-trust-conformance.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "governance/trust/**"
+      - ".github/workflows/production-trust-conformance.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deterministic-conformance:
+    name: Deterministic trust conformance
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+      RECEIPT_PATH: governance/trust/out/AgentDistributionConformanceReceipt.v1.json
+    steps:
+      - name: Checkout exact source revision
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ env.SOURCE_SHA }}
+          persist-credentials: false
+
+      - name: Verify exact source revision
+        shell: bash
+        run: |
+          set -euo pipefail
+          actual="$(git rev-parse HEAD)"
+          printf 'expected=%s\nactual=%s\n' "$SOURCE_SHA" "$actual"
+          test "$actual" = "$SOURCE_SHA"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: "22"
+
+      - name: Run deterministic trust conformance suite
+        run: node --test governance/trust/tests/*.test.mjs
+
+      - name: Emit source-verified distribution receipt
+        run: |
+          node governance/trust/scripts/emit-distribution-receipt.mjs \
+            --repository-sha "$SOURCE_SHA" \
+            --out "$RECEIPT_PATH"
+          sha256sum "$RECEIPT_PATH" | tee "${RECEIPT_PATH}.sha256"
+
+      - name: Preserve conformance receipt
+        uses: actions/upload-artifact@v4
+        with:
+          name: production-trust-conformance-${{ env.SOURCE_SHA }}
+          path: |
+            ${{ env.RECEIPT_PATH }}
+            ${{ env.RECEIPT_PATH }}.sha256
+          if-no-files-found: error
+          retention-days: 90
