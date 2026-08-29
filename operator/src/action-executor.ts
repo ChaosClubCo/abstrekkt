@@ -10,7 +10,7 @@ export interface ActionProposalV1<TPayload = unknown> {
   risk: "low" | "medium" | "high" | "critical" | "external_side_effect";
   simulationRequired: boolean;
   approvalRequired: boolean;
-  payload: TPayload;
+  payload?: TPayload;
   payloadHash: `sha256:${string}`;
   idempotencyKey?: string;
   expiresAt?: string;
@@ -43,7 +43,7 @@ export interface ExecutionReceiptV1 {
   schema: "ExecutionReceipt/v1";
   receiptId: string;
   taskId: string;
-  executor: string;
+  executor: ExecutorId;
   supervisor?: string | null;
   candidateRevision?: string | null;
   status: "passed" | "failed" | "blocked" | "cancelled";
