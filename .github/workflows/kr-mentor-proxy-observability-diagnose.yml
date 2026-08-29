@@ -27,26 +27,24 @@ jobs:
         with:
           node-version: '22'
 
-      - name: Query frozen BLOCKED window broadly
+      - name: Compare telemetry query dry modes on run 5
         shell: bash
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          WORKER_NAME: kr-mentor-proxy
-          HISTORICAL_VERSION_ID: 00159066-098d-4d98-853d-5078a121f316
-          HISTORICAL_FROM_MS: '1787855830000'
-          HISTORICAL_TO_MS: '1787855906000'
-          DIAGNOSTIC_PATH: ${{ github.workspace }}/cloudflare-historical-telemetry-diagnostic.json
+          FROM_MS: '1788022320000'
+          TO_MS: '1788022530000'
+          RAY_ID: 'a32d11047aecfa96'
+          OUTPUT_PATH: ${{ github.workspace }}/cloudflare-telemetry-dry-mode-diagnostic.json
         run: |
           set -euo pipefail
-          node --check tooling/cloudflare/telemetry.mjs
-          node --check tooling/cloudflare/diagnose-mentor-proxy.mjs
-          node tooling/cloudflare/diagnose-mentor-proxy.mjs
+          node --check tooling/cloudflare/compare-telemetry-dry-mode.mjs
+          node tooling/cloudflare/compare-telemetry-dry-mode.mjs
 
-      - name: Upload historical telemetry diagnostic
+      - name: Upload dry-mode diagnostic
         uses: actions/upload-artifact@v4
         with:
-          name: kr-mentor-proxy-historical-telemetry-diagnostic
-          path: cloudflare-historical-telemetry-diagnostic.json
+          name: cloudflare-telemetry-dry-mode-diagnostic
+          path: cloudflare-telemetry-dry-mode-diagnostic.json
           if-no-files-found: error
           retention-days: 90
