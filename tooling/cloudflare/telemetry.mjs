@@ -51,6 +51,17 @@ export async function getScriptSettings(workerName) {
   return api(`/workers/scripts/${encodeURIComponent(workerName)}/settings`, { method: 'GET' });
 }
 
+export async function getScriptLevelSettings(workerName) {
+  return api(`/workers/scripts/${encodeURIComponent(workerName)}/script-settings`, { method: 'GET' });
+}
+
+export async function patchScriptLevelSettings(workerName, settings) {
+  return api(`/workers/scripts/${encodeURIComponent(workerName)}/script-settings`, {
+    method: 'PATCH',
+    body: JSON.stringify(settings),
+  });
+}
+
 export function traceRows(result) {
   if (Array.isArray(result?.traces)) return result.traces;
   if (Array.isArray(result?.data?.traces)) return result.data.traces;
