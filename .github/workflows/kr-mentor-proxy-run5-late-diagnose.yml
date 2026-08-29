@@ -1,0 +1,99 @@
+name: KR Mentor Proxy Run5 Late Telemetry Diagnose
+
+on:
+  push:
+    branches:
+      - diagnose/kr-mentor-proxy-run5-late-20260829
+    paths:
+      - '.github/workflows/kr-mentor-proxy-run5-late-diagnose.yml'
+      - '.run5-late-diagnostic-trigger'
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    name: Diagnose run 33264084513 telemetry after ingestion delay
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Query run-5 window broadly
+        shell: bash
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          WORKER_NAME: kr-mentor-proxy
+          HISTORICAL_VERSION_ID: 7068a6d8-a0e1-4290-b88e-7d9528b6e04d
+          HISTORICAL_FROM_MS: '1788022320000'
+          HISTORICAL_TO_MS: '1788022530000'
+          DIAGNOSTIC_PATH: ${{ github.workspace }}/cloudflare-run5-late-telemetry-diagnostic.json
+        run: |
+          set -euo pipefail
+          node --check tooling/cloudflare/telemetry.mjs
+          node --check tooling/cloudflare/diagnose-mentor-proxy.mjs
+          node tooling/cloudflare/diagnose-mentor-proxy.mjs
+
+      - name: Query exact Ray evidence
+        shell: bash
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          WORKER_NAME: kr-mentor-proxy
+          RUN5_RAY_ID: a32d11047aecfa96
+          RUN5_FROM_MS: '1788022320000'
+          RUN5_TO_MS: '1788022530000'
+          RAY_DIAGNOSTIC_PATH: ${{ github.workspace }}/cloudflare-run5-ray-diagnostic.json
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import { writeFileSync } from 'node:fs';
+          import { eventRows, eventService, eventTraceId, eventVersionId, metadata, queryTelemetry, rayFilter, traceFilter, traceRows } from './tooling/cloudflare/telemetry.mjs';
+          const from = Number(process.env.RUN5_FROM_MS);
+          const to = Number(process.env.RUN5_TO_MS);
+          const rayId = process.env.RUN5_RAY_ID;
+          const rayResult = await queryTelemetry('events', [rayFilter(rayId)], from, to);
+          const rayEvents = eventRows(rayResult);
+          const traceIds = [...new Set(rayEvents.map(eventTraceId).filter(Boolean))];
+          const traces = [];
+          for (const traceId of traceIds) {
+            const traceResult = await queryTelemetry('traces', [traceFilter(traceId)], from, to);
+            traces.push(...traceRows(traceResult));
+          }
+          writeFileSync(process.env.RAY_DIAGNOSTIC_PATH, JSON.stringify({
+            schema: 'CloudflareRayDiagnostic/v1',
+            workflow_run_id: '33264084513',
+            ray_id: rayId,
+            window: { from_ms: from, to_ms: to },
+            ray_event_count: rayEvents.length,
+            trace_ids: traceIds,
+            traces,
+            events: rayEvents.slice(0, 50).map((event) => ({
+              timestamp: event?.timestamp || null,
+              service: eventService(event),
+              trace_id: eventTraceId(event),
+              version_id: eventVersionId(event),
+              metadata: metadata(event),
+            })),
+            queried_at: new Date().toISOString(),
+          }, null, 2) + '\n');
+          console.log(`RAY_EVENTS=${rayEvents.length}`);
+          console.log(`TRACE_IDS=${traceIds.length}`);
+          NODE
+
+      - name: Upload late telemetry diagnostics
+        uses: actions/upload-artifact@v4
+        with:
+          name: kr-mentor-proxy-run5-late-telemetry-diagnostics
+          path: |
+            cloudflare-run5-late-telemetry-diagnostic.json
+            cloudflare-run5-ray-diagnostic.json
+          if-no-files-found: error
+          retention-days: 90
