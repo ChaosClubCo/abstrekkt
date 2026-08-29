@@ -1,0 +1,48 @@
+name: Cloudflare Telemetry Windows Diagnose
+
+on:
+  push:
+    branches:
+      - diagnose/kr-mentor-proxy-dry-mode-20260829
+    paths:
+      - '.github/workflows/cloudflare-telemetry-windows-diagnose.yml'
+      - 'tooling/cloudflare/compare-telemetry-dry-mode.mjs'
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    name: Query frozen Cloudflare telemetry on Windows runner
+    runs-on: windows-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Query corrected telemetry shapes
+        shell: pwsh
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          FROM_MS: '1788022320000'
+          TO_MS: '1788022530000'
+          RAY_ID: 'a32d11047aecfa96'
+          OUTPUT_PATH: ${{ github.workspace }}\cloudflare-telemetry-query-shape-diagnostic.json
+        run: |
+          $ErrorActionPreference = 'Stop'
+          node --check tooling/cloudflare/compare-telemetry-dry-mode.mjs
+          node tooling/cloudflare/compare-telemetry-dry-mode.mjs
+
+      - name: Upload diagnostic
+        uses: actions/upload-artifact@v4
+        with:
+          name: cloudflare-telemetry-query-shape-diagnostic-windows
+          path: cloudflare-telemetry-query-shape-diagnostic.json
+          if-no-files-found: error
+          retention-days: 90
