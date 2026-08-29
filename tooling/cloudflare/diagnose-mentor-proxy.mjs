@@ -4,6 +4,7 @@ import {
   eventService,
   eventTraceId,
   eventVersionId,
+  getScriptLevelSettings,
   getScriptSettings,
   metadata,
   queryTelemetry,
@@ -46,8 +47,9 @@ const from = asNumber('HISTORICAL_FROM_MS');
 const to = asNumber('HISTORICAL_TO_MS');
 const output = required('DIAGNOSTIC_PATH');
 
-const [settings, broadTracesResult, serviceTracesResult, broadEventsResult, serviceEventsResult] = await Promise.all([
+const [settings, scriptLevelSettings, broadTracesResult, serviceTracesResult, broadEventsResult, serviceEventsResult] = await Promise.all([
   getScriptSettings(workerName),
+  getScriptLevelSettings(workerName),
   queryTelemetry('traces', [], from, to),
   queryTelemetry('traces', [serviceFilter(workerName)], from, to),
   queryTelemetry('events', [], from, to),
@@ -84,6 +86,7 @@ const diagnostic = {
   worker_version_ids_seen: versionIdsSeen,
   target_version_event_samples: versionEvents.slice(0, 20).map(summarizeEvent),
   worker_observability_settings: settings?.observability || null,
+  script_level_observability_settings: scriptLevelSettings?.observability || null,
   queried_at: new Date().toISOString(),
 };
 
@@ -92,3 +95,4 @@ console.log(`HISTORICAL_DIAGNOSIS=${classification}`);
 console.log(`BROAD_TRACES=${broadTraces.length}`);
 console.log(`SERVICE_TRACES=${serviceTraces.length}`);
 console.log(`TARGET_VERSION_EVENTS=${versionEvents.length}`);
+console.log(`SCRIPT_LEVEL_OBSERVABILITY=${JSON.stringify(scriptLevelSettings?.observability || null)}`);
