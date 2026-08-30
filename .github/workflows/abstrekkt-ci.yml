@@ -162,6 +162,13 @@ jobs:
           node --check tooling/cloudflare/enable-mentor-proxy-observability.mjs
           node --check tooling/cloudflare/verify-mentor-proxy.mjs
           test "$(wc -l < tooling/cloudflare/verify-mentor-proxy.mjs)" -le 400
+          node --input-type=module <<'NODE'
+          import { buildTelemetryQueryBody } from './tooling/cloudflare/telemetry.mjs';
+          const body = buildTelemetryQueryBody('traces', [], 1, 2, 200);
+          if (body.view !== 'traces') throw new Error('telemetry view must be top-level');
+          if (Object.hasOwn(body.parameters, 'view')) throw new Error('telemetry view must not be nested in parameters');
+          if (body.parameters.datasets.length !== 0) throw new Error('telemetry datasets must remain unscoped for broad diagnosis');
+          NODE
           node <<'NODE'
           const manifest = require('./project/proxy-deploy/deployment-manifest.json');
           const blocked = require('./project/proxy-deploy/evidence/cloudflare-observability/33104318955-BLOCKED.json');
