@@ -65,6 +65,21 @@ Generated evidence is not documentation until it actually exists. Never link to 
 
 Receipts must be append-only historical evidence. Do not edit an old receipt to represent a new run.
 
+## GitBook publication boundary
+
+The public GitBook publication surface is intentionally narrow and repository-controlled.
+
+- GitBook imports only from `docs/gitbook/public`, as defined by the root `.gitbook.yaml`.
+- `docs/gitbook/public/SUMMARY.md` is the explicit navigation authority for the published GitBook. A public page is not considered part of the intended navigation until it is linked from `SUMMARY.md`.
+- Any change that adds, renames, moves, or removes a public GitBook page must update `SUMMARY.md` in the same change when navigation is affected.
+- Externally publishable architecture, engineering guidance, and approved project documentation belong under `docs/gitbook/public`.
+- Internal registries, evidence and receipts, operational notes and runbooks, unpublished drafts, investigation material, and security-sensitive working documentation must remain outside `docs/gitbook/public`.
+- `docs/gitbook/registry` is not part of the public publication root and must remain non-public unless an explicit publication decision changes that boundary.
+- Do not broaden `.gitbook.yaml` to `docs`, the repository root, or another larger subtree merely to make a page visible. Move or curate approved public content into `docs/gitbook/public` instead.
+- A decision to widen the GitBook publication root is an architecture and information-boundary change and should be reviewed as such.
+
+This separation is a publication control, not a claim that content outside the public root is secret. Sensitive material must still follow the security rules below.
+
 ## Security-sensitive documentation
 
 Documentation may name credential variables but must never include their values. Examples:
