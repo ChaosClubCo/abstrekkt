@@ -13,9 +13,17 @@ This subtree is the canonical repository binding for the Abstrekkt Execution Arc
 ## Canonical work operating system
 
 - [`CANONICAL_WORK_OS.md`](CANONICAL_WORK_OS.md) — governing task-state, evidence, priority, dependency, stale-work, conflict, and reporting contract.
-- [`canonical-work-state.v1.json`](canonical-work-state.v1.json) — current machine-readable cross-project task projection.
+- [`canonical-work-state.v1.json`](canonical-work-state.v1.json) — base machine-readable 21-task cross-project projection.
+- [`canonical-work-state.delta.2026-08-31T1315-0500.json`](canonical-work-state.delta.2026-08-31T1315-0500.json) — latest reconciliation delta; apply after the base projection.
 
-The JSON projection is explicitly **provisional until `TSYS-001` is verified**. The intended final authority is an append-only task-event ledger with deterministic projection replay and evidence-bound state transitions; repository presence or conversational reconstruction does not satisfy that gate.
+### Read order until TSYS-001 is verified
+
+1. Read `canonical-work-state.v1.json` as the base projection.
+2. Apply reconciliation deltas in chronological order.
+3. Never interpret repository persistence of the projection as proof of event-sourced canonical authority.
+4. When `TSYS-001` passes append-only ledger, deterministic-writer, replay, idempotency/sequence, and projection-hash gates, the ledger/reducer output supersedes this interim base-plus-delta reconstruction method.
+
+Repository persistence of the operating contract and provisional projection is now evidenced on `main`; however, the work-state authority remains **provisional until `TSYS-001` is verified**. The intended final authority is an append-only task-event ledger with deterministic projection replay and evidence-bound state transitions.
 
 ## Authority model
 
