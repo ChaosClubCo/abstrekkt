@@ -1,5 +1,17 @@
 import { createHash } from 'node:crypto';
 import { readFileSync, writeFileSync } from 'node:fs';
+import {
+  eventRows,
+  eventService,
+  eventTraceId,
+  eventVersionId,
+  metadata,
+  queryTelemetry,
+  rayFilter,
+  serviceFilter,
+  traceFilter,
+  traceRows,
+} from './telemetry.mjs';
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const required = (name) => {
@@ -47,80 +59,12 @@ function parseDeploy(path) {
   return { deploy, target: target.replace(/\/$/, '') };
 }
 
-async function cloudflareQuery(view, filters, from, to) {
-  const accountId = required('CLOUDFLARE_ACCOUNT_ID');
-  const token = required('CLOUDFLARE_API_TOKEN');
-  const response = await fetch(
-    `https://api.cloudflare.com/client/v4/accounts/${accountId}/workers/observability/telemetry/query`,
-    {
-      method: 'POST',
-      headers: {
-        authorization: `Bearer ${token}`,
-        'content-type': 'application/json',
-      },
-      body: JSON.stringify({
-        queryId: `kr-mentor-proxy-${view}-${Date.now()}`,
-        timeframe: { from, to },
-        limit: 200,
-        dry: true,
-        parameters: {
-          datasets: [],
-          filterCombination: 'and',
-          filters,
-          view,
-        },
-      }),
-    },
-  );
-
-  const text = await response.text();
-  let payload;
-  try {
-    payload = JSON.parse(text);
-  } catch {
-    throw new Error(`Cloudflare telemetry returned non-JSON HTTP ${response.status}`);
-  }
-  if (!response.ok || payload.success === false) {
-    const message = payload?.errors?.map((error) => error.message).filter(Boolean).join('; ');
-    throw new Error(`Cloudflare telemetry HTTP ${response.status}: ${message || 'query failed'}`);
-  }
-  return payload.result || payload;
-}
-
-function flattenEvents(value) {
-  if (Array.isArray(value?.events)) return value.events;
-  if (value?.events && typeof value.events === 'object') {
-    return Object.values(value.events).flatMap((item) => (Array.isArray(item) ? item : [item]));
-  }
-  return [];
-}
-
-function metadata(event) {
-  return event?.$metadata || event?.metadata || {};
-}
-
-function eventTraceId(event) {
-  return metadata(event).traceId || event?.$workers?.traceId || event?.traceId || null;
-}
-
-function eventVersionId(event) {
-  return (
-    event?.$workers?.scriptVersion?.id ||
-    metadata(event).scriptVersion?.id ||
-    event?.scriptVersion?.id ||
-    null
-  );
-}
-
 async function probeTarget(target, proxyToken) {
   const unauthenticated = await fetch(target, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: '{}',
   });
-  if (unauthenticated.status !== 401) {
-    throw new Error(`Unauthenticated POST returned ${unauthenticated.status}; expected 401`);
-  }
 
   const marker = `cf-observability-${process.env.GITHUB_RUN_ID || 'local'}-${Date.now()}`;
   const probeUrl = `https://example.com/?cf_observability_probe=${encodeURIComponent(marker)}`;
@@ -133,53 +77,76 @@ async function probeTarget(target, proxyToken) {
     body: JSON.stringify({ target: 'url', method: 'GET', url: probeUrl }),
   });
   const responseText = await authenticated.text();
-  if (authenticated.status !== 200) {
-    throw new Error(`Authenticated disposable request returned ${authenticated.status}; expected 200`);
+  const cfRay = authenticated.headers.get('cf-ray');
+
+  const probe = {
+    marker,
+    rayId: cfRay,
+    rayIdBase: cfRay?.split('-')[0] || null,
+    unauthenticatedStatus: unauthenticated.status,
+    authenticatedStatus: authenticated.status,
+    responseMatched: /Example Domain/i.test(responseText),
+  };
+
+  if (probe.unauthenticatedStatus !== 401) {
+    throw Object.assign(new Error(`Unauthenticated POST returned ${probe.unauthenticatedStatus}; expected 401`), { probe });
   }
-  if (!/Example Domain/i.test(responseText)) {
-    throw new Error('Authenticated disposable request did not return the expected example.com response');
+  if (probe.authenticatedStatus !== 200) {
+    throw Object.assign(new Error(`Authenticated disposable request returned ${probe.authenticatedStatus}; expected 200`), { probe });
   }
-  return { marker, unauthenticatedStatus: 401, authenticatedStatus: 200 };
+  if (!probe.responseMatched) {
+    throw Object.assign(new Error('Authenticated disposable request did not return the expected example.com response'), { probe });
+  }
+  if (!probe.rayId) {
+    throw Object.assign(new Error('Authenticated disposable request returned no cf-ray header'), { probe });
+  }
+  return probe;
 }
 
-async function findTrace(workerName, marker, from) {
-  const serviceFilter = {
-    key: '$metadata.service',
-    operation: 'eq',
-    type: 'string',
-    value: workerName,
-  };
-  let lastTraceCount = 0;
+function chooseSpans(events, workerName, marker) {
+  const workerEvents = events.filter((event) => eventService(event) === workerName);
+  const root = workerEvents.find((event) => !metadata(event).parentSpanId);
+  const child = workerEvents.find((event) => {
+    const meta = metadata(event);
+    if (!meta.parentSpanId) return false;
+    const haystack = `${meta.spanName || ''} ${meta.url || ''} ${JSON.stringify(event.source || '')}`;
+    return /fetch/i.test(haystack) || /example\.com/i.test(haystack) || haystack.includes(marker);
+  });
+  return { root, child };
+}
 
-  for (let attempt = 1; attempt <= 10; attempt += 1) {
+async function findTrace(workerName, probe, from) {
+  const rayIds = [...new Set([probe.rayId, probe.rayIdBase].filter(Boolean))];
+  let last = { broadTraces: 0, serviceTraces: 0, rayEvents: 0, traceEvents: 0 };
+
+  for (let attempt = 1; attempt <= 15; attempt += 1) {
     const to = Date.now() + 5_000;
-    const tracesResult = await cloudflareQuery('traces', [serviceFilter], from, to);
-    const traces = Array.isArray(tracesResult?.traces) ? tracesResult.traces : [];
-    lastTraceCount = traces.length;
-    const candidates = [...traces]
-      .filter((trace) => (trace.service || []).includes(workerName) && Number(trace.spans || 0) >= 2)
-      .sort((a, b) => Number(b.traceStartMs || 0) - Number(a.traceStartMs || 0));
+    const [broadTracesResult, serviceTracesResult] = await Promise.all([
+      queryTelemetry('traces', [], from, to),
+      queryTelemetry('traces', [serviceFilter(workerName)], from, to),
+    ]);
+    const broadTraces = traceRows(broadTracesResult);
+    const serviceTraces = traceRows(serviceTracesResult);
+    last.broadTraces = broadTraces.length;
+    last.serviceTraces = serviceTraces.length;
 
-    for (const trace of candidates) {
-      const traceFilter = {
-        key: '$metadata.traceId',
-        operation: 'eq',
-        type: 'string',
-        value: trace.traceId,
-      };
-      const eventsResult = await cloudflareQuery('events', [serviceFilter, traceFilter], from, to);
-      const events = flattenEvents(eventsResult).filter((event) => eventTraceId(event) === trace.traceId);
-      if (!events.some((event) => JSON.stringify(event).includes(marker))) continue;
+    for (const rayId of rayIds) {
+      const rayEventsResult = await queryTelemetry('events', [rayFilter(rayId)], from, to);
+      const rayEvents = eventRows(rayEventsResult);
+      last.rayEvents = Math.max(last.rayEvents, rayEvents.length);
+      const anchor = rayEvents.find((event) => eventService(event) === workerName && eventTraceId(event));
+      const traceId = anchor && eventTraceId(anchor);
+      if (!traceId) continue;
 
-      const root = events.find((event) => !metadata(event).parentSpanId);
-      const child = events.find((event) => {
-        const meta = metadata(event);
-        if (!meta.parentSpanId) return false;
-        const haystack = `${meta.spanName || ''} ${meta.url || ''} ${JSON.stringify(event.source || '')}`;
-        return /fetch/i.test(haystack) || haystack.includes(marker) || /example\.com/i.test(haystack);
-      });
-      if (!root) throw new Error(`Trace ${trace.traceId} has no root/handler span event`);
-      if (!child) throw new Error(`Trace ${trace.traceId} has no outbound fetch child span event`);
+      const [traceResult, traceEventsResult] = await Promise.all([
+        queryTelemetry('traces', [traceFilter(traceId)], from, to),
+        queryTelemetry('events', [traceFilter(traceId)], from, to),
+      ]);
+      const trace = traceRows(traceResult).find((row) => row.traceId === traceId);
+      const events = eventRows(traceEventsResult).filter((event) => eventTraceId(event) === traceId);
+      last.traceEvents = events.length;
+      const { root, child } = chooseSpans(events, workerName, probe.marker);
+      if (!trace || !root || !child) continue;
 
       return {
         trace,
@@ -187,12 +154,24 @@ async function findTrace(workerName, marker, from) {
         child: metadata(child),
         scriptVersionId: eventVersionId(root) || eventVersionId(child),
         eventCount: events.length,
+        diagnostics: {
+          attempts: attempt,
+          correlation: 'cf-ray -> telemetry rayId -> traceId',
+          ray_id_used: rayId,
+          broad_trace_count: broadTraces.length,
+          service_trace_count: serviceTraces.length,
+          ray_event_count: rayEvents.length,
+          trace_event_count: events.length,
+        },
       };
     }
 
-    if (attempt < 10) await sleep(4_000);
+    if (attempt < 15) await sleep(8_000);
   }
-  throw new Error(`No matching traced authenticated request found after ingestion retries; observed ${lastTraceCount} traces`);
+
+  throw new Error(
+    `No correlated Worker trace after ingestion retries; broad_traces=${last.broadTraces}, service_traces=${last.serviceTraces}, ray_events=${last.rayEvents}, trace_events=${last.traceEvents}`,
+  );
 }
 
 function baseReceipt(verdict, failureReason = null) {
@@ -225,6 +204,13 @@ function baseReceipt(verdict, failureReason = null) {
       handler_span: { verified: false },
       outbound_fetch_span: { verified: false, target_host: 'example.com' },
     },
+    readback: {
+      probe_marker: null,
+      cf_ray: null,
+      unauthenticated_post_status: null,
+      authenticated_disposable_request_status: null,
+      authenticated_target_host: 'example.com',
+    },
     proxy_secret: {
       mode: process.env.PROXY_TOKEN_MODE || 'unknown',
       value_recorded: false,
@@ -236,11 +222,46 @@ function baseReceipt(verdict, failureReason = null) {
       pre_deployments_sha256: sha256File(process.env.PRE_DEPLOYMENTS_PATH || ''),
       post_versions_sha256: sha256File(process.env.POST_VERSIONS_PATH || ''),
       post_deployments_sha256: sha256File(process.env.POST_DEPLOYMENTS_PATH || ''),
+      historical_diagnostic_sha256: sha256File(process.env.HISTORICAL_DIAGNOSTIC_PATH || ''),
     },
     failure_reason: failureReason,
     verified_at: new Date().toISOString(),
     verdict,
   };
+}
+
+function persistProbe(receiptPath, probe) {
+  const receipt = readJson(receiptPath) || baseReceipt('BLOCKED', 'Trace verification pending');
+  receipt.readback = {
+    probe_marker: probe?.marker || null,
+    cf_ray: probe?.rayId || null,
+    cf_ray_base: probe?.rayIdBase || null,
+    unauthenticated_post_status: probe?.unauthenticatedStatus ?? null,
+    authenticated_disposable_request_status: probe?.authenticatedStatus ?? null,
+    authenticated_target_host: 'example.com',
+    authenticated_response_matched: probe?.responseMatched ?? false,
+  };
+  writeFileSync(receiptPath, `${JSON.stringify(receipt, null, 2)}\n`);
+}
+
+function persistBlocked(receiptPath, error) {
+  const receipt = readJson(receiptPath) || baseReceipt('BLOCKED');
+  if (error?.probe) {
+    receipt.readback = {
+      ...receipt.readback,
+      probe_marker: error.probe.marker || null,
+      cf_ray: error.probe.rayId || null,
+      cf_ray_base: error.probe.rayIdBase || null,
+      unauthenticated_post_status: error.probe.unauthenticatedStatus ?? null,
+      authenticated_disposable_request_status: error.probe.authenticatedStatus ?? null,
+      authenticated_target_host: 'example.com',
+      authenticated_response_matched: error.probe.responseMatched ?? false,
+    };
+  }
+  receipt.failure_reason = error.message;
+  receipt.verified_at = new Date().toISOString();
+  receipt.verdict = 'BLOCKED';
+  writeFileSync(receiptPath, `${JSON.stringify(receipt, null, 2)}\n`);
 }
 
 async function verify() {
@@ -261,13 +282,17 @@ async function verify() {
   }
 
   const probe = await probeTarget(target, proxyToken);
-  const traced = await findTrace(workerName, probe.marker, traceFrom - 30_000);
+  persistProbe(receiptPath, probe);
+  const traced = await findTrace(workerName, probe, traceFrom - 30_000);
   const deployVersionId = deploy.version_id || null;
   if (deployVersionId && traced.scriptVersionId && deployVersionId !== traced.scriptVersionId) {
     throw new Error(`Trace version ${traced.scriptVersionId} does not match deployed version ${deployVersionId}`);
   }
 
-  const receipt = baseReceipt('PASS');
+  const receipt = readJson(receiptPath) || baseReceipt('PASS');
+  receipt.verdict = 'PASS';
+  receipt.failure_reason = null;
+  receipt.verified_at = new Date().toISOString();
   receipt.worker.traced_version_id = deployVersionId || traced.scriptVersionId || null;
   receipt.observability = {
     tracing_enabled: true,
@@ -278,6 +303,7 @@ async function verify() {
     trace_duration_ms: traced.trace.traceDurationMs,
     span_count: traced.trace.spans,
     event_count: traced.eventCount,
+    query_diagnostics: traced.diagnostics,
     handler_span: {
       verified: true,
       span_id: traced.root.spanId || null,
@@ -290,11 +316,6 @@ async function verify() {
       span_name: traced.child.spanName || null,
       target_host: 'example.com',
     },
-  };
-  receipt.readback = {
-    unauthenticated_post_status: probe.unauthenticatedStatus,
-    authenticated_disposable_request_status: probe.authenticatedStatus,
-    authenticated_target_host: 'example.com',
   };
   writeFileSync(receiptPath, `${JSON.stringify(receipt, null, 2)}\n`);
   console.log(`TRACE_ID=${receipt.observability.trace_id}`);
@@ -317,13 +338,11 @@ function finalize() {
 
 const command = process.argv[2] || 'verify';
 if (command === 'verify') {
+  const receiptPath = process.env.RECEIPT_PATH;
   try {
     await verify();
   } catch (error) {
-    const receiptPath = process.env.RECEIPT_PATH;
-    if (receiptPath) {
-      writeFileSync(receiptPath, `${JSON.stringify(baseReceipt('BLOCKED', error.message), null, 2)}\n`);
-    }
+    if (receiptPath) persistBlocked(receiptPath, error);
     console.error(error.message);
     process.exitCode = 1;
   }
