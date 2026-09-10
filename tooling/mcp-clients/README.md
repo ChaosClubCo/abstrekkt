@@ -52,3 +52,7 @@ Verify Impeccable after installation:
 - Claude Code: `.claude/skills/impeccable/`
 - Codex: `.agents/skills/impeccable/`
 - Cursor: `.cursor/skills/impeccable/`
+
+## Branch consolidation note
+
+`chore/repo-automation-agent-stack` is superseded by current `main`. Its repository-scoped Copilot agents, MCP configuration, CI validation, webhook signing contract, and exact-SHA Cloudflare release controls are already present on `main`. Do not merge that stale branch wholesale; preserve the PR as historical provenance and make future automation changes from a fresh branch rooted at current `main`.
