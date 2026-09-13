@@ -3,7 +3,6 @@ id: types/opposes
 kind: type
 name: Opposes
 applies_to_kind: relation
-constraints:
-  roles_required: [opponent]
 ---
-An explicit opposition or incompatibility among members.
+Generic negativity/opposition. Specialize (`opposes/doctrinal`,
+`opposes/moral`) or leave as-is. **Always authored, never inferred.**
