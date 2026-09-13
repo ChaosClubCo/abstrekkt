@@ -6,4 +6,6 @@ applies_to_kind: relation
 constraints:
   roles_required: [earlier, later]
 ---
-Temporal ordering between artifacts.
+Temporal order between two artifacts that occupy time — periods, actions,
+states. Ordering is derived by topological sort over these relations;
+numeric `when.sort` is an optional override for worlds with a calendar.
