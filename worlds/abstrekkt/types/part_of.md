@@ -7,4 +7,6 @@ constraints:
   roles_required: [part, whole]
   roles_unique: [whole]
 ---
-Inclusion relation between one or more parts and a containing whole.
+Inclusion: parts of an object, provinces in a state, a doctrine in a
+religion. The zoom edge (KERNEL §7). Distinct from hierarchy — see
+`subordinate_to`.
