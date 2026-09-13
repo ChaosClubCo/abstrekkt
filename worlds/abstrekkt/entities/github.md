@@ -1,8 +1,8 @@
 ---
 id: entities/github
 kind: entity
-type: repository
+type: platform
 name: GitHub
 status: draft
 ---
-Versioned source substrate for code, GitBook Markdown, Worldkeep canon, configuration, review history, and durable change provenance.
+Version-control and collaboration platform used as the durable source substrate for code, GitBook Markdown, Worldkeep canon, configuration, review history, and change provenance.
