@@ -5,5 +5,7 @@ name: Holds
 applies_to_kind: relation
 constraints:
   roles_required: [holder, held]
+  role_kinds: { held: [idea] }
 ---
-Connects a holder to an idea or thing it maintains in the modeled context.
+An entity holds an idea. Weight on the holder member = strength of
+conviction. Perspective, belief, doctrine adhesion — all this one type.
