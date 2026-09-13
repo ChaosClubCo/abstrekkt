@@ -4,6 +4,7 @@ kind: type
 name: Subordinate to
 applies_to_kind: relation
 constraints:
-  roles_required: [subordinate, superior]
+  roles_required: [superior, subordinate]
 ---
-Hierarchy without implying physical inclusion.
+Hierarchy/order: army command, feudal regimes, church ranks. Distinct from
+inclusion — a general is not a *part* of the colonel.
