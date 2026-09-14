@@ -98,6 +98,83 @@ jobs:
             exit 1
           fi
 
+      - name: Generate and validate crawler discovery files
+        shell: bash
+        env:
+          SITE_ORIGIN: https://abstrekkt.com
+        run: |
+          set -euo pipefail
+          ROOT="candidate/project/deploy/abstrekkt-com"
+
+          python - "$ROOT" "$SITE_ORIGIN" <<'PY'
+          from __future__ import annotations
+
+          import sys
+          import xml.etree.ElementTree as ET
+          from pathlib import Path
+
+          root = Path(sys.argv[1]).resolve()
+          origin = sys.argv[2].rstrip("/")
+
+          page_urls: list[str] = []
+          for index_file in sorted(root.rglob("index.html")):
+              relative = index_file.relative_to(root)
+              route_parts = relative.parts[:-1]
+              route = "/" if not route_parts else "/" + "/".join(route_parts) + "/"
+              page_urls.append(f"{origin}{route}")
+
+          if not page_urls:
+              raise SystemExit("STOP: no public index.html pages found for sitemap generation")
+
+          namespace = "http://www.sitemaps.org/schemas/sitemap/0.9"
+          ET.register_namespace("", namespace)
+          urlset = ET.Element(f"{{{namespace}}}urlset")
+          for url in page_urls:
+              url_node = ET.SubElement(urlset, f"{{{namespace}}}url")
+              loc_node = ET.SubElement(url_node, f"{{{namespace}}}loc")
+              loc_node.text = url
+
+          sitemap_path = root / "sitemap.xml"
+          ET.ElementTree(urlset).write(
+              sitemap_path,
+              encoding="utf-8",
+              xml_declaration=True,
+              short_empty_elements=True,
+          )
+
+          robots_path = root / "robots.txt"
+          robots_path.write_text(
+              "User-agent: *\n"
+              "Allow: /\n"
+              f"Sitemap: {origin}/sitemap.xml\n",
+              encoding="utf-8",
+          )
+
+          print(f"Generated sitemap.xml with {len(page_urls)} canonical URL entries")
+          for url in page_urls:
+              print(f"  {url}")
+          PY
+
+          python - "$ROOT/sitemap.xml" <<'PY'
+          import sys
+          import xml.etree.ElementTree as ET
+
+          path = sys.argv[1]
+          namespace = {"sm": "http://www.sitemaps.org/schemas/sitemap/0.9"}
+          root = ET.parse(path).getroot()
+          if root.tag != "{http://www.sitemaps.org/schemas/sitemap/0.9}urlset":
+              raise SystemExit("STOP: sitemap root must be <urlset> in the Sitemaps namespace")
+          locations = [node.text for node in root.findall("sm:url/sm:loc", namespace)]
+          if not locations or any(not loc or not loc.startswith("https://abstrekkt.com/") for loc in locations):
+              raise SystemExit("STOP: sitemap contains missing or non-canonical <loc> entries")
+          print(f"Validated sitemap.xml with {len(locations)} URL entries")
+          PY
+
+          grep -Fxq 'Sitemap: https://abstrekkt.com/sitemap.xml' "$ROOT/robots.txt" || {
+            echo "STOP: robots.txt does not reference the canonical sitemap"
+            exit 1
+          }
+
       - name: Add Cloudflare Pages response headers to release workspace
         shell: bash
         run: |
@@ -111,6 +188,14 @@ jobs:
 
           /*.html
             Cache-Control: public, max-age=0, must-revalidate
+
+          /sitemap.xml
+            Content-Type: application/xml; charset=utf-8
+            Cache-Control: public, max-age=300
+
+          /robots.txt
+            Content-Type: text/plain; charset=utf-8
+            Cache-Control: public, max-age=300
           EOF
 
       - name: Deploy to Cloudflare Pages
@@ -120,6 +205,39 @@ jobs:
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           gitHubToken: ${{ secrets.GITHUB_TOKEN }}
           command: pages deploy candidate/project/deploy/abstrekkt-com --project-name="${{ inputs.project_name }}" --branch=main --commit-hash="${{ inputs.candidate_sha }}"
+
+      - name: Verify public sitemap and robots.txt
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --location --retry 6 --retry-delay 5 \
+            https://abstrekkt.com/sitemap.xml -o /tmp/abstrekkt-sitemap.xml
+          curl --fail --silent --show-error --location --retry 6 --retry-delay 5 \
+            https://abstrekkt.com/robots.txt -o /tmp/abstrekkt-robots.txt
+
+          python - /tmp/abstrekkt-sitemap.xml <<'PY'
+          import sys
+          import xml.etree.ElementTree as ET
+
+          namespace = {"sm": "http://www.sitemaps.org/schemas/sitemap/0.9"}
+          root = ET.parse(sys.argv[1]).getroot()
+          locations = [node.text for node in root.findall("sm:url/sm:loc", namespace)]
+          required = {
+              "https://abstrekkt.com/",
+              "https://abstrekkt.com/founder/",
+              "https://abstrekkt.com/pillars/",
+              "https://abstrekkt.com/contact/",
+          }
+          missing = sorted(required - set(locations))
+          if missing:
+              raise SystemExit(f"STOP: live sitemap is missing required canonical URLs: {missing}")
+          print(f"Live sitemap verified with {len(locations)} URL entries")
+          PY
+
+          grep -Fxq 'Sitemap: https://abstrekkt.com/sitemap.xml' /tmp/abstrekkt-robots.txt || {
+            echo "STOP: live robots.txt does not reference the sitemap"
+            exit 1
+          }
 
       - name: Record release summary
         if: success()
@@ -133,5 +251,8 @@ jobs:
             echo "- Pages project: `${{ inputs.project_name }}`"
             echo "- Static package: `project/deploy/abstrekkt-com`"
             echo "- Repository authority checks: trusted checker applied to exact candidate"
-            echo "- Custom-domain binding and independent public read-back remain separate release evidence."
+            echo "- sitemap.xml: generated from public index.html routes and validated"
+            echo "- robots.txt: generated with canonical Sitemap directive"
+            echo "- Public read-back: sitemap.xml and robots.txt verified on abstrekkt.com"
+            echo "- Independent Agent Ready scan remains separate release evidence."
           } >> "$GITHUB_STEP_SUMMARY"
