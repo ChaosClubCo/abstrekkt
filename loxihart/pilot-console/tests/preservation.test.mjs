@@ -140,14 +140,18 @@ test("real 500 received before timeout remains 500, never 504", async () => {
 test("browser authority headers cannot override server identity", () => {
   const headers = buildUpstreamHeaders({
     browserHeaders: {
-      "X-Loxihart-Demo-Token": "attacker",
-      "X-Loxihart-Organization": "evil-org",
-      "X-Loxihart-Actor": "attacker",
-      "X-Request-ID": "safe-client-header",
+      Authorization: 'Bearer attacker',
+      'X-Loxihart-Console-Token': 'attacker',
+      'X-Loxihart-Demo-Token': 'attacker',
+      'X-Loxihart-Organization': 'evil-org',
+      'X-Loxihart-Actor': 'attacker',
+      'X-Request-ID': 'safe-client-header',
     },
     identity,
   });
-  assert.equal(headers.get("X-Loxihart-Demo-Token"), "server-token");
+  assert.equal(headers.get('Authorization'), null);
+  assert.equal(headers.get('X-Loxihart-Console-Token'), null);
+  assert.equal(headers.get('X-Loxihart-Demo-Token'), 'server-token');
   assert.equal(headers.get("X-Loxihart-Organization"), "org-lakeview-hvac");
   assert.equal(headers.get("X-Loxihart-Actor"), "operator:kyle-demo");
   assert.equal(headers.get("X-Request-ID"), "safe-client-header");
