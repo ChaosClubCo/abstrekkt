@@ -21,12 +21,18 @@ assert.equal(byId["product.solemuchbetter"].repository.full_name, null);
 
 const projection = buildPublicProjection(registry);
 const publicIds = new Set(projection.entities.map((entity) => entity.id));
+
+assert.equal(publicIds.has("company.abstrekkt"), true);
+assert.equal(publicIds.has("company.loxihart"), true);
+assert.equal(publicIds.has("product.the-verdict"), true);
+assert.equal(publicIds.has("product.promptforge"), false);
+assert.equal(publicIds.has("product.archon"), false);
 assert.equal(publicIds.has("product.universal-app-generator"), false);
 assert.equal(publicIds.has("product.solemuchbetter"), false);
 
 const serialized = JSON.stringify(projection);
 assert.equal(serialized.includes("head_sha"), false);
-assert.equal(serialized.includes("repository.full_name"), false);
+assert.equal(serialized.includes("full_name"), false);
 assert.equal(serialized.includes("00a63fddf1a8d581acc667e137ee3974adc365e4"), false);
 
 const invalid = structuredClone(registry);
@@ -40,6 +46,8 @@ badPublicClaim.entities[0].claims.push({
   claim_status: "PROVISIONAL",
   public: true
 });
-assert.ok(validateRegistry(badPublicClaim).some((error) => error.includes("public claim must be VERIFIED or SUPPORTED")));
+assert.ok(validateRegistry(badPublicClaim).some((error) =>
+  error.includes("public claim must be VERIFIED or SUPPORTED")
+));
 
-console.log("PASS: Portfolio Atlas contract, ownership boundary, public projection, and fail-closed tests.");
+console.log("PASS: Portfolio Atlas contract, ownership boundary, privacy projection, and fail-closed tests.");

@@ -14,7 +14,10 @@ export function buildPublicProjection(registry) {
     schema: "AbstrekktPublicPortfolioAtlas/v1",
     checked_at: registry.checked_at,
     entities: registry.entities
-      .filter((entity) => entity.portfolio_state === "ACTIVE")
+      .filter((entity) =>
+        entity.portfolio_state === "ACTIVE" &&
+        entity.visibility !== "PRIVATE"
+      )
       .map((entity) => ({
         id: entity.id,
         slug: entity.slug,
@@ -22,7 +25,10 @@ export function buildPublicProjection(registry) {
         entity_type: entity.entity_type,
         owner_domain: entity.owner_domain,
         claims: entity.claims
-          .filter((claim) => claim.public === true && ["VERIFIED", "SUPPORTED"].includes(claim.claim_status))
+          .filter((claim) =>
+            claim.public === true &&
+            ["VERIFIED", "SUPPORTED"].includes(claim.claim_status)
+          )
           .map(({ key, value, claim_status }) => ({ key, value, claim_status }))
       }))
       .filter((entity) => entity.claims.length > 0)
