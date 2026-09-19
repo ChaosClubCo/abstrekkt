@@ -1,1 +1,0 @@
-/mnt/user-data/outputs/tiktok-sora2-automation/README.md
