@@ -25,9 +25,28 @@ export function createCanonicalMutationCommandHandler(options) {
   const policyVersion = requireText(options?.policyVersion, "policyVersion");
   const releaseLineage = requireText(options?.releaseLineage, "releaseLineage");
   const environment = requireText(options?.environment, "environment");
-  for (const [target, methods, name] of [[options?.canonicalStore, ["readHead", "readHeadForUpdate", "applyMutation"], "canonicalStore"], [options?.replayStore, ["consumeOnce"], "replayStore"], [options?.receiptSink, ["append"], "receiptSink"], [options?.transaction, ["run"], "transaction"], [options?.clock, ["now"], "clock"]]) for (const method of methods) requireMethod(target, method, name);
+  requireMethod(options?.clock, "now", "clock");
+
+  const atomicMutationStore = options?.atomicMutationStore;
+  if (atomicMutationStore) {
+    for (const method of ["readHead", "findCommittedOutcome", "commitVerifiedMutation", "appendDenial"]) requireMethod(atomicMutationStore, method, "atomicMutationStore");
+  } else {
+    for (const [target, methods, name] of [[options?.canonicalStore, ["readHead", "readHeadForUpdate", "applyMutation"], "canonicalStore"], [options?.replayStore, ["consumeOnce"], "replayStore"], [options?.receiptSink, ["append"], "receiptSink"], [options?.transaction, ["run"], "transaction"]]) for (const method of methods) requireMethod(target, method, name);
+  }
+
   const keys = options?.trustedPublicKeys;
   if (!keys || Object.keys(keys).length === 0) throw new CanonicalMutationRuntimeConfigurationError("At least one trusted conformance public key is required");
-  const dependencies = Object.freeze({ canonicalStore: options.canonicalStore, replayStore: options.replayStore, receiptSink: options.receiptSink, transaction: options.transaction, clock: options.clock, policyVersion, releaseLineage, environment, verificationConfig: defaultVerificationConfig({ trustedPublicKeys: keys, maxAgeMs: options.maxAgeMs, clockSkewMs: options.clockSkewMs }) });
+  const dependencies = Object.freeze({
+    atomicMutationStore,
+    canonicalStore: options?.canonicalStore,
+    replayStore: options?.replayStore,
+    receiptSink: options?.receiptSink,
+    transaction: options?.transaction,
+    clock: options.clock,
+    policyVersion,
+    releaseLineage,
+    environment,
+    verificationConfig: defaultVerificationConfig({ trustedPublicKeys: keys, maxAgeMs: options.maxAgeMs, clockSkewMs: options.clockSkewMs }),
+  });
   return Object.freeze({ execute(command) { return executeCanonicalMutation(command, dependencies); } });
 }
