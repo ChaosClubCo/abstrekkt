@@ -86,6 +86,10 @@ def ls_tree_blobs(revision: str) -> dict[str, str]:
     return entries
 
 
+def batched(items: list[str], size: int) -> list[list[str]]:
+    return [items[index:index + size] for index in range(0, len(items), size)]
+
+
 def changed_path_statuses(base: str | None) -> dict[str, str]:
     if not base or set(base) == {"0"}:
         return {}
@@ -99,31 +103,35 @@ def changed_path_statuses(base: str | None) -> dict[str, str]:
 def exact_restorations(base: str | None, statuses: dict[str, str]) -> set[str]:
     if not base or set(base) == {"0"}:
         return set()
-    try:
-        parent = git("rev-parse", f"{base}^").strip()
-    except subprocess.CalledProcessError:
-        return set()
 
-    added_paths = {path for path, status in statuses.items() if status.startswith("A")}
+    added_paths = sorted(path for path, status in statuses.items() if status.startswith("A"))
     if not added_paths:
         return set()
 
-    deleted_in_base = {
-        paths[0]
-        for status, paths in parse_name_status_z(git_bytes("diff", "--name-status", "-z", parent, base))
-        if status.startswith("D")
-    }
-    candidates = added_paths & deleted_in_base
-    if not candidates:
-        return set()
-
-    parent_blobs = ls_tree_blobs(parent)
     head_blobs = ls_tree_blobs("HEAD")
-    return {
-        path
-        for path in candidates
-        if parent_blobs.get(path) and parent_blobs.get(path) == head_blobs.get(path)
-    }
+    restored: set[str] = set()
+    for chunk in batched(added_paths, 512):
+        history = git(
+            "log",
+            "--format=",
+            "--raw",
+            "--abbrev=40",
+            "--full-history",
+            "--no-renames",
+            base,
+            "--",
+            *chunk,
+        )
+        for line in history.splitlines():
+            if "\t" not in line:
+                continue
+            metadata, path = line.split("\t", 1)
+            parts = metadata.split()
+            if len(parts) < 4:
+                continue
+            if head_blobs.get(path) == parts[3]:
+                restored.add(path)
+    return restored
 
 
 def read_text(path: Path) -> str | None:
