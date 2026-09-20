@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Drive Document Connections — Kyle</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0d0f14; font-family: 'Inter', system-ui, sans-serif; color: #e2e8f0; overflow: hidden; }
+  canvas { display: block; }
+  #legend {
+    position: absolute; top: 16px; left: 16px;
+    background: rgba(15,18,26,0.88); border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 10px; padding: 14px 16px; font-size: 11px; backdrop-filter: blur(8px); max-width: 195px;
+  }
+  #legend h3 { font-size: 10px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 9px; }
+  .legend-item { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; font-size: 11px; color: #cbd5e1; }
+  .legend-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  .legend-line { width: 22px; height: 0; flex-shrink: 0; border-top: 2px dashed; }
+  .legend-thin { width: 22px; height: 0; flex-shrink: 0; border-top: 1px solid rgba(148,163,184,0.3); }
+  #title-bar { position: absolute; top: 16px; right: 16px; text-align: right; }
+  #title-bar h1 { font-size: 15px; font-weight: 600; color: #f1f5f9; }
+  #title-bar p { font-size: 11px; color: #64748b; margin-top: 3px; }
+  #tooltip {
+    position: absolute; background: rgba(13,15,20,0.96);
+    border: 1px solid rgba(255,255,255,0.1); border-radius: 10px;
+    padding: 12px 14px; font-size: 12px; max-width: 260px;
+    pointer-events: none; display: none; backdrop-filter: blur(12px); z-index: 100;
+  }
+  #tooltip .tt-title { font-weight: 700; color: #f1f5f9; font-size: 13px; line-height: 1.3; margin-bottom: 3px; }
+  #tooltip .tt-cluster { font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 6px; font-weight: 600; }
+  #tooltip .tt-desc { color: #94a3b8; font-size: 11px; line-height: 1.55; }
+  #connection-panel {
+    position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%);
+    background: rgba(13,15,20,0.94); border: 1px solid rgba(251,191,36,0.25);
+    border-radius: 12px; padding: 14px 18px; font-size: 12px; backdrop-filter: blur(12px);
+    display: none; max-width: 480px; width: calc(100% - 32px);
+  }
+  #connection-panel .cp-label { font-size: 10px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.1em; color: #fbbf24; margin-bottom: 5px; }
+  #connection-panel .cp-title { font-weight: 700; color: #f1f5f9; font-size: 14px; margin-bottom: 5px; }
+  #connection-panel .cp-desc { color: #94a3b8; font-size: 12px; line-height: 1.65; }
+  #hint { position: absolute; bottom: 70px; left: 50%; transform: translateX(-50%);
+    pointer-events: none; color: rgba(100,116,139,0.4); font-size: 11px; white-space: nowrap; }
+</style>
+</head>
+<body>
+<canvas id="canvas"></canvas>
+<div id="legend">
+  <h3>Clusters</h3>
+  <div class="legend-item"><div class="legend-dot" style="background:#6366f1"></div> Content Automation</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#0ea5e9"></div> MARP / Knowledge</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#10b981"></div> FlashFusion / Agents</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#f59e0b"></div> Agency / Business</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#ec4899"></div> chaosclub.co</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#94a3b8"></div> UX / Accessibility</div>
+  <hr style="border-color:rgba(255,255,255,0.07);margin:9px 0;">
+  <h3 style="margin-bottom:8px;">Links</h3>
+  <div class="legend-item"><div class="legend-line" style="border-color:rgba(251,191,36,0.7)"></div> Unexpected</div>
+  <div class="legend-item"><div class="legend-thin"></div> Same cluster</div>
+  <hr style="border-color:rgba(255,255,255,0.07);margin:9px 0;">
+  <div style="color:#475569;font-size:10px;line-height:1.5;">Hover nodes for details<br>Click ⚡ links to expand</div>
+</div>
+<div id="title-bar">
+  <h1>Drive Document Connections</h1>
+  <p>16 docs · 7 unexpected links found</p>
+</div>
+<div id="tooltip">
+  <div class="tt-title" id="tt-title"></div>
+  <div class="tt-cluster" id="tt-cluster"></div>
+  <div class="tt-desc" id="tt-desc"></div>
+</div>
+<div id="connection-panel">
+  <div class="cp-label">⚡ Unexpected Connection</div>
+  <div class="cp-title" id="cp-title"></div>
+  <div class="cp-desc" id="cp-desc"></div>
+</div>
+<div id="hint">Click a glowing ⚡ link to read the connection</div>
+
+<script>
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+resize();
+window.addEventListener('resize', resize);
+const W = () => canvas.width, H = () => canvas.height;
+
+const CLUSTERS = {
+  content:     { color: '#6366f1' },
+  marp:        { color: '#0ea5e9' },
+  flashfusion: { color: '#10b981' },
+  agency:      { color: '#f59e0b' },
+  chaos:       { color: '#ec4899' },
+  ux:          { color: '#94a3b8' },
+};
+
+const nodes = [
+  { id:'infeed',    label:'Infinite Feed\nSocial Dominance', cluster:'content',     rx:0.16, ry:0.20, r:26, desc:'Executive guide to zero-touch social media using automated 24/7 content architecture.' },
+  { id:'roadmap',   label:'Social Ecosystem\nRoadmap',       cluster:'content',     rx:0.26, ry:0.34, r:20, desc:'Strategic roadmap for transitioning from manual posting to AI content pipelines.' },
+  { id:'machine',   label:'Content Machine\nLow-Code Guide', cluster:'content',     rx:0.10, ry:0.38, r:18, desc:'Beginner guide to building AI-driven content automation with visual workflow tools.' },
+  { id:'prompting', label:'Social Automation\nPrompting',    cluster:'content',     rx:0.09, ry:0.54, r:17, desc:'Practical prompting guide for feeding an AI content machine across platforms.' },
+  { id:'archsoc',   label:'Autonomous Social\nEcosystem',    cluster:'content',     rx:0.23, ry:0.52, r:19, desc:'Technical architecture analysis of a low-code autonomous content stack.' },
+
+  { id:'karpathy',  label:'Karpathy Method\nMarkdown→Slides',cluster:'marp',        rx:0.48, ry:0.16, r:25, desc:'Philosophy of the Karpathy Method — rendering dense research into bite-sized visual chunks via MARP.' },
+  { id:'marpfw',    label:'Agentic MARP\nFramework',          cluster:'marp',        rx:0.60, ry:0.28, r:21, desc:'Framework for AI-powered markdown-to-slide generation replacing manual PowerPoint/Canva.' },
+  { id:'marpsop',   label:'MARP Reporting\nSOP',             cluster:'marp',        rx:0.46, ry:0.30, r:17, desc:'SOP for automated data-driven reporting using MARP + AI agents.' },
+  { id:'marplogic', label:'Agents Build\nVisual Content',    cluster:'marp',        rx:0.54, ry:0.42, r:19, desc:'Logic breakdown of agent-driven MARP visual content generation.' },
+
+  { id:'rag',       label:'Persistent Memory\nRAG Arch',     cluster:'flashfusion', rx:0.79, ry:0.20, r:25, desc:'Architecture for RAG-backed persistent LLM memory — solving the "amnesia effect" across long projects.' },
+  { id:'agentic',   label:'Agentic Dev Guide\n(Antigravity)', cluster:'flashfusion', rx:0.88, ry:0.38, r:21, desc:'Beginner guide to agent-first IDEs — developer as mission controller, not syntax writer.' },
+  { id:'ffexec',    label:'FlashFusion\nRecursive Agent',    cluster:'flashfusion', rx:0.79, ry:0.54, r:24, desc:'Resilient Execution Engine: recursive agent runner with idempotency, chain-of-thought, and result caching.' },
+
+  { id:'agency',    label:'30-Day Agency\nTransition Plan',  cluster:'agency',      rx:0.40, ry:0.64, r:27, desc:'"Sell First, Build Later" — full 30-day blueprint from employee to AI-powered service agency owner.' },
+  { id:'collab',    label:'Collaborative\nReasoning',        cluster:'agency',      rx:0.28, ry:0.74, r:19, desc:'Guide to treating AI as a reasoning partner vs. a command tool.' },
+
+  { id:'chaos',     label:'ChaosClub.co\nProduct Listings',  cluster:'chaos',       rx:0.63, ry:0.70, r:23, desc:'Digital product listings + launch assets for chaosclub.co — "Reading Room at Midnight" editorial platform.' },
+
+  { id:'wcag',      label:'WCAG 2.0\nAccessibility',        cluster:'ux',           rx:0.82, ry:0.72, r:17, desc:'Beginner guide to WCAG 2.0 — technology-agnostic testable standards for web accessibility.' },
+];
+
+const UNEXPECTED_LINKS = [
+  { from:'karpathy', to:'rag',      title:'"Wall of Text" solved twice',
+    desc:'MARP solves cognitive overload by chunking information for humans. RAG solves the LLM "amnesia effect" by chunking memory for machines. Same root problem — information density — tackled at two different layers of the stack.' },
+  { from:'infeed',   to:'ffexec',   title:'The content machine IS the agent',
+    desc:'The social media docs describe a 24/7 autonomous content machine that "never sleeps." The FlashFusion Recursive Execution Engine is literally that — an autonomous runner with idempotency and phase-gating. The marketing copy and the technical spec describe the same system.' },
+  { from:'agency',   to:'ffexec',   title:'"Sell First" vs. "Spec First"',
+    desc:'The 30-Day Agency Plan mandates "Sell First, Build Later" — cash flow precedes infrastructure. Kyle\'s own engineering pattern is spec → arch → code → deploy. These are directly opposing methodologies coexisting in the same Drive. Worth resolving: which model for chaosclub vs. INT?' },
+  { from:'collab',   to:'karpathy', title:'Kyle\'s preferences, externalized as IP',
+    desc:'The Collaborative Reasoning Handbook teaches others to partner with AI — exactly what Kyle\'s personal preferences framework already documents for himself. He\'s been practicing this intuitively. Now it\'s client-facing deliverable content.' },
+  { from:'wcag',     to:'chaos',    title:'Dark mode ≠ accessible by default',
+    desc:'"Reading Room at Midnight" dark editorial aesthetic + a WCAG 2.0 guide in the same Drive = a potential gap. Dark backgrounds require strict contrast ratios (4.5:1 AA minimum). This doc could serve as a direct audit input for chaosclub.co\'s design system before launch.' },
+  { from:'agency',   to:'agentic',  title:'The Agentic OS: sold vs. operated',
+    desc:'The Agency Plan describes an "Agentic OS" of Skills + MCP servers as the client deliverable. The Antigravity guide describes exactly how to operate that same OS. One is the sales pitch; the other is the operator manual.' },
+  { from:'marplogic',to:'ffexec',   title:'Agents as typesetters',
+    desc:'The MARP logic doc frames AI as a "digital printing press" — a typesetter forcing dense info into visual form. FlashFusion\'s Execution Engine does this computationally: agents decompose, execute, and serialize. Same agentic pattern, different output format (slides vs. API response).' },
+];
+
+const CLUSTER_LINKS = [
+  ['infeed','roadmap'],['infeed','machine'],['roadmap','archsoc'],['machine','prompting'],['prompting','archsoc'],
+  ['karpathy','marpfw'],['karpathy','marpsop'],['marpfw','marplogic'],['marpsop','marplogic'],
+  ['rag','agentic'],['agentic','ffexec'],['rag','ffexec'],
+  ['agency','collab'],
+];
+
+let hoveredNode = null, hoveredLink = null, frame = 0;
+const np = n => ({ x: n.rx * W(), y: n.ry * H() });
+
+function draw() {
+  frame++;
+  ctx.clearRect(0, 0, W(), H());
+
+  // cluster links
+  CLUSTER_LINKS.forEach(([a, b]) => {
+    const na = nodes.find(n=>n.id===a), nb = nodes.find(n=>n.id===b);
+    if (!na||!nb) return;
+    const pa=np(na), pb=np(nb);
+    ctx.beginPath(); ctx.moveTo(pa.x,pa.y); ctx.lineTo(pb.x,pb.y);
+    ctx.strokeStyle='rgba(148,163,184,0.1)'; ctx.lineWidth=1; ctx.setLineDash([]); ctx.stroke();
+  });
+
+  // unexpected links
+  UNEXPECTED_LINKS.forEach((link, i) => {
+    const na=nodes.find(n=>n.id===link.from), nb=nodes.find(n=>n.id===link.to);
+    if (!na||!nb) return;
+    const pa=np(na), pb=np(nb);
+    const isH = hoveredLink===i;
+    const pulse = 0.5 + 0.5*Math.sin(frame*0.025 + i*1.2);
+
+    const mx=(pa.x+pb.x)/2+(pb.y-pa.y)*0.18;
+    const my=(pa.y+pb.y)/2-(pb.x-pa.x)*0.18;
+
+    ctx.save();
+    ctx.beginPath(); ctx.moveTo(pa.x,pa.y); ctx.quadraticCurveTo(mx,my,pb.x,pb.y);
+    ctx.strokeStyle=`rgba(251,191,36,${isH?0.95:pulse*0.55})`;
+    ctx.lineWidth=isH?2.5:1.5; ctx.setLineDash([5,4]);
+    ctx.lineDashOffset=-frame*0.25; ctx.stroke(); ctx.restore();
+
+    // midpoint dot
+    const t=0.5;
+    const dx=(1-t)*(1-t)*pa.x+2*(1-t)*t*mx+t*t*pb.x;
+    const dy=(1-t)*(1-t)*pa.y+2*(1-t)*t*my+t*t*pb.y;
+    ctx.beginPath(); ctx.arc(dx,dy,isH?5.5:3.5,0,Math.PI*2);
+    ctx.fillStyle=`rgba(251,191,36,${isH?1:0.8})`; ctx.fill();
+  });
+
+  // nodes
+  nodes.forEach(n => {
+    const p=np(n), c=CLUSTERS[n.cluster].color;
+    const isH=hoveredNode===n.id, r=isH?n.r+5:n.r;
+    const grad=ctx.createRadialGradient(p.x,p.y,0,p.x,p.y,r*2.4);
+    grad.addColorStop(0,c+'55'); grad.addColorStop(1,c+'00');
+    ctx.beginPath(); ctx.arc(p.x,p.y,r*2.4,0,Math.PI*2); ctx.fillStyle=grad; ctx.fill();
+    ctx.beginPath(); ctx.arc(p.x,p.y,r,0,Math.PI*2);
+    ctx.fillStyle=isH?c+'bb':c+'2a'; ctx.fill();
+    ctx.strokeStyle=c+(isH?'ff':'99'); ctx.lineWidth=isH?2:1.5; ctx.setLineDash([]); ctx.stroke();
+    const lines=n.label.split('\n');
+    ctx.fillStyle=isH?'#f1f5f9':'#cbd5e1';
+    ctx.font=`${isH?'600 ':''} ${Math.max(9,r*0.42)}px Inter,system-ui`;
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    const lh=Math.max(11,r*0.52);
+    lines.forEach((l,li)=>ctx.fillText(l,p.x,p.y+(li-(lines.length-1)/2)*lh));
+  });
+
+  requestAnimationFrame(draw);
+}
+
+function getNode(mx,my){
+  for(const n of nodes){const p=np(n),dx=mx-p.x,dy=my-p.y;if(dx*dx+dy*dy<(n.r+8)**2)return n.id;}
+  return null;
+}
+function getLink(mx,my){
+  for(let i=0;i<UNEXPECTED_LINKS.length;i++){
+    const link=UNEXPECTED_LINKS[i];
+    const na=nodes.find(n=>n.id===link.from),nb=nodes.find(n=>n.id===link.to);
+    if(!na||!nb)continue;
+    const pa=np(na),pb=np(nb);
+    const cmx=(pa.x+pb.x)/2+(pb.y-pa.y)*0.18, cmy=(pa.y+pb.y)/2-(pb.x-pa.x)*0.18;
+    for(let t=0.1;t<0.9;t+=0.04){
+      const bx=(1-t)*(1-t)*pa.x+2*(1-t)*t*cmx+t*t*pb.x;
+      const by=(1-t)*(1-t)*pa.y+2*(1-t)*t*cmy+t*t*pb.y;
+      if((mx-bx)**2+(my-by)**2<144)return i;
+    }
+  }
+  return null;
+}
+
+canvas.addEventListener('mousemove',e=>{
+  const r=canvas.getBoundingClientRect(),mx=e.clientX-r.left,my=e.clientY-r.top;
+  const tt=document.getElementById('tooltip');
+  const nid=getNode(mx,my), lid=getLink(mx,my);
+  if(nid){
+    hoveredNode=nid; hoveredLink=null;
+    const n=nodes.find(x=>x.id===nid);
+    document.getElementById('tt-title').textContent=n.label.replace('\n',' ');
+    const cl=document.getElementById('tt-cluster');
+    cl.textContent=n.cluster.toUpperCase(); cl.style.color=CLUSTERS[n.cluster].color;
+    document.getElementById('tt-desc').textContent=n.desc;
+    tt.style.display='block';
+    tt.style.left=Math.min(mx+14,W()-275)+'px';
+    tt.style.top=Math.min(my-10,H()-160)+'px';
+    canvas.style.cursor='pointer';
+  } else if(lid!==null){
+    hoveredLink=lid; hoveredNode=null; tt.style.display='none'; canvas.style.cursor='pointer';
+  } else {
+    hoveredNode=null; hoveredLink=null; tt.style.display='none'; canvas.style.cursor='default';
+  }
+});
+
+canvas.addEventListener('click',e=>{
+  const r=canvas.getBoundingClientRect(),mx=e.clientX-r.left,my=e.clientY-r.top;
+  const lid=getLink(mx,my), cp=document.getElementById('connection-panel');
+  if(lid!==null){
+    const link=UNEXPECTED_LINKS[lid];
+    document.getElementById('cp-title').textContent=link.title;
+    document.getElementById('cp-desc').textContent=link.desc;
+    cp.style.display='block';
+    document.getElementById('hint').style.display='none';
+  } else {
+    cp.style.display='none';
+  }
+});
+
+canvas.addEventListener('mouseleave',()=>{hoveredNode=null;hoveredLink=null;document.getElementById('tooltip').style.display='none';});
+
+draw();
+</script>
+</body>
+</html>

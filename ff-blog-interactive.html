@@ -1,0 +1,893 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stop Using AI as a Search Engine — FlashFusion</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,400;0,600;0,700;0,800;1,400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg0: #0F0618;
+  --bg1: #1A0B2E;
+  --bg2: #251443;
+  --bg3: #2E1857;
+  --border0: rgba(168,85,247,0.18);
+  --border1: rgba(168,85,247,0.38);
+  --border2: rgba(168,85,247,0.6);
+  --p: #A855F7;
+  --p2: #B06EF7;
+  --pink: #F472B6;
+  --cyan: #22D3EE;
+  --grad: linear-gradient(90deg,#A855F7 0%,#F472B6 55%,#22D3EE 100%);
+  --grad-soft: linear-gradient(135deg,rgba(168,85,247,0.15) 0%,rgba(244,114,182,0.08) 50%,rgba(34,211,238,0.1) 100%);
+  --glass: rgba(15,6,24,0.65);
+  --t1: #F8FAFC;
+  --t2: #CBD5E1;
+  --t3: #64748B;
+  --t4: #3B4A61;
+  --r: 16px;
+  --hf: 'Poppins', sans-serif;
+  --bf: 'Inter', sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{background:var(--bg0);color:var(--t1);font-family:var(--bf);font-size:16px;line-height:1.75;overflow-x:hidden;}
+
+/* BG atmosphere */
+body::before{
+  content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:
+    radial-gradient(ellipse 70% 45% at 15% 5%, rgba(168,85,247,0.13) 0%,transparent 65%),
+    radial-gradient(ellipse 55% 40% at 85% 85%, rgba(34,211,238,0.09) 0%,transparent 60%),
+    radial-gradient(ellipse 50% 50% at 55% 45%, rgba(244,114,182,0.06) 0%,transparent 55%);
+}
+
+/* NAV */
+nav{
+  position:sticky;top:0;z-index:200;
+  background:rgba(15,6,24,0.88);backdrop-filter:blur(24px);
+  border-bottom:1px solid var(--border0);
+  padding:0 32px;height:60px;
+  display:flex;align-items:center;justify-content:space-between;
+}
+.logo{font-family:var(--hf);font-weight:800;font-size:19px;background:var(--grad);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;letter-spacing:-0.4px;}
+.nav-pill{font-size:11px;font-weight:600;color:var(--p);background:rgba(168,85,247,0.1);border:1px solid var(--border0);border-radius:100px;padding:5px 14px;letter-spacing:1px;text-transform:uppercase;}
+
+/* LAYOUT */
+.page{position:relative;z-index:1;}
+.container{max-width:780px;margin:0 auto;padding:0 28px;}
+
+/* HERO */
+.hero{padding:80px 0 60px;border-bottom:1px solid var(--border0);margin-bottom:72px;}
+.eyebrow{display:flex;align-items:center;gap:10px;margin-bottom:26px;}
+.ey-line{width:36px;height:1px;background:var(--grad);}
+.ey-text{font-size:11px;font-weight:600;color:var(--p);letter-spacing:2px;text-transform:uppercase;}
+.hero h1{font-family:var(--hf);font-weight:800;font-size:clamp(30px,5vw,46px);line-height:1.15;letter-spacing:-0.8px;margin-bottom:20px;}
+.hero h1 em{font-style:normal;background:var(--grad);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.hero-sub{font-size:17px;color:var(--t2);line-height:1.65;max-width:600px;margin-bottom:28px;}
+.meta-row{display:flex;gap:18px;align-items:center;flex-wrap:wrap;}
+.meta-pill{font-size:12px;font-weight:500;color:var(--t3);display:flex;align-items:center;gap:6px;}
+.meta-pill::before{content:'';width:5px;height:5px;border-radius:50%;background:var(--t4);}
+
+/* PROSE */
+.prose{margin-bottom:72px;}
+.prose h2{font-family:var(--hf);font-size:24px;font-weight:700;letter-spacing:-0.4px;margin-bottom:18px;color:var(--t1);}
+.prose p{font-size:16px;color:var(--t2);margin-bottom:18px;line-height:1.8;}
+.prose p:last-child{margin-bottom:0;}
+.prose strong{color:var(--t1);font-weight:600;}
+
+/* DIVIDER */
+.divider{border:none;height:1px;background:linear-gradient(90deg,transparent,var(--border0),transparent);margin:72px 0;}
+
+/* LEVEL TRACKER BAR */
+.tracker{
+  display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:6px;
+  background:var(--bg1);border:1px solid var(--border0);border-radius:12px;
+  padding:20px 28px;margin-bottom:64px;
+}
+.tr-node{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:500;color:var(--t3);cursor:default;}
+.tr-dot{width:8px;height:8px;border-radius:50%;border:1.5px solid currentColor;transition:all .3s;}
+.tr-arrow{color:var(--t4);font-size:11px;margin:0 2px;}
+
+/* LEVEL CARDS */
+.levels{display:flex;flex-direction:column;gap:6px;margin-bottom:72px;}
+.lcard{
+  background:var(--glass);backdrop-filter:blur(14px);
+  border:1px solid var(--border0);border-radius:var(--r);
+  padding:36px 40px;position:relative;overflow:hidden;
+  transition:border-color .3s, transform .2s;cursor:default;
+}
+.lcard:hover{border-color:var(--border1);}
+.lcard::after{
+  content:'';position:absolute;top:0;left:0;right:0;height:1px;
+  opacity:0;transition:opacity .3s;
+}
+.lcard:hover::after{opacity:1;}
+.l1::after{background:linear-gradient(90deg,transparent,#A855F7,transparent);}
+.l2::after{background:linear-gradient(90deg,transparent,#BA6EF7,transparent);}
+.l3::after{background:linear-gradient(90deg,transparent,#E080D8,transparent);}
+.l4::after{background:linear-gradient(90deg,transparent,#F472B6,transparent);}
+.l5::after{background:linear-gradient(90deg,transparent,#22D3EE,transparent);}
+
+.lbadge{
+  display:inline-flex;align-items:center;gap:8px;
+  font-family:var(--hf);font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;
+  padding:4px 12px;border-radius:100px;border:1px solid;margin-bottom:16px;
+}
+.l1 .lbadge{color:#A855F7;background:rgba(168,85,247,0.1);border-color:rgba(168,85,247,0.25);}
+.l2 .lbadge{color:#BA6EF7;background:rgba(186,110,247,0.1);border-color:rgba(186,110,247,0.25);}
+.l3 .lbadge{color:#E080D8;background:rgba(224,128,216,0.1);border-color:rgba(224,128,216,0.25);}
+.l4 .lbadge{color:#F472B6;background:rgba(244,114,182,0.1);border-color:rgba(244,114,182,0.25);}
+.l5 .lbadge{color:#22D3EE;background:rgba(34,211,238,0.1);border-color:rgba(34,211,238,0.25);}
+
+.lcard h2{font-family:var(--hf);font-size:22px;font-weight:700;letter-spacing:-0.3px;margin-bottom:14px;}
+.lcard p{font-size:15px;color:var(--t2);margin-bottom:16px;line-height:1.75;}
+.lcard p:last-child{margin-bottom:0;}
+
+.moves-head{font-size:11px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--t3);margin:22px 0 14px;}
+.moves{list-style:none;display:flex;flex-direction:column;gap:13px;}
+.move{display:flex;gap:12px;font-size:15px;color:var(--t2);line-height:1.65;}
+.mbullet{width:20px;height:20px;border-radius:50%;border:1.5px solid;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px;}
+.mbullet::after{content:'';width:6px;height:6px;border-radius:50%;background:currentColor;}
+.l1 .mbullet{color:#A855F7;border-color:#A855F7;}
+.l2 .mbullet{color:#BA6EF7;border-color:#BA6EF7;}
+.l3 .mbullet{color:#E080D8;border-color:#E080D8;}
+.l4 .mbullet{color:#F472B6;border-color:#F472B6;}
+.l5 .mbullet{color:#22D3EE;border-color:#22D3EE;}
+.move strong{color:var(--t1);font-weight:600;}
+
+.callout{
+  border-left:2px solid var(--p);background:rgba(168,85,247,0.06);
+  border-radius:0 8px 8px 0;padding:16px 20px;margin:22px 0;
+  font-size:15px;color:var(--t2);font-style:italic;line-height:1.65;
+}
+.callout strong{color:var(--t1);font-style:normal;}
+
+.rule-box{
+  background:rgba(34,211,238,0.05);border:1px solid rgba(34,211,238,0.2);
+  border-radius:10px;padding:18px 22px;margin:22px 0;
+  display:flex;gap:14px;font-size:14px;color:var(--t2);align-items:flex-start;
+}
+.rule-icon{font-size:16px;flex-shrink:0;margin-top:1px;}
+.rule-box strong{color:var(--cyan);display:block;font-size:12px;letter-spacing:.5px;text-transform:uppercase;margin-bottom:4px;}
+
+.compare{width:100%;border-collapse:collapse;margin:20px 0;font-size:14px;border-radius:12px;overflow:hidden;border:1px solid var(--border0);}
+.compare thead th{background:var(--bg2);padding:13px 18px;text-align:left;font-family:var(--hf);font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;}
+.compare thead th:first-child{color:var(--t3);}
+.compare thead th:last-child{color:var(--p);}
+.compare tbody tr{border-top:1px solid var(--border0);}
+.compare tbody tr:hover{background:rgba(168,85,247,0.04);}
+.compare td{padding:13px 18px;color:var(--t2);vertical-align:top;line-height:1.55;}
+.compare td:first-child{color:var(--t3);}
+.compare td:last-child{color:var(--t1);}
+
+.steps{counter-reset:s;list-style:none;display:flex;flex-direction:column;gap:14px;margin:18px 0;}
+.step{counter-increment:s;display:flex;gap:12px;font-size:15px;color:var(--t2);line-height:1.65;}
+.snum{width:26px;height:26px;border-radius:50%;background:rgba(168,85,247,0.14);border:1px solid var(--border0);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--p);flex-shrink:0;font-family:var(--hf);margin-top:2px;}
+.step strong{color:var(--t1);font-weight:600;}
+
+.checklist{list-style:none;display:flex;flex-direction:column;gap:10px;margin:18px 0;}
+.checkitem{display:flex;align-items:flex-start;gap:10px;font-size:15px;color:var(--t2);}
+.checkbox{width:18px;height:18px;border:1.5px solid var(--pink);border-radius:4px;flex-shrink:0;margin-top:3px;}
+
+/* SUMMARY GRID */
+.sum-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin:28px 0;}
+@media(max-width:580px){.sum-grid{grid-template-columns:1fr 1fr;}}
+.sum-cell{background:var(--bg1);border:1px solid var(--border0);border-radius:10px;padding:18px 12px;text-align:center;transition:border-color .2s;}
+.sum-cell:hover{border-color:var(--border1);}
+.sum-n{font-family:var(--hf);font-size:22px;font-weight:800;background:var(--grad);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;line-height:1;margin-bottom:8px;}
+.sum-l{font-size:11px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;line-height:1.35;}
+
+/* =========================================
+   ASSESSMENT SECTION
+   ========================================= */
+.assess-section{margin-bottom:96px;}
+.assess-header{text-align:center;margin-bottom:48px;}
+.assess-header h2{font-family:var(--hf);font-size:30px;font-weight:800;letter-spacing:-0.6px;margin-bottom:12px;}
+.assess-header h2 em{font-style:normal;background:var(--grad);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.assess-header p{font-size:16px;color:var(--t2);max-width:520px;margin:0 auto;}
+
+/* QUIZ CARD */
+.quiz-card{
+  background:var(--bg1);border:1px solid var(--border1);
+  border-radius:20px;overflow:hidden;position:relative;
+}
+.quiz-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--grad);}
+
+/* PROGRESS */
+.q-progress{padding:28px 40px 0;}
+.q-prog-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
+.q-prog-label{font-size:12px;font-weight:600;color:var(--p);letter-spacing:.5px;text-transform:uppercase;}
+.q-prog-count{font-size:12px;color:var(--t3);font-weight:500;}
+.prog-bar{height:4px;background:rgba(168,85,247,0.15);border-radius:100px;overflow:hidden;}
+.prog-fill{height:100%;background:var(--grad);border-radius:100px;transition:width .5s cubic-bezier(.4,0,.2,1);}
+
+/* QUESTION AREA */
+.q-body{padding:32px 40px 40px;}
+.q-num{font-size:11px;font-weight:600;color:var(--p2);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:10px;}
+.q-text{font-family:var(--hf);font-size:20px;font-weight:700;letter-spacing:-0.3px;line-height:1.4;margin-bottom:28px;color:var(--t1);}
+
+/* OPTIONS */
+.q-options{display:flex;flex-direction:column;gap:10px;}
+.q-opt{
+  display:flex;align-items:flex-start;gap:14px;
+  background:rgba(15,6,24,0.6);border:1.5px solid var(--border0);
+  border-radius:12px;padding:16px 20px;cursor:pointer;
+  transition:all .2s ease;position:relative;overflow:hidden;
+  text-align:left;width:100%;color:inherit;font:inherit;
+}
+.q-opt:hover{border-color:var(--border1);background:rgba(168,85,247,0.06);}
+.q-opt.selected{border-color:var(--p);background:rgba(168,85,247,0.1);}
+.q-opt.selected .opt-marker{background:var(--p);border-color:var(--p);}
+.q-opt.selected .opt-marker::after{opacity:1;}
+.opt-marker{
+  width:20px;height:20px;border-radius:50%;border:1.5px solid var(--t4);
+  flex-shrink:0;margin-top:1px;position:relative;transition:all .2s;background:transparent;
+}
+.opt-marker::after{
+  content:'';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  width:8px;height:8px;border-radius:50%;background:var(--bg0);opacity:0;transition:opacity .2s;
+}
+.opt-label{font-size:15px;color:var(--t2);line-height:1.55;transition:color .2s;}
+.q-opt.selected .opt-label{color:var(--t1);}
+.opt-sublabel{font-size:12px;color:var(--t3);margin-top:3px;display:block;}
+
+/* NAV BUTTONS */
+.q-nav{display:flex;justify-content:space-between;align-items:center;padding:0 40px 36px;gap:16px;}
+.btn-back{
+  background:transparent;border:1px solid var(--border0);color:var(--t3);
+  font-family:var(--bf);font-size:14px;font-weight:500;padding:11px 24px;
+  border-radius:10px;cursor:pointer;transition:all .2s;
+}
+.btn-back:hover{border-color:var(--border1);color:var(--t2);}
+.btn-back:disabled{opacity:0;pointer-events:none;}
+.btn-next{
+  background:var(--p);color:#fff;border:none;
+  font-family:var(--hf);font-size:14px;font-weight:700;padding:12px 32px;
+  border-radius:10px;cursor:pointer;transition:all .2s;letter-spacing:.3px;
+  opacity:0.4;pointer-events:none;
+}
+.btn-next.active{opacity:1;pointer-events:all;}
+.btn-next.active:hover{background:#9333EA;transform:translateY(-1px);}
+
+/* RESULTS */
+.result-wrap{display:none;padding:40px;}
+.result-wrap.visible{display:block;}
+
+.r-level-badge{
+  display:inline-flex;align-items:center;gap:10px;
+  font-family:var(--hf);font-size:12px;font-weight:700;letter-spacing:2px;text-transform:uppercase;
+  padding:6px 18px;border-radius:100px;border:1px solid;margin-bottom:20px;
+}
+.r-headline{font-family:var(--hf);font-size:28px;font-weight:800;letter-spacing:-0.5px;line-height:1.2;margin-bottom:12px;}
+.r-subhead{font-size:16px;color:var(--t2);line-height:1.7;margin-bottom:32px;}
+
+/* SCORE METER */
+.score-meter{margin-bottom:32px;}
+.score-track{height:8px;background:rgba(168,85,247,0.1);border-radius:100px;overflow:hidden;margin-bottom:8px;}
+.score-fill{height:100%;background:var(--grad);border-radius:100px;transition:width 1s cubic-bezier(.4,0,.2,1);}
+.score-labels{display:flex;justify-content:space-between;font-size:11px;color:var(--t3);}
+.score-marker{font-weight:700;font-size:13px;color:var(--p);}
+
+/* BREAKDOWN */
+.breakdown{display:flex;gap:8px;margin-bottom:32px;flex-wrap:wrap;}
+.bk-chip{
+  font-size:12px;font-weight:600;padding:5px 14px;border-radius:100px;
+  border:1px solid;
+}
+.bk-done{color:#22D3EE;background:rgba(34,211,238,0.08);border-color:rgba(34,211,238,0.2);}
+.bk-current{color:#A855F7;background:rgba(168,85,247,0.15);border-color:rgba(168,85,247,0.4);}
+.bk-next{color:var(--t3);background:rgba(100,116,139,0.06);border-color:rgba(100,116,139,0.15);}
+
+/* DIAGNOSIS */
+.diagnosis{background:var(--bg2);border:1px solid var(--border0);border-radius:14px;padding:28px 32px;margin-bottom:28px;}
+.diag-head{font-family:var(--hf);font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--p);margin-bottom:16px;}
+.diag-blocker{
+  display:flex;gap:12px;align-items:flex-start;
+  background:rgba(244,114,182,0.06);border:1px solid rgba(244,114,182,0.18);
+  border-radius:10px;padding:16px 18px;margin-bottom:12px;font-size:15px;
+}
+.diag-b-icon{font-size:16px;flex-shrink:0;}
+.diag-b-text{color:var(--t2);line-height:1.6;}
+.diag-b-text strong{color:var(--t1);}
+
+/* ACTION PLAN */
+.action-plan{margin-bottom:28px;}
+.ap-head{font-family:var(--hf);font-size:16px;font-weight:700;margin-bottom:18px;display:flex;align-items:center;gap:8px;}
+.ap-head::before{content:'';width:20px;height:2px;background:var(--grad);}
+.actions{display:flex;flex-direction:column;gap:10px;}
+.action-item{
+  display:flex;gap:14px;align-items:flex-start;
+  background:rgba(15,6,24,0.5);border:1px solid var(--border0);
+  border-radius:12px;padding:18px 20px;
+  transition:border-color .2s;
+}
+.action-item:hover{border-color:var(--border1);}
+.action-num{
+  font-family:var(--hf);font-size:13px;font-weight:800;color:var(--p);
+  background:rgba(168,85,247,0.12);border:1px solid var(--border0);
+  width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;
+}
+.action-content{}
+.action-title{font-weight:600;color:var(--t1);font-size:15px;margin-bottom:4px;}
+.action-desc{font-size:14px;color:var(--t2);line-height:1.6;}
+
+/* CTA */
+.r-cta{
+  background:linear-gradient(135deg,rgba(168,85,247,0.15) 0%,rgba(244,114,182,0.1) 50%,rgba(34,211,238,0.08) 100%);
+  border:1px solid var(--border1);border-radius:14px;padding:28px 32px;
+  display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap;
+  margin-bottom:20px;
+}
+.r-cta-text{font-size:16px;color:var(--t2);line-height:1.6;max-width:420px;}
+.r-cta-text strong{color:var(--t1);}
+.cta-btn{
+  background:var(--grad);color:#fff;border:none;
+  font-family:var(--hf);font-size:14px;font-weight:700;padding:14px 28px;
+  border-radius:10px;cursor:pointer;white-space:nowrap;
+  transition:opacity .2s, transform .2s;letter-spacing:.3px;flex-shrink:0;
+}
+.cta-btn:hover{opacity:.9;transform:translateY(-1px);}
+
+.btn-retake{
+  background:transparent;border:1px solid var(--border0);color:var(--t3);
+  font-family:var(--bf);font-size:13px;font-weight:500;padding:10px 22px;
+  border-radius:8px;cursor:pointer;transition:all .2s;width:100%;
+}
+.btn-retake:hover{border-color:var(--border1);color:var(--t2);}
+
+/* QUESTION TRANSITION */
+.q-slide{animation:slideIn .35s cubic-bezier(.4,0,.2,1) both;}
+@keyframes slideIn{from{opacity:0;transform:translateX(20px);}to{opacity:1;transform:translateX(0);}}
+
+/* CLOSING */
+.closing{
+  background:var(--bg1);border:1px solid var(--border1);border-radius:var(--r);
+  padding:44px 48px;position:relative;overflow:hidden;margin-bottom:80px;
+}
+.closing::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--grad);}
+.closing-ey{font-size:11px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--p);margin-bottom:16px;}
+.closing p{font-size:19px;line-height:1.7;color:var(--t2);font-style:italic;}
+.closing strong{color:var(--t1);font-style:normal;}
+
+@media(max-width:640px){
+  nav{padding:0 16px;}
+  .container{padding:0 16px;}
+  .hero{padding:52px 0 44px;}
+  .lcard{padding:24px 22px;}
+  .q-progress,.q-body,.q-nav{padding-left:22px;padding-right:22px;}
+  .result-wrap{padding:24px;}
+  .r-cta{flex-direction:column;}
+  .diagnosis,.action-plan{padding:22px;}
+  .closing{padding:28px 24px;}
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <span class="logo">FlashFusion</span>
+  <span class="nav-pill">AI Enablement</span>
+</nav>
+
+<div class="page">
+<div class="container">
+
+<!-- HERO -->
+<header class="hero">
+  <div class="eyebrow"><span class="ey-line"></span><span class="ey-text">The AI Adoption Roadmap</span></div>
+  <h1>Stop using AI as a<br><em>search engine</em></h1>
+  <p class="hero-sub">The 5 levels of scaling your business with intelligence — and why most people are stuck at level two without knowing it.</p>
+  <div class="meta-row">
+    <span class="meta-pill">FlashFusion</span>
+    <span class="meta-pill">AI Strategy</span>
+    <span class="meta-pill">12 min read</span>
+  </div>
+</header>
+
+<!-- LEAD -->
+<div class="prose" style="margin-bottom:48px;">
+  <p>You have a ChatGPT or Claude tab open most of the day. You use it. You feel ahead of the curve. And yet the outputs are generic, robotic, and require so much editing you're not sure you're actually saving time.</p>
+  <p>That gap isn't a tool problem. It's a context problem — and it's fixable.</p>
+</div>
+
+<div class="prose">
+  <h2>The real reason AI keeps disappointing you</h2>
+  <p>Most people treat AI like a sophisticated search engine. Every session starts from zero. The AI doesn't know your clients, your tone, your methodology, or your standards — so it guesses. And a guess at 60% quality requires the same effort to fix as just writing it yourself.</p>
+  <p>The shift isn't learning more prompts. It's building a system that knows your business. Here's what that progression looks like.</p>
+</div>
+
+<hr class="divider">
+
+<!-- TRACKER -->
+<div class="tracker">
+  <div class="tr-node" style="color:#A855F7"><span class="tr-dot" style="border-color:#A855F7;background:rgba(168,85,247,.35)"></span>Googler</div>
+  <span class="tr-arrow">→</span>
+  <div class="tr-node" style="color:#BA6EF7"><span class="tr-dot" style="border-color:#BA6EF7;background:rgba(186,110,247,.35)"></span>Builder</div>
+  <span class="tr-arrow">→</span>
+  <div class="tr-node" style="color:#E080D8"><span class="tr-dot" style="border-color:#E080D8;background:rgba(224,128,216,.35)"></span>Automator</div>
+  <span class="tr-arrow">→</span>
+  <div class="tr-node" style="color:#F472B6"><span class="tr-dot" style="border-color:#F472B6;background:rgba(244,114,182,.35)"></span>Operator</div>
+  <span class="tr-arrow">→</span>
+  <div class="tr-node" style="color:#22D3EE"><span class="tr-dot" style="border-color:#22D3EE;background:rgba(34,211,238,.35)"></span>Architect</div>
+</div>
+
+<!-- LEVELS -->
+<div class="levels">
+
+  <div class="lcard l1">
+    <span class="lbadge">Level 1</span>
+    <h2>The Googler</h2>
+    <p>You start from a blank slate every time. Generic prompt, generic output. The AI has no idea who you are, so it writes for everyone — which means it writes for no one.</p>
+    <p class="moves-head">Three moves that break you out</p>
+    <ul class="moves">
+      <li class="move"><div class="mbullet"></div><div><strong>Pick one task and repeat it for 30 days.</strong> Not ten tasks. One. Build the integration habit before you expand scope. Occasional experimentation doesn't produce skill; repetition does.</div></li>
+      <li class="move"><div class="mbullet"></div><div><strong>Talk instead of type.</strong> Tools like Whisper Flow remove the friction of the blank page. Speaking lets ideas flow in their natural form. Lower friction means more attempts, faster calibration.</div></li>
+      <li class="move"><div class="mbullet"></div><div><strong>Assign a job title, not a task.</strong> "Write a professional email" gets you a template. "You are my First-Draft Newsletter Writer. My audience is X, my tone is Y, never use Z" gets you something usable. Titles set expectations — the same way you'd onboard a hire.</div></li>
+    </ul>
+  </div>
+
+  <div class="lcard l2">
+    <span class="lbadge">Level 2</span>
+    <h2>The Builder</h2>
+    <p>You're using AI daily and saving real time. But outputs top out at 60–70% quality and the gap is always the same: the AI is still guessing at your voice, your methodology, and what "good" looks like.</p>
+    <p><strong>The fix is the Business Brain Dump.</strong> Extract everything the AI would need to stop guessing: tone of voice with writing samples, core methodology and frameworks, client profiles and their language, and your standards for a finished deliverable.</p>
+    <p>Load it all into a dedicated Claude Project. Every conversation inherits that context. You stop re-explaining yourself. Quality jumps to 90–95%.</p>
+    <div class="callout"><strong>If you don't know where to start:</strong> ask Claude to interview you. "I'm building a business brain. Ask me questions to pull out my methodologies, tone of voice, and ideal client profile." It surfaces nuances you'd forget to write down yourself.</div>
+    <table class="compare">
+      <thead><tr><th>Static prompts (blank slate)</th><th>Persistent context (brain dump)</th></tr></thead>
+      <tbody>
+        <tr><td>New chat for every task</td><td>Dedicated Project workspace with uploaded assets</td></tr>
+        <tr><td>"Write a professional email"</td><td>Writing samples + tone guidelines loaded</td></tr>
+        <tr><td>Explaining your business repeatedly</td><td>Core methodology in permanent context</td></tr>
+        <tr><td>60–70% quality, heavy editing</td><td>90–95% quality, indistinguishable from your own work</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="lcard l3">
+    <span class="lbadge">Level 3</span>
+    <h2>The Automator</h2>
+    <p>You have context. Now you build systems — workflows that run without you initiating every step. Most people fail here by trying to automate everything at once. Pick one energy-draining task and map it completely first.</p>
+    <p class="moves-head">The "Loom to Logic" process</p>
+    <ol class="steps">
+      <li class="step"><div class="snum">1</div><div><strong>Record yourself doing the task.</strong> Narrate every click on Loom. The friction points are where automation earns its value.</div></li>
+      <li class="step"><div class="snum">2</div><div><strong>Transcribe and map it.</strong> Define the trigger (what starts the work) and completion state (what done looks like). Every step between is a node to automate.</div></li>
+      <li class="step"><div class="snum">3</div><div><strong>Build the system.</strong> Tools like Relay.app can take that map and run it. A Content Strategist agent, for example, scans your niche weekly and delivers a trends report — without you touching it until review.</div></li>
+    </ol>
+    <div class="rule-box"><span class="rule-icon">◈</span><div><strong>Non-negotiable rule</strong>Anything client-facing goes through human approval before it ships. The system does 80% of the work. You review and send. This is a quality gate, not a hedge.</div></div>
+  </div>
+
+  <div class="lcard l4">
+    <span class="lbadge">Level 4</span>
+    <h2>The Operator</h2>
+    <p>Systems are running. Now the constraint is you — how much of your time still goes toward things that don't require you. Do a Zone of Genius audit. Ask honestly: what work can only I do?</p>
+    <ul class="checklist">
+      <li class="checkitem"><div class="checkbox"></div><div>Deep coaching and consulting conversations</div></li>
+      <li class="checkitem"><div class="checkbox"></div><div>High-trust relationship building</div></li>
+      <li class="checkitem"><div class="checkbox"></div><div>Long-range strategic decisions</div></li>
+      <li class="checkitem"><div class="checkbox"></div><div>CEO-level judgment calls</div></li>
+    </ul>
+    <p style="margin-top:18px;">Everything outside that list is a candidate for AI, automation, or delegation. The hard part isn't technical — it's psychological. If you're still building the automations yourself, you're still trading time for tasks. Your 20% is the only thing that actually moves the business.</p>
+  </div>
+
+  <div class="lcard l5">
+    <span class="lbadge">Level 5</span>
+    <h2>The Architect</h2>
+    <p>The operational side runs on proactive agents. Lead generation, nurturing, onboarding, delivery — handled. You show up for strategy.</p>
+    <p>But the bigger shift at Level 5 is what you've created: a blueprint that works. Once you've built an AI-driven operational system, you've done something most in your industry haven't. Package it and sell it. The system you built for yourself becomes a product — Productized IP — that others pay for.</p>
+    <p>You stop being a service provider who delivers outcomes and start being an architect who sells the systems that produce them. <strong>Income decouples from hours. The business runs whether you're present or not.</strong></p>
+  </div>
+
+</div><!-- /levels -->
+
+<hr class="divider">
+
+<div style="margin-bottom:28px;">
+  <h2 style="font-family:var(--hf);font-size:22px;font-weight:700;letter-spacing:-.4px;margin-bottom:12px;">Where to start</h2>
+  <p style="color:var(--t2);margin-bottom:28px;">Most people are between Level 1 and Level 2. The jump from 1 to 2 — the Brain Dump, the Claude Project, the persistent context — makes everything else possible. Context is the currency. Stop letting the AI guess at who you are.</p>
+  <div class="sum-grid">
+    <div class="sum-cell"><div class="sum-n">1</div><div class="sum-l">Build the habit</div></div>
+    <div class="sum-cell"><div class="sum-n">2</div><div class="sum-l">Load the context</div></div>
+    <div class="sum-cell"><div class="sum-n">3</div><div class="sum-l">Build the systems</div></div>
+    <div class="sum-cell"><div class="sum-n">4</div><div class="sum-l">Protect your zone</div></div>
+    <div class="sum-cell"><div class="sum-n">5</div><div class="sum-l">Sell the blueprint</div></div>
+  </div>
+</div>
+
+<hr class="divider">
+
+<!-- ===== ASSESSMENT ===== -->
+<section class="assess-section" id="assessment">
+  <div class="assess-header">
+    <h2>Find your <em>current level</em></h2>
+    <p>8 questions. Takes under 2 minutes. Get a specific action plan for where you actually are — not where you think you are.</p>
+  </div>
+
+  <div class="quiz-card" id="quizCard">
+
+    <!-- PROGRESS BAR -->
+    <div class="q-progress" id="qProgress">
+      <div class="q-prog-top">
+        <span class="q-prog-label">Assessment</span>
+        <span class="q-prog-count" id="progCount">1 of 8</span>
+      </div>
+      <div class="prog-bar"><div class="prog-fill" id="progFill" style="width:12.5%"></div></div>
+    </div>
+
+    <!-- QUESTION AREA -->
+    <div class="q-body" id="qBody">
+      <div id="qSlide" class="q-slide"></div>
+    </div>
+
+    <!-- NAV -->
+    <div class="q-nav" id="qNav">
+      <button class="btn-back" id="btnBack" onclick="prevQ()" disabled>← Back</button>
+      <button class="btn-next" id="btnNext" onclick="nextQ()">Continue →</button>
+    </div>
+
+    <!-- RESULTS (hidden until done) -->
+    <div class="result-wrap" id="resultWrap"></div>
+
+  </div>
+</section>
+
+<!-- CLOSING -->
+<div class="closing">
+  <div class="closing-ey">The question worth sitting with</div>
+  <p>If a digital twin of your business could handle <strong>80% of your current workload</strong>, what's the one project you'd finally have space to start?</p>
+</div>
+
+</div><!-- /container -->
+</div><!-- /page -->
+
+<script>
+const QUESTIONS = [
+  {
+    id: 'q1',
+    text: 'How often do you open a new AI chat without copying in any prior context?',
+    options: [
+      { label: 'Almost every time — I start fresh each session', sub: 'Clean slate every time', score: 0 },
+      { label: 'Sometimes, when it\'s a quick one-off task', sub: 'Occasionally reuse context', score: 1 },
+      { label: 'Rarely — I have a Project or system set up', sub: 'Context is persistent', score: 2 },
+      { label: 'Never — everything runs through a configured workspace', sub: 'Fully systematized', score: 3 }
+    ]
+  },
+  {
+    id: 'q2',
+    text: 'What percentage of AI outputs do you use without heavy editing?',
+    options: [
+      { label: 'Under 40% — I rewrite most of it', sub: 'Heavy editing every time', score: 0 },
+      { label: '40–65% — still needs significant work', sub: 'Regular cleanup', score: 1 },
+      { label: '65–85% — minor tweaks, mostly voice', sub: 'Light editing only', score: 2 },
+      { label: 'Over 85% — outputs are near-publish-ready', sub: 'Minimal intervention', score: 3 }
+    ]
+  },
+  {
+    id: 'q3',
+    text: 'Have you uploaded your writing samples, methodology, or client profiles into a dedicated AI workspace?',
+    options: [
+      { label: 'No — I explain my context each time in the prompt', sub: 'No persistent context', score: 0 },
+      { label: 'I\'ve started but it\'s incomplete', sub: 'Work in progress', score: 1 },
+      { label: 'Yes — I have a Claude Project or equivalent set up', sub: 'Context loaded', score: 2 },
+      { label: 'Yes, and I update it regularly as my business evolves', sub: 'Actively maintained', score: 3 }
+    ]
+  },
+  {
+    id: 'q4',
+    text: 'Do any of your recurring work tasks run automatically without you initiating them?',
+    options: [
+      { label: 'No — everything requires me to start it manually', sub: 'All manual', score: 0 },
+      { label: 'I\'ve automated 1–2 minor tasks', sub: 'Early automation', score: 1 },
+      { label: 'Yes — several workflows run on triggers or schedules', sub: 'Multiple automations', score: 2 },
+      { label: 'Most of my operational work runs without me touching it', sub: 'Systemized operations', score: 3 }
+    ]
+  },
+  {
+    id: 'q5',
+    text: 'When you delegate or automate a task, what\'s your approval process for client-facing output?',
+    options: [
+      { label: 'I don\'t delegate or automate yet', sub: 'No delegation yet', score: 0 },
+      { label: 'I review everything before it goes out — informally', sub: 'Manual review, no process', score: 1 },
+      { label: 'There\'s a defined approval step before anything hits a client', sub: 'Human-in-the-loop rule', score: 2 },
+      { label: 'Approval workflows are built into the automation itself', sub: 'Systemized approval gate', score: 3 }
+    ]
+  },
+  {
+    id: 'q6',
+    text: 'How much of your week is spent on work that only you can do?',
+    options: [
+      { label: 'Under 20% — I\'m mostly in the weeds of operational tasks', sub: 'Stuck in execution', score: 0 },
+      { label: 'About 20–40% — I\'m trying to get more strategic time', sub: 'Partially freed up', score: 1 },
+      { label: '40–70% — I\'ve offloaded a significant chunk', sub: 'Good leverage', score: 2 },
+      { label: 'Over 70% — most execution is handled by systems or team', sub: 'Zone of genius protected', score: 3 }
+    ]
+  },
+  {
+    id: 'q7',
+    text: 'Have you ever built something for your own business that you could sell or license to others?',
+    options: [
+      { label: 'No — I haven\'t built anything reusable at that level', sub: 'Service delivery only', score: 0 },
+      { label: 'I have internal systems but they\'re not packaged for sale', sub: 'Built but not productized', score: 1 },
+      { label: 'I\'ve thought about it seriously and have a draft plan', sub: 'IP in development', score: 2 },
+      { label: 'Yes — I sell or plan to sell my frameworks and systems', sub: 'Productized IP', score: 3 }
+    ]
+  },
+  {
+    id: 'q8',
+    text: 'Honestly — how would you describe your current AI setup?',
+    options: [
+      { label: 'I open it when I think of something. No real system.', sub: 'Occasional user', score: 0 },
+      { label: 'I use it daily but it\'s still mostly ad-hoc', sub: 'Daily but unstructured', score: 1 },
+      { label: 'I have a system and it saves me real, measurable time', sub: 'Structured and effective', score: 2 },
+      { label: 'AI is core infrastructure — the business depends on it', sub: 'AI-native operations', score: 3 }
+    ]
+  }
+];
+
+const RESULTS = {
+  1: {
+    color: '#A855F7',
+    badge: 'Level 1 — The Googler',
+    headline: 'You\'re using AI. You\'re not yet using it for you.',
+    subhead: 'Every session starts cold. The AI doesn\'t know your business, your voice, or your standards — so it guesses. The gap between what you get and what you need is a context problem, not a tool problem.',
+    blockers: [
+      { icon: '⚡', text: '<strong>No persistent context.</strong> You\'re re-explaining yourself every session. That friction compounds into hours of wasted time every month.' },
+      { icon: '🎯', text: '<strong>No repeated use case.</strong> Without committing to one specific task, you\'re sampling without building skill.' }
+    ],
+    actions: [
+      { title: 'Pick one task. Commit 30 days.', desc: 'Choose the single most recurring task in your week — a weekly email, client proposal, content draft — and do only that task with AI for 30 consecutive days. Depth beats breadth here.' },
+      { title: 'Set up a Claude Project this week.', desc: 'Create a Project, not just a chat. Upload your bio, a writing sample, and one client profile. Even a rough brain dump beats a blank slate. You\'ll feel the quality jump immediately.' },
+      { title: 'Assign roles, not tasks.', desc: 'Stop asking AI to "write an email." Say: "You are my First-Draft Newsletter Writer. My audience is [X]. My tone is [Y]. Never use [Z]." Roles create expectations that persist.' }
+    ],
+    cta: 'Get your AI Setup Audit',
+    ctaSub: 'Find exactly what\'s missing from your current setup in 20 minutes.'
+  },
+  2: {
+    color: '#BA6EF7',
+    badge: 'Level 2 — The Builder',
+    headline: 'You\'ve integrated AI. The output just isn\'t quite yours yet.',
+    subhead: 'You\'re getting value but hitting a quality ceiling. The AI still doesn\'t know enough about your business to stop guessing. The Business Brain Dump is the unlock — and it\'s closer than you think.',
+    blockers: [
+      { icon: '🧠', text: '<strong>Incomplete context.</strong> Your AI workspace probably has some info but not the full picture — no writing samples, incomplete client profiles, or methodology that lives only in your head.' },
+      { icon: '🔁', text: '<strong>No feedback loop.</strong> You\'re editing outputs but not feeding corrections back into your context. Every edit is a lesson the AI never learns.' }
+    ],
+    actions: [
+      { title: 'Do the full Brain Dump interview.', desc: 'Open Claude and say: "I\'m building a business brain. Ask me questions to pull out my methodologies, tone of voice, and ideal client profile." Spend 45 minutes on this. It\'s the most leveraged hour you\'ll spend this month.' },
+      { title: 'Load 3 writing samples you\'re proud of.', desc: 'Pick three pieces of your own writing that nail your voice. Paste them into your Project with the note: "This is what my finished work sounds like." Watch the output quality jump.' },
+      { title: 'Build a "what done looks like" document.', desc: 'For your top 3 deliverables, write a one-paragraph description of what a perfect output looks like. Load it into your Project. This gives AI an acceptance criterion, not just a task.' }
+    ],
+    cta: 'Get your AI Setup Audit',
+    ctaSub: 'Find the specific gaps in your context setup and close them fast.'
+  },
+  3: {
+    color: '#E080D8',
+    badge: 'Level 3 — The Automator',
+    headline: 'Your context is solid. Now the work needs to start without you.',
+    subhead: 'You\'ve solved the quality problem. The next bottleneck is volume — you\'re still initiating everything manually. One well-mapped automation will do more for your business this month than any prompt improvement.',
+    blockers: [
+      { icon: '🔧', text: '<strong>No trigger-based workflows.</strong> You start tasks. The system should be starting tasks for you. The gap is mapping the trigger → completion chain, not building the automation.' },
+      { icon: '📋', text: '<strong>No approval process defined.</strong> Before you automate anything client-facing, you need a documented human-in-the-loop rule. Without it, speed creates liability.' }
+    ],
+    actions: [
+      { title: 'Map your most painful repeating task end-to-end.', desc: 'Record yourself doing it on Loom while narrating. Transcribe it. You\'ll find 3-5 steps that can run automatically. That recording is worth more than any automation tutorial.' },
+      { title: 'Define your human-in-the-loop rule now.', desc: 'Before you build anything: decide what requires your eyes before it goes out. "Anything client-facing gets my review" is a sufficient rule. Write it down. This is what lets you actually trust the automation.' },
+      { title: 'Build one workflow this week, not five.', desc: 'Pick the single highest-ROI automation from your map. Build it in Relay.app, Make, or Zapier. Get it working and running for two weeks before touching anything else.' }
+    ],
+    cta: 'Book a workflow mapping session',
+    ctaSub: 'Map your first automation from trigger to completion in one hour.'
+  },
+  4: {
+    color: '#F472B6',
+    badge: 'Level 4 — The Operator',
+    headline: 'Your systems work. You\'re still doing too much of the work.',
+    subhead: 'The infrastructure is real. The bottleneck is you — specifically, how much of your time is still going toward things that don\'t require you. The Zone of Genius audit is what separates operators from architects.',
+    blockers: [
+      { icon: '🎭', text: '<strong>Founder attachment to process.</strong> You built the systems, so you stay involved in running them. That instinct helped you get here and will cap you at this level.' },
+      { icon: '👤', text: '<strong>No dedicated systems manager.</strong> If you\'re still building and maintaining your own automations, you\'re still in execution mode. Your time is too valuable for configuration work.' }
+    ],
+    actions: [
+      { title: 'Do the Zone of Genius audit this week.', desc: 'List every task you touched last week. Circle the ones that literally no one else could do. That circle is your 20%. Everything outside it is a candidate for delegation or automation.' },
+      { title: 'Hire a workflow manager, not more tools.', desc: 'The gap from Level 4 to Level 5 is usually a person, not a platform. A part-time AI workflow manager frees you from the systems you built so you can design the next ones.' },
+      { title: 'Identify your first Productized IP candidate.', desc: 'Look at what you\'ve built. Which system would be valuable to someone else in your niche? Document it like a product, not an internal process. That document is the beginning of Level 5.' }
+    ],
+    cta: 'Explore the FlashFusion Enablement Sprint',
+    ctaSub: 'Build the systems that get you out of the systems you\'ve already built.'
+  },
+  5: {
+    color: '#22D3EE',
+    badge: 'Level 5 — The Architect',
+    headline: 'You\'ve decoupled income from hours. Now you build for others.',
+    subhead: 'Your operations are running. Your zone of genius is protected. The question now is how to package what you\'ve built — and who in your industry is willing to pay for the blueprint.',
+    blockers: [
+      { icon: '📦', text: '<strong>IP not yet packaged for sale.</strong> The systems exist. The productization documentation may not. The gap between "this works for me" and "I can sell this" is usually one good spec document.' },
+      { icon: '🌐', text: '<strong>Distribution strategy undefined.</strong> Most Architects build great systems and under-invest in telling anyone they exist. The product and the audience need to be built in parallel.' }
+    ],
+    actions: [
+      { title: 'Document one system as a sellable product.', desc: 'Take your most-used internal workflow and write it as a product spec: what it solves, who it\'s for, what\'s included, what outcomes it produces. That document is your first Productized IP asset.' },
+      { title: 'Define the niche you\'re building for.', desc: 'The most valuable Architect products are vertical-specific. "AI operations system for independent consultants" beats "AI workflow toolkit." Get specific about who benefits most from what you\'ve built.' },
+      { title: 'Build your first proof-of-concept sale.', desc: 'Sell the system to one person in your niche before you spend time productizing it fully. The sale validates the demand. The feedback shapes the product. Don\'t build the shelf before confirming anyone wants what\'s on it.' }
+    ],
+    cta: 'Partner with FlashFusion',
+    ctaSub: 'Let\'s productize and distribute what you\'ve built together.'
+  }
+};
+
+let current = 0;
+let answers = new Array(QUESTIONS.length).fill(null);
+
+function getLevel(score) {
+  const max = QUESTIONS.length * 3;
+  const pct = score / max;
+  if (pct < 0.15) return 1;
+  if (pct < 0.35) return 1;
+  if (pct < 0.50) return 2;
+  if (pct < 0.65) return 3;
+  if (pct < 0.82) return 4;
+  return 5;
+}
+
+function renderQ() {
+  const q = QUESTIONS[current];
+  const slide = document.getElementById('qSlide');
+  const progFill = document.getElementById('progFill');
+  const progCount = document.getElementById('progCount');
+  const btnNext = document.getElementById('btnNext');
+  const btnBack = document.getElementById('btnBack');
+
+  progFill.style.width = ((current + 1) / QUESTIONS.length * 100) + '%';
+  progCount.textContent = (current + 1) + ' of ' + QUESTIONS.length;
+
+  btnBack.disabled = current === 0;
+  btnNext.textContent = current === QUESTIONS.length - 1 ? 'See my results →' : 'Continue →';
+  btnNext.className = 'btn-next' + (answers[current] !== null ? ' active' : '');
+
+  slide.className = 'q-slide';
+  void slide.offsetWidth;
+  slide.className = 'q-slide q-slide';
+
+  slide.innerHTML = `
+    <div class="q-num">Question ${current + 1}</div>
+    <div class="q-text">${q.text}</div>
+    <div class="q-options">
+      ${q.options.map((opt, i) => `
+        <button class="q-opt ${answers[current] === i ? 'selected' : ''}" onclick="selectOpt(${i})">
+          <div class="opt-marker"></div>
+          <div class="opt-label">
+            ${opt.label}
+            <span class="opt-sublabel">${opt.sub}</span>
+          </div>
+        </button>
+      `).join('')}
+    </div>
+  `;
+}
+
+function selectOpt(idx) {
+  answers[current] = idx;
+  document.querySelectorAll('.q-opt').forEach((el, i) => {
+    el.classList.toggle('selected', i === idx);
+  });
+  document.getElementById('btnNext').className = 'btn-next active';
+}
+
+function nextQ() {
+  if (answers[current] === null) return;
+  if (current < QUESTIONS.length - 1) {
+    current++;
+    renderQ();
+  } else {
+    showResults();
+  }
+}
+
+function prevQ() {
+  if (current > 0) {
+    current--;
+    renderQ();
+  }
+}
+
+function showResults() {
+  const totalScore = answers.reduce((sum, ans, i) => {
+    return sum + (ans !== null ? QUESTIONS[i].options[ans].score : 0);
+  }, 0);
+  const level = getLevel(totalScore);
+  const maxScore = QUESTIONS.length * 3;
+  const pct = Math.round((totalScore / maxScore) * 100);
+  const r = RESULTS[level];
+
+  document.getElementById('qProgress').style.display = 'none';
+  document.getElementById('qBody').style.display = 'none';
+  document.getElementById('qNav').style.display = 'none';
+
+  const rWrap = document.getElementById('resultWrap');
+  rWrap.className = 'result-wrap visible';
+
+  // Build level chips
+  const chips = [1,2,3,4,5].map(l => {
+    let cls = 'bk-next';
+    let label = ['Googler','Builder','Automator','Operator','Architect'][l-1];
+    if (l < level) cls = 'bk-done';
+    if (l === level) cls = 'bk-current';
+    return `<span class="bk-chip ${cls}">L${l} ${label}</span>`;
+  }).join('');
+
+  const blockersHTML = r.blockers.map(b => `
+    <div class="diag-blocker">
+      <span class="diag-b-icon">${b.icon}</span>
+      <div class="diag-b-text">${b.text}</div>
+    </div>
+  `).join('');
+
+  const actionsHTML = r.actions.map((a, i) => `
+    <div class="action-item">
+      <div class="action-num">${i + 1}</div>
+      <div class="action-content">
+        <div class="action-title">${a.title}</div>
+        <div class="action-desc">${a.desc}</div>
+      </div>
+    </div>
+  `).join('');
+
+  rWrap.innerHTML = `
+    <span class="r-level-badge" style="color:${r.color};background:${r.color}18;border-color:${r.color}40">${r.badge}</span>
+    <div class="r-headline">${r.headline}</div>
+    <div class="r-subhead">${r.subhead}</div>
+
+    <div class="score-meter">
+      <div class="score-track"><div class="score-fill" id="rScoreFill" style="width:0%"></div></div>
+      <div class="score-labels">
+        <span>Googler</span>
+        <span class="score-marker">Score: ${totalScore}/${maxScore}</span>
+        <span>Architect</span>
+      </div>
+    </div>
+
+    <div class="breakdown">${chips}</div>
+
+    <div class="diagnosis">
+      <div class="diag-head">What's holding you here</div>
+      ${blockersHTML}
+    </div>
+
+    <div class="action-plan">
+      <div class="ap-head">Your 3-move action plan</div>
+      <div class="actions">${actionsHTML}</div>
+    </div>
+
+    <div class="r-cta">
+      <div class="r-cta-text"><strong>${r.cta}</strong><br>${r.ctaSub}</div>
+      <button class="cta-btn" onclick="window.location.href='https://flashfusion.co'">${r.cta} →</button>
+    </div>
+
+    <button class="btn-retake" onclick="retake()">← Retake the assessment</button>
+  `;
+
+  // Animate score fill
+  setTimeout(() => {
+    document.getElementById('rScoreFill').style.width = pct + '%';
+  }, 100);
+
+  rWrap.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function retake() {
+  current = 0;
+  answers = new Array(QUESTIONS.length).fill(null);
+  document.getElementById('qProgress').style.display = 'block';
+  document.getElementById('qBody').style.display = 'block';
+  document.getElementById('qNav').style.display = 'flex';
+  document.getElementById('resultWrap').className = 'result-wrap';
+  renderQ();
+  document.getElementById('quizCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// Init
+renderQ();
+</script>
+</body>
+</html>

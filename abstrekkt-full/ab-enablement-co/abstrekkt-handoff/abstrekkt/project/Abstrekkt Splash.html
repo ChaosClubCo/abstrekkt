@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Abstrekkt — Progress. Not pretending.</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400..700;1,400..700&family=Literata:ital,opsz,wght@0,7..72,300..600;1,7..72,300..600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --amber:#ffbf00; --amber-lt:#ffe2ab;
+    --bg:#0a0a0c; --raised:#1c1b1d;
+    --border:rgba(80,69,50,.34); --border-faint:rgba(80,69,50,.20);
+    --t1:#e5e1e4; --t2:#b9b1a4; --t3:#9c8f78; --t4:#938776;
+    --display:'EB Garamond', Georgia, serif;
+    --body:'Literata', Georgia, serif;
+    --mono:'JetBrains Mono', ui-monospace, monospace;
+  }
+  *,*::before,*::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body { background: var(--bg); color: var(--t2); font-family: var(--body); -webkit-font-smoothing: antialiased; overflow: hidden; }
+  a { color: var(--t1); text-decoration: none; }
+  a:hover { color: var(--amber); }
+
+  /* ── VIDEO LAYER ─────────────────────────── */
+  .stage { position: fixed; inset: 0; }
+  .stage video { position: absolute; inset: -3%; width: 106%; height: 106%; object-fit: cover; opacity: 0; transition: opacity 1.4s linear; }
+  .stage video.is-active { opacity: .55; }
+  /* mask the Gemini/Veo watermark in the bottom-right corner of source clips */
+  .stage .wm-cover { position: absolute; right: 0; bottom: 0; width: 132px; height: 72px; z-index: 1;
+    background: radial-gradient(ellipse at 100% 100%, rgba(10,10,12,.98) 40%, rgba(10,10,12,0) 82%); }
+  .stage::before { content: ''; position: absolute; inset: 0; z-index: 1;
+    background: radial-gradient(ellipse at 50% 60%, rgba(10,10,12,.25), rgba(10,10,12,.88) 78%),
+                linear-gradient(180deg, rgba(10,10,12,.55), transparent 30%, transparent 65%, rgba(10,10,12,.92)); }
+  /* microfilm grain */
+  .stage::after { content: ''; position: absolute; inset: 0; z-index: 2; pointer-events: none; opacity: .05;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)'/%3E%3C/svg%3E"); }
+
+  /* ── CONTENT ─────────────────────────────── */
+  .content { position: relative; z-index: 3; height: 100%; display: flex; flex-direction: column; padding: 40px 48px; }
+  @media (max-width: 720px) { .content { padding: 24px 20px; } }
+
+  .top { display: flex; justify-content: space-between; align-items: flex-start; }
+  .meta { font-family: var(--mono); font-size: 10px; letter-spacing: .22em; text-transform: uppercase; color: var(--t4); text-align: right; line-height: 1.9; }
+
+  .brand { display: inline-flex; align-items: center; gap: 12px; font-family: var(--mono); font-size: 12px; letter-spacing: .18em; text-transform: uppercase; color: var(--t1); }
+  .brand__mark { width: 24px; height: 24px; border: 1px solid rgba(255,191,0,.32); background: rgba(255,191,0,.10); display: inline-flex; align-items: center; justify-content: center; }
+  .brand__mark::before { content: ''; width: 8px; height: 8px; background: var(--amber); }
+
+  .center { flex: 1; display: flex; flex-direction: column; justify-content: center; max-width: 760px; }
+  .eyebrow { font-family: var(--mono); font-size: 10.5px; letter-spacing: .26em; text-transform: uppercase; color: var(--amber-lt); margin-bottom: 28px; display: flex; align-items: center; gap: 14px; }
+  .eyebrow::before { content: ''; width: 40px; height: 1px; background: var(--border); }
+  h1 { font-family: var(--display); font-weight: 400; font-size: clamp(52px, 8vw, 108px); line-height: .98; letter-spacing: -.02em; color: var(--t1); margin-bottom: 22px; }
+  h1 em { font-style: italic; color: var(--amber); }
+  .tag { font-family: var(--body); font-style: italic; font-weight: 300; font-size: clamp(17px, 2vw, 21px); line-height: 1.5; color: var(--t2); max-width: 42ch; margin-bottom: 40px; }
+  .ctas { display: flex; gap: 12px; flex-wrap: wrap; }
+  .btn { padding: 15px 26px; font-family: var(--mono); font-size: 11px; font-weight: 500; letter-spacing: .18em; text-transform: uppercase; cursor: pointer; border: 1px solid transparent; transition: background .2s, border-color .2s, color .2s; }
+  .btn--primary { background: var(--amber); color: #402d00; }
+  .btn--primary:hover { background: var(--amber-lt); color: #402d00; }
+  .btn--ghost { background: rgba(10,10,12,.4); backdrop-filter: blur(8px); color: var(--t1); border-color: var(--border); }
+  .btn--ghost:hover { border-color: var(--t3); color: var(--t1); }
+
+  .bottom { display: flex; justify-content: space-between; align-items: flex-end; gap: 20px; flex-wrap: wrap; }
+  .coords { font-family: var(--mono); font-size: 10px; letter-spacing: .18em; text-transform: uppercase; color: var(--t4); line-height: 1.9; }
+
+  /* ── SOUND TOGGLE ────────────────────────── */
+  .sound { display: inline-flex; align-items: center; gap: 10px; padding: 11px 18px; background: rgba(10,10,12,.5); backdrop-filter: blur(10px); border: 1px solid var(--border); font-family: var(--mono); font-size: 10px; letter-spacing: .18em; text-transform: uppercase; color: var(--t3); cursor: pointer; transition: color .2s, border-color .2s; }
+  .sound:hover { color: var(--t1); border-color: var(--t3); }
+  .sound .bars { display: inline-flex; align-items: flex-end; gap: 2px; height: 12px; }
+  .sound .bars i { width: 2px; background: var(--amber); height: 4px; }
+  .sound.is-on .bars i { animation: eq 1s ease-in-out infinite; }
+  .sound.is-on .bars i:nth-child(2) { animation-delay: .2s; }
+  .sound.is-on .bars i:nth-child(3) { animation-delay: .4s; }
+  @keyframes eq { 0%,100% { height: 4px; } 50% { height: 12px; } }
+  @media (prefers-reduced-motion: reduce) { .sound.is-on .bars i { animation: none; height: 8px; } }
+
+  /* entrance */
+  @media (prefers-reduced-motion: no-preference) {
+    .center > * { animation: rise .9s cubic-bezier(.2,.7,.2,1) both; }
+    .center > *:nth-child(2) { animation-delay: .12s; }
+    .center > *:nth-child(3) { animation-delay: .24s; }
+    .center > *:nth-child(4) { animation-delay: .36s; }
+    @keyframes rise { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
+  }
+
+  /* ── Responsive + accessibility pass (Jul 10, 2026) ──────────────── */
+  a:focus-visible, button:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+  @media (max-width: 720px) {
+    .btn, .sound { min-height: 44px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+  }
+</style>
+</head>
+<body>
+
+<div class="stage">
+  <!-- Rotates through the video playlist below; two buffers crossfade at each cut so no seam hard-cuts -->
+  <video class="is-active" muted playsinline preload="auto" id="vidA"></video>
+  <video muted playsinline preload="auto" id="vidB"></video>
+  <div class="wm-cover"></div>
+</div>
+
+<div class="content" data-screen-label="Splash">
+  <div class="top">
+    <span class="brand"><span class="brand__mark"></span>Abstrekkt</span>
+    <div class="meta">EST. 2026<br>ARCHIVE / 001</div>
+  </div>
+
+  <div class="center">
+    <div class="eyebrow">Now assembling</div>
+    <h1>Progress.<br>Not <em>pretending.</em></h1>
+    <p class="tag">AI tools, tested under load. An archive of what actually held up — and what didn&rsquo;t.</p>
+    <div class="ctas">
+      <a class="btn btn--primary" href="Abstrekkt Home.html">Enter the archive</a>
+      <a class="btn btn--ghost" href="Abstrekkt Contact.html">Get notified</a>
+    </div>
+  </div>
+
+  <div class="bottom">
+    <div class="coords">abstrekkt.com<br>Signal over spectacle</div>
+    <button class="sound" id="soundToggle" aria-pressed="false">
+      <span class="bars"><i></i><i></i><i></i></span>
+      <span class="sound__label">Sound off</span>
+    </button>
+  </div>
+</div>
+
+<!-- Two copies crossfade at the loop point, same as the video, so the music never hard-cuts -->
+<audio id="audA" src="assets/splash.mp3" preload="auto"></audio>
+<audio id="audB" src="assets/splash.mp3" preload="auto"></audio>
+
+<script>
+  const CROSSFADE = 1.4; // seconds — masks the seam on non-seamless source loops
+  const MAXVOL = 0.5;
+
+  /* ---------- video playlist crossfade loop ---------- */
+  const videoPlaylist = [
+    'assets/splash.mp4',
+    'assets/margin-notes.mp4',
+    'assets/splash-alt.mp4',
+    'assets/paper-and-protocol.mp4'
+  ];
+  // Source clips end with a baked-in generator outro card (logo/sparkle mark). We never
+  // let playback reach it — each entry is the last safe second to show before that card starts,
+  // measured from the actual source file, with a small safety margin.
+  const videoSafeEnd = [9.7, 65.5, 9.7, 173];
+  const vids = [document.getElementById('vidA'), document.getElementById('vidB')];
+  let activeV = 0, switchingV = false;
+  let vidIdx = [0, videoPlaylist.length > 1 ? 1 : 0];
+  let playHead = videoPlaylist.length > 1 ? 2 % videoPlaylist.length : 0;
+
+  const REDUCE_MOTION = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  vids[0].src = videoPlaylist[vidIdx[0]];
+  vids[0].load();
+  if (!REDUCE_MOTION) { vids[0].play().catch(() => {}); }
+  if (videoPlaylist.length > 1) {
+    vids[1].src = videoPlaylist[vidIdx[1]];
+    vids[1].load();
+  }
+
+  function safeEndFor(slot, actualDuration) {
+    const cap = videoSafeEnd[vidIdx[slot]];
+    if (cap == null) return actualDuration;
+    return (actualDuration && !isNaN(actualDuration)) ? Math.min(cap, actualDuration) : cap;
+  }
+
+  function videoTick() {
+    const cur = vids[activeV], next = vids[1 - activeV];
+    const curEnd = safeEndFor(activeV, cur.duration);
+    if (!switchingV && curEnd && !isNaN(curEnd)) {
+      const cf = Math.min(CROSSFADE, curEnd * 0.25);
+      if (cur.currentTime >= curEnd - cf) {
+        switchingV = true;
+        cur.style.transitionDuration = cf + 's';
+        next.style.transitionDuration = cf + 's';
+        next.currentTime = 0;
+        next.play().catch(() => {});
+        next.classList.add('is-active');
+        cur.classList.remove('is-active');
+        setTimeout(() => {
+          cur.pause();
+          activeV = 1 - activeV;
+          switchingV = false;
+          if (videoPlaylist.length > 1) {
+            const recycleSlot = 1 - activeV; // the slot that just went inactive
+            vidIdx[recycleSlot] = playHead;
+            playHead = (playHead + 1) % videoPlaylist.length;
+            cur.src = videoPlaylist[vidIdx[recycleSlot]];
+            cur.load();
+          }
+        }, cf * 1000);
+      }
+    }
+    requestAnimationFrame(videoTick);
+  }
+  if (!REDUCE_MOTION) { requestAnimationFrame(videoTick); }
+
+  /* ---------- audio crossfade loop ---------- */
+  const auds = [document.getElementById('audA'), document.getElementById('audB')];
+  let activeA = 0, switchingA = false, soundOn = false, switchStart = 0;
+  auds.forEach(a => { a.volume = 0; });
+
+  function audioTick(now) {
+    if (soundOn) {
+      const cur = auds[activeA], next = auds[1 - activeA];
+      if (!switchingA && cur.duration && !isNaN(cur.duration)) {
+        const cf = Math.min(CROSSFADE, cur.duration * 0.25);
+        if (cur.currentTime >= cur.duration - cf) {
+          switchingA = true;
+          switchStart = now;
+          next.currentTime = 0;
+          next.volume = 0;
+          next.play().catch(() => {});
+        }
+      }
+      if (switchingA) {
+        const cf = Math.min(CROSSFADE, cur.duration * 0.25);
+        const p = Math.min(1, (now - switchStart) / (cf * 1000));
+        cur.volume = MAXVOL * (1 - p);
+        next.volume = MAXVOL * p;
+        if (p >= 1) {
+          cur.pause();
+          activeA = 1 - activeA;
+          switchingA = false;
+        }
+      }
+    }
+    requestAnimationFrame(audioTick);
+  }
+  requestAnimationFrame(audioTick);
+
+  /* ---------- sound toggle ---------- */
+  const toggle = document.getElementById('soundToggle');
+  const label = toggle.querySelector('.sound__label');
+  toggle.addEventListener('click', () => {
+    soundOn = !soundOn;
+    toggle.classList.toggle('is-on', soundOn);
+    toggle.setAttribute('aria-pressed', String(soundOn));
+    label.textContent = soundOn ? 'Sound on' : 'Sound off';
+    if (soundOn) {
+      auds[activeA].volume = MAXVOL;
+      auds[activeA].play().catch(() => {});
+    } else {
+      auds.forEach(a => a.pause());
+    }
+  });
+</script>
+
+</body>
+</html>

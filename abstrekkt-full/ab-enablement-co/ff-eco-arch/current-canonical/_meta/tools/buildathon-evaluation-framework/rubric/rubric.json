@@ -1,0 +1,108 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Buildathon Evaluation Rubric",
+  "version": "2.0.0",
+  "description": "Machine-readable encoding of the scoring rubric. Mirrors scoring-rubric.md and evaluate-project.mjs.",
+  "compositeMax": 100,
+  "evidenceRule": "no evidence, no points; blank/UNKNOWN fields incur penalties, never assumed-best.",
+  "dimensions": [
+    {
+      "id": "pain_validation",
+      "label": "Pain-Point Validation",
+      "weight": 30,
+      "rawScale": { "field": "validationScore", "min": 0, "max": 5 },
+      "pointsFormula": "(validationScore / 5) * 30",
+      "scoringItems": [
+        "personally_feel_pain",
+        "real_users_told_me",
+        "quantified_cost_exists",
+        "solving_unlocks_bigger",
+        "current_workaround_painful"
+      ],
+      "itemScoring": { "Y": 1, "M": 0.5, "N": 0, "UNKNOWN": 0 },
+      "penalty": "subtract 0.5 from validationScore per UNKNOWN item"
+    },
+    {
+      "id": "timeline_reality",
+      "label": "Timeline Reality",
+      "weight": 20,
+      "rawScale": { "field": "totalDays", "min": 0, "max": null },
+      "pointsFormula": "band(totalDays)",
+      "bands": [
+        { "maxDays": 10, "points": 20 },
+        { "maxDays": 14, "points": 12 },
+        { "maxDays": 21, "points": 5 },
+        { "maxDays": null, "points": 0 }
+      ],
+      "penalty": "add +2 days per UNKNOWN phase effort before banding"
+    },
+    {
+      "id": "execution_risk",
+      "label": "Execution Risk",
+      "weight": 20,
+      "rawScale": { "field": "riskTotal", "min": 0, "max": 200, "lowerIsBetter": true },
+      "pointsFormula": "clamp((1 - (riskTotal / 200)) * 20, 0, 20)",
+      "riskRows": [
+        "unfamiliar_framework",
+        "external_api_dependency",
+        "heavy_polish_design",
+        "compliance_security_gates",
+        "scale_concerns",
+        "user_research_gap",
+        "data_migration_integration",
+        "team_dependency_blocker"
+      ],
+      "rowScale": "probability(1-5) * impact(1-5), max 25 each",
+      "penalty": "add +10 to riskTotal per UNKNOWN risk row"
+    },
+    {
+      "id": "platform_fit",
+      "label": "Platform Fit",
+      "weight": 15,
+      "rawScale": { "field": "fitPct", "min": 0, "max": 100 },
+      "pointsFormula": "(fitPct / 100) * 15",
+      "replitCriteria": [
+        "native_device_features",
+        "backend_real_integration",
+        "visual_polish",
+        "real_world_use_case",
+        "ship_ready_in_timeline",
+        "novel_differentiated"
+      ],
+      "replitFitFormula": "sum(criteria 1-5) / 30 * 100"
+    },
+    {
+      "id": "quality_gates",
+      "label": "Quality Gates",
+      "weight": 15,
+      "rawScale": { "field": "gatesPassed", "min": 0, "max": 9 },
+      "pointsFormula": "(gatesPassed / 9) * 15",
+      "gates": [
+        "input_validation",
+        "error_handling",
+        "secrets_protected",
+        "testing",
+        "observability",
+        "documentation",
+        "linting",
+        "ci",
+        "accessibility"
+      ],
+      "rule": "mark passed only if implemented AND verifiable"
+    }
+  ],
+  "killSwitches": [
+    { "condition": "validationScore < 3", "effect": "STATUS max = CONSIDER" },
+    { "condition": "gatesPassed < 7", "effect": "STATUS = NOT READY (cannot SHIP)" },
+    { "condition": "totalDays > 14", "effect": "STATUS max = CONSIDER (cannot SHIP FIRST)" }
+  ],
+  "statuses": ["SHIP", "CONSIDER", "NOT READY", "Spike"],
+  "rankingSort": [
+    "Status: SHIP > CONSIDER > NOT READY",
+    "Composite descending",
+    "lowest Days",
+    "highest Pain",
+    "lowest Risk",
+    "fastest user proof (demo + 3 real users in 48h)"
+  ]
+}

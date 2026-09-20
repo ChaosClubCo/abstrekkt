@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kyle's Literary Memoir — Project Framework</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+            color: #e2e8f0;
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+        
+        .container {
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            min-height: 100vh;
+        }
+        
+        header {
+            grid-column: 1 / -1;
+            border-bottom: 1px solid rgba(71, 85, 105, 0.3);
+            background: rgba(15, 23, 42, 0.95);
+            padding: 2rem;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            backdrop-filter: blur(12px);
+        }
+        
+        header h1 {
+            font-size: 1.75rem;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+        
+        header p {
+            font-size: 0.875rem;
+            color: #94a3b8;
+            margin-top: 0.5rem;
+        }
+        
+        nav {
+            grid-column: 1;
+            border-right: 1px solid rgba(71, 85, 105, 0.3);
+            background: rgba(15, 23, 42, 0.5);
+            padding: 2rem 0;
+            position: sticky;
+            top: 110px;
+            height: calc(100vh - 110px);
+            overflow-y: auto;
+        }
+        
+        nav button {
+            display: block;
+            width: 100%;
+            text-align: left;
+            padding: 0.75rem 1.5rem;
+            background: none;
+            border: none;
+            color: #cbd5e1;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        
+        nav button:hover {
+            background: rgba(71, 85, 105, 0.2);
+            color: #f1f5f9;
+        }
+        
+        nav button.active {
+            background: rgba(71, 85, 105, 0.3);
+            color: #f1f5f9;
+            border-right: 3px solid #7c3aed;
+        }
+        
+        main {
+            grid-column: 2;
+            padding: 2rem;
+            max-width: 1000px;
+        }
+        
+        .section {
+            display: none;
+        }
+        
+        .section.active {
+            display: block;
+            animation: fadeIn 0.3s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        .section h2 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 2rem;
+            color: #f1f5f9;
+        }
+        
+        .subsection {
+            margin-bottom: 1.5rem;
+            border: 1px solid rgba(71, 85, 105, 0.3);
+            border-radius: 8px;
+            overflow: hidden;
+            background: rgba(30, 41, 59, 0.3);
+        }
+        
+        .subsection-header {
+            padding: 1rem 1.5rem;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            user-select: none;
+            transition: background 0.2s;
+            font-weight: 600;
+            color: #e2e8f0;
+        }
+        
+        .subsection-header:hover {
+            background: rgba(71, 85, 105, 0.2);
+        }
+        
+        .subsection-header.expanded {
+            background: rgba(71, 85, 105, 0.15);
+        }
+        
+        .chevron {
+            font-size: 1.2rem;
+            transition: transform 0.3s;
+            color: #94a3b8;
+        }
+        
+        .subsection-header.expanded .chevron {
+            transform: rotate(180deg);
+        }
+        
+        .subsection-content {
+            display: none;
+            padding: 1.5rem;
+            border-top: 1px solid rgba(71, 85, 105, 0.2);
+            background: rgba(15, 23, 42, 0.2);
+            color: #cbd5e1;
+            white-space: pre-wrap;
+            line-height: 1.7;
+            font-size: 0.95rem;
+        }
+        
+        .subsection-content.expanded {
+            display: block;
+        }
+        
+        .subsection.auto-expanded .subsection-header {
+            background: rgba(71, 85, 105, 0.15);
+        }
+        
+        .subsection.auto-expanded .subsection-header.expanded .chevron {
+            transform: rotate(180deg);
+        }
+        
+        .subsection.auto-expanded .subsection-content {
+            display: block;
+        }
+        
+        footer {
+            grid-column: 1 / -1;
+            border-top: 1px solid rgba(71, 85, 105, 0.3);
+            background: rgba(15, 23, 42, 0.5);
+            padding: 2rem;
+            margin-top: 2rem;
+            text-align: center;
+            font-size: 0.875rem;
+            color: #94a3b8;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+            
+            nav {
+                grid-column: 1;
+                height: auto;
+                position: relative;
+                top: auto;
+                border-right: none;
+                border-bottom: 1px solid rgba(71, 85, 105, 0.3);
+                display: flex;
+                overflow-x: auto;
+                padding: 1rem 0;
+            }
+            
+            nav button {
+                padding: 0.75rem 1rem;
+                white-space: nowrap;
+            }
+            
+            main {
+                padding: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Kyle's Literary Memoir</h1>
+        <p>Project Framework & Reference</p>
+    </header>
+    
+    <nav id="nav">
+        <button class="nav-btn active" data-section="overview">Working Thesis & Author</button>
+        <button class="nav-btn" data-section="narrative">Narrative Architecture</button>
+        <button class="nav-btn" data-section="voice">Voice Guidelines</button>
+        <button class="nav-btn" data-section="process">Claude's Workflow</button>
+        <button class="nav-btn" data-section="structures">Structural Options</button>
+        <button class="nav-btn" data-section="session">Session Protocol</button>
+        <button class="nav-btn" data-section="keyquestions">Key Questions</button>
+        <button class="nav-btn" data-section="comparable">Literary Positioning</button>
+        <button class="nav-btn" data-section="constraints">Constraints & Realities</button>
+    </nav>
+    
+    <main id="main">
+        <!-- Working Thesis & Author -->
+        <section id="overview" class="section active">
+            <h2>Working Thesis & Author Context</h2>
+            
+            <div class="subsection auto-expanded">
+                <div class="subsection-header expanded">
+                    <span>Working Thesis</span>
+                    <span class="chevron">›</span>
+                </div>
+                <div class="subsection-content expanded">"How does a person whose mind has been broken—by choice, by injury, by circumstance—rebuild agency not through recovery of what was lost, but through construction of what never existed?"</div>
+            </div>
+            
+            <div class="subsection">
+                <div class="subsection-header">
+                    <span>Genre</span>
+                    <span class="chevron">›</span>
+                </div>
+                <div class="subsection-content">Literary nonfiction. Not self-help. Not recovery memoir. Not productivity manifesto. A serious, systems-level examination of reconstructing a self after cognitive disruption.</div>
+            </div>
+            
+            <div class="subsection">
+                <div class="subsection-header">
+                    <span>Author Position</span>
+                    <span class="chevron">›</span>
+                </div>
+                <div class="subsection-content">Staff Engineer at Intinc (AppSec + Platform). Self-taught, no CS degree. Father to Kinsley (Friday custody). Approaching 40. Mundelein, Illinois.</div>
+            </div>
+            
+            <div class="subsection">
+                <div class="subsection-header">
+                    <span>Non-Linear Path</span>
+                    <span class="chevron">›</span>
+                </div>
+                <div class="subsection-content">Bartending at O'Toole's → Quality Control → Self-taught Engineering → FlashFusion (founder) → Staff-level technical leadership → Currently building Chaos Club Co.</div>
+            </div>
+            
+            <div class="subsection">
+                <div class="subsection-header">
+                    <span>The Breaks</span>
+                    <span class="chevron">›</span>
+                </div>
+                <div class="subsection-content">Traumatic brain injury. Addiction. Memory challenges that persist. Cognitive disruption that made old strategies obsolete.</div>
+            </div>
+            
+            <div class="subsection">
+                <div class="subsection-header">
+                    <span>The Construction</span>
+                    <span class="chevron">›</span>
+                </div>
+                <div class="subsection-content">240+ tools as externalized cognition. Systematic approaches as prosthetic memory. Obsessive documentation as survival. Technology as scaffolding for an unreliable mind.</div>
+            </div>
+        </section>
+        
+        <!-- Narrative Architecture -->
+        <section id="narrative" class="section">
+            <h2>Narrative Architecture</h2>
+            
+            <div class="subsection auto-expanded">
+                <div class="subsection-header expanded">
+                    <span>Central Tension</span>
+                    <span class="chevron">›</span>
+                </div>
+                <div class="subsection-content expanded">Recovery assumes returning to a previous state. Kyle can't return—the injury changed the hardware. So the question becomes: Can you build a functional self from scratch using different materials than the original?</div>
+            </div>
+            
+            <div class="subsection">
+                <div class="subsection-header">
+                    <span>Before the Break</span>
+                    <span class="chevron">›</span>
+                </div>
+                <div class="subsection-content">Who was Kyle before? What did competence feel like when memory worked? The hospitality years—reading rooms, managing chaos, performing functionality. Early signs building toward rupture.</div>
+            </div>
+            
+            <div class="subsection">
+                <div class="subsection-header">
+                    <span>The Rupture</span>
+                    <span class="chevron">›</span>
+                </div>
+                <div class="subsection-content">TBI specifics (as Kyle chooses to disclose). Addiction—cause, consequence, or both? The moment when old strategies stopped working. What it feels like when your mind becomes unreliable narrator.</div>
+            </div>
+            
+            <div class="subsection">
+                <div class="subsection-header">
+                    <span>The Construction Project</span>
+                    <span class="chevron">›</span>
+                </div>
+                <div class="subsection-content">First tools that actually helped. Discovery that systems could substitute for organic memory. Building external cognition piece by piece. 240+ tools not as productivity flex but as survival infrastructure. Learning to program as learning to think in a new architecture.</div>
+            </div>
+            
+            <div class="subsection">
+                <div class="subsection-header">
+                    <span>Late-Life Emergence</span>
+                    <span class="chevron">›</span>
+                </div>
+                <div class="subsection-content">Self-teaching to Staff Engineer level without credentials. Enterprise-scale technical competence arriving on non-standard timeline. Founder attempts (FlashFusion, others)—what they taught about limits. Current state at Intinc: what constructed self can actually do.</div>
+            </div>
+            
+            <div class="subsection">
+                <div class="subsection-header">
+                    <span>The Parallel Constructions</span>
+                    <span class="chevron">›</span>
+                </div>
+                <div class="subsection-content">Fatherhood: Kinsley as grounding constraint and motivation. Chaos Club Co.: Building tools for others navigating similar chaos. The memoir itself: Another system for making sense of fragmented experience.</div>
+            </div>
+        </section>
+        
+        <!-- Voice Guidelines -->
+        <section id="voice" class="section">
+            <h2>Voice Guidelines</h2>
+            
+            <div class="subsection auto-expanded">
+                <div class="subsection-header expanded">
+                    <span>Natural Register</span>
+                    <span class="chevron">›</span>
+                </div>
+                <div class="subsection-content expanded">Direct without being cold. Metaphor-heavy: "dumpster fire brain," "cognitive scaffolding," "smoke detector going off for burnt toast." Technical precision when it serves clarity. Strategic profanity for emphasis, not shock. Self-aware about irony of systematizing everything, including self-examination. No performance of vulnerability or toughness.</div>
+            </div>
+            
+            <div class="subsection">
+                <div class="subsection-header">
+                    <span>Sentences to Avoid</span>
+                    <span class="chevron">›</span>
+                </div>
+                <div class="subsection-content">"And that's when I realized..."
+"Looking back, I can see that..."
+"It was then that everything changed..."
+Any construction that makes meaning too available too fast.</div>
+            </div>
+            
+            <div class="subsection">
+                <div class="subsection-header">
+                    <span>Sentences That Work</span>
+                    <span class="chevron">›</span>
+                </div>
+                <div class="subsection-content">Declarative observations that let readers draw conclusions. Technical descriptions of emotional states. Admissions of uncertainty about memory/meaning. Humor that doesn't defuse tension prematurely.</div>
+            </div>
+        </section>
+        
+        <!-- Claude's Workflow -->
+        <section id="process" class="section">
+            <h2>Claude's Workflow by Phase</h2>
+            
+            <div class="subsection auto-expanded">
+                <div class="subsection-header expanded">
+                    <span>Research / Excavation</span>
+                    <span class="chevron">›</span>
+                </div>
+                <div class="subsection-content expanded">Ask for specific sensory details before writing. Prompt for what Kyle doesn't remember. Surface contradictions between how events felt then vs. how they read now. Request permission before pursuing sensitive threads.</div>
+            </div>
+            
+            <div class="subsection">
+                <div class="subsection-header">
+                    <span>Drafting</span>
+                    <span class="chevron">›</span>
+                </div>
+                <div class="subsection-content">Write in Kyle's voice, not "literary memoir" voice. Offer structural alternatives, don't impose. Flag when prose is smoothing rough edges. Leave room for reader to work.</div>
+            </div>
+            
+            <div class="subsection">
+                <div class="subsection-header">
+                    <span>Revision</span>
+                    <span class="chevron">›</span>
+                </div>
+                <div class="subsection-content">Challenge narratives that resolve too cleanly. Identify where systems-talk creates distance from emotion. Note where memory gaps need acknowledgment. Preserve the specific over the universal.</div>
+            </div>
+            
+            <div class="subsection">
+                <div class="subsection-header">
+                    <span>Always</span>
+                    <span class="chevron">›</span>
+                </div>
+                <div class="subsection-content">End sessions with clear next steps. Track what's drafted vs. what needs raw material. Maintain running list of scenes/moments needing development. Honor Kyle's control over disclosure (TBI details, addiction specifics, family).</div>
+            </div>
+        </section>
+        
+        <!-- Structural Options -->
+        <section id="structures" class="section">
+            <h2>Structural Options to Explore</h2>
+            
+            <div class="subsection">
+                <div class="subsection-header">
+                    <span>Chronological with Flashbacks</span>
+                    <span class="chevron">›</span>
+                </div>
+                <div class="subsection-content">Linear timeline punctuated by intrusions of memory—mimicking how a damaged memory actually works.</div>
+            </div>
+            
+            <div class="subsection">
+                <div class="subsection-header">
+                    <span>Systems as Chapters</span>
+                    <span class="chevron">›</span>
+                </div>
+                <div class="subsection-content">Each major tool/approach becomes entry point: "The Calendar System," "The Documentation Compulsion," "The 240 Tools"—with personal history woven through.</div>
+            </div>
+            
+            <div class="subsection">
+                <div class="subsection-header">
+                    <span>Parallel Timelines</span>
+                    <span class="chevron">›</span>
+                </div>
+                <div class="subsection-content">External career progression on one track, internal reconstruction on another, converging at present.</div>
+            </div>
+            
+            <div class="subsection">
+                <div class="subsection-header">
+                    <span>The Arsenal Structure</span>
+                    <span class="chevron">›</span>
+                </div>
+                <div class="subsection-content">Borrow Chaos Club's 25 categories as organizing principle—each chapter a different aspect of navigating chaos.</div>
+            </div>
+        </section>
+        
+        <!-- Session Protocol -->
+        <section id="session" class="section">
+            <h2>Session Protocol</h2>
+            
+            <div class="subsection auto-expanded">
+                <div class="subsection-header expanded">
+                    <span>Beginning Each Session</span>
+                    <span class="chevron">›</span>
+                </div>
+                <div class="subsection-content expanded">Where are we? (Phase, chapter, specific section)
+What's the goal today? (Raw material gathering, drafting, revision)
+Any new memories/insights since last session?</div>
+            </div>
+            
+            <div class="subsection">
+                <div class="subsection-header">
+                    <span>During Session</span>
+                    <span class="chevron">›</span>
+                </div>
+                <div class="subsection-content">Surface before shaping. Specifics before themes. Draft in passes (skeleton → flesh → polish).</div>
+            </div>
+            
+            <div class="subsection">
+                <div class="subsection-header">
+                    <span>Ending Each Session</span>
+                    <span class="chevron">›</span>
+                </div>
+                <div class="subsection-content">What did we produce?
+What's unresolved or needs more excavation?
+What's the next session's focus?
+Any homework for Kyle? (Memories to sit with, documents to find, people to talk to)</div>
+            </div>
+        </section>
+        
+        <!-- Key Questions -->
+        <section id="keyquestions" class="section">
+            <h2>Questions to Keep Returning To</h2>
+            
+            <div class="subsection">
+                <div class="subsection-header">
+                    <span>Knowledge Gap</span>
+                    <span class="chevron">›</span>
+                </div>
+                <div class="subsection-content">What does Kyle know now that he couldn't have known during the events?</div>
+            </div>
+            
+            <div class="subsection">
+                <div class="subsection-header">
+                    <span>Identity & Protection</span>
+                    <span class="chevron">›</span>
+                </div>
+                <div class="subsection-content">Where does the systems-builder identity protect him from feeling? Where does it enable feeling?</div>
+            </div>
+            
+            <div class="subsection">
+                <div class="subsection-header">
+                    <span>Comparison</span>
+                    <span class="chevron">›</span>
+                </div>
+                <div class="subsection-content">What would pre-injury Kyle think of constructed Kyle?</div>
+            </div>
+            
+            <div class="subsection">
+                <div class="subsection-header">
+                    <span>Loss & Gain</span>
+                    <span class="chevron">›</span>
+                </div>
+                <div class="subsection-content">What's permanently lost? What exists now that couldn't have existed before?</div>
+            </div>
+            
+            <div class="subsection">
+                <div class="subsection-header">
+                    <span>Dual Projects</span>
+                    <span class="chevron">›</span>
+                </div>
+                <div class="subsection-content">How does building Chaos Club relate to writing this book? Are they the same project?</div>
+            </div>
+            
+            <div class="subsection">
+                <div class="subsection-header">
+                    <span>Legacy</span>
+                    <span class="chevron">›</span>
+                </div>
+                <div class="subsection-content">What does Kinsley see? What will she understand when she's older?</div>
+            </div>
+        </section>
+        
+        <!-- Literary Positioning -->
+        <section id="comparable" class="section">
+            <h2>Literary Positioning</h2>
+            
+            <div class="subsection auto-expanded">
+                <div class="subsection-header expanded">
+                    <span>Comparable Works</span>
+                    <span class="chevron">›</span>
+                </div>
+                <div class="subsection-content expanded">The Noonday Demon (Andrew Solomon)—depression as systems failure, intellectual rigor about interior experience
+
+In the Realm of Hungry Ghosts (Gabor Maté)—addiction without moralism
+
+Brain on Fire (Susannah Cahalan)—cognitive disruption from inside
+
+The Body Keeps the Score (van der Kolk)—but less clinical, more personal
+
+Beautiful Boy / Tweak (Sheff)—parallel perspectives on addiction</div>
+            </div>
+            
+            <div class="subsection">
+                <div class="subsection-header">
+                    <span>Differentiation</span>
+                    <span class="chevron">›</span>
+                </div>
+                <div class="subsection-content">The systems angle. Most cognitive disruption memoirs focus on medical/emotional journey. Kyle's book centers the engineering response—what happens when someone with a broken mind builds external infrastructure to replace internal function. That's the fresh contribution.</div>
+            </div>
+        </section>
+        
+        <!-- Constraints & Realities -->
+        <section id="constraints" class="section">
+            <h2>Constraints & Realities</h2>
+            
+            <div class="subsection">
+                <div class="subsection-header">
+                    <span>Time</span>
+                    <span class="chevron">›</span>
+                </div>
+                <div class="subsection-content">Full-time as Staff Engineer, Friday custody of Kinsley, actively building Chaos Club. Writing happens in margins.</div>
+            </div>
+            
+            <div class="subsection">
+                <div class="subsection-header">
+                    <span>Memory</span>
+                    <span class="chevron">›</span>
+                </div>
+                <div class="subsection-content">The subject of the book is also an obstacle to writing it. Some periods are genuinely inaccessible. The book must acknowledge this.</div>
+            </div>
+            
+            <div class="subsection">
+                <div class="subsection-header">
+                    <span>Budget</span>
+                    <span class="chevron">›</span>
+                </div>
+                <div class="subsection-content">~$1K available for immediate investments across all projects. Memoir competes with business development for attention.</div>
+            </div>
+            
+            <div class="subsection">
+                <div class="subsection-header">
+                    <span>Goal</span>
+                    <span class="chevron">›</span>
+                </div>
+                <div class="subsection-content">Not publication timeline—quality and honesty. Eventually: a book that helps others who've had to construct rather than recover.</div>
+            </div>
+        </section>
+    </main>
+    
+    <footer>
+        <p>This framework is your north star for memoir work. Reference it during sessions, challenge it when needed, iterate as insights emerge.</p>
+    </footer>
+    
+    <script>
+        const navButtons = document.querySelectorAll('.nav-btn');
+        const sections = document.querySelectorAll('.section');
+        const subsectionHeaders = document.querySelectorAll('.subsection-header');
+        
+        // Navigation
+        navButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                const sectionId = button.getAttribute('data-section');
+                
+                // Update active states
+                navButtons.forEach(b => b.classList.remove('active'));
+                button.classList.add('active');
+                
+                sections.forEach(s => s.classList.remove('active'));
+                document.getElementById(sectionId).classList.add('active');
+            });
+        });
+        
+        // Subsection toggles
+        subsectionHeaders.forEach(header => {
+            header.addEventListener('click', () => {
+                const subsection = header.parentElement;
+                const content = subsection.querySelector('.subsection-content');
+                
+                header.classList.toggle('expanded');
+                content.classList.toggle('expanded');
+            });
+        });
+    </script>
+</body>
+</html>

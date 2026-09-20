@@ -1,0 +1,1422 @@
+# PRD Generation Framework v2.0
+## Multi-Persona Oversight with Mandatory Audit Gates
+
+---
+
+## PREAMBLE: THE FIVE PERSONAS
+
+Every PRD is reviewed by five distinct lenses. They **challenge each other**, flag conflicts, and sign off only when contradictions are resolved.
+
+| Persona | Role | Primary Concerns | Red Flags They Catch |
+|---------|------|------------------|----------------------|
+| **Staff Engineer** | Systems architect, scalability thinker | Technical debt, race conditions, state management, auth models, cost at scale, failure modes | Vague data modeling, unspecified error handling, "we'll optimize later" |
+| **Security Officer** | Compliance, threat model, data ops | GDPR/HIPAA/SOC2, data retention, access control, audit trails, encryption, third-party risk | Unencrypted PII, missing audit logs, weak permissions model, unclear data deletion |
+| **DevOps/Operator** | Deployment, observability, incident response | Runbooks, monitoring, graceful degradation, cost predictability, observability, deployment complexity | Manual steps, missing alerting, hard-coded values, no circuit breakers |
+| **Product/UX** | User needs, competitive fit, metrics | Onboarding, support burden, retention levers, edge case UX, accessibility | Untested assumptions, no user research tie-in, missing empty states, unclear CTAs |
+| **Finance/Business** | Unit economics, growth model | CAC/LTV, pricing elasticity, churn levers, cost structure, contribution margin | No pricing strategy, feature bloat, unbounded support costs, unclear ROI |
+
+---
+
+## SECTION 0: INTAKE GATE (Before STEP 1)
+**This gates whether the PRD even makes sense to build.**
+
+### 0.1 Founder Input (Required)
+Product name, value proposition, target users, use cases, business goals, constraints.
+
+### 0.2 Immediate Red Flag Check
+Run these checks **before any work starts**:
+
+- ❌ **No clear user problem statement** → Stop. Demand evidence (user interviews, support tickets, cohort data). Do not speculate.
+- ❌ **Conflicting goals** (e.g., "maximize margins" + "free tier to build network effects") → Surface explicitly, negotiate tradeoffs.
+- ❌ **Regulatory mismatch** (e.g., healthcare use case but no HIPAA plan) → Derisk or pivot now.
+- ❌ **Timeline vs. scope mismatch** (e.g., "build in 4 weeks" + "needs SOC2 + multi-tenant + integrations") → Scope down or extend timeline.
+- ❌ **No clear success metric** → Build one together before PRD. ("Activate" is not a metric; "30-day activation rate 60%" is.)
+
+### 0.3 Persona Pre-Flight
+Each persona says go/no-go with reasoning:
+
+| Persona | Go/No-Go | Concern | Mitigation |
+|---------|----------|---------|-----------|
+| **Staff** | ? | ? | ? |
+| **Security** | ? | ? | ? |
+| **DevOps** | ? | ? | ? |
+| **Product** | ? | ? | ? |
+| **Finance** | ? | ? | ? |
+
+If **any persona says no-go**, the founder must answer that persona's concern or the PRD is blocked.
+
+---
+
+## STEP 1: CLARIFY AND CHALLENGE (With Persona Oversight)
+
+### 1.1 Founder's Restatement
+**Founder restates the product in their own words.** (Goal: catch their own fuzzy thinking.)
+
+- What problem does this solve?
+- For whom exactly?
+- Why does this problem matter now?
+- What would success look like?
+
+### 1.2 Assumptions Inventory
+**List every assumption the founder is making.** Mark confidence level (high/medium/low).
+
+Examples:
+- "Users will integrate with Slack" (confidence: medium — not yet validated)
+- "SMB accounts will have 3–5 admins" (confidence: low — guessing)
+- "We can onboard a user in <5 minutes" (confidence: low — untested)
+
+### 1.3 High-Leverage Clarification Questions (Up to 10)
+Ask questions that would **materially change the PRD**. Each persona gets 2–3 questions.
+
+#### Staff Engineer Questions (Scalability, Technical Debt)
+1. **Concurrency model:** How many simultaneous users? How many daily active users (DAU) by end of Year 1? When do you anticipate hitting 10K DAU / 100K DAU?
+2. **State management:** Where is the source of truth for each critical entity (user session, data ownership, role hierarchy, audit events)? Can multiple writes collide?
+3. **Third-party risk:** Which external services are *mission-critical* vs. "nice to have"? What happens if Stripe goes down for 2 hours? What if your auth provider is unavailable?
+4. **Cost ceiling:** What is the acceptable cost-per-user per month (COGS)? Does this product need to reach $5M ARR by Year 3, or is it a revenue-sharing side project?
+5. **Data gravity:** Is this primarily reads or writes? How often does data change? Are you building a real-time system or eventual-consistency-OK?
+
+#### Security Officer Questions (Compliance, Data Handling)
+1. **Data sensitivity:** What is the most sensitive data you'll store? (Passwords? Payment info? PHI? Trade secrets?) Does this trigger HIPAA, PCI-DSS, GDPR, or other frameworks?
+2. **Multi-tenancy model:** Are users completely isolated from each other, or do they share some data (e.g., a shared knowledge base)? If shared, what is the isolation guarantee?
+3. **Admin access:** Who can see what? Can support staff view user data? Can founders? Are all admin actions logged?
+4. **Third-party data sharing:** Will you send user data to third parties (analytics, AI models, payment processors)? Under what terms?
+5. **Audit trail requirements:** If a user claims data was altered, can you prove who did it and when? For how long must you keep audit logs?
+
+#### DevOps/Operator Questions (Deployment, Incidents)
+1. **Failure modes:** If the database goes down, what breaks first? If the payment processor is down, can users still use the product? What is your acceptable downtime per month?
+2. **Deployment cadence:** Will you deploy 10x a day, 1x a week, or 1x a quarter? Does this product need canary deployments or feature flags?
+3. **Observability:** What will you monitor? Error rate? Latency? Cost? Audit log size? Who gets paged at 3 AM?
+4. **Scaling triggers:** At what user count do you need to shard the database? At what transaction rate do you need a queue? Do you have cost estimates?
+5. **Rollback plan:** If a deploy breaks something, how fast can you rollback? Do you test rollbacks?
+
+#### Product/UX Questions (User Needs, Metrics)
+1. **User research validation:** Have you talked to 10+ users who have the problem you're solving? What did they say they'd pay? What would make them churn?
+2. **Competitive landscape:** Who else solves this? How is your product different? (Bonus question: why should users switch?)
+3. **Onboarding assumption:** How long should onboarding take? Have you tested it with actual users? At what step do users drop off?
+4. **Support playbook:** How many support tickets do you expect per month? What are the top 3 reasons users contact support? Can the product reduce that?
+5. **Retention levers:** What makes a user come back? Is it habit, FOMO, switching costs, or dependency? How will you measure it?
+
+#### Finance/Business Questions (Unit Economics, Growth)
+1. **Pricing model:** How will you charge (per seat, per feature, per transaction, fixed plan)? What is your target CAC and target LTV? What LTV/CAC ratio do you need to hit?
+2. **Cost structure:** What are your fixed costs (team, servers, tools) vs. variable costs (per-user fees, payment processing, support)? Does the business work if you acquire users at $X?
+3. **Sales motion:** Is this PLG (product-led growth), self-serve, sales-assisted, or enterprise sales? How does that change the pricing model and onboarding?
+4. **Churn risk:** What is your best guess for 12-month churn? What segments churn first? How much can churn vary before the business breaks?
+5. **Expansion opportunity:** Can customers spend more over time (upsells, add-ons, higher tiers)? Or is this a one-time transaction?
+
+---
+
+### 1.4 Unknown Unknowns: Five Blind Spots Founders Always Miss
+
+These are things the founder **doesn't even know to ask about**. Call them out explicitly:
+
+#### Blind Spot 1: Permissions Explosion
+**The Problem:** Founders sketch out 2–3 roles and think they're done. Real products end up with 15+ permission combinations.
+
+**Questions to surface:**
+- Can users have multiple roles? (Admin + Viewer?)
+- Can you grant permissions at different granularities? (Organization-level, team-level, object-level?)
+- Can a user delete data they didn't create?
+- Can a user edit another user's account (e.g., SSO admin)?
+- Do suspended accounts lose access instantly or after a grace period?
+- Can a user revoke their own access?
+
+**Why it matters:** If permissions are fuzzy, you'll hit bugs in production. If permissions are too restrictive, users rage-quit. Staff Engineer will push back if you don't model this up front.
+
+#### Blind Spot 2: Notifications & Notification Fatigue
+**The Problem:** Founders say "send email when X happens" and think they're done. Then users get 50 emails a day and unsubscribe.
+
+**Questions to surface:**
+- Which events trigger notifications? (Every action? Only high-priority ones?)
+- Can users customize notification preferences per event? (Email, SMS, in-app, push?)
+- Do you batch notifications? (Daily digest vs. real-time?)
+- What is your unsubscribe / silence strategy?
+- Do admins get different notifications than members?
+- What happens if the notification service fails? (Queue, retry, log, or silent fail?)
+
+**Why it matters:** Notification fatigue is a top driver of churn. Product/UX will flag this.
+
+#### Blind Spot 3: Data Retention & Deletion
+**The Problem:** Founders assume data lives forever. Then a user asks "can you delete my account?" and the answer is "um, no."
+
+**Questions to surface:**
+- How long do you keep deleted data?
+- When a user deletes an object, do related objects get orphaned or cascade-deleted?
+- Can you actually delete a user from your system completely, or just mark them inactive?
+- Do you keep audit logs forever? (Security/Finance will fight about this.)
+- If a user requests GDPR deletion, can you comply in <30 days?
+- What data can't be deleted (backups, legal holds)?
+
+**Why it matters:** GDPR, CCPA, and other regulations require deletion. Security Officer will block the PRD if this is fuzzy.
+
+#### Blind Spot 4: Error States & Degradation
+**The Problem:** Founders design the happy path. What happens when things fail?
+
+**Questions to surface:**
+- If a payment fails, can the user still use the product?
+- If you lose connection to an external service (Stripe, Slack, OpenAI), what happens?
+- If a background job fails (email send, report generation), how does the user know?
+- Can a user retry failed actions, or do they have to contact support?
+- If the database is slow, do you show a spinner or a timeout error?
+- What is the maximum graceful degradation time?
+
+**Why it matters:** DevOps will design incident runbooks around these answers. If they're missing, incidents will be chaotic.
+
+#### Blind Spot 5: Admin Tools & Operational Leverage
+**The Problem:** Founders build for end users but forget about the team that has to support them.
+
+**Questions to surface:**
+- Can support staff see what a user sees (for debugging)?
+- Can support staff undo user actions (delete, refund, reset)?
+- Can an admin search all users by email/name/company?
+- Can an admin manually trigger workflows (resend email, recalculate metrics)?
+- Do you have feature flags to toggle features on/off per user or per organization?
+- Can you export user data for analysis?
+- How do you track what support staff did? (Audit log of admin actions?)
+
+**Why it matters:** Without admin tools, every support request becomes "contact engineering." Cost explodes, users wait longer, everyone is unhappy.
+
+---
+
+### 1.5 Standard Product Surfaces (Enforce All or Justify)
+**Call out any of these that the founder hasn't mentioned. Mark them as either IN-SCOPE or EXPLICITLY OUT-OF-SCOPE.**
+
+- [ ] **Onboarding/FTUX** — First-time user experience (sign up, welcome email, interactive walkthrough, sample data)
+- [ ] **Permissions/Roles** — User roles and what they can do
+- [ ] **Notifications** — Email, SMS, in-app, push, unsubscribe
+- [ ] **Billing** — Plans, trials, upgrade/downgrade, payment failure handling
+- [ ] **Account Recovery** — Password reset, account deletion, SSO
+- [ ] **Audit Logs** — Who did what, when, and why
+- [ ] **Admin Dashboard** — User management, feature flags, support tools
+- [ ] **Analytics/Observability** — What are we measuring? How do we know if it works?
+- [ ] **Data Export** — Can users export their data? (GDPR requirement in EU)
+- [ ] **API** — Do external systems need to integrate with this product?
+- [ ] **Help/Support** — In-app help, FAQ, support contact, chatbot
+- [ ] **Accessibility** — WCAG 2.1 AA or higher?
+- [ ] **Localization** — Time zones, currencies, languages?
+- [ ] **Mobile experience** — Web only, or mobile-first?
+
+---
+
+### 1.6 Conflict Surfacing Template
+**If two personas disagree, call it out here with explicit tradeoffs.**
+
+Example:
+- **Conflict:** Finance wants unlimited notifications to drive engagement. Product says that causes churn.
+- **Tradeoff:** Test different notification frequencies; measure impact on engagement AND churn. Pick the frequency that maximizes LTV.
+- **Owner:** Product Manager decides, Finance models scenarios.
+
+---
+
+## STEP 2: DEFINE SCOPE & NON-SCOPE (With Persona Sign-Off)
+
+### 2.1 Scope Gate: Proposed V1 Scope
+List the **absolute minimum** to prove the core value proposition.
+
+**Format:**
+```
+V1 Scope:
+- Core feature 1 (why: value prop depends on it)
+- Core feature 2 (why: differentiation)
+- Essential support surface 3 (why: table stakes)
+- ...
+
+Non-Scope (V2+):
+- Nice-to-have feature 1 (why: doesn't prove value prop; can add after validation)
+- Advanced feature 2 (why: technical complexity; low priority now)
+- ...
+
+Explicitly Out of Scope:
+- 5-person teams (out of scope: we're targeting 1–2 person orgs first)
+- Offline mode (out of scope: connection assumed always available; can revisit if usage shows otherwise)
+- ...
+```
+
+### 2.2 Persona Sign-Off: Can We Build This?
+
+| Persona | Can we build V1? | Blocker (if any) | Mitigation |
+|---------|------------------|-----------------|-----------|
+| **Staff** | Yes/No | ? | ? |
+| **Security** | Yes/No | ? | ? |
+| **DevOps** | Yes/No | ? | ? |
+| **Product** | Yes/No | ? | ? |
+| **Finance** | Yes/No | ? | ? |
+
+**If any persona says "No," negotiation happens here.** Staff Engineer can't ship without Security Officer sign-off on data handling. Finance can't sign off if the unit economics don't work.
+
+### 2.3 Risky Ambiguities Remaining
+**List what is still fuzzy and will need to be resolved during build.**
+
+Example:
+- ⚠️ **OPEN QUESTION:** How do we handle conflicts if two users edit the same object simultaneously? (Needs research + decision)
+- ⚠️ **OPEN QUESTION:** What is acceptable latency for real-time updates? (Needs metric from Product)
+- ⚠️ **OPEN QUESTION:** How many concurrent users can we support on a single no-code instance? (Needs testing)
+
+---
+
+## STEP 3: DRAFT THE PRD STRUCTURE
+
+### 3.1 Overview
+
+#### 3.1.1 Problem Statement
+**What is the user's problem?** Be specific. Use research data.
+
+Example (✓ Good):
+```
+Service desk managers at 20–100 person MSPs spend 2–3 hours/week manually 
+tracking which tickets are stalled. They estimate 30% of escalations are 
+forgotten because there's no visibility into ticket age.
+```
+
+Example (✗ Bad):
+```
+"Ticket management is hard and confusing."
+```
+
+#### 3.1.2 Target Users & Personas
+**Who is the user?** Not "businesses" — **specific roles with specific workflows.**
+
+Format:
+```
+Primary Persona: Service Desk Manager at MSP
+- Age/experience: 32–45, 3–10 years in IT
+- Problem: Stale tickets pile up; escalations get lost
+- Success metric: "I know in <5 seconds which tickets are stalled"
+- Objections to overcome: "I already use ticketing software; why do I need this?"
+
+Secondary Persona: Level 2/3 Engineer
+- Age/experience: 25–40, 2–8 years experience
+- Problem: Notified of escalations too late
+- Success metric: "I can jump into a stalled ticket and get context in <2 minutes"
+- Objections: "Why can't my ticketing software do this?"
+```
+
+#### 3.1.3 Competitive Positioning
+**Who else solves this? How are you different?**
+
+| Competitor | Strength | Weakness | Your Differentiation |
+|------------|----------|----------|----------------------|
+| Tool A | | | |
+| Tool B | | | |
+
+#### 3.1.4 Goals & Success Metrics
+**What defines success?** Must be measurable; must align with business model.
+
+Format:
+```
+Business Goals:
+1. Achieve 40% 30-day activation rate by end of Q2 (= 40% of new users 
+   are using the product 30+ days after signup)
+2. Reduce 12-month churn to <8% (current: 12%)
+3. Reach $500K ARR by end of Year 1 (implies 10 accounts @ $50K ARR each, 
+   OR 100 accounts @ $5K ARR each, etc.)
+
+Product Goals:
+1. Time-to-value <5 minutes (user solves their core problem within 5 min of signup)
+2. Support escalations <5 per month (product so clear, minimal support needed)
+3. NPS >50 (industry standard for SaaS is 30–50)
+```
+
+**Attach KPIs to each goal** (required by Finance, DevOps, Product):
+
+| Metric | Current | Target (Q2) | Owner | Alert Threshold |
+|--------|---------|-------------|-------|-----------------|
+| 30-day activation | — | 40% | Product | <35% |
+| Support tickets/month | — | <5 | Ops | >10 |
+| Avg. time-to-value | — | 5 min | Product | >8 min |
+
+---
+
+### 3.2 User Roles & Permissions Matrix
+**(Staff Engineer + Security Officer will challenge this.)**
+
+#### 3.2.1 Roles
+Define every role. Use specific language.
+
+```
+Role: Admin
+- Can create/edit/delete users in their organization
+- Can view audit logs
+- Can configure notification preferences for the organization
+- Cannot access audit logs of other organizations
+- Cannot delete their own account (must contact support)
+
+Role: Member (standard user)
+- Can create objects (tickets, reports, etc.)
+- Can view their own objects and objects shared with them
+- Cannot create other users
+- Cannot view audit logs
+- Can customize their own notification preferences
+
+Role: Viewer (read-only)
+- Can view specific objects (granted per-user by Admin)
+- Cannot create or edit
+- Cannot view audit logs
+```
+
+#### 3.2.2 Permission Matrix
+**For each role, explicitly state what they can and cannot do.**
+
+| Action | Admin | Member | Viewer |
+|--------|-------|--------|--------|
+| Create user | ✓ | ✗ | ✗ |
+| View all tickets | ✓ | Only own | Only shared |
+| Edit other's ticket | ✓ | ✗ | ✗ |
+| Delete ticket | ✓ | Own only | ✗ |
+| View audit log | ✓ | ✗ | ✗ |
+| Export data | ✓ | Own only | ✗ |
+
+#### 3.2.3 Permission Escalation & Appeals
+**If a member needs to do something they don't have permission for, what happens?**
+
+```
+- Member sees: "Contact Admin for access to [action]"
+- Admin gets email: "User X requested permission to [action]"
+- Admin can grant temporarily (expires in 30 days) or permanently
+```
+
+---
+
+### 3.3 Authentication & Account Management
+
+#### 3.3.1 Sign-Up / Sign-In Flow
+**No hand-waving; spell out every step.**
+
+```
+Sign-Up Flow:
+1. User lands on /signup
+2. Enters email + password (password must be 8+ chars, 1 uppercase, 1 number)
+3. Clicks "Create Account"
+4. Verification email sent (expires in 24 hours)
+5. User clicks link, redirected to /confirm-email
+6. Shown welcome modal: "Choose your organization name"
+7. Creates organization
+8. Redirected to /onboarding (see Onboarding section)
+
+Sign-In Flow:
+1. User lands on /signin
+2. Enters email
+3. Enters password
+4. If correct: session cookie set (expires in 30 days, refreshes on activity)
+5. Redirected to /dashboard
+6. If incorrect: shown "Email or password incorrect" (generic; don't reveal which field)
+```
+
+#### 3.3.2 Password Reset
+```
+1. User clicks "Forgot password"
+2. Enters email
+3. Reset link sent (expires in 1 hour)
+4. User clicks link, redirected to /reset-password?token=XXX
+5. Enters new password
+6. Redirected to /signin
+7. If user does not reset within 1 hour, link expires and user must request new link
+```
+
+#### 3.3.3 Multi-Factor Authentication (MFA)
+**Mark priority: Must-Have, Should-Have, or Could-Have for V1.**
+
+Example:
+```
+MFA: Should-Have (for v1)
+- Admins must enable MFA (security requirement)
+- Members can optionally enable MFA
+- Method: TOTP (e.g., Google Authenticator) or SMS (if legal/budget allows)
+- Recovery codes: User given 10 single-use backup codes
+- If user loses authenticator: admin can reset MFA for them (audit logged)
+```
+
+#### 3.3.4 Session Management
+```
+- Session timeout: 30 days of inactivity
+- Session "refresh": Extended if user is active
+- Can user have multiple active sessions? (E.g., logged in on laptop + phone?)
+  → Decision: Yes, but only 5 concurrent sessions (prevents account takeover)
+- Logout: Clears session cookie immediately
+- "Logout all devices": Admin can force logout of all sessions for a user (audit logged)
+```
+
+#### 3.3.5 Account Deletion & Recovery
+```
+Account Deletion Flow:
+- User initiates deletion (Settings → Account → Delete)
+- Shown: "This cannot be undone. You will lose access to all data."
+- Asked to confirm email
+- Account marked for deletion (soft-delete; data retained for 30 days)
+- After 30 days: hard delete (all data removed)
+- User can cancel deletion within 30-day window
+
+Account Recovery (if deletion was accidental):
+- User contacts support
+- Support staff can restore account within 30 days
+- Account re-activated
+- Audit logged: "Account restored by [support staff] at [time]"
+```
+
+---
+
+### 3.4 User Stories & Jobs-to-be-Done
+**Group by persona. For each story: goal, trigger, happy path, edge cases.**
+
+#### 3.4.1 Example: Service Desk Manager Persona
+
+**Story 1: Identify Stalled Tickets**
+```
+As a Service Desk Manager
+I want to see which tickets have not been touched in >X hours
+So that I can escalate them to the next level
+
+Trigger: User opens dashboard
+
+Happy Path:
+1. User sees list of all tickets
+2. Each ticket shows: ID, title, assignee, last-updated-time
+3. Tickets sorted by "last-updated-time" ascending (oldest first)
+4. Tickets >8 hours old are highlighted in red
+5. User can click "Stalled tickets" filter to see only red ones
+6. User can bulk-select and reassign
+
+Edge Cases:
+- What if ticket has no assignee? (Still show in stalled list? Yes.)
+- What if ticket is paused (waiting for customer response)? (Exclude from stalled? 
+  Add "status=paused" filter to distinguish.)
+- What if user has permission to view ticket but not edit it? (Show as read-only; 
+  still highlight; show "Request escalation" button instead of "Reassign")
+```
+
+**Story 2: Receive Escalation Notification**
+```
+As a Level 2 Engineer
+I want to be notified when a ticket is escalated to me
+So that I don't miss critical issues
+
+Trigger: Admin escalates ticket to this user
+
+Happy Path:
+1. Ticket marked as escalated
+2. User receives email: "[Ticket #123] Escalated to you by [manager]"
+3. Email includes ticket summary + urgency
+4. Click link → opens ticket detail page
+5. User can respond directly from ticket
+
+Edge Cases:
+- User has disabled email notifications? (Still sent? Or only in-app? → Decision: 
+  Always send critical notifications; user can opt out per-channel)
+- User is on vacation? (Auto-responder? → Out of scope for v1)
+- Ticket was escalated to a user who no longer has permission? (Show warning to admin; 
+  suggest alternative assignee)
+```
+
+---
+
+### 3.5 Feature List & Priorities
+**Group by functional area. For each feature: description, priority, dependencies, no-code feasibility.**
+
+Format:
+```
+## Core Features (Must-Have for V1)
+
+Feature: Dashboard / Ticket List View
+- Description: Shows all tickets the user has permission to see. Sortable by 
+  created date, updated date, assignee, status. Filterable by status, assignee, priority.
+- Priority: Must-Have (core value prop)
+- Dependencies: User authentication, tickets data model, permissions system
+- No-Code Feasibility: Native no-code friendly (simple table + filters)
+- Persona Sign-Off:
+  - Staff: ✓ (no scaling issues at 1K tickets)
+  - Product: ✓ (users expect this)
+  - Ops: ✓ (easy to monitor)
+
+Feature: Ticket Detail Page
+- Description: Full view of a single ticket. Shows: title, description, status, 
+  assignee, created/updated dates, audit trail, comments thread.
+- Priority: Must-Have
+- Dependencies: Permissions, audit logs, comments system
+- No-Code Feasibility: Native no-code friendly
+- Persona Sign-Off: ✓ All
+
+Feature: Escalation Workflow
+- Description: When a manager marks a ticket as "escalated," the assignee is notified 
+  and ticket appears in their "escalated" view.
+- Priority: Must-Have
+- Dependencies: Notifications system, permissions, audit logs
+- No-Code Feasibility: Likely needs plugin (for conditional notifications based on custom field)
+- Persona Sign-Off:
+  - Staff: ⚠️ (need to define race conditions if two managers escalate same ticket)
+  - Security: ✓
+  - Product: ✓
+  - Ops: ⚠️ (how do we know if notification was sent? need logs)
+
+## Essential Support Features (Must-Have)
+
+Feature: Admin Panel
+- Description: Allows admins to manage users, view audit logs, configure notifications.
+- Priority: Must-Have
+- Dependencies: User management, permissions, audit log storage
+- No-Code Feasibility: Native no-code friendly
+- Persona Sign-Off: ✓ All (especially DevOps: "can't run product without this")
+
+Feature: Audit Log Viewer
+- Description: Admin can view all changes to tickets, user actions, permission changes. 
+  Timestamp, actor, action, before/after values.
+- Priority: Must-Have (Security requirement)
+- Dependencies: Audit log data structure, permissions
+- No-Code Feasibility: Native no-code friendly (filterable table)
+- Persona Sign-Off: ✓ All
+
+Feature: Notifications (Email)
+- Description: Trigger rules: ticket assigned, escalated, commented-on. 
+  Batched (no more than 1 digest/hour).
+- Priority: Must-Have
+- Dependencies: Email service (Resend, SendGrid), user preferences
+- No-Code Feasibility: Likely needs plugin (for batching logic)
+- Persona Sign-Off:
+  - Product: ⚠️ (need to monitor unsubscribe rate; if >20%, reduce notification frequency)
+  - Ops: ✓
+
+## Should-Have Features (V1 or Early V2)
+
+Feature: Bulk Actions
+- Description: Select multiple tickets, perform action (reassign, change status, add tag).
+- Priority: Should-Have
+- Dependencies: Permissions, audit logging
+- No-Code Feasibility: Plugin likely
+- Persona Sign-Off: ✓ All
+
+Feature: Custom Fields
+- Description: Admins can add custom fields to tickets (e.g., "customer-tier", "service-level").
+- Priority: Should-Have
+- Dependencies: Dynamic data model, permissions
+- No-Code Feasibility: Requires custom code (no-code platforms struggle with dynamic schemas)
+- Persona Sign-Off:
+  - Staff: ⚠️ (if you add custom fields, do you also need custom filters? Custom permissions per field?)
+  - Product: ✓
+
+## Could-Have Features (V2+)
+
+Feature: Integrations (Slack, Jira, etc.)
+- Description: Sync ticket data to external systems; push notifications to Slack.
+- Priority: Could-Have
+- Dependencies: OAuth, webhooks, rate limiting
+- No-Code Feasibility: Requires custom code (MCP servers or Zapier)
+- Persona Sign-Off:
+  - Staff: ⚠️ (third-party integrations add operational surface area; need support plan)
+  - Ops: ⚠️ (what happens if Slack API is down?)
+
+Feature: Mobile App
+- Description: iOS/Android app for push notifications + quick actions.
+- Priority: Could-Have
+- Dependencies: Mobile development, push notification service
+- No-Code Feasibility: Requires custom code
+- Persona Sign-Off:
+  - Product: ⚠️ (validation needed: do users actually want mobile?)
+```
+
+---
+
+### 3.6 UX & Flows
+
+#### 3.6.1 Key User Flows (Step-by-Step)
+
+**Flow 1: First-Time User (FTUX)**
+```
+1. User signs up
+2. Verification email sent + clicked
+3. User lands on onboarding modal
+4. Step 1: "Create your organization" (text input)
+5. Step 2: "Invite teammates" (optional; can skip)
+6. Step 3: "Create a sample ticket" (guided walkthrough)
+7. Step 4: "Here's your dashboard" (highlight ticket, explain views)
+8. User closes onboarding
+9. Shown: empty state dashboard with CTA "Create your first ticket"
+
+Questions to answer:
+- How long should onboarding take? (Target: <5 min)
+- Can user skip steps? (Yes, but show "You can return to setup anytime")
+- What if user drops off? (Send email: "Finish your setup to unlock all features")
+```
+
+**Flow 2: Escalation Workflow**
+```
+Manager's view:
+1. Manager opens dashboard
+2. Sees red-highlighted stalled tickets
+3. Clicks on a ticket
+4. Clicks "Escalate to [Level 2 Team]"
+5. Modal: "Select assignee" (dropdown with Level 2 engineers)
+6. Selects engineer
+7. Clicks "Escalate"
+8. Ticket status changed to "escalated"
+9. Notification sent to engineer
+
+Engineer's view:
+1. Engineer receives email: "[Ticket #123] Escalated to you by [manager]"
+2. Clicks link → ticket detail page
+3. Sees escalation note: "Escalated by [manager] at [time]"
+4. Can immediately respond with comment
+5. Ticket appears in "My escalations" view (filtered)
+```
+
+#### 3.6.2 Required Screens/Views
+
+| View | Purpose | Content | No-Code Feasibility |
+|------|---------|---------|-------------------|
+| /dashboard | Show all tickets | Table: ID, title, assignee, status, updated | Native |
+| /ticket/:id | Ticket detail | Title, description, status, assignee, comments, history | Native |
+| /onboarding | First-time user | Walkthrough steps | Native |
+| /admin/users | Manage users | Table: email, role, org, created-date; + create/edit/delete | Native |
+| /admin/audit | Audit logs | Table: timestamp, actor, action, resource, before/after | Native |
+| /settings | User preferences | Notification settings, profile, password reset | Native |
+
+#### 3.6.3 Empty States & Micro-Copy
+
+**Empty State: No Tickets**
+```
+Heading: "No tickets yet"
+Subtext: "Create your first ticket to get started"
+CTA: "Create ticket" (button)
+Illustration: (simple icon)
+```
+
+**Error State: Escalation Failed**
+```
+Alert: "Escalation failed. The assignee no longer has permission to view this ticket."
+Actions: [Retry] [Contact admin] [Assign to different user]
+```
+
+#### 3.6.4 Accessibility (WCAG 2.1 AA Minimum)
+
+- [ ] All buttons have visible focus state (not just color; use outline)
+- [ ] Form labels tied to inputs (<label for="email">)
+- [ ] Error messages linked to form fields (aria-describedby)
+- [ ] Images have alt text
+- [ ] Color contrast >4.5:1 for text
+- [ ] Keyboard-navigable (no mouse-only interactions)
+- [ ] Screen reader compatible (semantic HTML)
+
+---
+
+### 3.7 Notifications System
+
+#### 3.7.1 Notification Triggers
+
+| Trigger | Recipient | Channels | Batching | Frequency |
+|---------|-----------|----------|----------|-----------|
+| Ticket assigned | Assignee | Email, in-app | Yes (daily digest if >5) | Immediate + batch |
+| Ticket escalated | New assignee | Email, in-app | No (critical) | Immediate |
+| Comment added | Followers | Email, in-app | Yes (hourly) | Hourly digest |
+| Status changed | Watchers | Email, in-app | Yes (daily) | Daily digest |
+
+#### 3.7.2 Notification Preferences
+```
+User can customize per event:
+- [ ] Email
+- [ ] In-app
+- [ ] Frequency: Immediate / Hourly / Daily / Off
+
+If user unsubscribes from all notifications: Admin is alerted after 7 days 
+(in case account is dormant).
+```
+
+#### 3.7.3 Notification Failure Handling
+```
+If email send fails:
+1. Retry 3x with exponential backoff (5s, 30s, 5min)
+2. After 3 failures: log error, alert DevOps, user gets in-app notification instead
+3. Admin can manually resend failed notifications
+```
+
+---
+
+### 3.8 Billing, Subscriptions & Entitlements
+
+#### 3.8.1 Pricing Tiers
+
+```
+Free Plan:
+- Up to 2 users
+- Up to 100 tickets/month
+- Basic notifications
+- No API access
+- Limited audit log (30 days)
+
+Pro Plan ($99/month):
+- Up to 10 users
+- Unlimited tickets
+- Advanced notifications (custom rules, batching)
+- API access
+- 1-year audit log retention
+- Priority support (24-hour response)
+
+Enterprise (Custom):
+- Unlimited users
+- Unlimited tickets
+- Custom integrations
+- Audit log retention per contract
+- 24/7 support, dedicated account manager
+- SSO (SAML/OAuth)
+```
+
+#### 3.8.2 Trial & Upgrade Flow
+```
+Free users see banner after 14 days: "Upgrade to Pro to unlock [features]"
+
+Upgrade flow:
+1. User clicks "Upgrade"
+2. Lands on /billing
+3. Chooses plan
+4. Enters payment info (Stripe)
+5. If payment succeeds: account switched, email sent "Welcome to Pro!"
+6. If payment fails: shown error, offered retry; after 3 failures, flagged in admin
+```
+
+#### 3.8.3 Downgrade & Cancellation
+```
+Downgrade (Pro → Free):
+- User clicks "Downgrade" on /billing
+- Warned: "You will lose features. This takes effect at your next billing cycle."
+- If over user limit: shown "You have 12 users. Free plan allows 2. Manage users 
+  before downgrading."
+- Downgrade happens at period end (not immediately)
+
+Cancellation:
+- User clicks "Cancel subscription"
+- Asked: "Why are you canceling?" (feedback form; optional)
+- Shown: "Your account will be deleted in 30 days. You can reactivate anytime."
+- After 30 days: data deleted (see Data Retention section)
+```
+
+#### 3.8.4 Failed Payment Handling
+```
+Payment fails:
+1. Email sent: "Payment failed. Click here to update payment method."
+2. Account downgraded to Free (if over Free limits, show warning)
+3. Dashboard shows banner: "Update payment to restore Pro access"
+4. After 7 days of failed payment: email sent "Your Pro access expires in 3 days"
+5. After 30 days: permanently downgraded to Free (data preserved)
+```
+
+---
+
+### 3.9 Data Model & Integrations
+
+#### 3.9.1 Core Entities & Fields
+
+```
+Table: Organizations
+- organization_id (UUID, PK)
+- name (string, 255 chars)
+- created_at (timestamp)
+- updated_at (timestamp)
+- billing_status (enum: active, trial, suspended, canceled)
+- plan_tier (enum: free, pro, enterprise)
+- user_count (int, read-only; calculated from users table)
+
+Table: Users
+- user_id (UUID, PK)
+- organization_id (UUID, FK to Organizations)
+- email (string, unique within org)
+- password_hash (bcrypt, never in API responses)
+- role (enum: admin, member, viewer)
+- created_at (timestamp)
+- updated_at (timestamp)
+- is_active (boolean; soft delete)
+- last_login (timestamp, nullable)
+- is_mfa_enabled (boolean)
+
+Table: Tickets
+- ticket_id (UUID, PK)
+- organization_id (UUID, FK)
+- title (string, 255 chars)
+- description (text, 10K chars max)
+- status (enum: open, in_progress, escalated, closed)
+- assignee_id (UUID, FK to Users, nullable)
+- created_by (UUID, FK to Users)
+- created_at (timestamp)
+- updated_at (timestamp)
+- last_touched_at (timestamp) [for staleness detection]
+- priority (enum: low, medium, high, critical)
+
+Table: Comments
+- comment_id (UUID, PK)
+- ticket_id (UUID, FK)
+- author_id (UUID, FK to Users)
+- text (text, 5K chars max)
+- created_at (timestamp)
+- updated_at (timestamp)
+- is_internal (boolean) [if true, only admins + author see it]
+
+Table: AuditLog
+- audit_id (UUID, PK)
+- organization_id (UUID, FK)
+- actor_id (UUID, FK to Users, nullable if system action)
+- resource_type (enum: user, ticket, comment, org_setting)
+- resource_id (UUID)
+- action (enum: create, update, delete, escalate)
+- changes (JSON) [before + after values]
+- timestamp (timestamp)
+- ip_address (string, anonymized: last octet removed)
+
+Table: UserPreferences
+- preference_id (UUID, PK)
+- user_id (UUID, FK, unique)
+- notifications_email_enabled (boolean, default true)
+- notifications_batch_frequency (enum: immediate, hourly, daily)
+- notifications_per_event (JSON) [{"ticket_assigned": "email", "comment_added": "in_app"} ]
+- timezone (string, e.g., "America/Chicago")
+- theme (enum: light, dark, system)
+
+Table: Invitations (for team member signup flow)
+- invitation_id (UUID, PK)
+- organization_id (UUID, FK)
+- email (string)
+- invited_by (UUID, FK to Users)
+- role (enum: admin, member)
+- token (string, unique, 32 chars random)
+- created_at (timestamp)
+- expires_at (timestamp, 7 days from creation)
+- claimed_at (timestamp, nullable)
+- claimed_by (UUID, nullable)
+```
+
+#### 3.9.2 Relationships & Constraints
+
+```
+Organizations
+  └── has many Users
+  └── has many Tickets
+  └── has many AuditLog entries
+
+Users
+  └── has many Tickets (created_by)
+  └── has many Tickets (assignee_id, optional)
+  └── has one UserPreferences
+  └── has many Comments (author_id)
+
+Tickets
+  └── has many Comments
+  └── has many AuditLog entries
+
+AuditLog entries are immutable (no updates, only inserts).
+
+Cascading deletes:
+- When user is deleted: set user_id to NULL in created_by foreign keys, 
+  but keep ticket + history (audit trail must be preserved).
+- When comment is deleted: mark as_deleted=true, keep in audit log.
+```
+
+#### 3.9.3 External Integrations
+
+| System | Purpose | Authentication | Data Sent | Risk | Fallback |
+|--------|---------|-----------------|-----------|------|----------|
+| Stripe | Payments | API key (server-side only) | Customer ID, payment method | Moderate (payment data) | Downgrade to Free, email admin |
+| Resend | Email sending | API key | User email, ticket summary | Low | Queue for retry; in-app notification |
+| Auth0 (optional) | SSO / OAuth | OAuth2 flow | Email, basic profile | Low | Fallback to email/password |
+
+---
+
+### 3.10 Data Retention, Export & Deletion
+
+#### 3.10.1 Data Retention Policy
+
+```
+Active Organizations:
+- All data retained indefinitely (user content is their property)
+- Backups retained for 30 days (for disaster recovery)
+
+Suspended Organizations (non-payment):
+- Data retained for 30 days
+- After 30 days: data soft-deleted (marked as inactive; not queryable)
+- After 90 days: hard-deleted (permanently removed)
+
+Deleted User (within active org):
+- User account marked as inactive
+- User's content (tickets, comments) NOT deleted
+- User's email still retained (for audit purposes)
+- User can be reactivated within 30 days
+
+User Requests Data Deletion (GDPR):
+- Admin must comply within 30 days
+- Deletes: email, password, preferences, phone number
+- Keeps (anonymized): name changed to "Deleted User", authored content 
+  (for audit trail integrity)
+- Hard-deletes personal data; anonymizes in audit log
+```
+
+#### 3.10.2 Data Export
+
+```
+User can export:
+- All tickets they created or are assigned to (CSV)
+- All their comments (CSV)
+- Full account history (JSON)
+
+Admin can export:
+- All organization data (CSV/JSON)
+- Audit log (CSV)
+- User list (CSV)
+
+Export happens asynchronously (queued job):
+- Large exports (>10MB) sent via secure download link (expires in 24h)
+- Email sent with link
+- If export fails: admin notified; offered retry
+```
+
+#### 3.10.3 GDPR / CCPA Compliance
+
+```
+GDPR (EU users):
+- [ ] Right to access: User can export their data
+- [ ] Right to correction: User can edit their profile
+- [ ] Right to erasure: User can request deletion; complied in <30 days
+- [ ] Data processing agreement (DPA) in place with service providers (Stripe, Resend)
+- [ ] Privacy policy visible; consent to processing obtained at signup
+- [ ] Sub-processors disclosed (Stripe, Resend, hosting provider)
+
+CCPA (California users):
+- [ ] Right to know: User can request data; provided in machine-readable format
+- [ ] Right to delete: User can request deletion; complied in <45 days
+- [ ] Right to opt-out: User can opt out of data sales (if applicable; here: we don't sell data)
+```
+
+---
+
+### 3.11 Admin Dashboard & Internal Tools
+
+#### 3.11.1 User Management Panel
+```
+Admin can:
+- View all users in organization (email, role, created_at, last_login)
+- Create user (fill form, send invite link)
+- Edit user (role, resend invite, force password reset)
+- Suspend user (disable login immediately; data preserved)
+- Delete user (soft-delete; show 30-day recovery option)
+- Bulk actions (select >1 user, change role or suspend)
+
+Security:
+- All user management actions logged in AuditLog
+- Suspended/deleted users can be restored within 30 days
+- Cannot delete own account from this interface
+```
+
+#### 3.11.2 Audit Log Viewer
+```
+Admin can filter by:
+- Date range
+- Resource type (user, ticket, comment)
+- Action (create, update, delete)
+- Actor (which user performed action)
+
+For each log entry, show:
+- Timestamp
+- Actor name + email
+- Action
+- Resource ID
+- Before/after values (in JSON, formatted)
+- IP address (last octet anonymized)
+
+Export audit logs to CSV for compliance audits.
+```
+
+#### 3.11.3 Billing Admin Panel
+```
+Admin can:
+- View current plan + renewal date
+- View billing history (invoices, payments)
+- Manage payment method (credit card, update, remove)
+- Upgrade/downgrade plan (triggers effective immediately or at period-end)
+- View user count vs. plan limit
+- Set usage alerts (email admin if approaching limits)
+```
+
+#### 3.11.4 Feature Flags (Internal Tools)
+```
+System should have feature flags for gradual rollout:
+- Flag: "show_escalation_workflow" (default: on)
+- Flag: "enable_bulk_actions" (default: off; roll out to 10% → 50% → 100%)
+- Flag: "enable_custom_fields" (default: off; experimental)
+- Can be toggled per organization (support staff can enable for specific customers)
+
+Used for:
+- A/B testing (measure impact of new feature)
+- Gradual rollout (reduce risk)
+- Kill switches (disable broken feature without deploy)
+```
+
+---
+
+### 3.12 Non-Functional Requirements
+
+#### 3.12.1 Performance
+
+| Metric | Target | Rationale |
+|--------|--------|-----------|
+| Page load time | <2s | Users expect responsive UI |
+| API response time | <500ms (p95) | Notifications should feel real-time |
+| Search (ticket list) | <1s for 10K tickets | Users need fast filtering |
+| Bulk escalation (100 tickets) | <5s | Reasonable for batch operations |
+
+**Monitoring:**
+- Alert if API latency exceeds 1s (p95)
+- Alert if page load exceeds 3s
+- Daily report: slowest endpoints
+
+#### 3.12.2 Security
+
+| Control | Requirement | Implementation |
+|---------|-------------|-----------------|
+| Data in transit | TLS 1.2+ | HTTPS only; no HTTP |
+| Data at rest | Encryption (optional detail) | AES-256 for sensitive fields (passwords, payment tokens) |
+| OWASP Top 10 | Mitigated | SQLi prevention (parameterized queries), XSS prevention (output escaping), CSRF tokens on state-changing actions |
+| Passwords | Bcrypt + salt | Min 8 chars; no dictionary words |
+| Session security | Secure cookies | HttpOnly, Secure, SameSite=Strict flags |
+| Rate limiting | 10 req/sec per user | Prevents brute-force attacks |
+| Input validation | All fields validated | Max length, allowed characters, type checking |
+| Access control | Role-based (RBAC) | User can only access objects they have permission for |
+| Secrets management | No hardcoded secrets | All API keys, credentials in environment variables or secret store |
+
+**Security Audit Checklist:**
+- [ ] OWASP Top 10 addressed
+- [ ] Penetration test (third-party, before launch)
+- [ ] Secrets scanning (GitGuardian, Snyk)
+- [ ] Dependency audit (for vulnerabilities)
+- [ ] GDPR/CCPA compliance verified
+- [ ] SOC 2 Type II audit plan (if targeting enterprise)
+
+#### 3.12.3 Privacy
+
+| Requirement | Detail |
+|-------------|--------|
+| PII handling | No PII in logs; anonymize IPs (last octet removed) |
+| Third-party data sharing | No user data sent to third parties without consent (except payment processor, email service) |
+| Cookies | Functional cookies only; privacy policy discloses all |
+| Retention limits | See Data Retention section |
+| User rights | Export, deletion, correction all supported |
+
+#### 3.12.4 Reliability
+
+| Scenario | Target | Mitigation |
+|----------|--------|-----------|
+| Database downtime | <4 hours/year (99.95% uptime) | Daily backups; multi-region failover (if possible on no-code platform) |
+| Service degradation | Graceful degradation; inform users | Maintenance window scheduled 2 weeks in advance; on-screen banner |
+| Data loss | Zero tolerance | Backups tested monthly |
+| Incident response | <1 hour mean time to recovery (MTTR) | On-call rotation; runbooks for top 5 failure scenarios |
+
+**Backup Strategy:**
+- Daily full backup
+- Backups encrypted at rest
+- Restore test monthly
+- Backups retained for 30 days
+- Alert if backup fails
+
+#### 3.12.5 Accessibility (WCAG 2.1 Level AA)
+
+| Control | Requirement |
+|---------|-------------|
+| Color contrast | >4.5:1 for normal text; >3:1 for large text |
+| Keyboard navigation | All interactive elements accessible via Tab, Enter, Space |
+| Focus visible | Focus indicator on all focusable elements |
+| Alt text | All images have descriptive alt text |
+| Form labels | All inputs have associated labels |
+| Error messages | Linked to form fields; not color-only |
+| Screen reader | Semantic HTML; aria labels where needed |
+
+#### 3.12.6 Localization
+
+```
+V1 Scope: English only (US time zone assumed)
+
+V2+:
+- [ ] Spanish, French, German (most requested)
+- [ ] Currency conversion (USD default; EUR, GBP as options)
+- [ ] Date/time formatting per locale
+- [ ] Right-to-left support (Arabic, Hebrew; if market demands)
+```
+
+---
+
+### 3.13 Analytics & Observability
+
+#### 3.13.1 Events to Track
+
+```
+User Engagement:
+- signup (track: source, email domain)
+- first_ticket_created (track: time-to-event)
+- first_escalation (track: time-to-event)
+- ticket_viewed
+- invitation_sent
+- user_invited_accepted
+
+Product Outcomes:
+- 30_day_activation (retention metric)
+- churn (subscription canceled)
+- upgrade_to_pro (conversion metric)
+- downgrade_to_free
+- support_contacted (issue volume)
+
+System Events:
+- payment_failed (track: error code)
+- notification_sent (track: channel, delivery status)
+- api_error (track: endpoint, status code, error message)
+- escalation_failed (track: reason)
+```
+
+#### 3.13.2 Key Funnels
+
+```
+Funnel 1: Activation (Early)
+Signup → Email confirmed → Org created → First ticket created → First escalation
+Target: 40% of users reach "first escalation" within 7 days
+Alert if <30%
+
+Funnel 2: Upgrade Conversion
+Free user → Sees upgrade prompt → Clicks upgrade → Enters payment → Payment succeeds
+Target: 10% of free users upgrade within 60 days
+Alert if <5%
+
+Funnel 3: Support (Inverse Metric)
+User creates ticket → User contacts support
+Target: <5% of users contact support in first 30 days (means product is clear)
+Alert if >10% (suggests UX is confusing)
+```
+
+#### 3.13.3 Dashboards
+
+**Product Dashboard (for Founder/Product Manager):**
+- Signups (weekly)
+- 30-day activation rate
+- Churn rate (weekly)
+- Free → Pro upgrade rate
+- Time-to-first-ticket
+- Support ticket volume
+- NPS (if surveys enabled)
+
+**Operations Dashboard (for DevOps):**
+- API response time (p50, p95, p99)
+- Error rate (5xx, 4xx, timeouts)
+- Database query latency
+- Notification delivery rate (success %)
+- Payment processing latency
+- Backup status
+- Incident incidents (count, MTTR)
+
+**Compliance Dashboard (for Security Officer):**
+- Audit log growth (GB/month)
+- Failed login attempts (count, patterns)
+- User deletions (count, timestamp)
+- Data exports (count, size)
+- Third-party data access (count, log)
+- MFA adoption rate
+
+---
+
+### 3.14 Scalability & Future-Proofing
+
+#### 3.14.1 Avoid Hard-Coded Assumptions
+
+❌ **BAD:**
+```
+- "Org will have max 100 users"
+- "Tickets per org <10K"
+- "One escalation level (manager → engineer)"
+```
+
+✓ **GOOD:**
+```
+- User count limits enforced by plan tier (not hard-coded)
+- Ticket count unlimited (with performance targets at scale)
+- Escalation levels flexible (can add reviewer level in future)
+```
+
+#### 3.14.2 Anticipate Growth
+
+```
+At 1K organizations (1K × 10 avg users = 10K users):
+- Database indexing strategy in place?
+- Query optimization for large ticket lists?
+- Notification queueing to prevent thundering herd?
+
+At 10K organizations:
+- Multi-region deployment strategy?
+- Caching layer (Redis) for frequently accessed data?
+- Audit log archival (don't keep 10 years of data hot)?
+
+At 100K organizations:
+- Sharding strategy (shard by org_id)?
+- Read replicas for reporting?
+- CDN for static assets?
+```
+
+#### 3.14.3 API Stability
+
+```
+All v1 APIs versioned: /api/v1/tickets
+
+If breaking changes in future: /api/v2/tickets
+Old version supported for 12 months.
+
+Deprecation notice: 6 months before shutdown.
+```
+
+---
+
+## STEP 4: RISK & EDGE-CASE REVIEW
+
+### 4.1 Critical Edge Cases & Failure Modes
+
+| Edge Case | Mitigation |
+|-----------|-----------|
+| User deletes ticket while another user is editing | Optimistic locking (version field); show conflict warning; let user see their changes vs. database version |
+| Manager escalates ticket to suspended user | Validation: check user is active before allowing escalation; if they suspend after, show admin warning |
+| Notification service down for 30 minutes | Notifications queue to database; retry when service recovers; user sees in-app notification immediately |
+| Stripe payment processing is slow (>10s) | Client-side timeout after 30s; shows "Payment processing... we'll confirm via email"; job runs async |
+| User has 50 tabs open; simultaneously edits same ticket in 2 tabs | Last write wins (simple); OR optimistic locking (better); show warning on second tab: "This was updated by someone else; refresh to see latest" |
+| Admin suspends user during active session | Session invalidated immediately; on next API call, user gets 401 error; redirected to /signin |
+| User role changed from Admin → Member | Immediately lose access to /admin; audit logged; notification sent to user |
+| CSV export requested with 100K rows | Job queued; email sent with link to download (expires in 24h); file stored temporarily in S3 |
+
+### 4.2 Top 5 Product Risks
+
+| # | Risk | Likelihood | Impact | Mitigation |
+|---|------|------------|--------|-----------|
+| **1** | Users overload with notifications; churn spikes | High | High | A/B test batching; measure unsubscribe rate; reduce frequency if >20% unsubscribe |
+| **2** | Escalation workflow fails silently; manager doesn't know | Medium | High | Test: all notification types monthly; alert if >5% of escalations fail to notify |
+| **3** | Data loss due to backup failure | Low | Critical | Monthly restore test; multi-region backup; insurance if applicable |
+| **4** | Payment processing outage breaks signup / upgrade | Medium | High | Fallback: free trial allowed during Stripe downtime; manual payment flow (invoice-based) for enterprise |
+| **5** | Unauthorized access (weak permissions logic) | Low | High | Security audit pre-launch; penetration test; quarterly review of access patterns |
+
+### 4.3 Phased Rollout Strategy
+
+**Phase 1 (Weeks 1–2): Soft Launch**
+- Beta: 10 internal users (team + close friends)
+- Measure: activation, time-to-first-ticket, bugs
+- Success: 8/10 reach first escalation within 7 days
+
+**Phase 2 (Weeks 3–4): Limited GA**
+- Invite: 100 signups from waitlist / warm outreach
+- Measure: activation, support load, notifications feedback
+- Success: 40% activation; <2 support tickets/user
+
+**Phase 3 (Week 5–6): Public Launch**
+- Open to all
+- Monitor: churn, NPS, incident rate
+- Success: <5% early churn; NPS >40
+
+**Kill Switch Scenarios:**
+- If churn >15% in first 2 weeks → investigate why; paused acquisition until fixed
+- If escalation workflow has >10% failure rate → disable feature; revert to manual workflow
+- If >50% of users disable notifications → revisit batching strategy
+
+---
+
+## STEP 5: OUTPUT FORMAT & FINAL DELIVERABLES
+
+### Final PRD Checklist
+
+Before delivery, confirm:
+- [ ] All 5 personas have signed off
+- [ ] All 5 "unknown unknowns" addressed
+- [ ] All "standard product surfaces" explicitly scoped (in or out)
+- [ ] Security Officer approved data model + retention policy
+- [ ] Staff Engineer approved scalability plan
+- [ ] DevOps approved operational requirements + runbooks
+- [ ] Product approved metrics + activation funnel
+- [ ] Finance approved pricing model + unit economics
+- [ ] No "OPEN QUESTION" remains unresolved
+- [ ] No silent assumptions; all tradeoffs explicit
+- [ ] MVP scope (<6 weeks) clearly defined
+
+### Recommended Delivery Format
+
+**Document Structure:**
+1. Executive Summary (1 page): Problem, personas, goals, scope, success metrics
+2. User Stories (2 pages): Primary flows
+3. Feature List (2 pages): Must/Should/Could breakdown
+4. Data Model (1 page): Tables + relationships
+5. Non-Functional Requirements (1 page): Performance, security, scalability
+6. Risks & Mitigations (1 page): Top 5 risks + phased rollout
+7. Appendix: Detailed flows, admin tools, compliance checklist
+
+**Format:** Markdown + embedded tables (easy to version-control)
+
+---
+
+## OPTIONAL: MVP CUT & PHASE ROADMAP
+
+### 4–6 Week MVP
+
+**Features:**
+- User signup / login / password reset
+- Create organization + invite users
+- Create ticket, view all tickets, filter by status/assignee
+- Assign ticket, change status
+- View audit log (admin only)
+- Email notifications: ticket assigned, escalated
+- Basic dashboard with stalled tickets view
+- Admin user management panel
+
+**Out of MVP:**
+- Comments/discussion
+- Bulk actions
+- Custom fields
+- Integrations
+- Mobile app
+- Advanced notifications (batching, preferences UI)
+
+**Success Metric:** 40% of signups create ticket within 24 hours.
+
+---
+
+### Phase 2 (Weeks 7–12): Core Completeness
+
+- Comments + threaded discussion
+- Bulk actions (reassign, change status)
+- Notification preferences (per-event customization)
+- Advanced admin tools (feature flags, export tools)
+- Audit log filtering + export
+
+**Success Metric:** <5% support tickets/user/month
+
+---
+
+### Phase 3 (Months 4–6): Ecosystem
+
+- Slack integration (post escalations)
+- API (read tickets, create tickets)
+- Jira sync (if target users request)
+- Custom fields (admin-configurable)
+- Mobile app (iOS/Android via Expo)
+
+**Success Metric:** 20% of users use at least one integration
+
+---
+
+## PERSONA SIGN-OFF TEMPLATE
+
+Before you start building, get explicit buy-in:
+
+```
+STAFF ENGINEER SIGN-OFF:
+  Scalability plan: ✓ Approve (can scale to 100K DAU with plan)
+  Technical debt: ⚠️ Note (notifications batching logic adds complexity; document well)
+  
+SECURITY OFFICER SIGN-OFF:
+  Data handling: ✓ Approve (PII encrypted, GDPR plan in place)
+  Access control: ⚠️ Request (need more detail on suspending users mid-session)
+  
+DEVOPS SIGN-OFF:
+  Deployment: ✓ Approve (no-code platform handles infra)
+  Observability: ✓ Approve (metrics + alerting plan documented)
+  
+PRODUCT SIGN-OFF:
+  UX: ✓ Approve (flows tested with 5 users; strong activation path)
+  Metrics: ✓ Approve (40% activation target is ambitious but achievable)
+  
+FINANCE SIGN-OFF:
+  Unit economics: ✓ Approve ($99/month plan achieves 3:1 LTV/CAC by Month 12)
+  Pricing: ✓ Approve (competitive with similar tools; room for upsell)
+```
+
+---
+
+## END OF PRD FRAMEWORK

@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Setup Score — Kyle Rosebrook</title>
+<meta name="description" content="10 questions. 3 minutes. Find out exactly where your AI setup is leaving performance on the table.">
+<style>
+:root {
+  --black: #0a0a0a;
+  --white: #f5f5f5;
+  --grey-dark: #1a1a1a;
+  --grey-mid: #2a2a2a;
+  --grey-text: #888;
+  --grey-light: #ccc;
+  --accent: #e0e0e0;
+  --blue: #4a9eff;
+  --green: #3ecf8e;
+  --amber: #f5a623;
+  --red: #e74c3c;
+  --font: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 16px; scroll-behavior: smooth; }
+body {
+  font-family: var(--font);
+  background: var(--black);
+  color: var(--white);
+  min-height: 100vh;
+  line-height: 1.6;
+}
+.container { max-width: 680px; margin: 0 auto; padding: 0 24px; }
+
+/* HEADER */
+.header { padding: 32px 0 0; text-align: center; }
+.header-eyebrow {
+  font-size: 11px; letter-spacing: 3px; text-transform: uppercase;
+  color: var(--grey-text); margin-bottom: 12px;
+}
+.header h1 { font-size: clamp(28px, 5vw, 42px); font-weight: 700; line-height: 1.15; margin-bottom: 16px; }
+.header p { font-size: 18px; color: var(--grey-light); margin-bottom: 32px; max-width: 520px; margin-left: auto; margin-right: auto; }
+
+/* PROGRESS */
+.progress-wrap { margin-bottom: 40px; }
+.progress-meta { display: flex; justify-content: space-between; font-size: 12px; color: var(--grey-text); margin-bottom: 8px; }
+.progress-bar-outer { height: 3px; background: var(--grey-mid); border-radius: 2px; overflow: hidden; }
+.progress-bar-inner { height: 100%; background: var(--white); border-radius: 2px; transition: width 0.4s ease; }
+.dimension-label {
+  display: inline-block; font-size: 10px; letter-spacing: 2px; text-transform: uppercase;
+  color: var(--grey-text); border: 1px solid var(--grey-mid);
+  padding: 3px 10px; border-radius: 20px; margin-bottom: 20px;
+}
+
+/* QUESTION CARD */
+.question-card {
+  background: var(--grey-dark);
+  border: 1px solid var(--grey-mid);
+  border-radius: 12px;
+  padding: 32px;
+  margin-bottom: 24px;
+}
+.question-card h2 {
+  font-size: 20px; font-weight: 600; line-height: 1.4;
+  margin-bottom: 28px; color: var(--white);
+}
+.options { display: flex; flex-direction: column; gap: 10px; }
+.option {
+  display: flex; align-items: flex-start; gap: 14px;
+  padding: 14px 16px; border-radius: 8px;
+  border: 1px solid var(--grey-mid);
+  cursor: pointer; transition: all 0.18s ease;
+  background: transparent;
+}
+.option:hover { border-color: #555; background: rgba(255,255,255,0.03); }
+.option.selected { border-color: var(--white); background: rgba(255,255,255,0.07); }
+.option-num {
+  flex-shrink: 0; width: 26px; height: 26px;
+  border-radius: 50%; border: 1px solid var(--grey-mid);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 600; color: var(--grey-text);
+  transition: all 0.18s ease;
+}
+.option.selected .option-num {
+  background: var(--white); color: var(--black); border-color: var(--white);
+}
+.option-text { font-size: 15px; color: var(--grey-light); line-height: 1.45; padding-top: 2px; }
+.option.selected .option-text { color: var(--white); }
+
+/* NAV */
+.nav-row { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; }
+.btn {
+  padding: 12px 28px; border-radius: 8px; font-size: 15px; font-weight: 500;
+  cursor: pointer; border: none; transition: all 0.18s ease;
+}
+.btn-primary { background: var(--white); color: var(--black); }
+.btn-primary:hover { background: var(--grey-light); }
+.btn-primary:disabled { opacity: 0.35; cursor: not-allowed; }
+.btn-ghost { background: transparent; color: var(--grey-text); border: 1px solid var(--grey-mid); }
+.btn-ghost:hover { color: var(--white); border-color: #555; }
+
+/* EMAIL CAPTURE */
+.email-section {
+  background: var(--grey-dark); border: 1px solid var(--grey-mid);
+  border-radius: 12px; padding: 32px; margin-bottom: 24px;
+}
+.email-section h2 { font-size: 22px; font-weight: 600; margin-bottom: 8px; }
+.email-section p { color: var(--grey-light); margin-bottom: 24px; font-size: 15px; }
+.field-row { display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px; }
+.field-row input, .field-row select {
+  width: 100%; padding: 13px 16px;
+  background: var(--grey-mid); border: 1px solid #3a3a3a;
+  border-radius: 8px; color: var(--white); font-size: 15px;
+  outline: none; transition: border-color 0.18s;
+  appearance: none; -webkit-appearance: none;
+}
+.field-row input::placeholder { color: var(--grey-text); }
+.field-row input:focus, .field-row select:focus { border-color: var(--white); }
+.field-row select option { background: #1a1a1a; }
+.submit-btn {
+  width: 100%; padding: 15px; background: var(--white); color: var(--black);
+  border: none; border-radius: 8px; font-size: 16px; font-weight: 600;
+  cursor: pointer; transition: background 0.18s;
+}
+.submit-btn:hover { background: var(--grey-light); }
+.submit-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.form-note { font-size: 12px; color: var(--grey-text); text-align: center; margin-top: 10px; }
+
+/* LOADING */
+.loading-wrap { text-align: center; padding: 60px 0; }
+.loading-spinner {
+  width: 36px; height: 36px; border: 2px solid var(--grey-mid);
+  border-top-color: var(--white); border-radius: 50%;
+  animation: spin 0.8s linear infinite; margin: 0 auto 20px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading-wrap p { color: var(--grey-text); font-size: 15px; }
+
+/* RESULTS */
+.results-header { text-align: center; padding: 40px 0 32px; }
+.results-header .score-band {
+  font-size: 11px; letter-spacing: 3px; text-transform: uppercase;
+  color: var(--grey-text); margin-bottom: 12px;
+}
+.results-header .total-score {
+  font-size: clamp(56px, 12vw, 80px); font-weight: 700; line-height: 1;
+  margin-bottom: 6px;
+}
+.results-header .score-denom { font-size: 20px; color: var(--grey-text); }
+.results-header .band-label { font-size: 18px; font-weight: 600; margin: 12px 0 8px; }
+.results-header .band-desc { color: var(--grey-light); font-size: 15px; max-width: 440px; margin: 0 auto; }
+
+/* DIMENSION CARDS */
+.dimensions-title { font-size: 13px; letter-spacing: 2px; text-transform: uppercase; color: var(--grey-text); margin: 36px 0 16px; }
+.dim-card {
+  background: var(--grey-dark); border: 1px solid var(--grey-mid);
+  border-radius: 10px; padding: 22px 24px; margin-bottom: 12px;
+}
+.dim-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+.dim-name { font-size: 13px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; color: var(--grey-light); }
+.dim-score { font-size: 15px; font-weight: 700; }
+.dim-bar-outer { height: 4px; background: var(--grey-mid); border-radius: 2px; margin-bottom: 14px; overflow: hidden; }
+.dim-bar-inner { height: 100%; border-radius: 2px; transition: width 1s ease; }
+.dim-next-steps { font-size: 14px; color: var(--grey-light); line-height: 1.6; }
+.dim-next-steps strong { color: var(--white); display: block; margin-bottom: 4px; font-size: 13px; }
+.dim-next-steps ul { padding-left: 18px; margin-top: 6px; }
+.dim-next-steps li { margin-bottom: 4px; }
+
+/* CTA BLOCK */
+.cta-block {
+  background: var(--white); color: var(--black);
+  border-radius: 12px; padding: 32px; text-align: center; margin: 32px 0 48px;
+}
+.cta-block h3 { font-size: 22px; font-weight: 700; margin-bottom: 10px; }
+.cta-block p { font-size: 15px; color: #444; margin-bottom: 24px; }
+.cta-block a {
+  display: inline-block; background: var(--black); color: var(--white);
+  padding: 13px 32px; border-radius: 8px; font-size: 15px; font-weight: 600;
+  text-decoration: none; transition: background 0.18s;
+}
+.cta-block a:hover { background: #222; }
+
+/* SCORE COLORS */
+.score-starter { color: #e74c3c; }
+.score-user { color: #f5a623; }
+.score-builder { color: #4a9eff; }
+.score-operator { color: #3ecf8e; }
+.bar-starter { background: #e74c3c; }
+.bar-user { background: #f5a623; }
+.bar-builder { background: #4a9eff; }
+.bar-operator { background: #3ecf8e; }
+
+.hidden { display: none; }
+
+footer {
+  text-align: center; padding: 32px 0 48px;
+  font-size: 13px; color: var(--grey-text); border-top: 1px solid var(--grey-mid);
+}
+footer a { color: var(--grey-text); text-decoration: none; }
+footer a:hover { color: var(--white); }
+
+@media (max-width: 500px) {
+  .question-card { padding: 22px 18px; }
+  .option { padding: 12px 14px; }
+}
+</style>
+</head>
+<body>
+
+<div id="app">
+
+<!-- QUIZ SECTION -->
+<div id="quiz-section">
+  <div class="container">
+    <div class="header">
+      <p class="header-eyebrow">kylerosebrook.com</p>
+      <h1>AI Setup Score</h1>
+      <p>10 questions. 3 minutes. Find out exactly where your AI setup is leaving performance on the table.</p>
+    </div>
+    <div class="progress-wrap">
+      <div class="progress-meta">
+        <span id="progress-label">Question 1 of 10</span>
+        <span id="dimension-badge"></span>
+      </div>
+      <div class="progress-bar-outer"><div class="progress-bar-inner" id="progress-bar" style="width:10%"></div></div>
+    </div>
+    <div id="question-area"></div>
+    <div class="nav-row">
+      <button class="btn btn-ghost" id="btn-back" onclick="goBack()">← Back</button>
+      <button class="btn btn-primary" id="btn-next" onclick="goNext()" disabled>Next →</button>
+    </div>
+  </div>
+</div>
+
+<!-- EMAIL SECTION -->
+<div id="email-section" class="hidden">
+  <div class="container">
+    <div class="email-section">
+      <h2>You're done. Where should we send your breakdown?</h2>
+      <p>Your score is calculated. Drop your email and I'll also send you the full scorecard PDF and a plain-English breakdown of what to fix first.</p>
+      <div class="field-row">
+        <input type="text" id="field-name" placeholder="First name (optional)">
+        <input type="email" id="field-email" placeholder="your@email.com" required>
+        <select id="field-role">
+          <option value="" disabled selected>I work in...</option>
+          <option value="marketing">Marketing</option>
+          <option value="engineering">Engineering / Development</option>
+          <option value="operations">Operations</option>
+          <option value="sales">Sales</option>
+          <option value="leadership">Leadership / Founder</option>
+          <option value="other">Something else</option>
+        </select>
+      </div>
+      <button class="submit-btn" id="submit-btn" onclick="submitForm()">Show me my score →</button>
+      <p class="form-note">No spam. No pitch deck. I'll also send the PDF scorecard.</p>
+    </div>
+  </div>
+</div>
+
+<!-- LOADING -->
+<div id="loading-section" class="hidden">
+  <div class="container">
+    <div class="loading-wrap">
+      <div class="loading-spinner"></div>
+      <p id="loading-text">Scoring your setup...</p>
+    </div>
+  </div>
+</div>
+
+<!-- RESULTS -->
+<div id="results-section" class="hidden">
+  <div class="container">
+    <div class="results-header">
+      <div class="score-band">Your AI Setup Score</div>
+      <div class="total-score" id="result-score">—</div>
+      <div class="score-denom">out of 50</div>
+      <div class="band-label" id="result-band-label">—</div>
+      <div class="band-desc" id="result-band-desc">—</div>
+    </div>
+    <div class="dimensions-title">Breakdown by dimension</div>
+    <div id="dimensions-container"></div>
+    <div class="cta-block">
+      <h3>Ready to fix this?</h3>
+      <p>A 90-minute session where we build your custom AI setup from scratch — profile, skills, plugins, and workflow tuned to how you actually work.</p>
+      <a href="https://kylerosebrook.com" target="_blank">Book a session →</a>
+    </div>
+    <footer>
+      <a href="https://kylerosebrook.com">kylerosebrook.com</a> &nbsp;·&nbsp; AI Setup + Enablement
+    </footer>
+  </div>
+</div>
+
+</div>
+
+<script>
+const QUESTIONS = [
+  {
+    dim: "PROFILE",
+    dimIndex: 0,
+    text: "Do you have a custom AI profile that tells your tools your role, communication style, and goals?",
+    options: [
+      "I use every tool in default mode — no customization at all",
+      "I've added a one-liner bio in one tool",
+      "I have a basic profile set up in my main AI tool",
+      "I have a detailed profile across multiple tools",
+      "Role-specific profiles with goals, tone, and constraints deployed everywhere"
+    ]
+  },
+  {
+    dim: "PROFILE",
+    dimIndex: 0,
+    text: "When you start a new task in AI, how much context does it already have about your work?",
+    options: [
+      "Nothing — every session starts completely from scratch",
+      "I paste context manually each time I need it",
+      "My main tool has some saved memory or notes",
+      "I maintain project-level context in one place",
+      "Persistent, structured context lives across tools — I update it regularly"
+    ]
+  },
+  {
+    dim: "TOOLS",
+    dimIndex: 1,
+    text: "How many AI tools do you actively use for work — and do you know why you use each one?",
+    options: [
+      "0–1 tool, mostly just getting started",
+      "2–3 tools but I mainly use one",
+      "3–5 tools with some overlap I can't explain",
+      "5+ tools with a clear purpose for each",
+      "A deliberate stack — every tool has a job and they don't duplicate each other"
+    ]
+  },
+  {
+    dim: "TOOLS",
+    dimIndex: 1,
+    text: "Do your AI tools connect to the apps you use every day — email, docs, Slack, calendar?",
+    options: [
+      "No integrations at all",
+      "One integration I tried but rarely use",
+      "1–2 integrations that work sometimes",
+      "Multiple live integrations in my daily flow",
+      "AI is wired into my core apps and can take actions on my behalf"
+    ]
+  },
+  {
+    dim: "WORKFLOW",
+    dimIndex: 2,
+    text: "Where does AI actually show up in your workday?",
+    options: [
+      "Occasionally, when I remember to open it",
+      "One or two specific tasks, nothing more",
+      "Maybe 25% of my work — I dip in and out",
+      "Most tasks, but I initiate every single one manually",
+      "Woven in — some things run without me even prompting them"
+    ]
+  },
+  {
+    dim: "WORKFLOW",
+    dimIndex: 2,
+    text: "Do you have saved prompts or templates for tasks you repeat regularly?",
+    options: [
+      "No — I rewrite from scratch every single time",
+      "A few saved somewhere I rarely open",
+      "5–10 prompts I reuse sometimes when I remember",
+      "A library of 10+ prompts organized by task type",
+      "A structured library with variables, examples, and output formats per workflow"
+    ]
+  },
+  {
+    dim: "PROMPTING",
+    dimIndex: 3,
+    text: "How do you typically frame a request when you open an AI tool?",
+    options: [
+      "Quick sentence and hope for the best",
+      "I give context sometimes — pretty inconsistent",
+      "I usually include role, task, and desired output format",
+      "Consistent structure: role, context, task, format, constraints",
+      "Advanced patterns — chain of thought, examples, personas — and I iterate deliberately"
+    ]
+  },
+  {
+    dim: "PROMPTING",
+    dimIndex: 3,
+    text: "When AI gives you a bad or off-target output, what do you do?",
+    options: [
+      "Start over in a new chat with a fresh prompt",
+      "Rephrase and retry — roughly the same thing",
+      "Add more context and try again",
+      "Diagnose what was missing and fix that specific thing",
+      "Debug like code — I know exactly which part failed and correct it precisely"
+    ]
+  },
+  {
+    dim: "INTEGRATIONS",
+    dimIndex: 4,
+    text: "Do you use plugins, skills, or extensions to extend what your AI tools can do?",
+    options: [
+      "No — I use everything in default state only",
+      "Tried a plugin once, don't use it regularly",
+      "1–3 plugins that I use sometimes",
+      "5+ plugins that are part of my regular workflow",
+      "A curated, intentional stack that extends AI into my whole work environment"
+    ]
+  },
+  {
+    dim: "INTEGRATIONS",
+    dimIndex: 4,
+    text: "How automated is your AI workflow — does anything happen without you starting it?",
+    options: [
+      "Fully manual — I initiate every single thing",
+      "One saved workflow or macro I use occasionally",
+      "Some recurring tasks are semi-automated",
+      "3–5 automated workflows running on a schedule",
+      "AI takes meaningful actions on my behalf without me triggering them"
+    ]
+  }
+];
+
+const DIM_NAMES = ["Profile", "Tools", "Workflow", "Prompting", "Integrations"];
+const DIM_DESCRIPTIONS = [
+  "Does AI know who you are and how you work?",
+  "Are you using the right stack for your needs?",
+  "Does AI fit how you actually work day-to-day?",
+  "How clearly do you communicate with AI?",
+  "How connected and automated is your setup?"
+];
+
+let currentQ = 0;
+let answers = new Array(10).fill(null);
+let userData = {};
+
+function renderQuestion() {
+  const q = QUESTIONS[currentQ];
+  const area = document.getElementById('question-area');
+
+  let html = `<div class="question-card">`;
+  html += `<div class="dimension-label">${q.dim}</div>`;
+  html += `<h2>${q.text}</h2>`;
+  html += `<div class="options">`;
+  q.options.forEach((opt, i) => {
+    const sel = answers[currentQ] === i ? ' selected' : '';
+    html += `<div class="option${sel}" onclick="selectOption(${i})">
+      <div class="option-num">${i + 1}</div>
+      <div class="option-text">${opt}</div>
+    </div>`;
+  });
+  html += `</div></div>`;
+  area.innerHTML = html;
+
+  // Progress
+  const pct = Math.round(((currentQ + 1) / 10) * 100);
+  document.getElementById('progress-bar').style.width = pct + '%';
+  document.getElementById('progress-label').textContent = `Question ${currentQ + 1} of 10`;
+
+  // Nav state
+  document.getElementById('btn-next').disabled = answers[currentQ] === null;
+  document.getElementById('btn-back').style.visibility = currentQ === 0 ? 'hidden' : 'visible';
+
+  // Last question CTA
+  const nextBtn = document.getElementById('btn-next');
+  nextBtn.textContent = currentQ === 9 ? 'See my score →' : 'Next →';
+}
+
+function selectOption(i) {
+  answers[currentQ] = i;
+  document.querySelectorAll('.option').forEach((el, idx) => {
+    el.classList.toggle('selected', idx === i);
+  });
+  document.getElementById('btn-next').disabled = false;
+}
+
+function goNext() {
+  if (answers[currentQ] === null) return;
+  if (currentQ < 9) {
+    currentQ++;
+    renderQuestion();
+  } else {
+    showEmailCapture();
+  }
+}
+
+function goBack() {
+  if (currentQ > 0) { currentQ--; renderQuestion(); }
+}
+
+function showEmailCapture() {
+  document.getElementById('quiz-section').classList.add('hidden');
+  document.getElementById('email-section').classList.remove('hidden');
+}
+
+function submitForm() {
+  const email = document.getElementById('field-email').value.trim();
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    document.getElementById('field-email').focus();
+    document.getElementById('field-email').style.borderColor = '#e74c3c';
+    return;
+  }
+  userData = {
+    name: document.getElementById('field-name').value.trim(),
+    email,
+    role: document.getElementById('field-role').value
+  };
+
+  // Send to webhook / log (non-blocking)
+  fetch('https://kylerosebrook.com/wp-json/contact-form-7/v1/contact-forms/15/feedback', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      email: userData.email,
+      name: userData.name,
+      role: userData.role,
+      scores: computeDimScores(),
+      total: computeTotal()
+    })
+  }).catch(() => {}); // Silent fail — don't block results
+
+  showLoading();
+  generateResults();
+}
+
+function computeDimScores() {
+  const scores = [0, 0, 0, 0, 0];
+  answers.forEach((ans, i) => {
+    const dimIdx = QUESTIONS[i].dimIndex;
+    scores[dimIdx] += (ans === null ? 0 : ans + 1);
+  });
+  return scores;
+}
+
+function computeTotal() {
+  return computeDimScores().reduce((a, b) => a + b, 0);
+}
+
+function getBand(total) {
+  if (total <= 20) return { label: 'Starter', desc: "You're using AI occasionally in default mode. Most of the value is still locked.", class: 'score-starter', barClass: 'bar-starter' };
+  if (total <= 30) return { label: 'User', desc: "You're getting real value but leaving most of it on the table. A few targeted fixes will change that fast.", class: 'score-user', barClass: 'bar-user' };
+  if (total <= 40) return { label: 'Builder', desc: "Solid setup with clear intent. You've built this deliberately — a few gaps worth closing.", class: 'score-builder', barClass: 'bar-builder' };
+  return { label: 'Operator', desc: "AI is a genuine multiplier in your work. You've built this with intent and it shows.", class: 'score-operator', barClass: 'bar-operator' };
+}
+
+function showLoading() {
+  document.getElementById('email-section').classList.add('hidden');
+  document.getElementById('loading-section').classList.remove('hidden');
+  const msgs = ['Scoring your setup...', 'Analyzing your dimensions...', 'Generating personalized recommendations...', 'Almost ready...'];
+  let i = 0;
+  const interval = setInterval(() => {
+    i++;
+    if (i < msgs.length) document.getElementById('loading-text').textContent = msgs[i];
+  }, 2000);
+  window._loadingInterval = interval;
+}
+
+async function generateResults() {
+  const dimScores = computeDimScores();
+  const total = computeTotal();
+  const band = getBand(total);
+
+  // Build dimension summaries for the prompt
+  const dimSummaries = DIM_NAMES.map((name, i) => {
+    const score = dimScores[i];
+    const pct = Math.round((score / 10) * 100);
+    return `${name}: ${score}/10 (${pct}%) — ${DIM_DESCRIPTIONS[i]}`;
+  }).join('\n');
+
+  const role = userData.role || 'professional';
+
+  let dimNextSteps = {};
+
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        system: `You are an AI setup advisor. Given a user's scores across 5 AI setup dimensions, return ONLY a JSON object with specific, actionable next steps for each dimension. Be direct, practical, and role-aware. No fluff. Return valid JSON only — no markdown, no preamble.`,
+        messages: [{
+          role: 'user',
+          content: `User role: ${role}
+Scores:
+${dimSummaries}
+
+Return a JSON object with this exact structure (one key per dimension name, exactly as written):
+{
+  "Profile": { "priority": "HIGH|MEDIUM|LOW", "headline": "one sentence", "steps": ["step 1", "step 2", "step 3"] },
+  "Tools": { "priority": "HIGH|MEDIUM|LOW", "headline": "one sentence", "steps": ["step 1", "step 2", "step 3"] },
+  "Workflow": { "priority": "HIGH|MEDIUM|LOW", "headline": "one sentence", "steps": ["step 1", "step 2", "step 3"] },
+  "Prompting": { "priority": "HIGH|MEDIUM|LOW", "headline": "one sentence", "steps": ["step 1", "step 2", "step 3"] },
+  "Integrations": { "priority": "HIGH|MEDIUM|LOW", "headline": "one sentence", "steps": ["step 1", "step 2", "step 3"] }
+}
+
+Set priority based on score: 1-4 = HIGH, 5-7 = MEDIUM, 8-10 = LOW.
+Keep each step under 15 words. Make them specific to a ${role} role.`
+        }]
+      })
+    });
+
+    const data = await response.json();
+    const text = data.content?.[0]?.text || '';
+    const clean = text.replace(/```json|```/g, '').trim();
+    dimNextSteps = JSON.parse(clean);
+  } catch (e) {
+    // Fallback next steps if API fails
+    DIM_NAMES.forEach((name, i) => {
+      const score = dimScores[i];
+      dimNextSteps[name] = {
+        priority: score <= 4 ? 'HIGH' : score <= 7 ? 'MEDIUM' : 'LOW',
+        headline: score <= 4 ? `Your ${name.toLowerCase()} setup needs immediate attention.` :
+                  score <= 7 ? `Good foundation — tighten your ${name.toLowerCase()} setup.` :
+                  `Strong ${name.toLowerCase()} setup. Fine-tune and maintain.`,
+        steps: [
+          `Audit your current ${name.toLowerCase()} configuration`,
+          `Identify the biggest gap and fix it this week`,
+          `Build a simple system to maintain and iterate`
+        ]
+      };
+    });
+  }
+
+  clearInterval(window._loadingInterval);
+  showResults(dimScores, total, band, dimNextSteps);
+}
+
+function showResults(dimScores, total, band, dimNextSteps) {
+  document.getElementById('loading-section').classList.add('hidden');
+  document.getElementById('results-section').classList.remove('hidden');
+
+  // Header
+  const scoreEl = document.getElementById('result-score');
+  scoreEl.textContent = total;
+  scoreEl.className = `total-score ${band.class}`;
+  document.getElementById('result-band-label').textContent = band.label;
+  document.getElementById('result-band-desc').textContent = band.desc;
+
+  // Animate score
+  let displayVal = 0;
+  const target = total;
+  const step = Math.ceil(target / 30);
+  const counter = setInterval(() => {
+    displayVal = Math.min(displayVal + step, target);
+    scoreEl.textContent = displayVal;
+    if (displayVal >= target) clearInterval(counter);
+  }, 40);
+
+  // Dimension cards
+  const container = document.getElementById('dimensions-container');
+  container.innerHTML = '';
+
+  DIM_NAMES.forEach((name, i) => {
+    const score = dimScores[i];
+    const pct = (score / 10) * 100;
+    const next = dimNextSteps[name] || {};
+    const pri = next.priority || 'MEDIUM';
+    const barColorClass = score <= 4 ? 'bar-starter' : score <= 6 ? 'bar-user' : score <= 8 ? 'bar-builder' : 'bar-operator';
+    const scoreColorClass = score <= 4 ? 'score-starter' : score <= 6 ? 'score-user' : score <= 8 ? 'score-builder' : 'score-operator';
+
+    const priColor = pri === 'HIGH' ? '#e74c3c' : pri === 'MEDIUM' ? '#f5a623' : '#3ecf8e';
+    const stepsHtml = (next.steps || []).map(s => `<li>${s}</li>`).join('');
+
+    container.innerHTML += `
+      <div class="dim-card">
+        <div class="dim-header">
+          <span class="dim-name">${name}</span>
+          <span class="dim-score ${scoreColorClass}">${score}/10 &nbsp;<span style="font-size:11px;font-weight:400;color:${priColor};letter-spacing:1px">${pri} PRIORITY</span></span>
+        </div>
+        <div class="dim-bar-outer">
+          <div class="dim-bar-inner ${barColorClass}" style="width:0%" data-target="${pct}"></div>
+        </div>
+        <div class="dim-next-steps">
+          <strong>${next.headline || ''}</strong>
+          <ul>${stepsHtml}</ul>
+        </div>
+      </div>`;
+  });
+
+  // Animate bars after paint
+  requestAnimationFrame(() => {
+    document.querySelectorAll('.dim-bar-inner').forEach(bar => {
+      const target = bar.dataset.target;
+      setTimeout(() => { bar.style.width = target + '%'; }, 200);
+    });
+  });
+}
+
+// INIT
+renderQuestion();
+</script>
+</body>
+</html>

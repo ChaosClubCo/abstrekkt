@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Abstrekkt — Repository Operations Hub</title>
+<link rel="stylesheet" href="_ds/abstrekkt-design-system-00b28ec4-3690-4b9d-a23f-0be6adbb12de/tokens/fonts.css">
+<link rel="stylesheet" href="_ds/abstrekkt-design-system-00b28ec4-3690-4b9d-a23f-0be6adbb12de/tokens/colors.css">
+<link rel="stylesheet" href="_ds/abstrekkt-design-system-00b28ec4-3690-4b9d-a23f-0be6adbb12de/tokens/typography.css">
+<link rel="stylesheet" href="_ds/abstrekkt-design-system-00b28ec4-3690-4b9d-a23f-0be6adbb12de/tokens/spacing.css">
+<link rel="stylesheet" href="_ds/abstrekkt-design-system-00b28ec4-3690-4b9d-a23f-0be6adbb12de/tokens/effects.css">
+<link rel="stylesheet" href="_ds/abstrekkt-design-system-00b28ec4-3690-4b9d-a23f-0be6adbb12de/styles.css">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="_ds/abstrekkt-design-system-00b28ec4-3690-4b9d-a23f-0be6adbb12de/_ds_bundle.js"></script>
+<style>
+html,body{margin:0;background:var(--ink-950);}
+em{font-style:italic;color:var(--brass);}
+a{color:var(--brass);}
+a:hover{color:var(--brass-soft);}
+::selection{background:var(--brass-wash);color:var(--fg-1);}
+.abs-amb{position:fixed;inset:0;pointer-events:none;z-index:0;background:radial-gradient(120% 70% at 50% -8%,rgba(200,168,106,0.10),rgba(200,168,106,0.02) 30%,transparent 58%);}
+.abs-grain{position:fixed;inset:0;pointer-events:none;z-index:9999;opacity:.32;mix-blend-mode:overlay;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");background-size:160px 160px;}
+.hub-nav a{display:block;padding:7px 0;font-family:var(--font-mono);font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:var(--fg-mute);text-decoration:none;border-left:2px solid transparent;padding-left:14px;transition:color .16s ease,border-color .16s ease;}
+.hub-nav a:hover,.hub-nav a.active{color:var(--brass);border-left-color:var(--brass);}
+.hub-snippet{font-family:var(--font-mono);font-size:12.5px;line-height:1.7;color:var(--fg-1);background:var(--surface-2);border:1px solid var(--border-1);border-radius:var(--radius-md);padding:16px 18px;white-space:pre-wrap;overflow-x:auto;margin:0;}
+.hub-check{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px;}
+.hub-check li{display:flex;gap:10px;align-items:flex-start;font-family:var(--font-body);font-size:15px;line-height:1.55;color:var(--fg-1);}
+.hub-check li::before{content:"—";color:var(--brass);flex-shrink:0;}
+.hub-grid2{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+.hub-grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;}
+@media (max-width:900px){.hub-grid2,.hub-grid3{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+<div class="abs-amb"></div>
+<div class="abs-grain"></div>
+<div id="root"></div>
+<script type="text/babel">
+const { Button, IconButton, Badge, Callout, Input, Card, Rule, Display, Kicker } = window.AbstrekktDesignSystem_00b28e;
+
+function Snippet({ children }) { return <pre className="hub-snippet">{children}</pre>; }
+function Check({ items }) { return <ul className="hub-check">{items.map((t,i)=><li key={i}>{t}</li>)}</ul>; }
+
+function Section({ id, index, title, kicker, lead, children }) {
+  return (
+    <section id={id} style={{ paddingTop: 88, scrollMarginTop: 32 }}>
+      <Rule label={"CH. " + index} />
+      <div style={{ marginTop: 32 }}>
+        <Kicker>{kicker}</Kicker>
+        <Display level={2} size="md" style={{ marginTop: 14 }}>{title}</Display>
+        <p style={{ fontFamily: 'var(--font-body)', fontSize: 17, lineHeight: 1.65, color: 'var(--fg-dim)', maxWidth: '62ch', marginTop: 18 }}>{lead}</p>
+      </div>
+      <div style={{ marginTop: 36, display: 'flex', flexDirection: 'column', gap: 24 }}>
+        {children}
+      </div>
+    </section>
+  );
+}
+
+const NAV = [
+  ['overview','Overview'],
+  ['creation','Repo Creation'],
+  ['upgrade','Upgrade & Maintenance'],
+  ['observability','Observability'],
+  ['agents','Repo Agents'],
+  ['mcp','MCP Servers'],
+  ['webhooks','Webhooks'],
+  ['mapping','Mapping & Architecture'],
+  ['org','Organizational'],
+];
+
+function App() {
+  const [active, setActive] = React.useState('overview');
+  React.useEffect(() => {
+    const els = NAV.map(([id]) => document.getElementById(id)).filter(Boolean);
+    const obs = new IntersectionObserver((entries) => {
+      entries.forEach(e => { if (e.isIntersecting) setActive(e.target.id); });
+    }, { rootMargin: '-20% 0px -70% 0px' });
+    els.forEach(el => obs.observe(el));
+    return () => obs.disconnect();
+  }, []);
+
+  return (
+    <div style={{ position: 'relative', zIndex: 1, maxWidth: 1200, margin: '0 auto', padding: '0 40px 140px', fontFamily: 'var(--font-body)' }}>
+      <header style={{ position: 'sticky', top: 0, zIndex: 5, background: 'rgba(13,12,10,0.72)', backdropFilter: 'blur(12px)', margin: '0 -40px', padding: '20px 40px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--border-1)' }}>
+        <div style={{ fontFamily: 'var(--font-display)', fontVariationSettings: '"opsz" 144', fontWeight: 500, fontSize: 20, letterSpacing: '-0.02em', color: 'var(--fg-1)' }}>Abstrekkt<span style={{ color: 'var(--brass)' }}>.</span></div>
+        <Kicker color="dim">Repository Operations Hub</Kicker>
+      </header>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '220px 1fr', gap: 56, marginTop: 56 }}>
+        <nav className="hub-nav" style={{ position: 'sticky', top: 96, alignSelf: 'start', height: 'fit-content' }}>
+          {NAV.map(([id,label]) => <a key={id} href={"#"+id} className={active===id ? 'active' : ''}>{label}</a>)}
+        </nav>
+
+        <main>
+          <Kicker>Abstrekkt — Field Notes</Kicker>
+          <Display level={1} size="xl" style={{ marginTop: 18 }}>A reference for keeping <em>every repository</em>.</Display>
+          <p style={{ fontSize: 18, lineHeight: 1.65, color: 'var(--fg-dim)', maxWidth: '58ch', marginTop: 22 }}>One cheat sheet for the whole lifecycle — creation, upgrades, observability, agents, MCP servers, webhooks, and where a repo sits in the shelf. Copy the checklists and snippets straight into a new chapter; keep this page open while you work.</p>
+
+          <Section id="overview" index="00" kicker="How to use this hub" title="A templated reference, not a wiki." lead="Each chapter below is self-contained: a short brief, a checklist, and copy-ready snippets. Treat it as the first thing you open when starting, upgrading, or retiring a repository under either studio lane.">
+            <div className="hub-grid3">
+              <Card padding="md"><Badge tone="brass">Krosebrook</Badge><p style={{ marginTop: 12, fontSize: 14, color: 'var(--fg-dim)', lineHeight: 1.6 }}>Personal + product lane. Base44 apps, personal tools, product experiments.</p></Card>
+              <Card padding="md"><Badge tone="forest">ChaosClubCo</Badge><p style={{ marginTop: 12, fontSize: 14, color: 'var(--fg-dim)', lineHeight: 1.6 }}>Studio lane. Shared tooling, forks, agent/skill libraries, client work.</p></Card>
+              <Card padding="md"><Badge tone="neutral">Both lanes</Badge><p style={{ marginTop: 12, fontSize: 14, color: 'var(--fg-dim)', lineHeight: 1.6 }}>Same conventions apply regardless of org — this hub is lane-agnostic.</p></Card>
+            </div>
+          </Section>
+
+          <Section id="creation" index="01" kicker="Repo Creation" title="Starting a new chapter." lead="Every new repository gets the same shelf treatment before it holds a single line of code — naming, visibility, and the files that make it legible to the next person who opens it.">
+            <Card>
+              <Kicker style={{ marginBottom: 14 }}>Naming</Kicker>
+              <Check items={[
+                'lowercase-with-hyphens, no org prefix in the name itself (the org already scopes it)',
+                'Name describes the thing, not the tech — repo-ops-hub, not react-dashboard-v2',
+                'Suffix -mcp for MCP servers, -agent for standalone agent packages, -infra for deploy/config-only repos',
+              ]} />
+            </Card>
+            <Card>
+              <Kicker style={{ marginBottom: 14 }}>Bootstrap checklist</Kicker>
+              <Check items={[
+                'README.md with a one-paragraph purpose statement and a quickstart',
+                'LICENSE chosen deliberately — private-by-default unless there is a reason to open it',
+                '.gitignore matched to the stack (node, python, etc.) before the first commit',
+                'CODEOWNERS mapping every top-level folder to a person or team',
+                'Default branch protected: require PR review, require status checks, block force-push',
+                'Topics + description set on the GitHub repo page for discoverability',
+              ]} />
+            </Card>
+            <Card accent>
+              <Kicker style={{ marginBottom: 14 }}>Minimal scaffold</Kicker>
+              <Snippet>{`repo/
+  README.md
+  LICENSE
+  .gitignore
+  CODEOWNERS
+  .github/
+    workflows/ci.yml
+    dependabot.yml
+  src/`}</Snippet>
+            </Card>
+          </Section>
+
+          <Section id="upgrade" index="02" kicker="Upgrade & Maintenance" title="Keeping a chapter in good repair." lead="Repos rot quietly. Maintenance is scheduled, not reactive — dependency upgrades, deprecation, and archiving all have a default cadence so nothing waits for a fire.">
+            <div className="hub-grid2">
+              <Card>
+                <Kicker style={{ marginBottom: 14 }}>Cadence</Kicker>
+                <Check items={[
+                  'Dependabot / Renovate on a weekly schedule for patch + minor bumps',
+                  'Major version bumps reviewed monthly, batched, never auto-merged',
+                  'Semver respected on every tagged release; breaking changes get a major bump and a CHANGELOG entry',
+                  'Stale branches (no commits 90+ days, merged) deleted on a schedule',
+                ]} />
+              </Card>
+              <Card>
+                <Kicker style={{ marginBottom: 14 }}>Archiving</Kicker>
+                <Check items={[
+                  'No commits or issues in 6+ months and no owner claims it → mark for archive review',
+                  'Archive, don\u2019t delete — history stays queryable',
+                  'Add an ARCHIVED.md note pointing to the successor repo, if one exists',
+                  'Remove from active CODEOWNERS and team dashboards once archived',
+                ]} />
+              </Card>
+            </div>
+            <Card accent>
+              <Kicker style={{ marginBottom: 14 }}>dependabot.yml starter</Kicker>
+              <Snippet>{`version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule: { interval: "weekly" }
+    open-pull-requests-limit: 8`}</Snippet>
+            </Card>
+          </Section>
+
+          <Section id="observability" index="03" kicker="Observability" title="Reading the shelf while it's running." lead="A repo isn't done at merge — it needs a way to tell you when it's unwell. Wire up the same three signals everywhere: build health, runtime errors, and uptime.">
+            <div className="hub-grid3">
+              <Card padding="md"><Kicker style={{marginBottom:10}}>Build</Kicker><p style={{fontSize:14,color:'var(--fg-dim)',lineHeight:1.6}}>Status badge in README, required checks on the default branch, CI must be green to merge.</p></Card>
+              <Card padding="md"><Kicker style={{marginBottom:10}}>Errors</Kicker><p style={{fontSize:14,color:'var(--fg-dim)',lineHeight:1.6}}>Structured logs (JSON, one event per line), error tracker wired for anything user-facing, alert on new error signatures.</p></Card>
+              <Card padding="md"><Kicker style={{marginBottom:10}}>Uptime</Kicker><p style={{fontSize:14,color:'var(--fg-dim)',lineHeight:1.6}}>Health-check endpoint for any long-running service; external ping on a schedule; alert after 2 consecutive failures.</p></Card>
+            </div>
+            <Callout label="Watch for" tone="brass">Silent failures are the risk, not loud ones. If a job fails and nothing pages anyone, the observability isn't done — it just looks done.</Callout>
+          </Section>
+
+          <Section id="agents" index="04" kicker="Repo Agent Creation" title="Giving a repo its own reader." lead="An agent scoped to a repo (Claude Code, Copilot, or otherwise) needs the same onboarding a new engineer would get — written down once, in the repo, not re-explained per session.">
+            <Card>
+              <Kicker style={{ marginBottom: 14 }}>Checklist</Kicker>
+              <Check items={[
+                'CLAUDE.md or AGENTS.md at repo root: purpose, conventions, danger zones, how to run tests',
+                'Scope permissions to the narrowest useful set — no blanket write access by default',
+                'Skills/commands live in a dedicated folder, one concern per file, not one giant prompt',
+                'New agent behavior is tested on a branch before it touches main',
+                'Every agent-authored PR still goes through the same CODEOWNERS review as a human one',
+              ]} />
+            </Card>
+            <Card accent>
+              <Kicker style={{ marginBottom: 14 }}>AGENTS.md skeleton</Kicker>
+              <Snippet>{`# Agent Brief — <repo name>
+## Purpose
+One paragraph: what this repo is, who it serves.
+## Conventions
+Language/framework, test command, lint command.
+## Danger zones
+Files or systems that need a human sign-off before touching.
+## Workflow
+Branch naming, PR checklist, required checks.`}</Snippet>
+            </Card>
+          </Section>
+
+          <Section id="mcp" index="05" kicker="MCP Server Creation" title="Publishing a new tool surface." lead="An MCP server is a contract before it's code — name every tool, describe it in plain language, and decide the auth story before the first request handler is written.">
+            <Card>
+              <Kicker style={{ marginBottom: 14 }}>Checklist</Kicker>
+              <Check items={[
+                'One clear name + description per tool — written for a model to read, not a human skimming docs',
+                'Secrets/auth handled via environment injection, never hardcoded or logged',
+                'Version the manifest; breaking tool-signature changes bump the major version',
+                'Rate limit and timeout every outbound call the server makes',
+                'Smoke-test each tool in isolation before wiring it into an agent workflow',
+              ]} />
+            </Card>
+            <Card accent>
+              <Kicker style={{ marginBottom: 14 }}>Manifest shape</Kicker>
+              <Snippet>{`{
+  "name": "repo-ops-mcp",
+  "version": "1.0.0",
+  "tools": [
+    { "name": "create_repo", "description": "..." },
+    { "name": "list_webhooks", "description": "..." }
+  ]
+}`}</Snippet>
+            </Card>
+          </Section>
+
+          <Section id="webhooks" index="06" kicker="Webhook Creation" title="Listening for what changes." lead="A webhook endpoint is a small piece of public surface area — verify every payload, respond fast, and make retries safe before anything else is built on top of it.">
+            <div className="hub-grid2">
+              <Card>
+                <Kicker style={{ marginBottom: 14 }}>Checklist</Kicker>
+                <Check items={[
+                  'Verify the signature (HMAC secret) before touching the payload',
+                  'Return 2xx within seconds; do slow work async, off the request thread',
+                  'Make handlers idempotent — a redelivered event must not double-apply',
+                  'Log every event type + delivery id for replay/debugging',
+                  'Rotate the shared secret on a schedule, not just on suspicion of leak',
+                ]} />
+              </Card>
+              <Card>
+                <Kicker style={{ marginBottom: 14 }}>Common event types</Kicker>
+                <Check items={[
+                  'push, pull_request, release — repo lifecycle',
+                  'workflow_run — CI outcome, for downstream notifications',
+                  'issues, issue_comment — triage automation',
+                  'repository — created/archived/renamed, for the mapping table below',
+                ]} />
+              </Card>
+            </div>
+            <Card accent>
+              <Kicker style={{ marginBottom: 14 }}>Signature check (pseudocode)</Kicker>
+              <Snippet>{`expected = hmac_sha256(secret, raw_body)
+if not constant_time_eq(expected, header["X-Hub-Signature-256"]):
+    return 401
+# only now parse and act on the payload`}</Snippet>
+            </Card>
+          </Section>
+
+          <Section id="mapping" index="07" kicker="Mapping & Architecture" title="Knowing where everything lives." lead="A repo is only findable if something outside it says where it sits — owner, dependents, and lane. Keep one table as the source of truth rather than tribal memory.">
+            <Card>
+              <Kicker style={{ marginBottom: 14 }}>Ownership table columns</Kicker>
+              <Check items={[
+                'Repo — org/name',
+                'Lane — Krosebrook or ChaosClubCo, plus sub-brand if applicable',
+                'Owner — a person, never "the team"',
+                'Depends on / Depended on by — the two edges that matter for change impact',
+                'Status — active, maintenance, archived',
+              ]} />
+            </Card>
+            <Callout label="Note" tone="neutral">Topics on the GitHub repo page double as a lightweight tag taxonomy — use them consistently (lane:chaosclubco, kind:mcp, kind:agent) so the mapping table can eventually be generated, not hand-maintained.</Callout>
+          </Section>
+
+          <Section id="org" index="08" kicker="Organizational" title="The two shelves." lead="Krosebrook and ChaosClubCo are separate shelves with the same rules. Knowing which one a repo belongs on is a five-second decision, made once, at creation.">
+            <div className="hub-grid2">
+              <Card accent>
+                <Badge tone="brass">Krosebrook</Badge>
+                <p style={{ marginTop: 14, fontSize: 15, lineHeight: 1.6, color: 'var(--fg-1)' }}>Personal and product-facing work — apps with real or intended users, generated Base44 products, personal tools. Default visibility: private.</p>
+              </Card>
+              <Card accent>
+                <Badge tone="forest">ChaosClubCo</Badge>
+                <p style={{ marginTop: 14, fontSize: 15, lineHeight: 1.6, color: 'var(--fg-1)' }}>Studio-facing work — shared infrastructure, agent/skill libraries, forks of external tools, client engagements. Default visibility: private unless explicitly meant to be shared.</p>
+              </Card>
+            </div>
+            <Card>
+              <Kicker style={{ marginBottom: 14 }}>Access defaults</Kicker>
+              <Check items={[
+                'New repos start private; opening one up is a deliberate, reviewed decision',
+                'Team access granted by role, not by individual — easier to audit later',
+                'Admin/owner rights limited to the smallest group that actually needs them',
+                'Any repo holding secrets or credentials gets a quarterly access review',
+              ]} />
+            </Card>
+          </Section>
+
+          <div style={{ marginTop: 88 }}>
+            <Rule />
+            <p style={{ marginTop: 24, fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--fg-mute)' }}>Abstrekkt. Reading Room at Midnight.</p>
+          </div>
+        </main>
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

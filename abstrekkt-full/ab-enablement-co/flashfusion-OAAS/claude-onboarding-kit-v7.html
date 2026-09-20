@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Claude Onboarding Kit v7</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#0B0B14;--border:rgba(139,92,246,0.14);--v:#A855F7;--m:#EC4899;--c:#22D3EE;--g:#10B981;--amber:#F59E0B;--red:#EF4444;--text:#E2E8F0;--muted:#94A3B8;--dim:#475569;--card:rgba(19,19,31,0.92);--r:12px;--rs:8px}
+body{background:var(--bg);color:var(--text);font-family:'Geist','Inter',system-ui,sans-serif;min-height:100vh;font-size:15px;line-height:1.6}
+.app{max-width:740px;margin:0 auto;padding:2rem 1.25rem 5rem}
+h1{font-size:22px;font-weight:500;background:linear-gradient(135deg,#A855F7,#EC4899);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:6px}
+.sub{font-size:13px;color:var(--muted);margin-bottom:1.5rem;line-height:1.5}
+.sdots{display:flex;gap:8px;align-items:center;margin-bottom:1.5rem;flex-wrap:wrap}
+.sd{width:24px;height:24px;border-radius:50%;border:1px solid var(--dim);display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--dim);flex-shrink:0}
+.sd.a{background:rgba(168,85,247,.2);border-color:var(--v);color:var(--v);font-weight:600}
+.sd.d{background:rgba(34,211,238,.12);border-color:var(--c);color:var(--c)}
+.sdl{font-size:12px;color:var(--muted)}
+.dsep{width:3px;height:3px;border-radius:50%;background:var(--dim);flex-shrink:0}
+.pg{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:1rem}
+@media(max-width:480px){.pg{grid-template-columns:1fr}}
+.pc{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:1.1rem 1rem;cursor:pointer;transition:all .18s;position:relative}
+.pc:hover{border-color:rgba(168,85,247,.4);background:rgba(168,85,247,.05)}
+.pc.sel{border-color:var(--v);background:rgba(168,85,247,.1)}
+.pc.ex-c{border-color:rgba(16,185,129,.2)}.pc.ex-c:hover{border-color:rgba(16,185,129,.5);background:rgba(16,185,129,.04)}.pc.ex-c.sel{border-color:var(--g);background:rgba(16,185,129,.09)}
+.pc.tc-c{border-color:rgba(34,211,238,.2)}.pc.tc-c:hover{border-color:rgba(34,211,238,.5);background:rgba(34,211,238,.04)}.pc.tc-c.sel{border-color:var(--c);background:rgba(34,211,238,.09)}
+.pc .ic{font-size:22px;margin-bottom:6px}.pc .lb{font-size:13px;font-weight:500;color:var(--text);margin-bottom:3px}.pc .ds{font-size:11px;color:var(--muted);line-height:1.4}
+.new-tag{position:absolute;top:10px;right:10px;font-size:9px;padding:2px 6px;border-radius:8px;background:rgba(16,185,129,.15);color:var(--g);border:1px solid rgba(16,185,129,.3);font-weight:700}
+.warn-tag{position:absolute;top:10px;right:10px;font-size:9px;padding:2px 6px;border-radius:8px;background:rgba(34,211,238,.15);color:var(--c);border:1px solid rgba(34,211,238,.3);font-weight:700}
+.detect-banner{background:rgba(16,185,129,.07);border:1px solid rgba(16,185,129,.25);border-radius:var(--r);padding:12px 14px;margin-bottom:14px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.detect-banner p{font-size:13px;color:var(--muted);flex:1;min-width:200px}.detect-banner strong{color:var(--g)}
+.reg-warn{background:rgba(239,68,68,.06);border:1px solid rgba(239,68,68,.25);border-radius:var(--rs);padding:10px 14px;margin-bottom:14px;font-size:13px;color:rgba(239,68,68,.8);line-height:1.5}
+.reg-warn strong{color:var(--red)}
+.qb{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:1rem 1.1rem;margin-bottom:10px}
+.ql{font-size:13px;font-weight:500;color:var(--text);margin-bottom:8px}
+.qs{font-size:12px;color:var(--muted);margin-bottom:8px;margin-top:-4px}
+.cr{display:flex;flex-wrap:wrap;gap:6px}
+.ch{border:1px solid var(--dim);border-radius:20px;padding:4px 12px;font-size:12px;color:var(--muted);cursor:pointer;background:transparent;transition:all .15s;user-select:none}
+.ch:hover{border-color:rgba(168,85,247,.5);color:var(--text)}
+.ch.on{background:rgba(168,85,247,.15);border-color:var(--v);color:var(--v)}
+.ch.on.ex{background:rgba(16,185,129,.12);border-color:var(--g);color:var(--g)}
+.ch.on.tc{background:rgba(34,211,238,.12);border-color:var(--c);color:var(--c)}
+.ch.on.rg{background:rgba(239,68,68,.1);border-color:var(--red);color:var(--red)}
+.xbar{background:rgba(168,85,247,.06);border:1px solid var(--border);border-radius:var(--r);padding:10px 14px;margin-bottom:14px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.xbar-lbl{font-size:12px;color:var(--muted);margin-right:4px}
+.tr{display:flex;gap:2px;margin-bottom:1rem;border-bottom:1px solid var(--border);overflow-x:auto}
+.tb{padding:7px 11px;font-size:12px;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;white-space:nowrap;transition:color .15s}
+.tb:hover{color:var(--text)}.tb.on{color:var(--v);border-bottom-color:var(--v);font-weight:500}
+.tb.ex-tab.on{color:var(--g);border-bottom-color:var(--g)}
+.tb.tc-tab.on{color:var(--c);border-bottom-color:var(--c)}
+.tb.mgr-tab.on{color:var(--amber);border-bottom-color:var(--amber)}
+.rs{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:1rem 1.1rem;margin-bottom:10px}
+.rs.ex-s{border-color:rgba(16,185,129,.18)}.rs.tc-s{border-color:rgba(34,211,238,.18)}.rs.mgr-s{border-color:rgba(245,158,11,.18)}.rs.red-s{border-color:rgba(239,68,68,.2)}
+.rt{font-size:13px;font-weight:500;color:var(--text);margin-bottom:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.bm{font-size:10px;padding:2px 7px;border-radius:10px;font-weight:600;letter-spacing:.3px;white-space:nowrap}
+.mu{background:rgba(236,72,153,.15);color:var(--m);border:1px solid rgba(236,72,153,.3)}
+.hi{background:rgba(168,85,247,.15);color:var(--v);border:1px solid rgba(168,85,247,.3)}
+.op{background:rgba(148,163,184,.1);color:var(--muted);border:1px solid var(--dim)}
+.cu{background:rgba(34,211,238,.1);color:var(--c);border:1px solid rgba(34,211,238,.25)}
+.gr{background:rgba(16,185,129,.12);color:var(--g);border:1px solid rgba(16,185,129,.25)}
+.am{background:rgba(245,158,11,.12);color:var(--amber);border:1px solid rgba(245,158,11,.25)}
+.re{background:rgba(239,68,68,.1);color:var(--red);border:1px solid rgba(239,68,68,.25)}
+.cap-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+@media(max-width:500px){.cap-grid{grid-template-columns:1fr}}
+.cap-card{background:rgba(0,0,0,.2);border:1px solid rgba(16,185,129,.1);border-radius:var(--rs);padding:.9rem}
+.cap-title{font-size:12px;font-weight:600;color:var(--text);margin-bottom:6px;display:flex;align-items:center;gap:6px}
+.cap-items{list-style:none;font-size:12px;color:var(--muted);line-height:1.8}
+.cap-items li::before{content:'-> ';color:var(--g);font-size:11px}
+.cap-myth{margin-top:8px;padding-top:8px;border-top:1px solid rgba(236,72,153,.12);font-size:11px;color:rgba(236,72,153,.7);font-style:italic;line-height:1.4}
+.cap-myth::before{content:'x ';font-style:normal}
+.cap-real{margin-top:3px;font-size:11px;color:rgba(16,185,129,.8);line-height:1.4}
+.cap-real::before{content:'v ';font-style:normal}
+.myth-row{padding:12px 0;border-bottom:1px solid rgba(139,92,246,.06)}.myth-row:last-child{border-bottom:none}
+.ml{font-size:10px;font-weight:700;letter-spacing:.5px;padding:2px 7px;border-radius:8px;display:inline-block;margin-bottom:4px}
+.ml.my{background:rgba(236,72,153,.12);color:var(--m)}.ml.re2{background:rgba(16,185,129,.12);color:var(--g)}
+.myth-text{font-size:13px;color:var(--muted);line-height:1.5;margin-bottom:6px}.myth-text.rv{color:var(--text)}
+.prompt-card{background:rgba(0,0,0,.25);border:1px solid var(--border);border-radius:var(--rs);padding:.9rem;margin-bottom:8px}
+.pl{font-size:10px;font-weight:700;letter-spacing:.4px;color:var(--g);margin-bottom:5px}
+.pl.tc{color:var(--c)}
+.pt{font-size:13px;font-weight:500;color:var(--text);margin-bottom:3px}
+.pw{font-size:12px;color:var(--muted);margin-bottom:8px;line-height:1.4}
+.px{font-family:'Geist Mono',monospace;font-size:11px;color:var(--c);background:rgba(0,0,0,.3);padding:8px 10px;border-radius:var(--rs);border:1px solid rgba(34,211,238,.15);line-height:1.6;word-break:break-word}
+.code-block{background:rgba(0,0,0,.4);border:1px solid rgba(34,211,238,.15);border-radius:var(--rs);padding:12px;font-family:'Geist Mono',monospace;font-size:12px;color:var(--c);line-height:1.7;margin-bottom:10px;white-space:pre}
+.path-phases{display:flex;flex-direction:column;gap:0}
+.phase-block{border-left:2px solid var(--border);padding:0 0 16px 16px;margin-left:10px;position:relative}
+.phase-block:last-child{border-left:2px solid transparent;padding-bottom:0}
+.phase-dot{width:20px;height:20px;border-radius:50%;position:absolute;left:-11px;top:0;border:2px solid var(--bg)}
+.phase-pill{font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;display:inline-block;margin-bottom:6px;letter-spacing:.3px}
+.ph-d{background:rgba(236,72,153,.15);color:var(--m);border:1px solid rgba(236,72,153,.3)}
+.ph-w1{background:rgba(168,85,247,.15);color:var(--v);border:1px solid rgba(168,85,247,.3)}
+.ph-w2{background:rgba(34,211,238,.12);color:var(--c);border:1px solid rgba(34,211,238,.25)}
+.ph-m1{background:rgba(16,185,129,.12);color:var(--g);border:1px solid rgba(16,185,129,.25)}
+.ph-m3{background:rgba(148,163,184,.1);color:var(--muted);border:1px solid var(--dim)}
+.phase-title{font-size:13px;font-weight:500;color:var(--text);margin-bottom:4px}
+.phase-domain{font-size:11px;color:var(--v);margin-bottom:6px;font-weight:500}
+.phase-items div{margin-bottom:2px;font-size:12px;color:var(--muted)}
+.phase-items div::before{content:'-> ';color:var(--g);font-size:11px}
+.milestone{margin-top:8px;font-size:11px;color:var(--amber);background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);border-radius:var(--rs);padding:5px 9px;display:inline-block}
+.milestone::before{content:'Milestone: ';font-weight:600}
+.mr{display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid rgba(139,92,246,.06)}
+.mr:last-child{border-bottom:none;padding-bottom:0}
+.mi{width:30px;height:30px;border-radius:7px;background:rgba(168,85,247,.1);border:1px solid rgba(168,85,247,.12);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:14px}
+.mn{font-size:13px;font-weight:500;color:var(--text);display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+.mw{font-size:12px;color:var(--muted);margin-top:2px;line-height:1.4}
+.mex{font-size:11px;color:var(--g);margin-top:3px;font-style:italic;line-height:1.4}
+.gate{background:rgba(245,158,11,.05);border:1px dashed rgba(245,158,11,.3);border-radius:var(--rs);padding:14px}
+.gate-title{font-size:12px;font-weight:600;color:var(--amber);margin-bottom:6px}
+.gate-sub{font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.5}
+.gate-bar{flex:1;height:4px;background:rgba(245,158,11,.15);border-radius:2px;overflow:hidden}
+.gate-fill{height:100%;background:var(--amber);border-radius:2px}
+.gate-prog{display:flex;gap:6px;align-items:center;margin-bottom:10px}
+.gate-label{font-size:11px;color:var(--amber);min-width:30px;text-align:right}
+.gate-item{margin-bottom:3px;font-size:12px;color:var(--muted)}
+.search-bar{display:flex;gap:8px;margin-bottom:10px}
+.search-input{background:rgba(0,0,0,.3);border:1px solid var(--border);border-radius:var(--rs);padding:7px 12px;font-size:13px;color:var(--text);font-family:inherit;flex:1;outline:none}
+.search-input:focus{border-color:rgba(168,85,247,.4)}
+.search-input::placeholder{color:var(--dim)}
+.frow{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.ftag{border:1px solid var(--dim);border-radius:16px;padding:3px 10px;font-size:11px;color:var(--muted);cursor:pointer;background:transparent;transition:all .15s;white-space:nowrap}
+.ftag:hover{border-color:var(--v);color:var(--text)}.ftag.on{background:rgba(168,85,247,.15);border-color:var(--v);color:var(--v)}
+.cat-hdr{font-size:10px;font-weight:700;color:var(--dim);letter-spacing:.8px;text-transform:uppercase;margin:14px 0 6px;padding-bottom:6px;border-bottom:1px solid rgba(139,92,246,.1)}
+.cat-hdr:first-of-type{margin-top:0}
+.stat{font-size:11px;color:var(--muted);background:rgba(0,0,0,.2);border:1px solid var(--border);border-radius:10px;padding:2px 8px;margin-left:6px}
+.cb{background:rgba(0,0,0,.35);border:1px solid var(--border);border-radius:var(--rs);padding:.85rem;font-family:'Geist Mono',monospace;font-size:11px;color:var(--text);line-height:1.7;white-space:pre-wrap;word-break:break-word;margin-bottom:10px;max-height:240px;overflow-y:auto}
+.ci{display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid rgba(139,92,246,.06)}
+.ci:last-child{border-bottom:none}
+.ck{width:17px;height:17px;border:1px solid var(--dim);border-radius:4px;flex-shrink:0;cursor:pointer;display:flex;align-items:center;justify-content:center;margin-top:1px;font-size:10px;color:var(--c)}
+.ck:hover{border-color:var(--v)}.ck.dn{background:rgba(34,211,238,.12);border-color:var(--c)}
+.ct{font-size:13px;color:var(--text);line-height:1.5}
+.cs{font-size:12px;color:var(--muted);margin-top:2px;line-height:1.4}
+.ub{background:rgba(236,72,153,.06);border:1px solid rgba(236,72,153,.18);border-radius:var(--rs);padding:10px 13px;margin-bottom:8px}
+.ub strong{color:var(--m);font-weight:500}.ub p{font-size:13px;color:var(--muted);line-height:1.5}
+.uc-item{padding:10px 0;border-bottom:1px solid rgba(139,92,246,.06)}.uc-item:last-child{border-bottom:none}
+.uc-title{font-size:13px;font-weight:500;color:var(--text);display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.uc-ex{font-family:'Geist Mono',monospace;font-size:11px;color:var(--muted);background:rgba(0,0,0,.3);padding:7px 10px;border-radius:var(--rs);border:1px solid var(--border);line-height:1.5}
+.mgr-block{background:rgba(245,158,11,.04);border:1px solid rgba(245,158,11,.15);border-radius:var(--rs);padding:1rem;margin-bottom:10px}
+.mgr-block h3{font-size:13px;font-weight:500;color:var(--amber);margin-bottom:6px}
+.mgr-block p,.mgr-block li{font-size:13px;color:var(--muted);line-height:1.6}
+.mgr-block ul{list-style:none;padding:0}.mgr-block li::before{content:'· ';color:var(--amber)}
+.ex-banner{background:linear-gradient(135deg,rgba(16,185,129,.07),rgba(168,85,247,.07));border:1px solid rgba(16,185,129,.22);border-radius:var(--r);padding:1rem 1.1rem;margin-bottom:14px}
+.ex-banner h2{font-size:13px;font-weight:500;margin-bottom:4px}
+.ex-banner p{font-size:12px;color:var(--muted);line-height:1.5}
+.note{font-size:12px;color:var(--muted);line-height:1.5;padding:8px 10px;background:rgba(0,0,0,.2);border-radius:var(--rs);border-left:2px solid var(--v);margin-top:8px}
+button{background:rgba(168,85,247,.1);border:1px solid rgba(168,85,247,.3);color:var(--v);padding:7px 14px;border-radius:var(--rs);font-size:12px;cursor:pointer;font-family:inherit;transition:all .15s;display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+button:hover{background:rgba(168,85,247,.2);border-color:var(--v)}
+button.sec{background:transparent;border-color:var(--dim);color:var(--muted)}button.sec:hover{border-color:var(--muted);color:var(--text)}
+button.dl{background:rgba(168,85,247,.12);border-color:rgba(168,85,247,.4);color:var(--v)}
+button.cp{background:rgba(34,211,238,.08);border-color:rgba(34,211,238,.25);color:var(--c)}button.cp:hover{background:rgba(34,211,238,.16)}
+button.pr{background:rgba(148,163,184,.08);border-color:var(--dim);color:var(--muted)}
+button.nt{background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.15);color:var(--dim)}button.nt:hover{background:rgba(255,255,255,.1);color:var(--text)}
+button.am-btn{background:rgba(245,158,11,.1);border-color:rgba(245,158,11,.3);color:var(--amber)}button.am-btn:hover{background:rgba(245,158,11,.2)}
+button.gr-btn{background:rgba(16,185,129,.1);border-color:rgba(16,185,129,.3);color:var(--g)}
+button.tc-btn{background:rgba(34,211,238,.1);border-color:rgba(34,211,238,.3);color:var(--c)}button.tc-btn:hover{background:rgba(34,211,238,.2)}
+.br{display:flex;gap:8px;margin-top:1rem;flex-wrap:wrap}
+.toast{position:fixed;bottom:20px;right:20px;background:rgba(168,85,247,.15);border:1px solid rgba(168,85,247,.4);color:var(--v);padding:8px 16px;border-radius:var(--rs);font-size:12px;font-weight:500;z-index:99;opacity:0;transition:opacity .2s;pointer-events:none;max-width:280px}
+.toast.s{opacity:1}
+@media print{body{background:#fff;color:#000}.xbar,.tr,.br,.search-bar,.frow,button,.new-tag,.warn-tag,.detect-banner,.gate,.ex-banner,.reg-warn{display:none!important}.rs,.qb,.ub,.prompt-card,.cap-card,.mgr-block,.phase-block{border:1px solid #ddd!important;background:#fff!important}.cb,.code-block{background:#f5f5f5!important;max-height:none!important;color:#000!important}h1{background:none!important;-webkit-text-fill-color:#000!important;color:#000!important}.app{max-width:100%;padding:1rem}}
+</style>
+</head>
+<body>
+<div class="app" id="app"></div>
+<div class="toast" id="tst"></div>
+<script>
+const S={step:1,profile:null,ans:{context:[],overwhelm:[],style:[],comfort:[],role:[],use:[],tools:[],pain:[],tech:[],stack:[],rollout:[]},tab:'',chk:{},search:'',filterTier:'all',filterCat:'all'};
+const PROFS={
+  professional:{lb:'Professional',ds:'Work, career, clients, ops',ic:'💼',ex:false,tc:false},
+  personal:{lb:'Personal',ds:'Life, hobbies, creative, learning',ic:'🌱',ex:false,tc:false},
+  both:{lb:'Both',ds:'Work and personal — one setup',ic:'⚡',ex:false,tc:false},
+  technical:{lb:'Technical / Builder',ds:'Engineering, code, APIs, Claude Code, MCP — building with AI',ic:'⚙️',ex:false,tc:true},
+  explorer:{lb:'Explorer',ds:"New to AI — want to learn what's possible",ic:'🔭',ex:true,tc:false}
+};
+function isEx(){return S.profile==='explorer';}
+function isTc(){return S.profile==='technical';}
+function isRegulated(){return(S.ans.role||[]).some(r=>['Legal / Compliance','HR / People Ops','Finance / Procurement'].includes(r));}
+function isExec(){return(S.ans.role||[]).includes('Executive / Founder');}
+function isRollout(){return(S.ans.rollout||[]).some(r=>r!=='Just for me');}
+function isSolo(){return(S.ans.role||[]).some(r=>['Consultant / Freelance','Executive / Founder'].includes(r))&&(S.ans.context||[]).some(c=>c.includes('solo')||c.includes('own'));}
+
+const EXQ=[
+  {id:'context',lb:'Which describes you best?',sub:'Pick all that fit',opts:['Full-time employee','Manager or team lead','Student or recent grad','Freelancer / self-employed','Career changer','Stay-at-home parent','Retired or semi-retired','Small business owner','Creative professional']},
+  {id:'overwhelm',lb:'What feels most inefficient or draining?',sub:'Be honest — these become your first use cases',opts:['Too much to read and absorb','Writing takes me forever','I lose track of things I need to do','Research feels endless','Meetings eat my whole day','I repeat the same things constantly','Never have time to learn new things','Making decisions is exhausting','Creative work keeps stalling','Admin tasks drain me','Explaining things over and over','I feel behind on everything']},
+  {id:'style',lb:'How do you learn best?',sub:'Shapes how Claude teaches you',opts:['Show me an example first','Explain why before how','Just tell me what to do','Let me experiment','Step-by-step, one at a time','Give me context, then let me ask']},
+  {id:'comfort',lb:'Where are you honestly with AI right now?',sub:'No wrong answer',opts:["Never really used it","Tried ChatGPT, didn't stick","Use it occasionally, don't get much out","Curious but slightly skeptical","Worried I'm already behind","Open and ready — just need a starting point"]}
+];
+const TCQ=[
+  {id:'role',lb:'Your engineering role',sub:'Pick closest fit',opts:['Frontend engineer','Backend engineer','Full-stack engineer','Data / ML engineer','DevOps / Platform / Infra','Mobile engineer','Security engineer','Technical lead / Architect','Solo builder / indie dev']},
+  {id:'tech',lb:'Which Claude products are you most interested in?',sub:'Select all that apply',opts:['Claude Code (terminal agent)','Anthropic API / SDK','Claude.ai chat','MCP server development','Building AI features into products','Prompt engineering / evaluation','All of the above — exploring the stack']},
+  {id:'stack',lb:'Primary language / stack',sub:'Used to calibrate code output style',opts:['TypeScript / JavaScript','Python','Go','Rust','Java / Kotlin','Ruby / Rails','C# / .NET','Multiple — polyglot']},
+  {id:'pain',lb:'Biggest friction in your current workflow',sub:'Select all that apply',opts:['Code review is slow and shallow','Writing tests is painful','Debugging takes too long','Documentation is always out of date','Repetitive boilerplate slows me down','Onboarding to unfamiliar codebases','Context-switching between tasks','Security review gaps','PR turnaround is slow']}
+];
+const QS={professional:[
+  {id:'role',lb:'Your role',sub:'Pick closest fit',opts:['Executive / Founder','Manager / Team Lead','Individual Contributor','Sales / GTM','Creative / Designer','Operations / Admin','Consultant / Freelance','Legal / Compliance','HR / People Ops','Finance / Procurement']},
+  {id:'use',lb:'Primary use cases',sub:'Select all that apply',opts:['Writing & editing','Research & synthesis','Strategy & planning','Data analysis','Code & automation','Client communication','Presentations & reports','Process documentation']},
+  {id:'tools',lb:'Tools you use daily',sub:'Claude can connect to these',opts:['Gmail','Google Calendar','Notion','Slack','Google Drive','GitHub','HubSpot','Asana','Linear','Figma','Microsoft 365','Atlassian / Jira','Zapier','n8n']},
+  {id:'pain',lb:'Biggest time drains',sub:'Be honest — executive options included',opts:['Writing from scratch','Email overload','Meeting prep & notes','Research rabbit holes','Repetitive reporting','Status updates','Getting up to speed fast','Synthesizing conflicting recommendations','Briefing and board prep','Strategic decision support','Explaining things repeatedly','Context-switching']},
+  {id:'rollout',lb:'Are you setting this up for yourself or a team?',sub:'Changes your output set',opts:['Just for me','For my team (5-50 people)','Org-wide rollout (50+ people)']},
+  {id:'comfort',lb:'AI comfort level',sub:'No judgment',opts:['Total beginner','Used ChatGPT a bit','Daily ChatGPT user','Some Claude experience','Heavy AI user']}
+],personal:[
+  {id:'role',lb:'Personal use focus',sub:'Pick what resonates',opts:['Learning new skills','Journaling / creative writing','Life admin & planning','Health & fitness','Travel planning','Finance & budgeting','Hobbies & research','Parenting & family']},
+  {id:'use',lb:'Content you create or consume',sub:'Select all that apply',opts:['Long-form writing','Quick notes & ideas','Reading summaries','Recipes & how-tos','Learning plans','Creative projects','Social media drafts','Research deep dives']},
+  {id:'tools',lb:'Apps in your daily life',sub:'Claude can connect to these',opts:['Gmail','Google Calendar','Google Drive','Notion','Spotify','Todoist','Instacart','AllTrails','Expedia','Booking.com','Uber']},
+  {id:'pain',lb:'Things that drain you',sub:'Honest = better setup',opts:['Planning & scheduling','Writing anything','Decision fatigue','Information overload','Staying organized','Learning new things','Administrative tasks','Creative blocks']},
+  {id:'comfort',lb:'AI comfort level',sub:'No judgment',opts:['Total beginner','Used ChatGPT a bit','Daily ChatGPT user','Some Claude experience','Heavy AI user']}
+]};
+QS.both=QS.professional.map((q,i)=>({...q,opts:[...new Set([...q.opts,...(QS.personal[i]?.opts||[])])].slice(0,12)}));
+
+function getCaps(){return[
+  {area:'Write & Edit',ic:'✏️',items:['Draft emails, reports, messages in seconds','Edit for clarity, tone, and length','Rewrite anything in a different voice','Summarize long documents instantly','Generate multiple versions of anything'],myth:'AI writing sounds robotic and fake',real:'It sounds like you — if you tell it how you sound'},
+  {area:'Research & Learn',ic:'🔍',items:['Find information and cite sources','Explain complex topics in plain language','Compare options and surface tradeoffs','Synthesize what you\'ve been reading','Build a learning plan for any subject'],myth:'AI just makes things up',real:'It can search the web and flag when it\'s unsure'},
+  {area:'Think & Decide',ic:'🧠',items:['Challenge assumptions on a plan','Break down hard decisions with tradeoffs','Stress-test an idea before committing','Brainstorm options you haven\'t considered','Identify blind spots in your thinking'],myth:"AI can't really think",real:'It reasons through problems systematically. Imperfect, but genuinely useful'},
+  {area:'Organize & Plan',ic:'📋',items:['Turn a brain dump into a structured plan','Prioritize a list by impact or urgency','Draft agendas, outlines, project plans','Create checklists from a conversation','Build a schedule around your constraints'],myth:'You need to know exactly what to ask',real:'Dump everything on it and ask it to sort things out'},
+  {area:'Build & Create',ic:'🛠️',items:['Generate working apps inside the chat window','Create dashboards, calculators, trackers','Build interactive tools — no coding required','Draft presentations, proposals, pitches','Design charts and diagrams from data'],myth:'AI tools are only for tech people',real:'The highest-value use cases are non-technical'},
+  {area:'Automate & Connect',ic:'⚡',items:['Connect to your email, calendar, and docs','Read uploaded files in any format','Trigger workflows in other apps','Maintain context across an entire project','Run multi-step tasks without copy-paste'],myth:'Setting this up is complicated',real:'Connecting your first tool takes 2 clicks'},
+];}
+function getMyths(){return[
+  {myth:"AI is going to take my job — I'm already behind",real:"AI is a tool, not a replacement. People who use it well outperform those who don't. You're here now — that's what matters."},
+  {myth:"You need to be technical to use AI effectively",real:"Claude understands plain English. The people getting the most value are not engineers."},
+  {myth:"AI just makes things up and can't be trusted",real:"Claude can be wrong, and it should tell you when it's uncertain. Enable web search. Ask it to cite sources. Ask 'are you sure?'"},
+  {myth:"I need to learn 'prompt engineering' first",real:"Be specific, give context, say what format you want. You already do this in every email you write."},
+  {myth:"AI is only useful for writers and coders",real:"The highest-leverage use cases are often the boring ones: drafting emails, summarizing meetings, prepping conversations, making decisions faster."},
+  {myth:"I need the paid version to get real value",real:"Free tier is genuinely capable. Prove value there first. Most people find paid necessary only once they're using it daily."},
+  {myth:"I'll have to start over every time — it won't remember anything",real:"Claude's Project feature keeps context alive indefinitely. Set one up on Day 1."},
+  {myth:"AI responses are all the same — one generic voice",real:"Claude adapts to your instructions. Custom instructions apply them automatically to every chat."},
+];}
+function getTryNow(){
+  const ow=S.ans.overwhelm||[];
+  const all=[
+    {label:'FIRST WIN',title:'Summarize something overwhelming',why:'Proves Claude reads documents in seconds.',text:'"Here is something I need to understand: [paste article, email, or doc]. Give me: (1) the 3 most important points, (2) anything I should be skeptical of, (3) one question I should be asking."',triggers:['Too much to read and absorb','Research feels endless']},
+    {label:'FIRST WIN',title:"Draft something you've been avoiding",why:'Proves Claude can write in your voice.',text:'"I need to write [email/message/report] about [topic]. Context: [2-3 sentences]. Draft this so it sounds like a thoughtful human wrote it, not a press release."',triggers:['Writing takes me forever','I repeat the same things constantly','Explaining things over and over']},
+    {label:'FIRST WIN',title:"Think through a decision you're stuck on",why:'Proves Claude is a thinking partner.',text:'"I\'m deciding between [A] and [B]. My situation: [context]. What am I not considering? What\'s your recommendation and why?"',triggers:['Making decisions is exhausting','I feel behind on everything']},
+    {label:'FIRST WIN',title:'Turn chaos into a plan',why:'Proves Claude takes a brain dump and creates clarity.',text:'"Here\'s everything on my mind: [dump it all]. Turn this into: (1) what actually needs to happen, (2) what order, (3) what I can ignore or defer."',triggers:['I lose track of things I need to do','Admin tasks drain me']},
+    {label:'FIRST WIN',title:'Get a research summary — not a rabbit hole',why:'Proves Claude saves 2 hours of reading in under 2 minutes.',text:'"I need to understand [topic] for [reason]. I have 5 minutes. Key concepts, why they matter, what to explore further."',triggers:['Research feels endless','Never have time to learn new things']},
+    {label:'FIRST WIN',title:'Prep for a meeting or conversation',why:'Proves Claude makes you look prepared with almost no effort.',text:'"I have a [meeting/call] with [person/company] about [topic] in [timeframe]. Prep me: what I should know, what I should ask, what my goal should be."',triggers:['Meetings eat my whole day']},
+    {label:'FIRST WIN',title:'Unstick a creative project',why:'Proves Claude pushes past the blank page.',text:'"I\'m working on [project] and I\'m stuck because [blocker]. Give me 5 directions I could take this — from safe to unexpected."',triggers:['Creative work keeps stalling']},
+  ];
+  const rel=all.filter(p=>p.triggers.some(t=>ow.includes(t)));
+  const rest=all.filter(p=>!p.triggers.some(t=>ow.includes(t)));
+  return [...rel,...rest].slice(0,5);
+}
+function getLearningPath(){return[
+  {phase:'Day 1',pcls:'ph-d',bg:'var(--m)',title:'One real conversation',domain:'Domain: Writing or Decisions — lowest barrier, highest immediate payoff',items:["Open Claude and paste something you've been meaning to deal with.","Run one of the Try Now prompts. Pick the one closest to your biggest drain.","Notice: did it surprise you? That's the signal."],milestone:"You got something useful out of a real conversation — not a test."},
+  {phase:'Week 1',pcls:'ph-w1',bg:'var(--v)',title:'Find your anchor use case',domain:'Domain: Whatever saved you most time on Day 1 — go deeper',items:['Use Claude for the same type of task 3 times this week. Same prompt shape, different content.','Identify the one task where it saves you most time or effort.','This becomes your anchor — the reason you keep coming back.','Paste your custom instructions into Settings. 2 minutes. Affects every future chat.'],milestone:'You have one thing you would genuinely miss if Claude disappeared.'},
+  {phase:'Week 2',pcls:'ph-w2',bg:'var(--c)',title:'Set up the infrastructure',domain:'Domain: Research — second easiest to show ROI',items:['Connect 2-3 MCPs. Gmail + Calendar + one more. Do this before you think you need it.','Toggle web search on. Now Claude can verify facts.','Create your first Project. Name it after your biggest focus area.'],milestone:"Claude knows who you are and can see your real data."},
+  {phase:'Month 1',pcls:'ph-m1',bg:'var(--g)',title:'Expand into new domains',domain:'Domain: Building — the one that surprises people most',items:["Try a domain you haven't used yet. If writing, try building. If research, try building.","Ask: 'Build me a simple [tracker/calculator] for [something I manage].' See what happens.",'Start noticing what you still do manually that Claude could handle.'],milestone:"You've used Claude in at least 3 different ways. You have opinions now."},
+  {phase:'Month 3',pcls:'ph-m3',bg:'var(--dim)',title:'Teach someone else',domain:'Domain: Automation — connects everything else',items:["Show one person the 1 thing you use Claude for most.",'Explaining forces you to understand it more deeply.','Connect a workflow tool (Zapier or n8n) to let Claude trigger actions in other apps.'],milestone:'Someone else is using AI because of you. You are now a multiplier.'},
+];}
+function getRegulatedGuardrail(){
+  const roles=S.ans.role||[];const parts=[];
+  if(roles.includes('Legal / Compliance'))parts.push('- Never provide legal advice. Frame all output as analysis or research for attorney review.\n- Flag when content could be misread as legal counsel.\n- Always note when jurisdiction-specific knowledge would affect the answer.\n- Recommend attorney review before any output is acted upon legally.');
+  if(roles.includes('HR / People Ops'))parts.push('- Never produce final termination, disciplinary, or PIP documents.\n- Flag when content involves protected characteristics or sensitive employee data.\n- Treat all employee information as confidential.\n- Recommend HR/legal review before any employment action documentation is used.');
+  if(roles.includes('Finance / Procurement'))parts.push('- Never provide tax or financial advice. Frame output as analysis for professional review.\n- Flag all numerical outputs as unverified — I will cross-check against source data.\n- Note when calculations involve regulatory thresholds or compliance requirements.\n- Recommend CPA or CFO review for anything used in reporting or filings.');
+  return parts.length?'\n\n# Professional guardrails\n'+parts.join('\n'):'';
+}
+function getExecModifier(){return isExec()?'\n\n# Executive mode\n- Lead with the conclusion. Never bury the answer.\n- One page maximum unless I ask for more.\n- When I ask for options, give me 2-3 with a clear recommendation — not a framework.\n- Put the most important caveat in one sentence at the end, not upfront.\n- Assume I will delegate the implementation unless I say otherwise.':'';}
+function getSoloModifier(){const r=S.ans.role||[];const u=S.ans.use||[];return(r.includes('Consultant / Freelance')||r.includes('Executive / Founder'))&&u.length>3?'\n\n# Solo operator mode\n- I handle multiple functions myself: '+u.slice(0,4).join(', ')+'. I context-switch constantly.\n- Optimize responses for single-operator execution — I\'m the only person implementing this.\n- Flag when something would benefit from delegation or outside help.':'';}
+function getRolloutModifier(){return isRollout()?'\n\n# Team rollout context\n- I\'m setting this up as part of deploying Claude to '+((S.ans.rollout||[])[0]||'my team')+'.\n- Recommendations should be adoptable by people with varying AI experience.\n- Prefer approaches that work for non-technical team members.':'';}
+
+function getExplorerInst(){const sty=(S.ans.style||[])[0]||'step by step';return `I am new to AI and exploring what is possible. I want to learn as I go.\n\n# How I need you to work\n- Guide me: When you do something useful, briefly explain what you just did and why.\n- Teach me: After answering, occasionally surface one related capability I might not know about.\n- Experiment with me: After answering, suggest one related thing I could try next.\n- Keep it accessible. Not technical, but intelligent.\n- If there is a better framing for what I am asking, reframe it and answer that instead.\n\n# My learning style\n${sty}\n\n# What I am figuring out\nWhat AI can actually do for me in real life. Discovery mode.\n\n# Hard rules\n- Never make things up. Say when you do not know.\n- Do not overwhelm me. One idea at a time.\n- These instructions last updated: May 2026.`;}
+
+function getTechInst(){const role=(S.ans.role||[])[0]||'software engineer';const stack=(S.ans.stack||[])[0]||'TypeScript';const uses=(S.ans.tech||[]).slice(0,3).join(', ')||'Claude Code and API';
+return `I am a ${role}. Stack: ${stack}. Claude products I am using: ${uses}.\n\n# How I need you to work\n- Give me code first, explanation second. I can read code.\n- When you are unsure about an API or method, say so. Never hallucinate method signatures.\n- Point out security issues and edge cases I have not asked about.\n- Always suggest tests for non-trivial code you write.\n- If a better approach exists, say so before implementing mine.\n- Match the style and conventions in the code I paste.\n\n# Code output standards\n- Production-ready: typed, error handling, no TODOs or placeholders.\n- Include a smoke test or verification step with anything non-trivial.\n- For multi-file work, show the file tree first.\n- No hardcoded credentials, API keys, or secrets anywhere.\n\n# Hard rules\n- "I cannot verify this API exists" beats a confident hallucination.\n- If I ask you to do something that creates a security risk, flag it first.\n- These instructions last updated: May 2026.`;}
+
+function getStdInst(){const r=S.ans;const role=(r.role||[])[0]||'[your role]';const use=(r.use||[]).slice(0,3).join(', ')||'[your main tasks]';const pain=(r.pain||[])[0]||'[your biggest drain]';const p=S.profile;
+let b=`I am a ${role}. Primary use cases: ${use}.\n\n# How I need you to work\n- Research FIRST for any product, price, or recommendation.\n- Challenge my reasoning. If my approach has a flaw, say it directly.\n- When tradeoffs exist: show 2-3 options with evidence, pick one and justify it.\n- Be concise. Skip the preamble.\n- If you are unsure, say so. Do not fabricate confidence.\n- If my request is ambiguous, ask one clarifying question first.\n\n# My biggest time drain\n${pain}\n\n# Output defaults\n- Bullet points only when items are genuinely parallel. Otherwise prose.\n- No filler phrases.\n- Give me something I can use immediately.`;
+if(p==='personal'||p==='both')b+='\n\n# Personal context\n- Respond like a trusted advisor.\n- Tone: direct but warm. Not corporate.';
+if(p==='professional'||p==='both')b+='\n\n# Professional context\n- Recommendations must be implementable.\n- I care about execution and speed.';
+b+=getExecModifier()+getSoloModifier()+getRolloutModifier()+getRegulatedGuardrail();
+b+='\n\n# Hard rules\n- Never invent statistics. Cannot verify beats a guess.\n- These instructions last updated: May 2026.';
+return b;}
+
+function getInst(){if(isEx())return getExplorerInst();if(isTc())return getTechInst();return getStdInst();}
+
+function getTechCases(){return[
+  {tl:'Code review',ex:'"Review this code for security issues, edge cases, and anything that would fail in production. Be specific."',ic:'🔍'},
+  {tl:'Write tests',ex:'"Write unit tests for this function: [paste code]. Cover happy path, edge cases, and error conditions."',ic:'🧪'},
+  {tl:'Debug this error',ex:'"Here is the error and the relevant code: [paste both]. What is causing this and how do I fix it?"',ic:'🐛'},
+  {tl:'Design an API',ex:'"I am building [describe what]. Design the REST API: endpoints, request/response shapes, error codes, auth approach."',ic:'📐'},
+  {tl:'Explain this codebase',ex:'"Here is a function / module / service I have to work with: [paste code]. Explain what it does, its dependencies, and what I should know before touching it."',ic:'📚'},
+  {tl:'Refactor for readability',ex:'"Refactor this code for readability and maintainability. Keep behavior identical. Explain what you changed and why."',ic:'✨'},
+  {tl:'Write documentation',ex:'"Write a README / docstring / JSDoc for this code: [paste]. Target: a new engineer joining the team."',ic:'📝'},
+  {tl:'Security audit',ex:'"Audit this code for security vulnerabilities. Check for: injection, auth issues, data exposure, race conditions, and anything else you spot."',ic:'🔒'},
+];}
+
+function getStdCases(){const use=S.ans.use||[];const pain=S.ans.pain||[];
+const all=[
+  {tr:['Writing & editing'],tl:'Draft anything faster',ex:'"Draft a [email/report] for [context]. My voice: direct, no filler. 2 versions."',ic:'✏️'},
+  {tr:['Research & synthesis'],tl:'Research without the rabbit hole',ex:'"Research [topic]. 5 key findings with sources. Flag anything you cannot verify."',ic:'🔍'},
+  {tr:['Email overload'],tl:'Email triage and drafting',ex:'"[Paste thread] — what is being asked of me and draft my reply."',ic:'📧'},
+  {tr:['Meeting prep & notes','Getting up to speed fast','Briefing and board prep'],tl:'Briefing prep in 5 minutes',ex:'"I have a [meeting/board/call] about [topic] in [timeframe]. Prep me: what I should know, what I should ask, my goal."',ic:'📅'},
+  {tr:['Repetitive reporting','Status updates'],tl:'Report generation',ex:'"Here is last months data [paste]. Status report under 300 words."',ic:'📊'},
+  {tr:['Synthesizing conflicting recommendations','Strategic decision support','Decision fatigue'],tl:'Make decisions faster',ex:'"Deciding between [A] and [B]. Tradeoffs, recommendation, rationale. Lead with the recommendation."',ic:'⚖️'},
+  {tr:['Code & automation'],tl:'Build tools without coding',ex:'"Build me an interactive [tracker/calculator] for [what I manage]."',ic:'🛠️'},
+  {tr:['Strategy & planning'],tl:'Strategic thinking partner',ex:'"Planning [initiative]. Challenge my assumptions. What am I missing? What could go wrong?"',ic:'🎯'},
+];
+const rel=all.filter(e=>e.tr.some(t=>use.includes(t)||pain.includes(t)));
+const rest=all.filter(e=>!e.tr.some(t=>use.includes(t)||pain.includes(t)));
+return [...rel,...rest].slice(0,6);}
+
+function getExConn(){return[{n:'Gmail',ic:'📧',w:'Claude reads your actual emails.',ex:'Ask: "Summarize the last 5 emails from [person] and tell me what I need to do."',t:'must'},{n:'Google Calendar',ic:'📅',w:'Claude sees your real schedule.',ex:'Ask: "What does my week look like? Where can I fit a 2-hour focus block?"',t:'must'},{n:'Google Drive',ic:'📁',w:'Claude reads your docs and files.',ex:'Upload any PDF and ask: "What is the key decision in this document?"',t:'must'},{n:'Notion',ic:'📓',w:'Claude reads and writes to your notes.',ex:'Ask: "Summarize my notes on [project]. What is missing?"',t:'high'},{n:'Todoist',ic:'☑️',w:'Claude manages your task list.',ex:'Ask: "What tasks are overdue? Help me prioritize what to tackle today."',t:'high'}];}
+function getTechConn(){return[{n:'GitHub',ic:'🐙',w:'Search issues, create PRs, read code from chat. Essential.',ex:'Ask: "What are the open issues related to auth?"',t:'must'},{n:'Supabase',ic:'🗄',w:'Query databases, check schema, manage auth from chat.',ex:'Ask: "Show me the schema for the users table."',t:'must'},{n:'Vercel',ic:'▲',w:'Debug deployments, check logs, manage projects.',ex:'Ask: "Why did my last deploy fail?"',t:'must'},{n:'Sentry',ic:'🔍',w:'Search, query, and debug errors intelligently.',ex:'Ask: "What are the top 5 errors in production this week?"',t:'high'},{n:'Postman',ic:'📮',w:'API context for your coding agent.',ex:'Use with Claude Code for live API documentation lookup.',t:'high'},{n:'Context7',ic:'📚',w:'Up-to-date docs for every library you use.',ex:'Claude Code uses this to check current API signatures.',t:'high'},{n:'Cloudflare',ic:'☁️',w:'Edge compute, Workers, KV, D1 from chat.',ex:'Ask: "Deploy this Worker script to my account."',t:'opt'},{n:'Netlify',ic:'🌐',w:'Manage deployments and site config.',ex:'Ask: "What is the deploy status for my project?"',t:'opt'}];}
+
+function getStdChk(){const isNew=['Total beginner','Used ChatGPT a bit'].some(x=>(S.ans.comfort||[]).includes(x));
+return[
+  {id:'c1',lb:'Paste your custom instructions',sb:'claude.ai > Settings > User Preferences > paste.',u:true},
+  {id:'c2',lb:'Connect your top 3 MCPs',sb:'Gmail + Calendar + one work tool. Do it before leaving.',u:true},
+  {id:'c3',lb:'Enable web search',sb:'Toggle ON at the top of any chat.',u:true},
+  {id:'c4',lb:'Create your first Project',sb:'One project = one ongoing focus.',u:true},
+  {id:'c5',lb:'Upload a file and ask about it',sb:'PDFs, spreadsheets, images — Claude reads them all.',u:false},
+  {id:'c6',lb:'Ask Claude to build you something',sb:'"Build me a [tracker/dashboard] for [what I manage]."',u:false},
+  ...(isNew?[{id:'c7',lb:'Know the memory rule',sb:'Claude starts fresh every conversation. Projects + custom instructions are the fix.',u:true},{id:'c8',lb:'Learn what artifacts are',sb:'Ask: "Make me a simple habit tracker." Watch it generate a working interactive app.',u:false}]:[]),
+  {id:'c9',lb:'Run deep research on something you\'ve avoided',sb:'"Research [topic] and give me a synthesis with sources."',u:false},
+  {id:'c10',lb:'30-day check-in',sb:'Note what Claude saved you time on. That\'s your ROI signal.',u:false},
+];}
+function getExChk(){return[
+  {id:'e1',lb:'Run your first Try Now prompt',sb:'Go to the Try Now tab. Pick one. Paste into claude.ai. Just do it.',u:true},
+  {id:'e2',lb:'Paste your custom instructions',sb:'claude.ai > Settings > User Preferences > paste. Now Claude knows you are learning.',u:true},
+  {id:'e3',lb:'Enable web search',sb:"Toggle ON at the top of any chat. Without this Claude's info may be stale.",u:true},
+  {id:'e4',lb:'Connect Gmail + Google Calendar',sb:'claude.ai > Connectors. Two clicks each.',u:true},
+  {id:'e5',lb:'Upload something you would normally explain',sb:'A doc, PDF, or screenshot. Ask: "What is the key decision in this?"',u:false},
+  {id:'e6',lb:'Create a Project for your main focus area',sb:'Name it after the area where you are most overwhelmed.',u:false},
+  {id:'e7',lb:'Ask Claude what else it can do for you',sb:'"Based on how I have been using you, what am I not taking advantage of?"',u:false},
+  {id:'e8',lb:'Find your anchor use case',sb:'The one thing Claude saves you the most time on.',u:false},
+  {id:'e9',lb:'Show one person one thing',sb:'Fastest way to deepen fluency.',u:false},
+  {id:'e10',lb:'30-day check-in',sb:'What did I do manually that Claude could have handled?',u:false},
+];}
+function getTechChk(){return[
+  {id:'t1',lb:'Install Claude Code',sb:'npm install -g @anthropic-ai/claude-code — then run: claude in any project directory.',u:true},
+  {id:'t2',lb:'Set your API key',sb:'export ANTHROPIC_API_KEY=sk-ant-... — add to your shell profile so it persists across sessions.',u:true},
+  {id:'t3',lb:'Connect GitHub connector',sb:'claude.ai > Connectors > GitHub. Claude can search issues, review PRs, and read code from chat.',u:true},
+  {id:'t4',lb:'Create CLAUDE.md in your project',sb:'This is Claude Code\'s instruction file. Add: your stack, test commands, naming conventions, what Claude should never touch.',u:true},
+  {id:'t5',lb:'Run your first in-context code review',sb:'In Claude Code: select a file or paste code and ask "review this for security issues."',u:false},
+  {id:'t6',lb:'Try /compact in a long session',sb:'When context gets long, /compact summarizes without losing state. Use it proactively.',u:false},
+  {id:'t7',lb:'Set up a MCP server for your stack',sb:'github.com/modelcontextprotocol — pick a server for your database or API. Connects Claude to live systems.',u:false},
+  {id:'t8',lb:'Configure hooks in CLAUDE.md',sb:'Hooks run after every file edit: formatters, linters, test runners. More reliable than instructions.',u:false},
+];}
+function getRolloutChk(){return[
+  {id:'r1',lb:'Run through the kit yourself first',sb:'You need a personal anchor use case before you can teach anyone else.',u:true},
+  {id:'r2',lb:'Identify 2-3 pilot users',sb:'Pick people who are already curious, not resistant. Early adopters first.',u:true},
+  {id:'r3',lb:'Connect the org-level MCPs',sb:'Gmail, Calendar, and one shared work tool as a minimum before distributing.',u:true},
+  {id:'r4',lb:'Create a shared team Project',sb:'Projects carry context. Create one shared project for team-wide reference material and prompts.',u:true},
+  {id:'r5',lb:'Run the onboarding kit with each pilot user live',sb:'Walk through it in a meeting, not async. This is where use cases get identified.',u:false},
+  {id:'r6',lb:'Document the first 3 wins',sb:'Ask pilots: what did Claude save you time on? With specifics. These become your internal case studies.',u:false},
+  {id:'r7',lb:'Build an internal prompt library',sb:'When a pilot finds a prompt that works, save it. Shared doc of prompts that work in your org context.',u:false},
+  {id:'r8',lb:'30-day team check-in',sb:'Which workflows has the team stopped doing manually? That\'s your adoption signal.',u:false},
+];}
+function getChk(){if(isEx())return getExChk();if(isTc())return getTechChk();if(isRollout())return getRolloutChk();return getStdChk();}
+function getUU(){const extra=isEx()?[
+  {t:"You don't need a use case to start — you discover it by starting",b:"Most people wait until they know what they want to use it for. That is backwards. Start with anything. Your use case emerges from using it."},
+  {t:"The learning curve is delegation, not software",b:"The skill is learning what to hand off, how to brief it, and when to push back. That takes a few weeks of actual use, not studying."},
+  {t:"Your first few prompts will feel awkward — that is calibration, not failure",b:"You do not have calibrated expectations yet. The calibration happens fast once you start."},
+  {t:"You are not behind — you are earlier than most people realize",b:"Adoption of AI in daily work is still early for most roles. You are not catching up. You are getting ahead of a wave that has not broken yet."},
+]:isTc()?[
+  {t:'Claude Code and Claude.ai are different products with different use cases',b:'Claude.ai is a chat interface. Claude Code is a terminal agent that operates on your actual codebase. The highest-value engineering use cases are in Claude Code, not the chat interface.'},
+  {t:'Claude will hallucinate method signatures and APIs',b:'It happens. The fix: always ask Claude to verify against current docs, use Context7 connector for library documentation, and treat code output as a first draft to be reviewed, not a final answer.'},
+  {t:'CLAUDE.md is advisory — hooks are deterministic',b:'CLAUDE.md guides Claude about 80% of the time. If something must always happen (formatting, linting, security checks), make it a hook. If it is guidance Claude should consider, CLAUDE.md is fine.'},
+]:[];
+const base=[
+  {t:'Claude starts fresh every conversation',b:'No memory between chats. Projects fix this. Without them, you repeat yourself every session.'},
+  {t:'Custom instructions are the single highest-leverage action',b:'Every conversation runs without context about you. Set them once, benefit forever.'},
+  {t:'Web search is OFF by default',b:"Claude won't check current info unless you toggle it on. Prices, news — stale without it."},
+  {t:'MCPs turn Claude from a chatbot into a co-worker',b:"Without connectors, Claude only works on what you paste in. With them, it reads your real data."},
+  {t:'You can generate working apps in the chat window',b:'"Build me a tracker or calculator" — interactive code you use immediately. No install.'},
+  {t:'File uploads unlock massive leverage',b:'Upload a PDF or deck — Claude reads it, summarizes it, rewrites it.'},
+  {t:'Claude will agree when it should push back',b:"Sycophancy tendency by default. Tell it to challenge you in custom instructions."},
+  {t:'Projects are not optional — they are the operating model',b:'Projects carry persistent context. Without them, Claude forgets you between sessions.'},
+];
+return[...extra,...base];}
+const CAT=[
+  {cat:'Productivity',n:'Gmail',ic:'📧',w:'Read, search, draft replies.',t:'must',p:['professional','personal','both'],m:'gmail',pop:2},
+  {cat:'Productivity',n:'Google Calendar',ic:'📅',w:'Schedule, check availability, create events.',t:'must',p:['professional','personal','both'],m:'calendar',pop:3},
+  {cat:'Productivity',n:'Google Drive',ic:'📁',w:'Claude reads docs, decks, and sheets.',t:'must',p:['professional','personal','both'],m:'drive',pop:1},
+  {cat:'Productivity',n:'Notion',ic:'📓',w:'Search notes, create pages, update databases.',t:'must',p:['professional','both'],m:'notion',pop:6},
+  {cat:'Productivity',n:'Microsoft 365',ic:'🪟',w:'Outlook, Teams, SharePoint, OneDrive.',t:'high',p:['professional','both'],m:'microsoft',pop:8},
+  {cat:'Productivity',n:'Slack',ic:'💬',w:'Search messages, draft replies.',t:'high',p:['professional','both'],m:'slack',pop:9},
+  {cat:'Productivity',n:'Asana',ic:'📋',w:'Tasks, projects, and goals.',t:'high',p:['professional','both'],m:'asana',pop:null},
+  {cat:'Productivity',n:'Linear',ic:'📐',w:'Engineering issues and roadmap.',t:'high',p:['professional','both'],m:'linear',pop:null},
+  {cat:'Productivity',n:'ClickUp',ic:'✅',w:'Project management and collaboration.',t:'opt',p:['professional','both'],m:'clickup',pop:null},
+  {cat:'Productivity',n:'Todoist',ic:'☑️',w:'Search, complete, manage tasks.',t:'must',p:['personal','both'],m:'todoist',pop:null},
+  {cat:'Productivity',n:'Calendly',ic:'🗓',w:'Manage event types and bookings.',t:'opt',p:['professional','both'],m:'calendly',pop:null},
+  {cat:'Design & Creative',n:'Figma',ic:'🎨',w:'Pull design context, generate code.',t:'must',p:['professional','both'],m:'figma',pop:5},
+  {cat:'Design & Creative',n:'Canva',ic:'🖼',w:'Search, create, export designs.',t:'high',p:['professional','personal','both'],m:'canva',pop:4},
+  {cat:'Design & Creative',n:'Adobe',ic:'🅰️',w:'Ideate and create with Adobe tools.',t:'high',p:['professional','both'],m:'adobe',pop:null},
+  {cat:'Design & Creative',n:'Miro',ic:'📌',w:'Access and update Miro boards.',t:'opt',p:['professional','both'],m:'miro',pop:null},
+  {cat:'Design & Creative',n:'Gamma',ic:'🖥',w:'Create presentations with AI.',t:'opt',p:['professional','both'],m:'gamma',pop:null},
+  {cat:'Dev & Engineering',n:'GitHub',ic:'🐙',w:'Issues, PRs, code review.',t:'must',p:['professional','both','technical'],m:'github',pop:null},
+  {cat:'Dev & Engineering',n:'Supabase',ic:'🗄',w:'Databases, auth, storage.',t:'high',p:['professional','both','technical'],m:'supabase',pop:null},
+  {cat:'Dev & Engineering',n:'Vercel',ic:'▲',w:'Deployments and debugging.',t:'high',p:['professional','both','technical'],m:'vercel',pop:null},
+  {cat:'Dev & Engineering',n:'Sentry',ic:'🔍',w:'Search and debug errors.',t:'high',p:['professional','both','technical'],m:'sentry',pop:null},
+  {cat:'Dev & Engineering',n:'Cloudflare',ic:'☁️',w:'Edge compute and storage.',t:'opt',p:['professional','both','technical'],m:'cloudflare',pop:null},
+  {cat:'Dev & Engineering',n:'Netlify',ic:'🌐',w:'Deploy and manage websites.',t:'opt',p:['professional','both','technical'],m:'netlify',pop:null},
+  {cat:'Dev & Engineering',n:'Datadog',ic:'🐶',w:'Telemetry and debugging.',t:'opt',p:['professional','both','technical'],m:'datadog',pop:null},
+  {cat:'Dev & Engineering',n:'Postman',ic:'📮',w:'Give coding agents live API context.',t:'high',p:['professional','both','technical'],m:'postman',pop:null},
+  {cat:'Dev & Engineering',n:'Context7',ic:'📚',w:'Up-to-date library docs for AI editors.',t:'high',p:['technical'],m:'context7',pop:null},
+  {cat:'Automation',n:'Zapier',ic:'⚡',w:'Automate across thousands of apps.',t:'high',p:['professional','personal','both'],m:'zapier',pop:null,custom:true},
+  {cat:'Automation',n:'n8n',ic:'🔗',w:'Trigger n8n workflows from Claude.',t:'high',p:['professional','both'],m:'n8n',pop:null,custom:true},
+  {cat:'Automation',n:'Make',ic:'🔄',w:'Run Make scenarios from chat.',t:'opt',p:['professional','both'],m:'make',pop:null},
+  {cat:'Automation',n:'IFTTT',ic:'🔀',w:'Connect and automate 1000+ apps.',t:'opt',p:['personal','both'],m:'ifttt',pop:null},
+  {cat:'CRM & Sales',n:'HubSpot',ic:'🎯',w:'CRM contacts, deals, pipeline.',t:'must',p:['professional','both'],m:'hubspot',pop:10},
+  {cat:'CRM & Sales',n:'Apollo.io',ic:'🚀',w:'Find buyers, enrich contacts.',t:'high',p:['professional','both'],m:'apollo',pop:null},
+  {cat:'CRM & Sales',n:'Clay',ic:'🧱',w:'Prospects and outreach.',t:'high',p:['professional','both'],m:'clay',pop:null},
+  {cat:'CRM & Sales',n:'ZoomInfo',ic:'🔭',w:'GTM intelligence.',t:'opt',p:['professional','both'],m:'zoominfo',pop:null},
+  {cat:'Analytics',n:'PostHog',ic:'🦔',w:'Product analytics.',t:'high',p:['professional','both'],m:'posthog',pop:null},
+  {cat:'Analytics',n:'Airtable',ic:'🗂',w:'Structured databases in Claude.',t:'high',p:['professional','both'],m:'airtable',pop:null},
+  {cat:'Analytics',n:'Semrush',ic:'🔍',w:'SEO and market data.',t:'opt',p:['professional','both'],m:'semrush',pop:null},
+  {cat:'Finance',n:'Stripe',ic:'💳',w:'Payment processing.',t:'high',p:['professional','both'],m:'stripe',pop:null},
+  {cat:'Finance',n:'Ramp',ic:'💰',w:'Spend analysis.',t:'opt',p:['professional','both'],m:'ramp',pop:null},
+  {cat:'Finance',n:'QuickBooks',ic:'📒',w:'Business finances.',t:'opt',p:['professional','both'],m:'quickbooks',pop:null},
+  {cat:'Personal',n:'Spotify',ic:'🎵',w:'Music recommendations.',t:'must',p:['personal'],m:'spotify',pop:null},
+  {cat:'Personal',n:'AllTrails',ic:'🥾',w:'Hike recommendations.',t:'opt',p:['personal'],m:'alltrails',pop:null},
+  {cat:'Personal',n:'Expedia',ic:'✈️',w:'Trips and hotels.',t:'opt',p:['personal','both'],m:'expedia',pop:null},
+  {cat:'Personal',n:'Instacart',ic:'🛒',w:'Groceries from chat.',t:'opt',p:['personal'],m:'instacart',pop:null},
+  {cat:'Legal & Compliance',n:'Docusign',ic:'✍️',w:'Contract management.',t:'opt',p:['professional','both'],m:'docusign',pop:null},
+  {cat:'Legal & Compliance',n:'Harvey',ic:'⚡',w:'Legal research and vault search.',t:'high',p:['professional'],m:'harvey',pop:null},
+  {cat:'Custom & Advanced',n:'Atlassian',ic:'🔷',w:'Jira + Confluence.',t:'high',p:['professional','both'],m:'atlassian',pop:null,custom:true},
+  {cat:'Custom & Advanced',n:'Lovable',ic:'💜',w:'Build web apps from Claude.',t:'opt',p:['professional','both'],m:'lovable',pop:null,custom:true},
+  {cat:'Custom & Advanced',n:'Base44',ic:'🏗',w:'Build and manage Base44 apps.',t:'opt',p:['professional','both'],m:'base44',pop:null,custom:true},
+  {cat:'Custom & Advanced',n:'Ideabrowser',ic:'💡',w:'Validated startup ideas.',t:'opt',p:['professional','both'],m:'ideabrowser',pop:null,custom:true},
+  {cat:'Custom & Advanced',n:'Invideo',ic:'🎞',w:'AI video generation.',t:'opt',p:['professional','personal','both'],m:'invideo',pop:null,custom:true},
+  {cat:'Custom & Advanced',n:'Explorium',ic:'🔭',w:'B2B data intelligence.',t:'opt',p:['professional','both'],m:'explorium',pop:null,custom:true},
+  {cat:'Custom & Advanced',n:'GitLab',ic:'🦊',w:'CI/CD and code review.',t:'opt',p:['professional','both','technical'],m:'gitlab',pop:null,custom:true},
+  {cat:'Custom & Advanced',n:'Playwright',ic:'🎭',w:'Browser automation.',t:'opt',p:['professional','both'],m:'playwright',pop:null,custom:true},
+  {cat:'Custom & Advanced',n:'monday.com',ic:'🗓',w:'Project boards.',t:'opt',p:['professional','both'],m:'monday',pop:null,custom:true},
+  {cat:'Custom & Advanced',n:'DataGrail',ic:'🛡',w:'Privacy and AI orchestration.',t:'opt',p:['professional'],m:'datagrail',pop:null,custom:true},
+];
+const ALL_CATS=[...new Set(CAT.map(c=>c.cat))];
+function filteredCatalog(){
+  const p=isTc()?'technical':isEx()?'both':S.profile||'both';
+  const q=S.search.toLowerCase();const tier=S.filterTier;const cat=S.filterCat;
+  return CAT.filter(c=>{
+    if(!c.p.includes(p)&&!c.p.includes('both'))return false;
+    if(tier!=='all'&&c.t!==tier)return false;
+    if(cat!=='all'&&c.cat!==cat)return false;
+    if(q&&!c.n.toLowerCase().includes(q)&&!c.w.toLowerCase().includes(q)&&!c.cat.toLowerCase().includes(q))return false;
+    return true;
+  }).sort((a,b)=>{const ta=a.t==='must'?0:a.t==='high'?1:2;const tb=b.t==='must'?0:b.t==='high'?1:2;return ta-tb;});
+}
+function getMilestone(){const keys=isEx()?['e1','e2','e3','e4']:isTc()?['t1','t2','t3','t4']:['c1','c2','c3','c4'];const done=keys.filter(k=>S.chk[k]).length;return{done,total:keys.length};}
+function toast(msg,dur){dur=dur||2600;const t=document.getElementById('tst');t.textContent=msg;t.classList.add('s');setTimeout(()=>t.classList.remove('s'),dur);}
+function buildMD(){const d=new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});const cl=getChk();const u=getUU();
+if(isEx()){const prompts=getTryNow();const path=getLearningPath();const myths=getMyths();const caps=getCaps();const ecs=getExConn();
+return `# Claude Onboarding Kit — Explorer Edition\nGenerated: ${d}\n\n---\n\n## What AI Can Actually Do\n\n${caps.map(c=>'### '+c.ic+' '+c.area+'\n'+c.items.map(i=>'- '+i).join('\n')+'\n\nMyth: '+c.myth+'\nReality: '+c.real).join('\n\n')}\n\n---\n\n## Myths vs Reality\n\n${myths.map(m=>'Myth: '+m.myth+'\nReality: '+m.real).join('\n\n---\n')}\n\n---\n\n## Try This Right Now\n\n${prompts.map(p=>'### '+p.title+'\n'+p.why+'\n\n'+p.text).join('\n\n')}\n\n---\n\n## Learning Path\n\n${path.map(p=>'### '+p.phase+': '+p.title+'\n'+p.domain+'\n\n'+p.items.map(i=>'- '+i).join('\n')+'\n\nMilestone: '+p.milestone).join('\n\n')}\n\n---\n\n## Custom Instructions\n\n\`\`\`\n${getInst()}\n\`\`\`\n\n---\n\n## Start With These 5 Connectors\n\n${ecs.map(c=>'### '+c.n+'\n'+c.w+'\nTry: '+c.ex).join('\n\n')}\n\n---\n\n## Checklist\n\n${cl.map(c=>'- [ ] '+c.lb+(c.u?' (Start here)':'')+'\n  '+c.sb).join('\n')}\n\n---\n\n## Unknown Unknowns\n\n${u.map(x=>'### '+x.t+'\n'+x.b).join('\n\n')}\n\n---\n*FlashFusion Claude Onboarding Kit · May 2026*`;}
+if(isTc()){const tc=getTechChk();const tcc=getTechCases();const tconn=getTechConn();
+return `# Claude Onboarding Kit — Technical Edition\nGenerated: ${d}\n\n---\n\n## Custom Instructions\n\n\`\`\`\n${getInst()}\n\`\`\`\n\n---\n\n## Claude Code Quick Start\n\n\`\`\`bash\nnpm install -g @anthropic-ai/claude-code\nexport ANTHROPIC_API_KEY=sk-ant-...\ncd your-project && claude\n\`\`\`\n\n## CLAUDE.md Template\n\n\`\`\`markdown\n# Project\nStack: [your stack]\nTest command: [npm test / pytest / etc.]\nLint: [eslint / prettier / etc.]\n\n# Conventions\n- [Your naming conventions]\n- [File structure rules]\n\n# Never touch\n- [Files Claude should not modify]\n\`\`\`\n\n---\n\n## Top Connectors for Engineering\n\n${tconn.map(c=>'### '+c.n+'\n'+c.w+'\nTry: '+c.ex).join('\n\n')}\n\n---\n\n## Prompt Templates\n\n${tcc.map(c=>'### '+c.ic+' '+c.tl+'\n'+c.ex).join('\n\n')}\n\n---\n\n## Setup Checklist\n\n${tc.map(c=>'- [ ] '+c.lb+(c.u?' (Day 1)':'')+'\n  '+c.sb).join('\n')}\n\n---\n\n## Unknown Unknowns for Engineers\n\n${u.map(x=>'### '+x.t+'\n'+x.b).join('\n\n')}\n\n---\n*FlashFusion Claude Onboarding Kit · May 2026*`;}
+const fc=filteredCatalog();const cs=getStdCases();
+return `# Claude Onboarding Kit\nGenerated: ${d}\nProfile: ${S.profile}\n\n---\n\n## Custom Instructions\n\n\`\`\`\n${getInst()}\n\`\`\`\n\n---\n\n## Connectors\n\n### Must-Have\n${fc.filter(c=>c.t==='must').map(c=>'- **'+c.n+'** — '+c.w).join('\n')}\n\n### High-Value\n${fc.filter(c=>c.t==='high').map(c=>'- **'+c.n+'** — '+c.w).join('\n')}\n\n---\n\n## Prompt Templates\n\n${cs.map(c=>'### '+c.ic+' '+c.tl+'\n'+c.ex).join('\n\n')}\n\n---\n\n## Checklist\n\n${cl.map(c=>'- [ ] '+c.lb+(c.u?' (Day 1)':'')+'\n  '+c.sb).join('\n')}\n\n---\n\n## Unknown Unknowns\n\n${u.map(x=>'### '+x.t+'\n'+x.b).join('\n\n')}\n\n---\n*FlashFusion Claude Onboarding Kit · May 2026*`;}
+function buildMgrMD(mode){const ow=(S.ans.overwhelm||S.ans.pain||[]).slice(0,3);const caps=getCaps().slice(0,3);const d=new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
+if(mode==='colleague')return `# Try Claude — A Quick Start for You\n${d}\n\nA colleague shared this to help you get started with AI.\n\n---\n\n## What It Can Do in the Next 30 Minutes\n\n${caps.map(c=>'**'+c.area+'** — '+c.items[0]+'. '+c.items[1]+'.').join('\n\n')}\n\n---\n\n## Three Things to Try Right Now\n\n1. Paste something you have been meaning to read: "Summarize this and tell me the 3 most important points: [paste it]"\n2. Draft something you have been putting off: "Draft [email/message] about [topic]. Make it sound human, not robotic."\n3. Think through a decision: "I am deciding between [A] and [B]. What am I not considering?"\n\n---\n\n## Setup (5 minutes)\n\n1. Go to claude.ai — free account is enough to start\n2. Settings > User Preferences > paste your custom instructions\n3. Top of any chat: toggle web search ON\n\n---\n\n*Shared via FlashFusion Claude Onboarding Kit · flashfusion.co*`;
+return `# Why I Am Learning AI — and What It Could Mean for Our Team\n${d}\n\n---\n\n## What I Am Learning and Why Now\n\nI have started exploring AI tools to understand where they can save time, reduce cognitive load, and create leverage in our work. Not hype — identifying which parts of our day-to-day could be handled faster or without manual effort.\n\n---\n\n## What AI Can Actually Do\n\n${caps.map(c=>'**'+c.area+'** — '+c.items.slice(0,3).map(i=>'- '+i).join('; ')).join('\n\n')}\n\n---\n\n## Where I Am Starting\n\n${ow.length>0?ow.map(u=>'- '+u).join('\n'):'- Writing and communication\n- Research and synthesis\n- Decision-making support'}\n\n---\n\n## What This Could Mean for the Team\n\n- Faster first drafts on everything written\n- Less time on research and summarization\n- Better-prepped meetings with less prep time\n\n---\n\n## Simple Starting Point for Anyone\n\nOpen claude.ai (free tier). Paste in a problem you have been putting off. See what happens.\n\n---\n\n*Generated by FlashFusion Claude Onboarding Kit · flashfusion.co*`;}
+function dlMD(){try{const b=new Blob([buildMD()],{type:'text/markdown'});const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download='claude-setup-'+S.profile+'-'+Date.now()+'.md';document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(u);toast('Downloaded');}catch(e){toast('Download failed');}}
+function dlMgr(mode){try{const b=new Blob([buildMgrMD(mode)],{type:'text/markdown'});const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download=(mode==='colleague'?'claude-for-a-colleague':'ai-opportunity-one-pager')+'-'+Date.now()+'.md';document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(u);toast(mode==='colleague'?'Colleague starter downloaded':'One-pager downloaded');}catch(e){toast('Failed');}}
+function copyInst(){navigator.clipboard.writeText(getInst()).then(()=>toast('Copied — paste into Settings > User Preferences'));}
+function notionPush(){const md=buildMD();navigator.clipboard.writeText(md).catch(()=>{});toast('Sending to Notion...',3000);document.getElementById('ntn').style.display='block';try{window.parent.postMessage({type:'sendPrompt',text:'NOTION_PUSH — subpage under Production Hub 323ea14f. Title: "Claude Onboarding Kit — '+S.profile+' · '+new Date().toLocaleDateString()+'". Content:\n\n'+md},'*');}catch(e){}}
+function cRow(c,showEx){const tb=c.t==='must'?'<span class="bm mu">Must-Have</span>':c.t==='high'?'<span class="bm hi">High-Value</span>':'<span class="bm op">Specialized</span>';const cb=c.custom?'<span class="bm cu">Custom</span>':'';return '<div class="mr"><div class="mi">'+c.ic+'</div><div style="flex:1;min-width:0"><div class="mn">'+c.n+' '+tb+cb+'</div><div class="mw">'+c.w+'</div>'+(showEx&&c.ex?'<div class="mex">Try: '+c.ex+'</div>':'')+'</div></div>';}
+function render(){
+  const app=document.getElementById('app');const ex=isEx();const tc=isTc();const reg=isRegulated();const exec=isExec();const ro=isRollout();
+  const steps=['Profile','Questions','Setup'];
+  const sdots=steps.map((l,i)=>{const n=i+1;const cl=n<S.step?'sd d':n===S.step?'sd a':'sd';return '<div class="'+cl+'">'+(n<S.step?'v':n)+'</div><span class="sdl">'+l+'</span>';}).join('<div class="dsep"></div>');
+  let body='';
+  if(S.step===1){
+    body='<h1>Claude Onboarding Kit</h1><p class="sub">Get scoped custom instructions, matched connectors, and a setup path in 3 steps.</p><div class="sdots">'+sdots+'</div><p style="font-size:13px;color:var(--muted);margin-bottom:12px">How will you primarily use Claude?</p><div class="pg">'+Object.entries(PROFS).map(([k,v])=>'<div class="pc'+(S.profile===k?' sel':'')+(v.ex?' ex-c':v.tc?' tc-c':'')+'" onclick="selP(\''+k+'\')">'+(v.ex?'<div class="new-tag">NEW</div>':v.tc?'<div class="warn-tag">CODE</div>':'')+'<div class="ic">'+v.ic+'</div><div class="lb">'+v.lb+'</div><div class="ds">'+v.ds+'</div></div>').join('')+'</div><div class="br"><button onclick="if(S.profile){S.step=2;render()}" '+(S.profile?'':'disabled style="opacity:.4"')+'>Next</button></div>';
+  }else if(S.step===2){
+    const qs=ex?EXQ:tc?TCQ:(QS[S.profile]||QS.professional);
+    const useCount=(S.ans.use||[]).length;const showDetect=!ex&&!tc&&useCount===0;
+    const det=showDetect?'<div class="detect-banner"><p>Not sure about your use cases yet? <strong>Explorer mode</strong> is built for people still figuring out what AI can do for them.</p><button class="gr-btn" onclick="selP(\'explorer\');render()">Switch to Explorer</button></div>':'';
+    const bothBranch=S.profile==='both'?'<div class="qb" style="border-color:rgba(16,185,129,.2)"><div class="ql">Are you already using AI regularly, or still figuring out where it fits?</div><div class="cr"><div class="ch on">I already have specific use cases in mind</div><div class="ch" onclick="selP(\'explorer\');render()">Still figuring out — Explorer mode</div></div></div>':'';
+    const regWarn=reg?'<div class="reg-warn"><strong>Regulated profession detected.</strong> Your custom instructions will include professional guardrails specific to your role. These are not legal advice — have them reviewed by appropriate counsel before relying on them professionally.</div>':'';
+    body='<h1>'+(ex?'Tell me about yourself':tc?'Your engineering context':'Scoping questions')+'</h1><p class="sub">'+(ex?'No right answers. The more honest, the better Claude can guide you.':tc?'Used to calibrate code output, connector priority, and instruction style.':'Multi-select anything that fits.')+'</p><div class="sdots">'+sdots+'</div>'+det+bothBranch+regWarn+qs.map(q=>'<div class="qb"><div class="ql">'+q.lb+'</div>'+(q.sub?'<div class="qs">'+q.sub+'</div>':'')+'<div class="cr">'+q.opts.map(o=>'<div class="ch'+((S.ans[q.id]||[]).includes(o)?(' on'+(ex?' ex':tc?' tc':reg&&['Legal / Compliance','HR / People Ops','Finance / Procurement'].includes(o)?' rg':'')):'')+'" onclick="togA(\''+q.id+'\',\''+o.replace(/'/g,"\\'")+'\')">'+(reg&&['Legal / Compliance','HR / People Ops','Finance / Procurement'].includes(o)?'⚠ ':'')+o+'</div>').join('')+'</div></div>').join('')+'<div class="br"><button class="sec" onclick="S.step=1;render()">Back</button><button onclick="S.step=3;S.tab=isEx()?\'capmap\':isTc()?\'inst\':\'inst\';render()">Generate my setup</button></div>';
+  }else{
+    if(!S.tab)S.tab=ex?'capmap':tc?'inst':'inst';
+    const exTabs=[{id:'capmap',lb:'What AI does'},{id:'myths',lb:'Myths'},{id:'trynow',lb:'Try now'},{id:'path',lb:'Learning path'},{id:'inst',lb:'Instructions'},{id:'conn',lb:'Connectors'},{id:'chk',lb:'Checklist'},{id:'uu',lb:'Unknowns'},{id:'mgr',lb:'For my team'}];
+    const tcTabs=[{id:'inst',lb:'Instructions'},{id:'ccguide',lb:'Claude Code'},{id:'conn',lb:'Connectors'},{id:'cases',lb:'Prompts'},{id:'chk',lb:'Checklist'},{id:'uu',lb:'Unknowns'},{id:'mgr',lb:'For my team'}];
+    const stdTabs=[{id:'inst',lb:'Instructions'},{id:'conn',lb:'Connectors'},{id:'cases',lb:'Use Cases'},{id:'chk',lb:'Checklist'},{id:'uu',lb:'Unknowns'},{id:'mgr',lb:'For my team'}];
+    const tabs=ex?exTabs:tc?tcTabs:stdTabs;
+    const {done}=getMilestone();
+    let tc2='';
+    if(S.tab==='capmap'){
+      const caps=getCaps();
+      tc2='<div class="rs ex-s"><div class="rt">What AI can actually do — with myth busters built in</div><p style="font-size:12px;color:var(--muted);margin-bottom:14px">Not theoretical. Each domain is something you can do in Claude today.</p><div class="cap-grid">'+caps.map(c=>'<div class="cap-card"><div class="cap-title"><span style="font-size:16px">'+c.ic+'</span>'+c.area+'</div><ul class="cap-items">'+c.items.map(i=>'<li>'+i+'</li>').join('')+'</ul><div class="cap-myth">'+c.myth+'</div><div class="cap-real">'+c.real+'</div></div>').join('')+'</div></div>';
+    }else if(S.tab==='myths'){
+      const myths=getMyths();
+      tc2='<div class="rs ex-s"><div class="rt">Myths cleared — read this before anything else</div>'+myths.map(m=>'<div class="myth-row"><span class="ml my">Myth</span><div class="myth-text">'+m.myth+'</div><span class="ml re2">Reality</span><div class="myth-text rv">'+m.real+'</div></div>').join('')+'</div>';
+    }else if(S.tab==='trynow'){
+      const prompts=getTryNow();
+      tc2='<div class="rs ex-s"><div class="rt">Try this right now — 5 first-win prompts</div><p style="font-size:12px;color:var(--muted);margin-bottom:14px">Copy, adapt the [brackets], paste into claude.ai.</p>'+prompts.map(p=>'<div class="prompt-card"><div class="pl">'+p.label+'</div><div class="pt">'+p.title+'</div><div class="pw">'+p.why+'</div><div class="px">'+p.text+'</div></div>').join('')+'</div>';
+    }else if(S.tab==='path'){
+      const path=getLearningPath();
+      tc2='<div class="rs ex-s"><div class="rt">Your learning path</div><p style="font-size:12px;color:var(--muted);margin-bottom:16px">Time-anchored with domain progression. Go at your own pace.</p><div class="path-phases">'+path.map(p=>'<div class="phase-block"><div class="phase-dot" style="background:'+p.bg+'"></div><span class="phase-pill '+p.pcls+'">'+p.phase+'</span><div class="phase-title">'+p.title+'</div><div class="phase-domain">'+p.domain+'</div><div class="phase-items">'+p.items.map(i=>'<div>'+i+'</div>').join('')+'</div><div class="milestone">'+p.milestone+'</div></div>').join('')+'</div></div>';
+    }else if(S.tab==='ccguide'){
+      tc2='<div class="rs tc-s"><div class="rt">Claude Code — setup and key patterns <span class="bm cu">Terminal agent</span></div><p style="font-size:12px;color:var(--muted);margin-bottom:12px">Claude Code is a terminal agent that operates on your actual codebase. Different from claude.ai chat. This is where engineering leverage lives.</p><div class="rt" style="margin-top:4px">Install</div><div class="code-block">npm install -g @anthropic-ai/claude-code\nexport ANTHROPIC_API_KEY=sk-ant-...\ncd your-project && claude</div><div class="rt">CLAUDE.md template</div><div class="code-block"># Project\nStack: TypeScript, Next.js, Supabase\nTest: npm test\nLint: npm run lint\n\n# Conventions\n- Use named exports only\n- Files: kebab-case\n- Components: PascalCase\n\n# Never touch\n- .env files\n- migrations/\n- node_modules/</div><div class="rs tc-s" style="margin-top:10px"><div class="rt">Key commands</div>'+[['claude','Start an interactive session in your project'],['claude "review auth.ts for security issues"','One-shot from terminal'],['claude --continue','Resume your last session'],['claude /compact','Summarize context when it gets long — use proactively'],['claude /clear','Reset context when you want a fresh start']].map(([cmd,desc])=>'<div class="mr"><div style="flex:1;min-width:0"><div class="mw" style="font-family:\'Geist Mono\',monospace;color:var(--c);font-size:12px">'+cmd+'</div><div class="mw">'+desc+'</div></div></div>').join('')+'</div><div class="rs tc-s"><div class="rt">Hooks vs CLAUDE.md</div><p style="font-size:13px;color:var(--muted);line-height:1.6">CLAUDE.md is advisory — Claude follows it ~80% of the time. If something must always happen (formatting, linting, security checks), make it a <strong style="color:var(--c)">hook</strong>. Hooks are deterministic. Add hook configuration in your project settings.</p></div></div>';
+    }else if(S.tab==='inst'){
+      const regBlock=reg?'<div class="rs red-s" style="margin-bottom:10px"><div class="rt">⚠ Professional guardrails active <span class="bm re">'+((S.ans.role||[]).filter(r=>['Legal / Compliance','HR / People Ops','Finance / Procurement'].includes(r)).join(', '))+'</span></div><p style="font-size:13px;color:var(--muted);line-height:1.6">Your instructions include regulated-profession guardrails. These are a starting point — not legal or compliance advice. Have them reviewed by qualified counsel or your compliance team before relying on them professionally.</p></div>':'';
+      tc2=regBlock+'<div class="rs'+(ex?' ex-s':tc?' tc-s':'')+'"><div class="rt">Custom instructions '+(tc?'— Engineering mode ':ex?'— Explorer mode ':'')+'<span class="bm mu">Paste into Settings</span></div><p style="font-size:12px;color:var(--muted);margin-bottom:10px">claude.ai > Settings > User Preferences > paste.'+( tc?' This tells Claude you want code-first, production-ready output.':ex?' This switches Claude into teaching mode.':exec?' Exec mode: lead with conclusion, one page unless asked.':reg?' Includes professional liability guardrails for your role.':' Edit the [bracketed] fields.')+'</p><div class="cb">'+getInst().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')+'</div></div><div class="rs'+(ex?' ex-s':tc?' tc-s':'')+'"><div class="rt">Why this matters most</div><p style="font-size:13px;color:var(--muted);line-height:1.6">'+(tc?'Claude Code reads CLAUDE.md per project, but claude.ai chat reads your User Preferences globally. These instructions make every chat session code-aware, output-focused, and calibrated to your stack before you type a word.':ex?'Without this, Claude has no idea you\'re exploring. It answers correctly but won\'t explain what it\'s doing or suggest what to try next. This switches on teaching mode.':exec?'Without an exec modifier, Claude gives you frameworks and caveats. These instructions tell it to lead with the conclusion and assume you\'ll delegate implementation.':reg?'Without regulated-profession guardrails, Claude produces authoritative-looking output with no professional liability framing. That\'s a risk, not just a gap.':'Every conversation starts with zero context about you. Custom instructions inject your role and preferences into every chat automatically.')+'</p></div>';
+    }else if(S.tab==='conn'){
+      if(ex){
+        const ecs=getExConn();const fc=filteredCatalog();const off=fc.filter(c=>!c.custom);const cust=fc.filter(c=>c.custom);const cm={};off.forEach(c=>{if(!cm[c.cat])cm[c.cat]=[];cm[c.cat].push(c);});const unlocked=done>=3;const tiers=[{v:'all',lb:'All'},{v:'must',lb:'Must-Have'},{v:'high',lb:'High-Value'},{v:'opt',lb:'Specialized'}];const cats=[{v:'all',lb:'All'},...ALL_CATS.filter(x=>x!=='Custom & Advanced').map(x=>({v:x,lb:x.split(' ')[0]}))];
+        tc2='<div class="rs ex-s"><div class="rt">Start with these 5 <span class="bm gr">Week 1</span></div><p style="font-size:12px;color:var(--muted);margin-bottom:12px">Connect at: claude.ai > Settings > Connectors.</p>'+ecs.map(c=>cRow(c,true)).join('')+'</div>'+(unlocked?'<div class="rs"><div class="rt">Full catalog — unlocked <span class="stat">'+fc.length+' connectors</span></div><div class="search-bar"><input class="search-input" type="text" placeholder="Search..." value="'+S.search+'" oninput="S.search=this.value;render()"/></div><div class="frow">'+tiers.map(f=>'<div class="ftag'+(S.filterTier===f.v?' on':'')+'" onclick="S.filterTier=\''+f.v+'\';render()">'+f.lb+'</div>').join('')+'</div>'+Object.entries(cm).map(([cat,items])=>'<div class="cat-hdr">'+cat+'</div>'+items.map(c=>cRow(c,false)).join('')).join('')+(cust.length?'<div style="margin-top:10px;padding-top:10px;border-top:1px solid rgba(34,211,238,.15)"><div class="rt"><span class="bm cu">Custom & Advanced</span></div>'+cust.map(c=>cRow(c,false)).join('')+'</div>':'')+'</div>':'<div class="gate"><div class="gate-title">Full catalog — unlock after 3 setup items</div><div class="gate-sub">Complete 3 checklist items and the full catalog opens here.</div><div class="gate-prog"><div class="gate-bar"><div class="gate-fill" style="width:'+Math.round((done/3)*100)+'%"></div></div><div class="gate-label">'+done+'/3</div></div>'+['Run your first Try Now prompt','Paste your custom instructions','Enable web search'].map((i,idx)=>'<div class="gate-item">'+(idx<done?'v':'o')+' '+i+'</div>').join('')+'</div>');
+      }else if(tc){
+        const tconn=getTechConn();const fc=filteredCatalog();const off=fc.filter(c=>!c.custom);const cust=fc.filter(c=>c.custom);const cm={};off.forEach(c=>{if(!cm[c.cat])cm[c.cat]=[];cm[c.cat].push(c);});
+        tc2='<div class="rs tc-s"><div class="rt">Engineering-first connector stack <span class="bm cu">Technical</span></div><p style="font-size:12px;color:var(--muted);margin-bottom:12px">These unlock the highest-value engineering workflows. Connect at: claude.ai > Settings > Connectors.</p>'+tconn.map(c=>cRow(c,true)).join('')+'</div><div class="rs"><div class="rt">Full catalog <span class="stat">'+fc.length+' shown</span></div>'+Object.entries(cm).map(([cat,items])=>'<div class="cat-hdr">'+cat+'</div>'+items.map(c=>cRow(c,false)).join('')).join('')+(cust.length?'<div style="margin-top:10px;padding-top:10px;border-top:1px solid rgba(34,211,238,.15)"><div class="rt"><span class="bm cu">Custom & Advanced</span></div>'+cust.map(c=>cRow(c,false)).join('')+'</div>':'')+'</div>';
+      }else{
+        const fc=filteredCatalog();const off=fc.filter(c=>!c.custom);const cust=fc.filter(c=>c.custom);const cm={};off.forEach(c=>{if(!cm[c.cat])cm[c.cat]=[];cm[c.cat].push(c);});const tiers=[{v:'all',lb:'All tiers'},{v:'must',lb:'Must-Have'},{v:'high',lb:'High-Value'},{v:'opt',lb:'Specialized'}];const cats=[{v:'all',lb:'All'},...ALL_CATS.filter(x=>x!=='Custom & Advanced').map(x=>({v:x,lb:x.split(' ')[0]}))];
+        tc2='<div class="rs"><div class="rt">Connector catalog <span class="stat">'+fc.length+' shown</span></div><div class="search-bar"><input class="search-input" type="text" placeholder="Search connectors..." value="'+S.search+'" oninput="S.search=this.value;render()"/></div><div class="frow">'+tiers.map(f=>'<div class="ftag'+(S.filterTier===f.v?' on':'')+'" onclick="S.filterTier=\''+f.v+'\';render()">'+f.lb+'</div>').join('')+'<div style="width:1px;background:var(--dim);margin:0 2px"></div>'+cats.slice(0,6).map(f=>'<div class="ftag'+(S.filterCat===f.v?' on':'')+'" onclick="S.filterCat=\''+f.v+'\';render()">'+f.lb+'</div>').join('')+'</div>'+(off.length===0?'<div style="padding:16px;text-align:center;color:var(--dim);font-size:13px">No connectors match.</div>':'')+Object.entries(cm).map(([cat,items])=>'<div class="cat-hdr">'+cat+'</div>'+items.map(c=>cRow(c,false)).join('')).join('')+'</div>'+(cust.length?'<div class="rs" style="border-color:rgba(34,211,238,.2)"><div class="rt">Custom & Advanced <span class="bm cu">Your workspace</span></div>'+cust.map(c=>cRow(c,false)).join('')+'</div>':'');
+      }
+    }else if(S.tab==='cases'){
+      const cs=tc?getTechCases():getStdCases();
+      tc2='<div class="rs'+(tc?' tc-s':'')+'"><div class="rt">'+(tc?'Engineering prompt templates':'Prompt templates for your profile')+'</div>'+cs.map(c=>'<div class="uc-item"><div class="uc-title"><span style="font-size:16px">'+c.ic+'</span>'+c.tl+'</div><div class="uc-ex">'+c.ex+'</div></div>').join('')+'</div>';
+    }else if(S.tab==='chk'){
+      const cl=getChk();const dn=Object.values(S.chk).filter(Boolean).length;const isMine=!ex&&!tc;
+      tc2='<div class="rs'+(ex?' ex-s':tc?' tc-s':'')+'"><div class="rt">'+(ex?'Explorer checklist':tc?'Engineering setup checklist':ro?'Team rollout checklist':'30-day setup checklist')+' <span class="bm op">'+dn+'/'+cl.length+' done</span></div>'+cl.map(c=>'<div class="ci"><div class="ck'+(S.chk[c.id]?' dn':'')+'" onclick="togChk(\''+c.id+'\')" role="checkbox" aria-checked="'+(!!S.chk[c.id])+'">'+(S.chk[c.id]?'v':'')+'</div><div><div class="ct" style="'+(S.chk[c.id]?'opacity:.4;text-decoration:line-through':'')+'">'+(c.lb)+(c.u?' <span class="bm '+(ex?'gr':tc?'cu':'mu')+'">'+(ex?'Start here':tc?'Day 1':'Day 1')+'</span>':'')+'</div><div class="cs">'+c.sb+'</div></div></div>').join('')+'</div>';
+    }else if(S.tab==='uu'){
+      const u=getUU();
+      tc2='<div class="rs'+(ex?' ex-s':tc?' tc-s':'')+'"><div class="rt">'+( tc?'Unknown unknowns for engineers':ex?'What most people learning AI do not know':'Unknown unknowns')+'</div><p style="font-size:12px;color:var(--muted);margin-bottom:12px">Things that will slow you down if you hit them cold.</p>'+u.map(x=>'<div class="ub"><p><strong>'+x.t+'</strong> — '+x.b+'</p></div>').join('')+'</div>';
+    }else if(S.tab==='mgr'){
+      const caps=getCaps().slice(0,3);const ow=(S.ans.overwhelm||S.ans.pain||[]).slice(0,3);const isOfficeManager=(S.ans.role||[]).includes('Operations / Admin');
+      tc2='<div class="rs mgr-s"><div class="rt">For my manager and team <span class="bm am">Manager one-pager</span></div><p style="font-size:12px;color:var(--muted);margin-bottom:12px">Why you\'re learning AI and what it means for the team. Download as markdown.</p><div class="mgr-block"><h3>What I Am Learning and Why Now</h3><p>Exploring AI tools to identify where they can save time, reduce cognitive load, and create leverage. Not hype — finding which parts of our day-to-day could be handled faster or without manual effort.</p></div><div class="mgr-block"><h3>What AI Can Actually Do</h3><ul>'+caps.map(c=>'<li><strong>'+c.area+'</strong> — '+c.items.slice(0,2).join('; ')+'</li>').join('')+'</ul></div><div class="mgr-block"><h3>Where I Am Starting</h3><ul>'+(ow.length>0?ow.map(u=>'<li>'+u+'</li>').join(''):'<li>Writing and communication</li><li>Research and synthesis</li><li>Decision-making support</li>')+'</ul></div><div class="mgr-block"><h3>Simple Starting Point for Anyone</h3><p>Open claude.ai (free). Paste in a problem you have been putting off. See what happens.</p></div><div class="br"><button class="am-btn" onclick="dlMgr(\'manager\')">Download manager one-pager .md</button></div></div>'+(isOfficeManager?'<div class="rs" style="border-color:rgba(34,211,238,.2)"><div class="rt">Share this with a colleague <span class="bm cu">Colleague starter</span></div><p style="font-size:12px;color:var(--muted);margin-bottom:12px">A peer-to-peer "try this" note — not a pitch, just a practical starting point they can run with immediately.</p><div class="mgr-block"><h3>What\'s in it</h3><p>Three prompts they can try in the next 30 minutes. A 5-minute setup guide. No jargon, no sales pitch. Written from you to them.</p></div><div class="br"><button class="tc-btn" onclick="dlMgr(\'colleague\')">Download colleague starter .md</button><button class="cp" onclick="navigator.clipboard.writeText(buildMgrMD(\'colleague\')).then(()=>toast(\'Copied\'))">Copy</button></div></div>':'')+'<div class="rs"><div class="rt">Download options</div><div class="br"><button class="am-btn" onclick="dlMgr(\'manager\')">Manager one-pager .md</button><button class="cp" onclick="dlMgr(\'colleague\')">Colleague starter .md</button><button class="sec" onclick="navigator.clipboard.writeText(buildMgrMD(\'manager\')).then(()=>toast(\'Copied\'))">Copy manager version</button></div></div>';
+    }
+    const bannerColor=tc?'var(--c)':ex?'var(--g)':'var(--v)';
+    const bannerBg=tc?'rgba(34,211,238,.07)':ex?'rgba(16,185,129,.07)':'rgba(168,85,247,.07)';
+    const bannerBorder=tc?'rgba(34,211,238,.22)':ex?'rgba(16,185,129,.22)':'rgba(168,85,247,.22)';
+    const banner=(ex||tc||reg||exec||ro)?'<div class="ex-banner" style="background:linear-gradient(135deg,'+bannerBg+',rgba(168,85,247,.05));border-color:'+bannerBorder+'"><h2 style="color:'+bannerColor+'">'+(tc?'Technical / Builder Mode':ex?'Explorer Mode — discovery path':reg?'Regulated Profession Mode':exec?'Executive Mode':ro?'Team Rollout Mode':'')+'</h2><p>'+(tc?'Tabs ordered for engineering: Instructions > Claude Code guide > Connectors > Prompt templates > Checklist > Unknowns > For my team.':ex?'Tabs ordered for learning: What AI does > Myths > Try now > Learning path > Instructions > Connectors > Checklist > Unknowns > For my team.':reg?'Professional guardrails are active in your custom instructions. Instructions tab has details.':exec?'Exec modifier active: instructions tell Claude to lead with the conclusion and assume you will delegate implementation.':ro?'Rollout checklist active — optimized for team adoption, not personal setup.':'')+'</p></div>':'';
+    body='<h1>'+(tc?'Your Technical Setup':ex?'Your Explorer Setup':'Your Claude Setup')+'</h1><p class="sub">'+(tc?'Calibrated for engineering use. Export before you leave.':ex?'Built for someone learning what is possible. Work left to right.':'Personalised to your profile. Export before you leave.')+'</p><div class="sdots">'+sdots+'</div>'+banner+'<div class="xbar"><span class="xbar-lbl">Export</span><button class="dl" onclick="dlMD()">Download .md</button><button class="cp" onclick="copyInst()">Copy instructions</button><button class="pr" onclick="window.print()">Print</button><button class="nt" onclick="notionPush()">Notion</button><button class="am-btn" onclick="dlMgr(\'manager\')">Team one-pager</button></div><div id="ntn" style="display:none" class="note">Notion push triggered — creating under Production Hub. Markdown also copied to clipboard.</div><div class="tr">'+tabs.map(t=>'<div class="tb'+(S.tab===t.id?' on':'')+(ex?' ex-tab':tc?' tc-tab':'')+(t.id==='mgr'?' mgr-tab':'')+'" onclick="setTab(\''+t.id+'\')">'+t.lb+'</div>').join('')+'</div>'+tc2+'<div class="br"><button class="sec" onclick="S.step=2;render()">Edit answers</button></div>';
+  }
+  app.innerHTML=body;
+}
+window.selP=p=>{S.profile=p;render();};
+window.togA=(id,val)=>{if(!S.ans[id])S.ans[id]=[];const i=S.ans[id].indexOf(val);if(i>-1)S.ans[id].splice(i,1);else S.ans[id].push(val);render();};
+window.setTab=t=>{S.tab=t;render();};
+window.togChk=id=>{S.chk[id]=!S.chk[id];render();};
+window.dlMD=dlMD;window.dlMgr=dlMgr;window.copyInst=copyInst;window.notionPush=notionPush;window.buildMgrMD=buildMgrMD;window.toast=toast;window.isEx=isEx;window.isTc=isTc;window.isRegulated=isRegulated;window.isExec=isExec;window.isRollout=isRollout;
+render();
+</script>
+</body>
+</html>

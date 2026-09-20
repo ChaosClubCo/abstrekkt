@@ -1,0 +1,1884 @@
+<!doctype html>
+<script type="application/json" id="cowork-artifact-meta">
+{
+  "name": "Triage Driver",
+  "schemaVersion": 1,
+  "description": "Interactive driver for the Chat Extraction Kit triage output. Reads triage.json (3,540 ranked chats) from disk via Desktop Commander, auto-detects lane (Personal/INTINC/Freelance/Kinsley/Skip/Unknown) by content keyword heuristic, cross-flags already-packaged chats from extracted-packages/INDEX.md, persists your tags + decisions in localStorage, and emits single-chat extraction prompts to chat via sendPrompt. Filters: lane, mode, score, decision, unfinished-only, hide packaged. One row, one Send button — no batch overload.",
+  "mcpTools": [
+    "mcp__Desktop_Commander__read_file"
+  ],
+  "mcpServerNames": [
+    "Desktop_Commander"
+  ]
+}
+</script>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Triage Driver — Chat Extraction Kit</title>
+<style>
+  :root {
+    color-scheme: light;
+    --bg: #ffffff;
+    --surface: #f8fafc;
+    --surface-2: #f1f5f9;
+    --surface-3: #e2e8f0;
+    --border: #e5e7eb;
+    --border-strong: #cbd5e1;
+    --text: #0f172a;
+    --text-soft: #475569;
+    --text-mute: #94a3b8;
+    --accent: #2563eb;
+    --accent-dark: #1d4ed8;
+    --accent-soft: #dbeafe;
+    --accent-softer: #eff6ff;
+    --warn: #b45309;
+    --warn-soft: #fef3c7;
+    --bad: #b91c1c;
+    --bad-soft: #fee2e2;
+    --good: #047857;
+    --good-soft: #d1fae5;
+    --magic: #7c3aed;
+    --magic-soft: #ede9fe;
+    --lane-personal: #6d28d9;
+    --lane-intinc: #1d4ed8;
+    --lane-freelance: #0e7490;
+    --lane-kinsley: #be185d;
+    --lane-skip: #64748b;
+    --lane-unknown: #b45309;
+    --shadow-sm: 0 1px 2px 0 rgba(0,0,0,0.04);
+    --shadow: 0 1px 3px 0 rgba(0,0,0,0.06), 0 1px 2px -1px rgba(0,0,0,0.04);
+    --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.07), 0 2px 4px -2px rgba(0,0,0,0.04);
+    --radius: 6px;
+    --radius-lg: 10px;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); font: 14px/1.5 -apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Inter,sans-serif; -webkit-font-smoothing: antialiased; }
+  button { font: inherit; cursor: pointer; }
+  ::selection { background: var(--accent-soft); }
+
+  /* HEADER */
+  header.top {
+    position: sticky; top: 0; z-index: 30;
+    background: rgba(255,255,255,0.92);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 20px;
+    display: flex; align-items: center; gap: 14px;
+  }
+  .brand { font-weight: 600; font-size: 15px; display: flex; align-items: center; gap: 8px; }
+  .brand .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+  .brand small { color: var(--text-mute); font-weight: 400; font-size: 12px; }
+  .header-spacer { flex: 1; }
+  .status-pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 10px; border-radius: 12px;
+    background: var(--surface-2); border: 1px solid var(--border);
+    font-size: 11px; color: var(--text-soft);
+    transition: background 0.2s;
+  }
+  .status-pill .indicator { width: 6px; height: 6px; border-radius: 50%; background: var(--text-mute); }
+  .status-pill.ok      .indicator { background: var(--good); }
+  .status-pill.busy    .indicator { background: var(--accent); animation: pulse 1.2s ease-in-out infinite; }
+  .status-pill.err     .indicator { background: var(--bad); }
+  .status-pill.err     { color: var(--bad); background: var(--bad-soft); border-color: #fca5a5; }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+  .api-status { display: flex; gap: 4px; align-items: center; flex-wrap: nowrap; }
+  .api-dot {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 3px 7px; border-radius: 10px;
+    background: var(--surface-2); border: 1px solid var(--border);
+    font-size: 10px; color: var(--text-soft); font-weight: 600;
+    cursor: help; text-transform: uppercase; letter-spacing: 0.04em;
+  }
+  .api-dot .d {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--text-mute);
+  }
+  .api-dot.ok .d { background: var(--good); }
+  .api-dot.ok { color: var(--good); }
+  .api-dot.warn .d { background: var(--warn); }
+  .api-dot.warn { color: var(--warn); background: var(--warn-soft); border-color: #fde68a; }
+  .api-dot.err .d { background: var(--bad); }
+  .api-dot.err { color: var(--bad); background: var(--bad-soft); border-color: #fca5a5; }
+  .api-dot.checking .d { animation: pulse 1.2s ease-in-out infinite; background: var(--accent); }
+
+  .icon-btn {
+    background: transparent; border: 1px solid var(--border);
+    border-radius: var(--radius); width: 30px; height: 30px;
+    display: inline-flex; align-items: center; justify-content: center;
+    color: var(--text-soft);
+    transition: background 0.15s;
+  }
+  .icon-btn:hover { background: var(--surface-2); color: var(--text); }
+
+  /* ONBOARDING */
+  .onboard {
+    margin: 16px 20px 0; padding: 14px 18px;
+    background: linear-gradient(135deg, var(--accent-softer) 0%, var(--magic-soft) 100%);
+    border: 1px solid var(--accent-soft);
+    border-radius: var(--radius-lg);
+    display: flex; align-items: center; gap: 14px;
+  }
+  .onboard .icon { font-size: 22px; }
+  .onboard .text { flex: 1; font-size: 13px; color: var(--text); }
+  .onboard .text strong { color: var(--accent-dark); }
+  .onboard .text ol { margin: 4px 0 0; padding-left: 18px; color: var(--text-soft); }
+  .onboard .text ol li { margin: 2px 0; }
+  .onboard button { background: transparent; border: 0; color: var(--text-soft); font-size: 18px; padding: 0; cursor: pointer; }
+  .onboard button:hover { color: var(--text); }
+
+  /* TOOLBAR */
+  .toolbar {
+    padding: 14px 20px;
+    display: flex; flex-direction: column; gap: 10px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg);
+  }
+  .row-chips { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+  .row-chips .label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-mute); margin-right: 4px; font-weight: 600; }
+  .chip {
+    padding: 4px 10px;
+    border-radius: 14px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    color: var(--text-soft);
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: inline-flex; align-items: center; gap: 5px;
+    user-select: none;
+  }
+  .chip:hover { background: var(--surface-3); }
+  .chip.active {
+    background: var(--accent);
+    color: white;
+    border-color: var(--accent);
+    font-weight: 500;
+  }
+  .chip.active.lane-personal { background: var(--lane-personal); border-color: var(--lane-personal); }
+  .chip.active.lane-intinc { background: var(--lane-intinc); border-color: var(--lane-intinc); }
+  .chip.active.lane-freelance { background: var(--lane-freelance); border-color: var(--lane-freelance); }
+  .chip.active.lane-kinsley { background: var(--lane-kinsley); border-color: var(--lane-kinsley); }
+  .chip.active.lane-skip { background: var(--lane-skip); border-color: var(--lane-skip); }
+  .chip.active.lane-unknown { background: var(--lane-unknown); border-color: var(--lane-unknown); }
+  .chip .count { font-size: 10px; opacity: 0.7; }
+
+  .row-controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+  .ctrl-group { display: flex; align-items: center; gap: 6px; font-size: 12px; }
+  .ctrl-group label { color: var(--text-soft); font-size: 11px; }
+  input[type="number"], input[type="text"], select {
+    font: inherit; font-size: 12px;
+    padding: 5px 8px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--bg);
+    color: var(--text);
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  input[type="number"]:focus, input[type="text"]:focus, select:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+  }
+  .search-box { position: relative; flex: 1; min-width: 200px; }
+  .search-box input { width: 100%; padding-left: 28px; }
+  .search-box .icon { position: absolute; left: 8px; top: 50%; transform: translateY(-50%); color: var(--text-mute); pointer-events: none; }
+  .ctrl-btn {
+    padding: 5px 10px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    background: var(--bg);
+    color: var(--text);
+    font-size: 12px;
+    transition: all 0.15s;
+    display: inline-flex; align-items: center; gap: 5px;
+  }
+  .ctrl-btn:hover { background: var(--surface-2); }
+  .ctrl-btn.primary { background: var(--accent); color: white; border-color: var(--accent); }
+  .ctrl-btn.primary:hover { background: var(--accent-dark); }
+  .ctrl-btn.magic { background: var(--magic-soft); color: var(--magic); border-color: #c4b5fd; }
+  .ctrl-btn.magic:hover { background: #ddd6fe; }
+  .ctrl-btn.warn { background: var(--warn-soft); color: var(--warn); border-color: #fde68a; }
+
+  /* STATS */
+  .stats {
+    padding: 10px 20px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    display: flex; gap: 14px; align-items: center; flex-wrap: wrap;
+    font-size: 12px; color: var(--text-soft);
+  }
+  .stat { display: inline-flex; align-items: center; gap: 5px; }
+  .stat strong { color: var(--text); font-variant-numeric: tabular-nums; font-weight: 600; }
+  .stat-divider { color: var(--text-mute); margin: 0 4px; }
+  .lane-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+
+  /* TABLE */
+  .grid-wrap { padding: 0 20px 80px; }
+  table { width: 100%; border-collapse: separate; border-spacing: 0; margin-top: 0; }
+  thead th {
+    position: sticky; top: 0; z-index: 5;
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
+    padding: 8px 8px; text-align: left;
+    font-weight: 600; color: var(--text-mute);
+    font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em;
+    user-select: none;
+  }
+  thead th.sortable { cursor: pointer; transition: color 0.15s; }
+  thead th.sortable:hover { color: var(--text); }
+  thead th .arrow { color: var(--accent); margin-left: 3px; }
+
+  tbody tr.data { transition: background 0.1s; cursor: default; }
+  tbody tr.data:hover { background: var(--surface); }
+  tbody tr.data.selected { background: var(--accent-softer); }
+  tbody tr.data.selected:hover { background: var(--accent-soft); }
+  tbody tr.data.packaged td:first-child { box-shadow: inset 3px 0 0 var(--bad); }
+  tbody tr.data.done { opacity: 0.5; }
+  tbody td { border-bottom: 1px solid var(--surface-2); padding: 8px 8px; vertical-align: top; }
+
+  .score-cell { font-variant-numeric: tabular-nums; font-weight: 600; font-size: 14px; }
+  .score-cell .bar { display: block; width: 40px; height: 3px; background: var(--surface-2); border-radius: 2px; margin-top: 3px; overflow: hidden; }
+  .score-cell .bar i { display: block; height: 100%; background: var(--accent); transition: width 0.3s; }
+  .score-cell.hi { color: var(--good); }
+  .score-cell.hi .bar i { background: var(--good); }
+  .score-cell.mid { color: var(--accent); }
+
+  .title-cell { font-weight: 500; line-height: 1.4; padding-right: 10px; }
+  .title-cell .meta { display: block; color: var(--text-mute); font-size: 11px; margin-top: 2px; font-weight: 400; }
+
+  .flag {
+    display: inline-block;
+    padding: 1px 6px;
+    margin: 0 3px 2px 0;
+    border-radius: 10px;
+    background: var(--surface-2);
+    color: var(--text-soft);
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    white-space: nowrap;
+  }
+  .flag.unfinished { background: var(--warn-soft); color: var(--warn); }
+  .flag.continue { background: #ffe4e6; color: #be123c; }
+  .flag.truncated { background: #ffedd5; color: #c2410c; }
+  .flag.dup { background: var(--surface-2); color: var(--text-mute); font-weight: 500; }
+  .flag.pkg { background: var(--bad); color: white; }
+
+  .lane-cell { display: flex; align-items: center; gap: 6px; }
+  .lane-chip {
+    padding: 2px 8px; border-radius: 10px;
+    font-size: 11px; font-weight: 500;
+    cursor: pointer;
+    border: 1px solid transparent;
+    display: inline-flex; align-items: center; gap: 4px;
+  }
+  .lane-chip:hover { border-color: var(--border-strong); }
+  .lane-chip.lane-personal { background: var(--magic-soft); color: var(--lane-personal); }
+  .lane-chip.lane-intinc { background: var(--accent-softer); color: var(--lane-intinc); }
+  .lane-chip.lane-freelance { background: #cffafe; color: var(--lane-freelance); }
+  .lane-chip.lane-kinsley { background: #fce7f3; color: var(--lane-kinsley); }
+  .lane-chip.lane-skip { background: var(--surface-2); color: var(--lane-skip); }
+  .lane-chip.lane-unknown { background: var(--warn-soft); color: var(--lane-unknown); }
+  .lane-source { font-size: 10px; color: var(--text-mute); }
+
+  .decision-cell { white-space: nowrap; display: flex; gap: 2px; }
+  .dec-btn {
+    padding: 3px 7px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    background: var(--bg);
+    color: var(--text-soft);
+    font-size: 11px;
+    transition: all 0.15s;
+  }
+  .dec-btn:hover { background: var(--surface-2); color: var(--text); }
+  .dec-btn.active.extract { background: var(--good); color: white; border-color: var(--good); }
+  .dec-btn.active.skip { background: var(--lane-skip); color: white; border-color: var(--lane-skip); }
+  .dec-btn.active.defer { background: var(--warn); color: white; border-color: var(--warn); }
+  .dec-btn.active.done { background: var(--text-soft); color: white; border-color: var(--text-soft); }
+
+  .actions-cell { display: flex; gap: 3px; flex-wrap: nowrap; }
+  .actions-cell .row-btn { padding: 3px 6px; min-width: auto; }
+  .row-btn {
+    padding: 3px 7px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    background: var(--bg);
+    color: var(--text-soft);
+    font-size: 11px;
+    transition: all 0.15s;
+    display: inline-flex; align-items: center; gap: 3px;
+  }
+  .row-btn:hover { background: var(--surface-2); color: var(--text); }
+  .row-btn.primary { background: var(--accent); color: white; border-color: var(--accent); }
+  .row-btn.primary:hover { background: var(--accent-dark); }
+  .row-btn.magic { background: var(--magic-soft); color: var(--magic); border-color: #c4b5fd; }
+  .row-btn.magic:hover { background: #ddd6fe; }
+
+  /* EXPAND ROW */
+  tbody tr.expand { background: var(--surface); }
+  tbody tr.expand td { padding: 14px 20px; border-top: 1px solid var(--border); }
+  .expand-body { display: grid; grid-template-columns: 1fr 1.2fr; gap: 18px; }
+  .panel {
+    background: var(--bg); border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 12px;
+  }
+  .panel h4 {
+    margin: 0 0 10px;
+    font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em;
+    color: var(--text-mute); font-weight: 600;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .panel.magic h4 { color: var(--magic); }
+  .panel.magic { border-color: #c4b5fd; background: linear-gradient(180deg, var(--magic-soft) 0%, var(--bg) 100%); }
+
+  .comp-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+  .comp {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 6px 8px;
+    text-align: center;
+  }
+  .comp .label { color: var(--text-mute); font-size: 9px; text-transform: uppercase; letter-spacing: 0.04em; }
+  .comp .val { font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--text); margin-top: 2px; }
+  .comp .bar { height: 3px; background: var(--surface-2); border-radius: 2px; margin-top: 4px; overflow: hidden; }
+  .comp .bar i { display: block; height: 100%; background: var(--accent); transition: width 0.4s; }
+  .comp.high .bar i { background: var(--good); }
+
+  .path { font-family: ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size: 11px; color: var(--text-soft); margin-top: 10px; word-break: break-all; }
+  .preview {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 8px 10px;
+    margin-top: 8px;
+    max-height: 280px; overflow: auto;
+    font-family: ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    font-size: 11px; line-height: 1.5;
+    white-space: pre-wrap;
+  }
+  .preview.empty { color: var(--text-mute); font-style: italic; }
+  .note-area {
+    width: 100%; min-height: 50px;
+    font: inherit; font-size: 12px;
+    padding: 6px 8px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--bg);
+    color: var(--text);
+    resize: vertical;
+  }
+  .ai-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+  .ai-output {
+    margin-top: 10px; padding: 10px;
+    background: var(--bg); border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-size: 12px; line-height: 1.6;
+    min-height: 50px;
+  }
+  .ai-output.busy { color: var(--text-mute); font-style: italic; }
+  .ai-output.err { background: var(--bad-soft); color: var(--bad); border-color: #fca5a5; }
+  .ai-output strong { color: var(--text); font-weight: 600; }
+  .ai-output p { margin: 6px 0; }
+
+  /* EMPTY / SKELETON */
+  .empty {
+    padding: 60px 20px; text-align: center;
+    color: var(--text-mute);
+  }
+  .empty .icon { font-size: 32px; margin-bottom: 8px; }
+  .empty h3 { margin: 8px 0 4px; color: var(--text); font-size: 16px; font-weight: 600; }
+  .empty p { margin: 4px 0 12px; }
+  .skel-row td { padding: 12px 8px; }
+  .skel-bar { height: 10px; background: linear-gradient(90deg, var(--surface-2), var(--surface-3), var(--surface-2)); background-size: 200% 100%; border-radius: 3px; animation: shimmer 1.5s infinite; }
+  @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+  /* TOASTS */
+  .toast-container {
+    position: fixed; bottom: 20px; right: 20px; z-index: 100;
+    display: flex; flex-direction: column; gap: 8px;
+    pointer-events: none;
+  }
+  .toast {
+    background: var(--text); color: white;
+    padding: 10px 14px; border-radius: var(--radius-lg);
+    font-size: 13px; box-shadow: var(--shadow-md);
+    min-width: 220px; max-width: 360px;
+    animation: slideInRight 0.25s ease-out;
+    pointer-events: auto;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .toast.ok { background: var(--good); }
+  .toast.err { background: var(--bad); }
+  .toast.warn { background: var(--warn); }
+  .toast.info { background: var(--accent); }
+  .toast .close { margin-left: auto; opacity: 0.7; cursor: pointer; background: transparent; border: 0; color: white; font-size: 16px; padding: 0; }
+  .toast .close:hover { opacity: 1; }
+  @keyframes slideInRight { from { transform: translateX(20px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+  /* MODAL */
+  .modal-backdrop {
+    position: fixed; inset: 0; z-index: 200;
+    background: rgba(15, 23, 42, 0.4);
+    backdrop-filter: blur(2px);
+    display: flex; align-items: center; justify-content: center;
+    animation: fadeIn 0.15s ease-out;
+  }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  .modal {
+    background: var(--bg); border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-md);
+    max-width: 480px; width: 90%;
+    overflow: hidden;
+    animation: scaleIn 0.15s ease-out;
+  }
+  @keyframes scaleIn { from { transform: scale(0.96); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  .modal-header { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; }
+  .modal-header h3 { margin: 0; font-size: 15px; font-weight: 600; }
+  .modal-body { padding: 16px 20px; font-size: 13px; line-height: 1.5; color: var(--text-soft); }
+  .modal-body strong { color: var(--text); }
+  .modal-actions { padding: 12px 20px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 8px; background: var(--surface); }
+
+  /* HELP OVERLAY */
+  .help-overlay { padding: 20px; max-width: 600px; width: 90%; }
+  .help-overlay h3 { margin: 0 0 12px; }
+  .kbd-grid { display: grid; grid-template-columns: auto 1fr; gap: 8px 16px; font-size: 13px; }
+  kbd { background: var(--surface-2); border: 1px solid var(--border-strong); border-bottom-width: 2px; border-radius: 4px; padding: 1px 6px; font-family: ui-monospace,Menlo,monospace; font-size: 11px; color: var(--text); }
+
+  /* AI PICKS PANEL */
+  .ai-picks {
+    margin: 10px 20px 0;
+    padding: 14px 16px;
+    background: linear-gradient(135deg, var(--magic-soft) 0%, var(--accent-softer) 100%);
+    border: 1px solid #c4b5fd;
+    border-radius: var(--radius-lg);
+    font-size: 13px;
+  }
+  .ai-picks h4 { margin: 0 0 8px; color: var(--magic); font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; display: flex; align-items: center; gap: 6px; }
+  .ai-picks .picks-list { display: flex; flex-direction: column; gap: 4px; }
+  .ai-picks .pick { padding: 6px 10px; background: var(--bg); border-radius: var(--radius); display: flex; align-items: center; gap: 10px; cursor: pointer; transition: background 0.15s; }
+  .ai-picks .pick:hover { background: white; }
+  .ai-picks .pick .num { font-weight: 700; color: var(--magic); width: 18px; }
+  .ai-picks .pick .title { flex: 1; font-weight: 500; }
+  .ai-picks .pick .why { font-size: 11px; color: var(--text-soft); }
+  .ai-picks .actions { display: flex; gap: 8px; margin-top: 10px; }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="brand">
+    <span class="dot"></span>
+    Triage Driver
+    <small>Chat Extraction Kit — <span id="totalCount">…</span> chats</small>
+  </div>
+  <div class="header-spacer"></div>
+  <div class="api-status" id="apiStatus" title="Cowork API availability"></div>
+  <div class="status-pill" id="status"><span class="indicator"></span><span id="statusText">initializing…</span></div>
+  <button class="icon-btn" id="helpBtn" title="Keyboard shortcuts (?)">?</button>
+</header>
+
+<div id="onboard"></div>
+<div id="aiPicks"></div>
+
+<div class="toolbar">
+  <div class="row-chips">
+    <span class="label">Lane</span>
+    <span class="chip" data-lane="">All <span class="count" id="lc-all">0</span></span>
+    <span class="chip lane-personal" data-lane="personal"><span class="lane-dot" style="background:var(--lane-personal)"></span>Personal <span class="count" id="lc-personal">0</span></span>
+    <span class="chip lane-intinc" data-lane="intinc"><span class="lane-dot" style="background:var(--lane-intinc)"></span>INTINC <span class="count" id="lc-intinc">0</span></span>
+    <span class="chip lane-freelance" data-lane="freelance"><span class="lane-dot" style="background:var(--lane-freelance)"></span>Freelance <span class="count" id="lc-freelance">0</span></span>
+    <span class="chip lane-kinsley" data-lane="kinsley"><span class="lane-dot" style="background:var(--lane-kinsley)"></span>Kinsley <span class="count" id="lc-kinsley">0</span></span>
+    <span class="chip lane-skip" data-lane="skip"><span class="lane-dot" style="background:var(--lane-skip)"></span>Skip <span class="count" id="lc-skip">0</span></span>
+    <span class="chip lane-unknown" data-lane="unknown"><span class="lane-dot" style="background:var(--lane-unknown)"></span>Unknown <span class="count" id="lc-unknown">0</span></span>
+  </div>
+  <div class="row-chips">
+    <span class="label">Mode</span>
+    <span class="chip" data-mode="">All</span>
+    <span class="chip" data-mode="CODEKIT">CODEKIT</span>
+    <span class="chip" data-mode="ZIP_SPEC">ZIP_SPEC</span>
+    <span class="chip" data-mode="DOCS_ONLY">DOCS_ONLY</span>
+    <span class="chip" data-mode="PROMPTS_ONLY">PROMPTS_ONLY</span>
+  </div>
+  <div class="row-controls">
+    <div class="ctrl-group">
+      <label>Min score</label>
+      <input type="number" id="filterScore" value="75" min="0" max="100" step="1" style="width:55px" />
+    </div>
+    <div class="ctrl-group">
+      <label>Decision</label>
+      <select id="filterDecision">
+        <option value="">Any</option>
+        <option value="none">Untagged</option>
+        <option value="extract">Extract</option>
+        <option value="skip">Skip</option>
+        <option value="defer">Defer</option>
+        <option value="done">Done</option>
+      </select>
+    </div>
+    <span class="chip" id="filterUnfinished" data-toggle="unfinished">★ Unfinished only</span>
+    <span class="chip active" id="filterRep" data-toggle="rep">Reps only</span>
+    <span class="chip" id="filterHidePkg" data-toggle="hidepkg">Hide packaged</span>
+    <div class="search-box">
+      <span class="icon">⌕</span>
+      <input type="text" id="filterSearch" placeholder="Search title… (press / to focus)" />
+    </div>
+    <button class="ctrl-btn magic" id="aiPicksBtn" title="Ask AI for top extraction picks from current view">✨ AI top picks</button>
+    <button class="ctrl-btn" id="organizeBtn" title="Generate organization/cleanup prompts">🎯 Organize ▾</button>
+    <button class="ctrl-btn" id="distributeBtn" title="Generate distribution prompts (OSS / paid)">📦 Distribute ▾</button>
+    <button class="ctrl-btn" id="refreshBtn" title="Reload triage.json from disk">↻ Refresh</button>
+    <button class="ctrl-btn" id="exportBtn" title="Copy current filtered view as JSON">⎘ Export</button>
+    <button class="ctrl-btn warn" id="resetBtn" title="Clear all tags + decisions">⚠ Reset</button>
+  </div>
+</div>
+
+<div class="stats" id="stats"></div>
+
+<div class="grid-wrap">
+<table id="grid">
+  <thead>
+    <tr>
+      <th class="sortable" data-sort="score" style="width:80px">Score</th>
+      <th style="width:34%">Title</th>
+      <th style="width:50px">Msgs</th>
+      <th style="width:90px">Mode</th>
+      <th style="width:160px">Flags</th>
+      <th style="width:140px">Lane</th>
+      <th style="width:200px">Decision</th>
+      <th style="width:175px">Actions</th>
+    </tr>
+  </thead>
+  <tbody id="tbody"></tbody>
+</table>
+</div>
+
+<div class="toast-container" id="toasts"></div>
+<div id="modalRoot"></div>
+
+<script>
+"use strict";
+
+// ─── Config ────────────────────────────────────────────────────────────────
+// Update these three when you move the kit / export / artifacts:
+const KIT_ROOT     = "E:\\claude-chat-extraction-kit-v2\\claude-chat-extraction-kit-v3\\";
+const EXPORT_ROOT  = "E:\\claude-chat-extraction-kit-v2\\data-8fb47a09-919b-43db-bf8f-513a2818df50-1779424005-59ea6cb3-batch-0001\\";
+const TRIAGE_PATH  = EXPORT_ROOT + "triage.json";
+const CHAT_ROOT    = EXPORT_ROOT;
+const PKG_DIR      = KIT_ROOT + "extracted-packages\\";
+const STATE_FILE   = KIT_ROOT + "tools\\triage\\triage_state.json";
+const STATE_KEY    = "triage-driver-v1";
+const ONBOARD_KEY  = "triage-driver-onboarded";
+
+// Lane → distribution eligibility
+const LANE_DIST = {
+  personal:  { oss: true,  paid: true,  external: true,  reason: "" },
+  intinc:    { oss: false, paid: false, external: false, reason: "INTINC content is SOC2-scoped — never publish externally" },
+  freelance: { oss: false, paid: false, external: false, reason: "Freelance work is per-client — distribute only to that client" },
+  kinsley:   { oss: false, paid: false, external: false, reason: "Kinsley/personal — review case-by-case before publishing" },
+  skip:      { oss: false, paid: false, external: false, reason: "Marked skip — do not productize" },
+  unknown:   { oss: false, paid: false, external: false, reason: "Lane unknown — verify before publishing" },
+};
+
+// Already-packaged source-chat allowlist (from extracted-packages/INDEX.md)
+const PACKAGED_TITLES = [
+  "clarifying deliverables for zip generation",
+  "elite full stack ai forward architecture audit and charter",
+  "flashfusion development next steps",
+  "prompt replication engine implementation",
+  "agentic ai vendors list",
+  "enterprise claude setup profile builder",
+  "system prompt audit and expansion roadmap",
+  "int inc enterprise claude implementation and audit",
+  "enterprise ai transformation master prompt system",
+  "intinc engagement platform landing page and dashboard",
+  "comprehensive prompt library for 15 year context engineer",
+  "staff engineer system instructions v4.1",
+  "staff engineer system instructions",
+  "gemini custom instruction strategies",
+  "custom skills planning for company",
+  "production grade flashfusion architecture on vercel and supabase",
+  "portfolio consolidation and source of truth monorepo setup",
+  "universal ai app generator",
+  "building a production grade ai prompt engineering platform",
+  "ai co founder strategy for firebase studio app development",
+  "flutterflow marketplace app development guide",
+  "v0 app development discipline and lint stack setup",
+  "v0.app development discipline and lint stack setup",
+  "project evaluation framework for buildathon submissions",
+  "secure flask oauth application with pkce",
+  "production ready ui design prompts library",
+  "production grade ui prompt pack with design tokens",
+];
+
+const LANE_KEYWORDS = {
+  intinc: ["int inc","intinc","kixie","msm","freshservice","kaseya","bitdefender","bitwarden","service desk","csr role","daniel bell","prompt newsletter","soc 2","soc2","iso 27001","internal tooling","helpdesk","ticketing","onboarding review","sales team transition"],
+  kinsley: ["kinsley","child","kid","family","school schedule","parenting","kids app","family app","sacred journeys"],
+  freelance: ["client","customization service","freelance","per client","contract work","consult"],
+  personal: ["flashfusion","flash fusion","chaosclub","chaos club","ff agent","agent control center","kit","extract","deliverable","zip","package","skill","prompt replication","cowork","claude skills","mcp"],
+};
+
+const FLAG_LABEL = {
+  "unfinished-build":  { label: "unfinished", cls: "unfinished", title: "Thinking is done, artifact never shipped — finish-forward target" },
+  "asks-to-continue":  { label: "continue",   cls: "continue",   title: "Chat explicitly asks to continue / resume" },
+  "truncated":         { label: "cut off",    cls: "truncated",  title: "Chat hit context limit mid-build" },
+};
+
+// ─── State ─────────────────────────────────────────────────────────────────
+let STATE = (() => { try { return JSON.parse(localStorage.getItem(STATE_KEY) || "{}"); } catch { return {}; } })();
+let STATE_DISK_MTIME = null;  // tracks last read from disk so we know if local diverged
+function saveState() { localStorage.setItem(STATE_KEY, JSON.stringify(STATE)); }
+function rowState(uuid) { return STATE[uuid] = STATE[uuid] || {}; }
+
+async function mergeStateFromDisk() {
+  if (!window.cowork?.callMcpTool) return false;
+  try {
+    const r = await window.cowork.callMcpTool("mcp__Desktop_Commander__read_file", { path: STATE_FILE });
+    let txt = r?.content ?? r?.text ?? r?.result?.content ?? r;
+    if (typeof txt === "object" && txt?.content) txt = txt.content;
+    if (typeof txt !== "string") txt = JSON.stringify(txt);
+    const m = txt.match(/^\[Reading[^\]]+\]\s*([\s\S]+)$/); if (m) txt = m[1];
+    const disk = JSON.parse(txt);
+    if (!disk || typeof disk !== "object") return false;
+    // Merge: local-state-set-after-disk-write wins; otherwise disk fills in
+    let added = 0, skipped = 0;
+    for (const uuid in disk) {
+      const local = STATE[uuid];
+      const fromDisk = disk[uuid];
+      if (!local) { STATE[uuid] = fromDisk; added++; }
+      else { skipped++; }  // local wins
+    }
+    STATE_DISK_MTIME = Date.now();
+    saveState();
+    if (added) toast(`Merged ${added} decisions from disk (${skipped} kept local)`, "ok");
+    return true;
+  } catch (e) {
+    // No state file yet, or unreadable — silently fall back to localStorage only
+    return false;
+  }
+}
+
+let CHATS = [];
+let SORT = { col: "score", dir: "desc" };
+let EXPANDED = new Set();
+let SELECTED = null;
+let UI = {
+  lane: "",
+  mode: "",
+  unfinished: false,
+  repsOnly: true,
+  hidePkg: false,
+};
+
+// ─── Utilities ─────────────────────────────────────────────────────────────
+function escapeHtml(s) { return String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+function normTitle(s) { return (s || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim(); }
+function laneHeuristic(text) {
+  const t = (text || "").toLowerCase();
+  const scores = { personal: 0, intinc: 0, freelance: 0, kinsley: 0 };
+  for (const lane in LANE_KEYWORDS) for (const kw of LANE_KEYWORDS[lane]) if (t.includes(kw)) scores[lane] += 1;
+  scores.intinc *= 2; scores.kinsley *= 2; scores.freelance *= 2;
+  let best = "unknown", bestScore = 0;
+  for (const k in scores) if (scores[k] > bestScore) { best = k; bestScore = scores[k]; }
+  return bestScore === 0 ? "unknown" : best;
+}
+function isPackaged(title) {
+  const t = normTitle(title); if (!t) return false;
+  return PACKAGED_TITLES.some(p => { const np = normTitle(p); return t === np || t.includes(np) || np.includes(t); });
+}
+function applyLane(c) {
+  const st = rowState(c.uuid);
+  if (st.lane) { c._lane = st.lane; c._laneSource = "user"; }
+  else { c._lane = laneHeuristic(c.title); c._laneSource = "auto"; }
+}
+function findChat(uuid) { return CHATS.find(c => c.uuid === uuid); }
+
+// ─── API availability probe ────────────────────────────────────────────────
+const API_STATUS = {
+  callMcpTool:  { state: "checking", detail: "probing…" },
+  askClaude:    { state: "checking", detail: "probing…" },
+  sendPrompt:   { state: "checking", detail: "probing…" },
+  localStorage: { state: "checking", detail: "probing…" },
+};
+
+function renderApiStatus() {
+  const el = document.getElementById("apiStatus"); if (!el) return;
+  const ICON = { ok: "✓", warn: "⚠", err: "✗", checking: "?" };
+  const dot = (name, key, label) => {
+    const s = API_STATUS[key];
+    return `<span class="api-dot ${s.state}" title="${escapeHtml(label)} — ${escapeHtml(s.detail || s.state)}"><span class="d"></span>${name}</span>`;
+  };
+  el.innerHTML =
+    dot("MCP",   "callMcpTool",  "Desktop Commander via callMcpTool") +
+    dot("AI",    "askClaude",    "askClaude inference") +
+    dot("Send",  "sendPrompt",   "sendPrompt to chat") +
+    dot("Store", "localStorage", "localStorage persistence");
+}
+
+async function probeAPIs() {
+  // localStorage — write/read/cleanup
+  try {
+    const k = "__triage_probe_" + Date.now();
+    localStorage.setItem(k, "1");
+    const ok = localStorage.getItem(k) === "1";
+    localStorage.removeItem(k);
+    API_STATUS.localStorage = ok
+      ? { state: "ok", detail: "read/write verified" }
+      : { state: "err", detail: "read after write returned wrong value" };
+  } catch (e) {
+    API_STATUS.localStorage = { state: "err", detail: String(e).slice(0, 100) };
+  }
+  renderApiStatus();
+
+  // callMcpTool — typeof + tiny call to known-good path
+  if (typeof window.cowork?.callMcpTool !== "function") {
+    API_STATUS.callMcpTool = { state: "err", detail: "function not on window.cowork — MCP bridge missing" };
+  } else {
+    try {
+      const r = await window.cowork.callMcpTool("mcp__Desktop_Commander__read_file", { path: TRIAGE_PATH, length: 1 });
+      const txt = r?.content ?? r?.text ?? r?.result?.content ?? r;
+      API_STATUS.callMcpTool = (typeof txt === "string" && txt.length)
+        ? { state: "ok", detail: "Desktop Commander reachable, returned content" }
+        : { state: "warn", detail: "called but response shape unclear: " + String(txt).slice(0,60) };
+    } catch (e) {
+      API_STATUS.callMcpTool = { state: "err", detail: String(e).slice(0, 120) };
+    }
+  }
+  renderApiStatus();
+
+  // askClaude — typeof only (no test invocation to avoid token spend on boot)
+  API_STATUS.askClaude = typeof window.cowork?.askClaude === "function"
+    ? { state: "ok", detail: "function present (will fully verify on first ✨ click)" }
+    : { state: "err", detail: "function not on window.cowork — AI features will fail" };
+
+  // sendPrompt — typeof only (can't test without user activation)
+  API_STATUS.sendPrompt = typeof window.cowork?.sendPrompt === "function"
+    ? { state: "ok", detail: "function present (will fully verify on first Send click)" }
+    : { state: "err", detail: "function not on window.cowork — Send → falls back to manual copy" };
+
+  renderApiStatus();
+}
+
+// ─── Status + toasts ───────────────────────────────────────────────────────
+function setStatus(text, kind) {
+  const el = document.getElementById("status");
+  el.classList.remove("ok", "busy", "err");
+  if (kind) el.classList.add(kind);
+  document.getElementById("statusText").textContent = text;
+}
+function toast(msg, kind = "info", ttl = 4000) {
+  const container = document.getElementById("toasts");
+  const el = document.createElement("div");
+  el.className = "toast " + kind;
+  const icon = { ok: "✓", err: "⚠", warn: "⚠", info: "ℹ" }[kind] || "•";
+  el.innerHTML = `<span>${icon}</span><span>${escapeHtml(msg)}</span><button class="close">×</button>`;
+  el.querySelector(".close").onclick = () => el.remove();
+  container.appendChild(el);
+  if (ttl) setTimeout(() => el.remove(), ttl);
+}
+
+// ─── Modal ─────────────────────────────────────────────────────────────────
+function openModal(title, body, actions) {
+  const root = document.getElementById("modalRoot");
+  const html = `
+    <div class="modal-backdrop" id="modalBackdrop">
+      <div class="modal" role="dialog" aria-modal="true">
+        <div class="modal-header"><h3>${title}</h3></div>
+        <div class="modal-body">${body}</div>
+        <div class="modal-actions">${actions || ""}</div>
+      </div>
+    </div>`;
+  root.innerHTML = html;
+  root.querySelector("#modalBackdrop").addEventListener("click", (e) => { if (e.target.id === "modalBackdrop") closeModal(); });
+}
+function closeModal() { document.getElementById("modalRoot").innerHTML = ""; }
+
+// ─── Onboarding ────────────────────────────────────────────────────────────
+function renderOnboard() {
+  if (localStorage.getItem(ONBOARD_KEY)) return;
+  document.getElementById("onboard").innerHTML = `
+    <div class="onboard">
+      <div class="icon">🎯</div>
+      <div class="text">
+        <strong>Triage 3,540 chats → ship the best as packages.</strong>
+        <ol>
+          <li>Use lane chips to focus on one work stream at a time.</li>
+          <li>Click <strong>Extract</strong> on chats worth productizing, or <strong>Skip</strong> ones that aren't.</li>
+          <li>Hit <strong>Send →</strong> to push a single extraction prompt to chat. One at a time, no batches.</li>
+        </ol>
+      </div>
+      <button id="dismissOnboard" title="Dismiss">×</button>
+    </div>`;
+  document.getElementById("dismissOnboard").onclick = () => {
+    localStorage.setItem(ONBOARD_KEY, "1");
+    document.getElementById("onboard").innerHTML = "";
+  };
+}
+
+// ─── Data load ─────────────────────────────────────────────────────────────
+async function loadFromDisk() {
+  if (!window.cowork?.callMcpTool) {
+    setStatus("no MCP bridge", "err");
+    return false;
+  }
+  setStatus("loading…", "busy");
+  try {
+    const r = await window.cowork.callMcpTool("mcp__Desktop_Commander__read_file", { path: TRIAGE_PATH });
+    let txt = r?.content ?? r?.text ?? r?.result?.content ?? r;
+    if (typeof txt === "object" && txt?.content) txt = txt.content;
+    if (typeof txt !== "string") txt = JSON.stringify(txt);
+    const m = txt.match(/^\[Reading[^\]]+\]\s*([\s\S]+)$/);
+    if (m) txt = m[1];
+    const data = JSON.parse(txt);
+    if (!Array.isArray(data)) throw new Error("not an array");
+    CHATS = data;
+    setStatus(`${CHATS.length.toLocaleString()} chats loaded`, "ok");
+    toast(`Loaded ${CHATS.length.toLocaleString()} chats from disk`, "ok");
+    return true;
+  } catch (e) {
+    setStatus("load failed", "err");
+    toast("Disk load failed: " + String(e).slice(0, 80), "err", 6000);
+    return false;
+  }
+}
+
+function preprocess() {
+  document.getElementById("totalCount").textContent = CHATS.length.toLocaleString();
+  for (const c of CHATS) { applyLane(c); c._packaged = isPackaged(c.title); }
+}
+
+// ─── Filtering ─────────────────────────────────────────────────────────────
+function filterChats(chats) {
+  const minScore = parseFloat(document.getElementById("filterScore").value) || 0;
+  const dec = document.getElementById("filterDecision").value;
+  const q = document.getElementById("filterSearch").value.toLowerCase().trim();
+  return chats.filter(c => {
+    if (c.score < minScore) return false;
+    if (UI.mode && c.mode !== UI.mode) return false;
+    if (UI.unfinished && !(c.flags || []).some(x => x === "unfinished-build" || x === "asks-to-continue" || x === "truncated")) return false;
+    if (UI.repsOnly && c.is_representative === false) return false;
+    if (UI.hidePkg && c._packaged) return false;
+    if (UI.lane && c._lane !== UI.lane) return false;
+    if (dec) { const d = rowState(c.uuid).decision || "none"; if (d !== dec) return false; }
+    if (q && !(c.title || "").toLowerCase().includes(q)) return false;
+    return true;
+  });
+}
+function sortChats(chats) {
+  const dir = SORT.dir === "asc" ? 1 : -1;
+  return chats.slice().sort((a, b) => {
+    const av = a[SORT.col], bv = b[SORT.col];
+    if (av == null) return 1; if (bv == null) return -1;
+    return (av > bv ? 1 : av < bv ? -1 : 0) * dir;
+  });
+}
+
+// ─── Stats ─────────────────────────────────────────────────────────────────
+function renderStats(visible) {
+  const byLane = { personal:0, intinc:0, freelance:0, kinsley:0, skip:0, unknown:0 };
+  const byDec  = { none:0, extract:0, skip:0, defer:0, done:0 };
+  let pkg = 0;
+  for (const c of CHATS) byLane[c._lane] = (byLane[c._lane] || 0) + 1;
+  for (const c of visible) {
+    const d = rowState(c.uuid).decision || "none";
+    byDec[d] = (byDec[d] || 0) + 1;
+    if (c._packaged) pkg++;
+  }
+  for (const k in byLane) {
+    const el = document.getElementById("lc-" + k); if (el) el.textContent = byLane[k];
+  }
+  document.getElementById("lc-all").textContent = CHATS.length;
+  document.getElementById("stats").innerHTML = `
+    <span class="stat"><strong>${visible.length.toLocaleString()}</strong> visible of ${CHATS.length.toLocaleString()}</span>
+    <span class="stat-divider">·</span>
+    <span class="stat">to extract: <strong>${byDec.extract}</strong></span>
+    <span class="stat">skipped: <strong>${byDec.skip}</strong></span>
+    <span class="stat">deferred: <strong>${byDec.defer}</strong></span>
+    <span class="stat">done: <strong>${byDec.done}</strong></span>
+    <span class="stat-divider">·</span>
+    <span class="stat" style="color:var(--bad)">packaged in view: <strong>${pkg}</strong></span>
+  `;
+}
+
+// ─── Render rows ───────────────────────────────────────────────────────────
+function renderFlags(c) {
+  const flagsHtml = (c.flags || []).map(f => {
+    if (f.startsWith("dup")) return `<span class="flag dup" title="Near-duplicate of ${escapeHtml(f.replace(/^dup~?/, ""))}">dup</span>`;
+    const m = FLAG_LABEL[f];
+    if (m) return `<span class="flag ${m.cls}" title="${escapeHtml(m.title)}">${m.label}</span>`;
+    return `<span class="flag" title="${escapeHtml(f)}">${escapeHtml(f.replace(/-/g, " "))}</span>`;
+  }).join("");
+  const pkgFlag = c._packaged ? `<span class="flag pkg" title="Already in extracted-packages/INDEX.md — extracting again is waste">PKG</span>` : "";
+  return pkgFlag + flagsHtml;
+}
+
+function renderRow(c) {
+  const st = rowState(c.uuid);
+  const dec = st.decision || "none";
+  const tr = document.createElement("tr");
+  tr.className = "data" + (c._packaged ? " packaged" : "") + (dec === "done" ? " done" : "") + (SELECTED === c.uuid ? " selected" : "");
+  tr.dataset.uuid = c.uuid;
+  const scoreCls = c.score >= 90 ? "hi" : c.score >= 80 ? "mid" : "";
+  const laneSrcMark = c._laneSource === "user" ? "👤" : c._laneSource === "content" ? "✓" : "⚡";
+  const laneSrcTitle = c._laneSource === "user" ? "manual override" : c._laneSource === "content" ? "verified via content" : "title heuristic";
+  tr.innerHTML = `
+    <td class="score-cell ${scoreCls}">
+      ${c.score?.toFixed?.(1) ?? c.score}
+      <span class="bar"><i style="width:${Math.min(100, c.score)}%"></i></span>
+    </td>
+    <td class="title-cell">
+      ${escapeHtml(c.title || "(untitled)")}
+      <span class="meta">${escapeHtml((c.created || "").slice(0,10))}${c.created ? " · " : ""}cluster ${c.cluster ?? "—"}</span>
+    </td>
+    <td>${c.msg_count ?? "—"}</td>
+    <td><span class="flag">${escapeHtml(c.mode || "")}</span></td>
+    <td>${renderFlags(c)}</td>
+    <td class="lane-cell">
+      <span class="lane-chip lane-${c._lane}" data-act="cycleLane" title="${laneSrcTitle} — click to change">
+        ${c._lane}
+      </span>
+      <span class="lane-source" title="${laneSrcTitle}">${laneSrcMark}</span>
+    </td>
+    <td class="decision-cell">
+      <button class="dec-btn extract ${dec==='extract'?'active':''}" data-act="dec" data-val="extract" title="Mark to extract (X)">Extract</button>
+      <button class="dec-btn skip ${dec==='skip'?'active':''}" data-act="dec" data-val="skip" title="Skip (S)">Skip</button>
+      <button class="dec-btn defer ${dec==='defer'?'active':''}" data-act="dec" data-val="defer" title="Defer (D)">Defer</button>
+      <button class="dec-btn done ${dec==='done'?'active':''}" data-act="dec" data-val="done">Done</button>
+    </td>
+    <td class="actions-cell">
+      <button class="row-btn" data-act="expand" title="Expand (Enter)">${EXPANDED.has(c.uuid) ? "▼" : "▶"}</button>
+      <button class="row-btn magic" data-act="ai" title="AI summary">✨</button>
+      <button class="row-btn" data-act="prompts-menu" title="Generate other prompts for this chat">▾</button>
+      <button class="row-btn primary" data-act="send" title="Send extraction prompt to chat">Send →</button>
+    </td>
+  `;
+  return tr;
+}
+
+function renderExpand(c) {
+  const st = rowState(c.uuid);
+  const tr = document.createElement("tr");
+  tr.className = "expand";
+  tr.dataset.expandFor = c.uuid;
+  const comp = c.components || {};
+  const compHtml = ["depth","code","artifacts","intent","filetree","unfinished","summary"].map(k => {
+    const v = comp[k] ?? 0; const pct = Math.round((v || 0) * 100);
+    const cls = pct >= 80 ? "high" : "";
+    return `<div class="comp ${cls}"><div class="label">${k}</div><div class="val">${(v?.toFixed?.(2) ?? v) || "—"}</div><div class="bar"><i style="width:${pct}%"></i></div></div>`;
+  }).join("");
+  tr.innerHTML = `
+    <td colspan="8">
+      <div class="expand-body">
+        <div class="panel">
+          <h4>Score components</h4>
+          <div class="comp-grid">${compHtml}</div>
+          <div class="path">📄 ${escapeHtml(c.path || "")}</div>
+          <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap">
+            <button class="ctrl-btn" data-act="preview">Preview chat</button>
+            <button class="ctrl-btn" data-act="recheck">Verify lane via content</button>
+            <span class="lane-source" style="margin-left:auto;align-self:center">human: ${(c.human_chars ?? 0).toLocaleString()} ch · assistant: ${(c.assistant_chars ?? 0).toLocaleString()} ch</span>
+          </div>
+          <div class="preview empty" id="prev-${c.uuid}">Click "Preview chat" to load first 200 lines</div>
+          <label style="display:block;margin-top:10px;font-size:11px;color:var(--text-soft)">Notes</label>
+          <textarea class="note-area" data-act="note" placeholder="Add notes about this chat…">${escapeHtml(st.note || "")}</textarea>
+        </div>
+        <div class="panel magic">
+          <h4>✨ AI assistance</h4>
+          <div class="ai-actions">
+            <button class="row-btn magic" data-act="ai-summary">Summarize chat</button>
+            <button class="row-btn magic" data-act="ai-shape">Suggest package shape</button>
+            <button class="row-btn magic" data-act="ai-lane">Verify lane (content)</button>
+          </div>
+          <div class="ai-output" id="ai-${c.uuid}">Pick an action above. AI summaries use the chat's metadata + content snippet.</div>
+        </div>
+      </div>
+    </td>
+  `;
+  return tr;
+}
+
+function render() {
+  if (!CHATS.length) {
+    document.getElementById("tbody").innerHTML = `
+      <tr><td colspan="8">
+        <div class="empty">
+          <div class="icon">📥</div>
+          <h3>No data loaded</h3>
+          <p>Triage data should load automatically from disk via Desktop Commander.</p>
+          <button class="ctrl-btn primary" onclick="(async()=>{ if(await loadFromDisk()){ preprocess(); render(); } })()">↻ Retry load</button>
+        </div>
+      </td></tr>`;
+    return;
+  }
+  document.querySelectorAll(".chip[data-lane]").forEach(el => el.classList.toggle("active", el.dataset.lane === UI.lane));
+  document.querySelectorAll(".chip[data-mode]").forEach(el => el.classList.toggle("active", el.dataset.mode === UI.mode));
+  document.getElementById("filterUnfinished").classList.toggle("active", UI.unfinished);
+  document.getElementById("filterRep").classList.toggle("active", UI.repsOnly);
+  document.getElementById("filterHidePkg").classList.toggle("active", UI.hidePkg);
+
+  const visible = sortChats(filterChats(CHATS));
+  renderStats(visible);
+  const tbody = document.getElementById("tbody");
+  tbody.innerHTML = "";
+  const slice = visible.slice(0, 500);
+  for (const c of slice) {
+    tbody.appendChild(renderRow(c));
+    if (EXPANDED.has(c.uuid)) tbody.appendChild(renderExpand(c));
+  }
+  if (visible.length > 500) {
+    const note = document.createElement("tr");
+    note.innerHTML = `<td colspan="8" class="empty">Showing first 500 of ${visible.length}. Narrow filters to see more.</td>`;
+    tbody.appendChild(note);
+  } else if (!visible.length) {
+    tbody.innerHTML = `<tr><td colspan="8"><div class="empty"><div class="icon">🪙</div><h3>No matches</h3><p>Try widening filters — lower the min score, change lane, or clear search.</p></div></td></tr>`;
+  }
+}
+
+// ─── Prompts ───────────────────────────────────────────────────────────────
+function buildExtractPrompt(c) {
+  return [
+    `/extract-chat FULL ZIP_SPEC`, ``,
+    `Source: ${c.path}`,
+    `Title: ${c.title}`,
+    `Score: ${c.score} | Mode: ${c.mode} | Msgs: ${c.msg_count} | Flags: ${(c.flags||[]).join(", ") || "none"}`,
+    `Lane: ${c._lane}${c._laneSource === "user" ? " (manual)" : ""}`, ``,
+    `Build a production-grade package under extracted-packages/, run the kit's`,
+    `Extractor → Critic → Builder → Packager pipeline, end with the CLAIMS CHECK`,
+    `contract (verified / inferred / unresolved / contradictions), and update`,
+    `extracted-packages/INDEX.md with a new row in the matching section.`,
+  ].join("\n");
+}
+
+// ─── Prompt templates (for "start organizing" workflows) ───────────────────
+const PROMPT_TEMPLATES = {
+  // Row-scoped
+  extract: {
+    scope: "row", label: "Extract chat into package",
+    desc: "Run the kit's deliverable-extractor on this single chat",
+    builder: (c) => buildExtractPrompt(c),
+  },
+  audit_pkg: {
+    scope: "row", label: "Audit existing package (for packaged chats)",
+    desc: "Delta-audit: what's missing vs the source chat, CLAIMS CHECK integrity",
+    builder: (c) => [
+      `Audit the existing extracted package built from this chat.`, ``,
+      `Kit root: ${KIT_ROOT}`,
+      `Packages dir: ${PKG_DIR}`,
+      `Source chat: ${c.title}`,
+      `Source file (absolute): ${EXPORT_ROOT}${(c.path || "").replace(/\//g, "\\")}`,
+      `UUID: ${c.uuid}`, ``,
+      `Tasks (delta audit — do NOT regenerate from scratch):`,
+      `1. Locate the matching dir under ${PKG_DIR} by source-chat name (fuzzy match the title).`,
+      `2. Verify required sections in its README: Executive Summary, Build, Output, Implementation Considerations, Performance/Security, Recommended Next Steps, CLAIMS CHECK.`,
+      `3. Re-read the source chat; list any artifacts (code blocks, file trees, prompts) in the chat that DIDN'T make it into the package.`,
+      `4. Spot-check the CLAIMS CHECK: are [SOURCED] claims actually in the chat? are [GENERATED] claims labeled?`,
+      `5. Append findings to the package README under "## AUDIT FINDINGS (YYYY-MM-DD)" — do not edit any other section.`,
+    ].join("\n"),
+  },
+  skip_reason: {
+    scope: "row", label: "Skip with documented reason",
+    desc: "Append a permanent skip note that survives future triage runs",
+    builder: (c) => [
+      `Add a skip note for chat: ${c.title}`,
+      `Source: ${EXPORT_ROOT}${(c.path || "").replace(/\//g, "\\")}`,
+      `UUID: ${c.uuid}`, ``,
+      `Notes file (absolute): ${KIT_ROOT}tools\\triage\\triage_notes.md`, ``,
+      `Tasks:`,
+      `1. Open the notes file above; create the dir + file if missing.`,
+      `2. Append a line: \`- ${c.uuid} :: ${c.title} :: Skip — [REASON]\``,
+      `   where [REASON] is one of: redundant-with-X, off-theme, low-buildable-density, abandoned, wrong-lane:LANE, sensitive-content.`,
+      `3. Do not modify triage.json. Do not delete the source chat.`,
+      `4. Ask me for the reason if it's not implied by the title.`,
+    ].join("\n"),
+  },
+  reverify: {
+    scope: "row", label: "Verify lane + summarize (deep read)",
+    desc: "Open the chat, classify lane, produce a 1-paragraph summary",
+    builder: (c) => [
+      `Open this source chat, read enough to understand it, then return:`, ``,
+      `Source: ${c.path}`,
+      `Current title-only lane guess: ${c._lane}`, ``,
+      `Output:`,
+      `1. **Lane:** one of personal | intinc | freelance | kinsley | skip | unknown (with rule-cite)`,
+      `2. **Summary (4-6 sentences):** what was being built / solved, did it ship, recommended package type`,
+      `3. **Confidence:** high | medium | low + 1-line reason`,
+    ].join("\n"),
+  },
+  // Global / selection-scoped
+  reorg_by_lane: {
+    scope: "global", label: "Reorganize extracted-packages/ by lane",
+    desc: "Add personal/, intinc/, freelance/, meta/ subdirs and move existing 24 packages",
+    builder: () => [
+      `Reorganize the kit's extracted-packages/ to have per-lane subdirs.`, ``,
+      `Kit root: ${KIT_ROOT}`,
+      `Packages dir: ${PKG_DIR}`,
+      `Reference for lane rules: ${KIT_ROOT}CLAUDE.md`, ``,
+      `Current state: 24 packages flat in ${PKG_DIR} + INDEX.md`,
+      `Target state:`,
+      `  ${PKG_DIR}`,
+      `    INDEX.md            (top-level, lists all)`,
+      `    _audit-log.md       (records what moved where, when)`,
+      `    personal/           (FlashFusion, kit-domain, ChaosClubCo)`,
+      `    intinc/             (INT-specific, SOC2-aligned)`,
+      `    freelance/          (per-client templates)`,
+      `    meta/               (about the kit itself, e.g. prompt-replication-engine)`, ``,
+      `Tasks:`,
+      `1. For each existing package dir under ${PKG_DIR}, determine lane from CLAUDE.md rules + the package's own README content.`,
+      `2. Move into the right subdir (use git mv if under version control; otherwise plain mv with audit trail).`,
+      `3. Update ${PKG_DIR}INDEX.md tables to reflect new paths.`,
+      `4. Write ${PKG_DIR}_audit-log.md with \`YYYY-MM-DD: moved <pkg> from / to /personal/\` lines.`,
+      `5. Update any cross-package references (relative paths inside package READMEs).`, ``,
+      `Do NOT change package contents — only locations + references. Surface the move plan FIRST, then ask "proceed?".`,
+    ].join("\n"),
+  },
+  regen_index: {
+    scope: "global", label: "Regenerate INDEX.md from disk",
+    desc: "Rebuild extracted-packages/INDEX.md by walking each package dir",
+    builder: () => [
+      `Regenerate ${PKG_DIR}INDEX.md from current package state on disk.`, ``,
+      `Kit root: ${KIT_ROOT}`,
+      `Packages dir: ${PKG_DIR}`,
+      `Diff output: ${PKG_DIR}INDEX_diff.md`, ``,
+      `Tasks:`,
+      `1. Walk ${PKG_DIR} recursively; for each dir with a README.md, treat it as a package.`,
+      `2. Extract from each README: title, source chat name (and UUID if present), 1-line description.`,
+      `3. Rebuild INDEX.md preserving current structure:`,
+      `   - Header with package + file counts`,
+      `   - Group A / Group B sections (preserve manual classification — read the current INDEX first)`,
+      `   - "Long tail — indexed, not packaged" section`,
+      `   - "Honest limits (CLAIMS CHECK)" section`,
+      `4. Validate: every package dir on disk has a row; no orphan rows pointing nowhere.`,
+      `5. Write the diff to ${PKG_DIR}INDEX_diff.md BEFORE overwriting INDEX.md. Ask me to confirm.`,
+    ].join("\n"),
+  },
+  reconcile_provenance: {
+    scope: "global", label: "Reconcile 4 conflicting corpus numbers",
+    desc: "3,428 / 3,540 / 590 clusters / 3,679 — pick canonical, fix all docs",
+    builder: () => [
+      `Reconcile the four conflicting corpus-size numbers across the kit's docs.`, ``,
+      `Files to update (absolute):`,
+      `- ${KIT_ROOT}CLAUDE.md`,
+      `- ${PKG_DIR}INDEX.md`,
+      `- ${KIT_ROOT}README.md`,
+      `- ${EXPORT_ROOT}TRIAGE.md (regenerated by the triage script)`, ``,
+      `| Doc | Number | Means |`,
+      `|---|---|---|`,
+      `| INDEX.md | 3,428 | distinct conversations |`,
+      `| TRIAGE.md (v2) | 3,540 | total markdown files scored |`,
+      `| TRIAGE.md (v2) | 590 | clusters after dedup |`,
+      `| CLAUDE.md (legacy) | 3,679 | "distinct" — DEPRECATED disjoint-batches math |`, ``,
+      `Tasks:`,
+      `1. Pick ONE canonical number with explicit definition (likely 3,540 scored OR 3,428 distinct).`,
+      `2. Add a "## Corpus definitions" section to ${KIT_ROOT}CLAUDE.md naming each count.`,
+      `3. Update CLAUDE.md, INDEX.md, README.md to use the canonical number + label others explicitly.`,
+      `4. Delete the 3,679 figure entirely — it's from the corrected disjoint-batches mistake.`,
+      `5. Return a 1-paragraph summary of which number you picked + why.`,
+    ].join("\n"),
+  },
+  move_to_projects: {
+    scope: "global", label: "Move kit to E:\\Projects\\ (final cleanup)",
+    desc: "Move from E:\\claude-chat-extraction-kit-v2\\ to E:\\Projects\\claude-chat-extraction-kit\\v3\\",
+    builder: () => [
+      `Final cleanup: move the kit to E:\\Projects\\.`, ``,
+      `Current state:`,
+      `  E:\\claude-chat-extraction-kit-v2\\               (outer wrapper, misleadingly named v2)`,
+      `    claude-chat-extraction-kit-v3\\                 (the actual kit)`,
+      `    data-...-batch-0001\\                           (raw export, ~1 GB)`, ``,
+      `Target state:`,
+      `  E:\\Projects\\claude-chat-extraction-kit\\v3\\        (the kit, with clean version dir)`,
+      `  E:\\Projects\\claude-chat-extraction-kit\\exports\\   (raw export)`,
+      `  E:\\Projects\\claude-chat-extraction-kit\\artifacts\\ (triage-driver.html + tools)`, ``,
+      `Tasks (gated on confirmation BEFORE any move):`,
+      `1. Confirm E:\\Projects\\ exists; create if not.`,
+      `2. List exact moves; ask "proceed?".`,
+      `3. Move (preserve git history if under VC).`,
+      `4. Update triage-driver.html TRIAGE_PATH + CHAT_ROOT constants.`,
+      `5. Update triage_conversations.py MD_DIR.`,
+      `6. Update kit CLAUDE.md + README.md path references.`,
+      `7. Re-run smoke + a single triage run to confirm nothing broke.`,
+      `8. Delete the old outer wrapper after verifying no orphans.`,
+    ].join("\n"),
+  },
+  release_prep: {
+    scope: "selection", label: "Build release zips for marked-Extract chats",
+    desc: "Sequentially run extraction → zip → INDEX update for each chat marked Extract",
+    builder: (sel) => {
+      if (!sel.length) return `(No chats marked Extract yet — mark some via the X key or Extract button first.)`;
+      return [
+        `Build release zips for the ${sel.length} chats currently marked Extract.`, ``,
+        `Kit root: ${KIT_ROOT}`,
+        `Packages dir: ${PKG_DIR}`,
+        `Release script: ${KIT_ROOT}scripts\\create-release-zip.mjs`,
+        `Source chats live under: ${EXPORT_ROOT}`, ``,
+        `Marked chats:`,
+        ...sel.map(c => `- ${c.uuid} :: ${c.title} (score ${c.score}, ${c.mode}, source: ${EXPORT_ROOT}${(c.path || "").replace(/\//g, "\\")})`),
+        ``,
+        `Tasks — sequential, ONE at a time:`,
+        `1. cd ${KIT_ROOT}mcp-server (the kit's working dir).`,
+        `2. Run the kit's extraction pipeline (Extractor → Critic → Builder → Packager) for the chat.`,
+        `3. Output to ${PKG_DIR}<package-slug>/.`,
+        `4. Validate: required sections + CLAIMS CHECK present.`,
+        `5. Run \`node ${KIT_ROOT}scripts\\create-release-zip.mjs\`.`,
+        `6. Update ${PKG_DIR}INDEX.md with a new row.`,
+        `7. Surface a 3-line summary: what was built, file count, any concerns.`,
+        `8. WAIT for "next" or "stop" before continuing.`, ``,
+        `Do not start the next chat until I confirm or the previous validates cleanly.`,
+      ].join("\n");
+    },
+  },
+  sync_state_to_disk: {
+    scope: "global", label: "💾 Sync triage state to disk (multi-user)",
+    desc: "Write your current Extract/Skip/Defer/Done + lane overrides to triage_state.json so other machines can read it",
+    builder: () => [
+      `Write the current triage-driver state to disk so it can be shared / restored.`, ``,
+      `Target file (absolute): ${STATE_FILE}`,
+      `Action: overwrite if exists, create if missing (create parent dirs).`, ``,
+      `Content (paste exactly — this is the artifact's current state):`,
+      `\`\`\`json`,
+      JSON.stringify(STATE, null, 2),
+      `\`\`\``, ``,
+      `Validation:`,
+      `1. After writing, read back and confirm record count matches: ${Object.keys(STATE).length} entries.`,
+      `2. Verify the JSON parses cleanly.`,
+      `3. Print the path written to.`,
+      ``,
+      `Then on next artifact open, the state will merge from disk on boot.`,
+    ].join("\n"),
+  },
+  publish_oss_one: {
+    scope: "row", group: "distribute", label: "📦 Publish package to GitHub (OSS)",
+    desc: "Push this package as an open-source repo via the opensource-pipeline plugin",
+    builder: (c) => {
+      const dist = LANE_DIST[c._lane] || LANE_DIST.unknown;
+      if (!dist.oss) {
+        return `(Lane "${c._lane}" is not OSS-eligible. Reason: ${dist.reason}. Change the lane via the row's lane chip if this is wrong.)`;
+      }
+      return [
+        `Publish this package as an open-source GitHub repo.`, ``,
+        `Source chat: ${c.title}`,
+        `Lane: ${c._lane} (OSS-eligible)`,
+        `Kit root: ${KIT_ROOT}`,
+        `Packages dir: ${PKG_DIR}`, ``,
+        `Tasks:`,
+        `1. Locate the matching package dir under ${PKG_DIR}.`,
+        `2. Invoke the opensource-pipeline plugin: fork → sanitize → package.`,
+        `3. Verify the sanitizer passes (no secrets, no INTINC references, no client names).`,
+        `4. Create a new GitHub repo under my account (private first, flip to public after review).`,
+        `5. Push.`,
+        `6. Print the repo URL.`,
+        `7. Update ${PKG_DIR}_distribution.md with: \`- ${c.uuid} :: <repo URL> :: published <date>\`.`, ``,
+        `Stop before flipping the repo public — surface the sanitizer report so I can confirm.`,
+      ].join("\n");
+    },
+  },
+  build_paid_zip: {
+    scope: "row", group: "distribute", label: "💰 Build paid release zip (Gumroad)",
+    desc: "Build the release zip + draft Gumroad product copy",
+    builder: (c) => {
+      const dist = LANE_DIST[c._lane] || LANE_DIST.unknown;
+      if (!dist.paid) {
+        return `(Lane "${c._lane}" is not paid-eligible. Reason: ${dist.reason}. Change the lane via the row's lane chip if this is wrong.)`;
+      }
+      return [
+        `Build a paid release zip + Gumroad product copy for this package.`, ``,
+        `Source chat: ${c.title}`,
+        `Lane: ${c._lane}`,
+        `Packages dir: ${PKG_DIR}`,
+        `Release script: ${KIT_ROOT}scripts\\create-release-zip.mjs`, ``,
+        `Tasks:`,
+        `1. Locate the matching package dir under ${PKG_DIR}.`,
+        `2. Run \`node ${KIT_ROOT}scripts\\create-release-zip.mjs\` to build the zip.`,
+        `3. Draft Gumroad product copy:`,
+        `   - Title (use kit positioning from ${KIT_ROOT}docs\\SALES-POSITIONING.md)`,
+        `   - Subtitle (one-line value prop)`,
+        `   - Description (3-paragraph: problem / what's included / who it's for)`,
+        `   - Tier suggestion: Starter / Pro / Enterprise per the kit's standard tiering`,
+        `4. Save copy to ${PKG_DIR}<package>/gumroad-copy.md`,
+        `5. Print zip path + copy file path.`, ``,
+        `Do NOT publish to Gumroad — only build artifacts locally. I'll publish manually after review.`,
+      ].join("\n");
+    },
+  },
+  bulk_publish_oss: {
+    scope: "selection", group: "distribute", label: "📦 Bulk-publish all OSS-eligible Done packages",
+    desc: "For every chat marked Done with lane=personal, queue OSS publish (sequential, gated)",
+    builder: () => {
+      const done = CHATS.filter(c => {
+        const st = rowState(c.uuid);
+        return st.decision === "done" && (LANE_DIST[c._lane] || LANE_DIST.unknown).oss;
+      });
+      if (!done.length) return `(No OSS-eligible Done packages yet. Mark personal-lane packages as Done first.)`;
+      return [
+        `Bulk-publish ${done.length} OSS-eligible Done packages to GitHub.`, ``,
+        `Kit root: ${KIT_ROOT}`,
+        `Packages dir: ${PKG_DIR}`,
+        `Plugin: opensource-pipeline (fork → sanitize → package)`, ``,
+        `Queue:`,
+        ...done.map(c => `- ${c.uuid} :: ${c.title} (lane: ${c._lane})`),
+        ``,
+        `Tasks per package — SEQUENTIAL, gated:`,
+        `1. Locate the dir under ${PKG_DIR}.`,
+        `2. Run opensource-pipeline: fork → sanitize → package.`,
+        `3. Show me the sanitizer report. WAIT for "ok" before pushing.`,
+        `4. Create GitHub repo (private). Push.`,
+        `5. Print repo URL.`,
+        `6. Update ${PKG_DIR}_distribution.md.`,
+        `7. Continue to next package or wait for "stop".`,
+      ].join("\n");
+    },
+  },
+  build_distribution_yaml: {
+    scope: "global", group: "distribute", label: "📋 Build per-package distribution.yaml",
+    desc: "For every package, write a distribution.yaml: oss | paid | both | private + platform + status",
+    builder: () => [
+      `Build a distribution.yaml for every package under ${PKG_DIR}.`, ``,
+      `Each file: ${PKG_DIR}<package>/distribution.yaml`, ``,
+      `Schema:`,
+      `\`\`\`yaml`,
+      `package: <package-slug>`,
+      `source_chat_uuid: <uuid>`,
+      `lane: personal | intinc | freelance | kinsley | meta`,
+      `intent: oss | paid | both | private`,
+      `platforms:`,
+      `  oss:`,
+      `    target: github`,
+      `    repo: <repo URL or null>`,
+      `    visibility: public | private`,
+      `    status: draft | published`,
+      `  paid:`,
+      `    target: gumroad | lemonsqueezy | manual`,
+      `    product_url: <URL or null>`,
+      `    tier: starter | pro | enterprise`,
+      `    status: draft | listed | sold`,
+      `notes: <free-form>`,
+      `\`\`\``, ``,
+      `Tasks:`,
+      `1. For each package, infer initial values from its lane + the existing INDEX.md.`,
+      `2. Default: lane=personal → intent=both, lane=intinc → intent=private, lane=freelance → intent=private, others → intent=private.`,
+      `3. Set status=draft for everything (none published yet — change as you actually publish).`,
+      `4. Validate YAML parses.`,
+      `5. Surface a summary table of who-can-publish-what.`,
+    ].join("\n"),
+  },
+  bulk_lane_verify: {
+    scope: "selection", label: "Verify lanes for visible chats (content-based)",
+    desc: "Open each currently-visible chat, content-classify lane, write results back",
+    builder: (sel, ctx) => {
+      const targets = (ctx?.visibleUnknownOnly ? sel.filter(c => c._lane === "unknown") : sel).slice(0, 30);
+      if (!targets.length) return `(No matching chats in current view.)`;
+      return [
+        `Verify lanes via chat content for ${targets.length} chats currently in view.`, ``,
+        `Triage file (writeback target): ${TRIAGE_PATH}`,
+        `Source chats live under: ${EXPORT_ROOT}`,
+        `Lane rules reference: ${KIT_ROOT}CLAUDE.md (section "LANE-SPECIFIC RULES")`, ``,
+        `Chats:`,
+        ...targets.map(c => `- ${c.uuid} :: ${c.title} (current guess: ${c._lane}, source: ${EXPORT_ROOT}${(c.path || "").replace(/\//g, "\\")})`),
+        ``,
+        `For each: read the first 100 lines, classify per CLAUDE.md lane rules:`,
+        `- intinc: kixie, msm, freshservice, kaseya, bitdefender, bitwarden, service desk, csr, Daniel Bell, "The Prompt"`,
+        `- personal: flashfusion, chaos club, ff agent, kit, cowork, skills, mcp`,
+        `- kinsley: kinsley, kids, family, school`,
+        `- freelance: client, customization service, per-client`,
+        `- skip: career, abandoned ideation, off-theme`, ``,
+        `Output:`,
+        `1. A table (uuid, title, old_lane, new_lane, confidence).`,
+        `2. Append a "lane" field to ${TRIAGE_PATH} per record (preserve all other fields).`,
+        `3. Surface ambiguous cases for me to decide manually.`,
+      ].join("\n");
+    },
+  },
+};
+
+function buildPrompt(key, c, sel) {
+  const t = PROMPT_TEMPLATES[key]; if (!t) return "";
+  if (t.scope === "row") return t.builder(c);
+  if (t.scope === "global") return t.builder();
+  if (t.scope === "selection") return t.builder(sel || []);
+  return "";
+}
+
+function getSelection() {
+  return CHATS.filter(c => rowState(c.uuid).decision === "extract");
+}
+
+function openPromptModal(promptText, title) {
+  openModal(title || "Generated prompt", `
+    <p style="margin:0 0 8px;color:var(--text-mute);font-size:12px">Preview — copy or send to chat.</p>
+    <pre style="white-space:pre-wrap;background:var(--surface);padding:10px 12px;border-radius:6px;font-size:11px;font-family:ui-monospace,Menlo,monospace;max-height:340px;overflow:auto;border:1px solid var(--border)">${escapeHtml(promptText)}</pre>
+  `, `
+    <button class="ctrl-btn" onclick="closeModal()">Cancel</button>
+    <button class="ctrl-btn" id="copyPrompt">⎘ Copy</button>
+    <button class="ctrl-btn primary" id="sendPrompt">Send → chat</button>
+  `);
+  document.getElementById("copyPrompt").onclick = () => {
+    navigator.clipboard?.writeText(promptText).then(
+      () => { closeModal(); toast("Prompt copied to clipboard", "ok"); },
+      () => toast("Clipboard write failed", "err"),
+    );
+  };
+  document.getElementById("sendPrompt").onclick = () => {
+    if (!window.cowork?.sendPrompt) { toast("sendPrompt unavailable", "err"); return; }
+    window.cowork.sendPrompt(promptText);
+    closeModal();
+    toast("Prompt sent to chat", "ok");
+  };
+}
+
+function openPromptMenu(scope, c, group) {
+  // scope: "row" | "global" | "distribute-row" | "distribute-global"
+  // group filter is optional — if set, only templates in that group show
+  const items = Object.entries(PROMPT_TEMPLATES).filter(([_, t]) => {
+    if (group && t.group !== group) return false;
+    if (!group && t.group === "distribute") return false; // organize menu hides distribute templates
+    if (scope === "row" || scope === "distribute-row") return t.scope === "row";
+    return t.scope === "global" || t.scope === "selection";
+  });
+  const html = items.map(([key, t]) => {
+    let extra = "";
+    if (t.scope === "selection") {
+      const n = getSelection().length;
+      extra = ` <span style="color:var(--magic);font-weight:500">(${n} marked Extract)</span>`;
+    }
+    return `<button class="ctrl-btn" data-act="prompt-template" data-key="${key}" style="text-align:left;display:block;width:100%;margin-bottom:6px;padding:10px 12px;background:var(--bg)">
+      <strong style="display:block;color:var(--text);font-size:13px">${escapeHtml(t.label)}${extra}</strong>
+      <span style="display:block;color:var(--text-mute);font-size:11px;margin-top:2px;font-weight:400">${escapeHtml(t.desc)}</span>
+    </button>`;
+  }).join("");
+  const title = (scope === "row" || scope === "distribute-row")
+    ? (group === "distribute" ? `Distribute "${escapeHtml(c?.title || '')}"` : `Generate prompt for "${escapeHtml(c?.title || '')}"`)
+    : (group === "distribute" ? "Generate distribution prompt" : "Generate organization prompt");
+  openModal(title, items.length ? html : `<div style="color:var(--text-mute);font-style:italic;padding:8px">No templates available for this scope.</div>`,
+    `<button class="ctrl-btn" onclick="closeModal()">Cancel</button>`);
+  // wire up template clicks
+  document.querySelector(".modal-body").addEventListener("click", (e) => {
+    const btn = e.target.closest("button[data-act='prompt-template']");
+    if (!btn) return;
+    const key = btn.dataset.key;
+    const prompt = buildPrompt(key, c, getSelection());
+    const title = PROMPT_TEMPLATES[key].label;
+    closeModal();
+    setTimeout(() => openPromptModal(prompt, title), 60);
+  });
+}
+
+// ─── AI helpers ────────────────────────────────────────────────────────────
+async function readChatHead(c, lines = 200) {
+  if (!window.cowork?.callMcpTool) return null;
+  const r = await window.cowork.callMcpTool("mcp__Desktop_Commander__read_file", {
+    path: CHAT_ROOT + (c.path || "").replace(/\//g, "\\"),
+    length: lines,
+  });
+  let txt = r?.content ?? r?.text ?? r?.result?.content ?? r;
+  if (typeof txt === "object" && txt?.content) txt = txt.content;
+  return typeof txt === "string" ? txt : String(txt);
+}
+
+async function callAI(prompt, data, target) {
+  if (!window.cowork?.askClaude) {
+    API_STATUS.askClaude = { state: "err", detail: "function not present" }; renderApiStatus();
+    target.innerHTML = `<span style="color:var(--bad)">AI unavailable — askClaude API not present in this Cowork build.</span>`;
+    return;
+  }
+  target.className = "ai-output busy";
+  target.textContent = "thinking…";
+  try {
+    const result = await window.cowork.askClaude(prompt, data || []);
+    target.className = "ai-output";
+    const text = typeof result === "string" ? result : (result?.text || JSON.stringify(result, null, 2));
+    const safe = escapeHtml(text)
+      .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+      .replace(/\n\n+/g, "</p><p>")
+      .replace(/\n/g, "<br>");
+    target.innerHTML = `<p>${safe}</p>`;
+    API_STATUS.askClaude = { state: "ok", detail: "verified — returned response" }; renderApiStatus();
+  } catch (e) {
+    target.className = "ai-output err";
+    target.textContent = "AI call failed: " + String(e).slice(0, 200);
+    API_STATUS.askClaude = { state: "err", detail: String(e).slice(0, 120) }; renderApiStatus();
+  }
+}
+
+async function aiSummarize(c, target) {
+  const head = await readChatHead(c, 300).catch(() => null);
+  const prompt = `You are summarizing a Claude conversation that was triaged for potential extraction into a deliverable package.
+
+Title: ${c.title}
+Mode suggested: ${c.mode}
+Score: ${c.score}/100
+Message count: ${c.msg_count}
+Flags: ${(c.flags||[]).join(", ") || "none"}
+
+Below are the first ~300 lines of the chat. In 4-6 sentences, answer:
+1. What is the user trying to build or solve?
+2. Did the chat reach a shippable artifact, or did it stall?
+3. What kind of deliverable package would be the right next step (PRD, code module, prompt pack, docs)?
+
+Be concrete. Avoid generic phrases. If you can't tell, say so.
+
+CHAT CONTENT:
+${(head || "").slice(0, 8000)}`;
+  await callAI(prompt, [], target);
+}
+
+async function aiShape(c, target) {
+  const prompt = `Given this triaged chat, recommend a package shape. Be specific to the actual content/title — no generic templates.
+
+Title: ${c.title}
+Mode suggested by triage: ${c.mode}
+Score: ${c.score}/100, ${c.msg_count} messages
+Flags: ${(c.flags||[]).join(", ") || "none"}
+Lane: ${c._lane}
+
+Score components: ${JSON.stringify(c.components || {})}
+
+Output in 3 sections:
+**Package type:** (ZIP_SPEC | CODEKIT | DOCS_ONLY | PROMPTS_ONLY) — with one-line reason
+**Key sections:** bullet list of 4-7 sections the package should contain
+**Risks:** 1-3 things that might make this hard to extract cleanly`;
+  await callAI(prompt, [], target);
+}
+
+async function aiVerifyLane(c, target) {
+  const head = await readChatHead(c, 100).catch(() => null);
+  const prompt = `Classify this chat into one of: personal, intinc, freelance, kinsley, skip, unknown.
+
+Definitions (from Kyle's working lane rules):
+- intinc: AI enablement at INT Technology Services, internal tooling, SOC 2 work, MSM/Kixie/FreshService/Kaseya/Bitdefender, "The Prompt" newsletter
+- personal: FlashFusion, ChaosClubCo, Kyle's own sellable kits, anything Cowork/Claude Code skills
+- freelance: per-client work, Customization Service
+- kinsley: kids/family app
+- skip: low-value (career chats, ideation only, abandoned)
+- unknown: can't tell
+
+Title: ${c.title}
+Current title-only guess: ${c._lane}
+
+First 100 lines:
+${(head || "").slice(0, 4000)}
+
+Output ONLY one of: personal, intinc, freelance, kinsley, skip, unknown — followed by a single sentence reason.`;
+  if (!window.cowork?.askClaude) { target.innerHTML = `<span style="color:var(--bad)">AI unavailable</span>`; return; }
+  target.className = "ai-output busy"; target.textContent = "verifying lane…";
+  try {
+    const r = await window.cowork.askClaude(prompt, []);
+    const txt = (typeof r === "string" ? r : r?.text || "").trim();
+    const m = txt.match(/\b(personal|intinc|freelance|kinsley|skip|unknown)\b/i);
+    target.className = "ai-output";
+    if (m) {
+      const lane = m[1].toLowerCase();
+      c._lane = lane; c._laneSource = "content";
+      const st = rowState(c.uuid); st.lane = lane; saveState();
+      target.innerHTML = `<strong>Lane:</strong> <span class="lane-chip lane-${lane}">${lane}</span><p style="margin-top:6px">${escapeHtml(txt.replace(m[0], "").replace(/^[\s:—\-]+/, "").trim())}</p>`;
+      render();
+      toast(`Lane verified: ${lane}`, "ok");
+    } else {
+      target.innerHTML = escapeHtml(txt);
+    }
+  } catch (e) {
+    target.className = "ai-output err";
+    target.textContent = "verify failed: " + String(e).slice(0, 200);
+  }
+}
+
+async function aiTopPicks() {
+  if (!window.cowork?.askClaude) { toast("askClaude unavailable in this Cowork build", "err"); return; }
+  const visible = sortChats(filterChats(CHATS)).slice(0, 30);
+  if (!visible.length) { toast("No visible chats to pick from", "warn"); return; }
+  const data = visible.map(c => ({
+    uuid: c.uuid, title: c.title, score: c.score, msgs: c.msg_count,
+    mode: c.mode, flags: c.flags, lane: c._lane, packaged: c._packaged,
+  }));
+  const prompt = `You are advising Kyle on which Claude chats to productize into extraction packages NEXT.
+
+I'll give you the top 30 chats from his current filtered view. Pick the 5 he should extract this week. Apply this judgment:
+
+- Strongly prefer chats flagged "unfinished-build" or "asks-to-continue" — thinking is done, artifact never shipped.
+- Strongly avoid chats marked packaged:true — those are already done.
+- Prefer chats with thematically novel content (don't recommend 3 similar topics).
+- Personal lane is preferred for this kit; INTINC chats go in a different lane.
+
+Output a JSON array of 5 picks. Each: { "uuid": "...", "rank": 1-5, "why": "one sentence on why this one" }
+Just the JSON, no preamble.`;
+  const picksDiv = document.getElementById("aiPicks");
+  picksDiv.innerHTML = `<div class="ai-picks"><h4>✨ AI picks (thinking…)</h4><div class="picks-list" id="picksList"></div></div>`;
+  try {
+    const r = await window.cowork.askClaude(prompt, data);
+    const txt = typeof r === "string" ? r : r?.text || JSON.stringify(r);
+    const jsonMatch = txt.match(/\[[\s\S]*\]/);
+    if (!jsonMatch) throw new Error("No JSON array in response");
+    const picks = JSON.parse(jsonMatch[0]);
+    const html = picks.map(p => {
+      const c = findChat(p.uuid);
+      if (!c) return "";
+      return `<div class="pick" data-uuid="${escapeHtml(c.uuid)}" data-act="jump-pick">
+        <span class="num">#${p.rank}</span>
+        <div class="title">${escapeHtml(c.title)}<span class="why"> — ${escapeHtml(p.why)}</span></div>
+        <span class="lane-chip lane-${c._lane}">${c._lane}</span>
+        <span class="score-cell">${c.score?.toFixed?.(1) ?? c.score}</span>
+      </div>`;
+    }).join("");
+    picksDiv.innerHTML = `<div class="ai-picks">
+      <h4>✨ AI picks <span style="color:var(--text-mute);font-weight:400;text-transform:none;font-size:11px;margin-left:6px">from current filtered view</span></h4>
+      <div class="picks-list">${html}</div>
+      <div class="actions">
+        <button class="ctrl-btn" id="dismissPicks">Dismiss</button>
+        <button class="ctrl-btn primary" id="markAllExtract">Mark all as Extract</button>
+      </div>
+    </div>`;
+    document.getElementById("dismissPicks").onclick = () => picksDiv.innerHTML = "";
+    document.getElementById("markAllExtract").onclick = () => {
+      for (const p of picks) { const st = rowState(p.uuid); st.decision = "extract"; }
+      saveState(); render();
+      toast(`${picks.length} marked as Extract`, "ok");
+    };
+    toast(`AI picked ${picks.length} chats`, "ok");
+  } catch (e) {
+    picksDiv.innerHTML = `<div class="ai-picks"><h4>✨ AI picks</h4><div style="color:var(--bad)">Failed: ${escapeHtml(String(e).slice(0,200))}</div><div class="actions"><button class="ctrl-btn" onclick="document.getElementById('aiPicks').innerHTML=''">Dismiss</button></div></div>`;
+  }
+}
+
+// ─── Actions ───────────────────────────────────────────────────────────────
+async function previewChat(c, target) {
+  target.classList.remove("empty");
+  target.textContent = "loading…";
+  try {
+    const txt = await readChatHead(c, 200);
+    target.textContent = (txt || "").slice(0, 8000);
+  } catch (e) {
+    target.textContent = "preview failed: " + String(e).slice(0, 200);
+  }
+}
+
+async function recheckLane(c) {
+  const target = document.getElementById("ai-" + c.uuid);
+  if (target) await aiVerifyLane(c, target);
+}
+
+function setDecision(c, val) {
+  const st = rowState(c.uuid);
+  st.decision = (st.decision === val) ? null : val;
+  saveState(); render();
+}
+
+function cycleLane(c) {
+  const order = ["personal","intinc","freelance","kinsley","skip","unknown"];
+  const i = order.indexOf(c._lane);
+  const next = order[(i + 1) % order.length];
+  const st = rowState(c.uuid);
+  st.lane = next; c._lane = next; c._laneSource = "user";
+  saveState(); render();
+  toast(`Lane → ${next}`, "info", 1500);
+}
+
+async function sendOne(c) {
+  if (!window.cowork?.sendPrompt) {
+    openModal("Send not available", `Cowork sendPrompt API isn't present. Copy this manually:<pre style="white-space:pre-wrap;background:var(--surface);padding:10px;border-radius:6px;font-size:11px;margin-top:8px">${escapeHtml(buildExtractPrompt(c))}</pre>`,
+      `<button class="ctrl-btn" onclick="closeModal()">Close</button>`);
+    return;
+  }
+  // Lane firewall — block sends for non-personal lanes by default
+  const firewall = LANE_DIST[c._lane] || LANE_DIST.unknown;
+  const blocked = !firewall.external && c._lane !== "personal";
+  const firewallWarning = blocked
+    ? `<div style="background:var(--bad-soft);border:1px solid #fca5a5;border-radius:6px;padding:10px;margin:8px 0">
+         <strong style="color:var(--bad)">🛑 Lane firewall: ${c._lane}</strong>
+         <p style="margin:6px 0 0;color:var(--text);font-size:12px">${escapeHtml(firewall.reason)}</p>
+         <p style="margin:6px 0 0;color:var(--text-mute);font-size:11px">Override only if you're confident this is the right lane. Use the lane chip to change it first if it isn't.</p>
+       </div>` : '';
+  const pkgWarning = c._packaged
+    ? '<p style="color:var(--bad);font-size:12px"><strong>⚠ This chat appears already packaged.</strong> Sending will likely produce a duplicate package.</p>' : '';
+  openModal("Send extraction prompt?", `
+    <p>One single extraction prompt for:</p>
+    <p><strong>${escapeHtml(c.title)}</strong></p>
+    <p style="color:var(--text-mute);font-size:12px">Score ${c.score} · ${c.msg_count} msgs · mode ${c.mode} · lane ${c._lane}</p>
+    ${firewallWarning}
+    ${pkgWarning}
+  `, `
+    <button class="ctrl-btn" onclick="closeModal()">Cancel</button>
+    <button class="ctrl-btn ${blocked ? 'warn' : 'primary'}" id="confirmSend">${blocked ? '⚠ Override + Send' : 'Send →'}</button>
+  `);
+  document.getElementById("confirmSend").onclick = () => {
+    closeModal();
+    try {
+      window.cowork.sendPrompt(buildExtractPrompt(c));
+      API_STATUS.sendPrompt = { state: "ok", detail: "verified — prompt sent" }; renderApiStatus();
+      const st = rowState(c.uuid);
+      st.sentAt = Date.now();
+      if (!st.decision) st.decision = "extract";
+      saveState(); render();
+      toast(`Sent: ${c.title.slice(0,60)}`, "ok");
+    } catch (e) {
+      API_STATUS.sendPrompt = { state: "err", detail: String(e).slice(0, 120) }; renderApiStatus();
+      toast(`Send failed: ${String(e).slice(0,80)}`, "err");
+    }
+  };
+}
+
+// ─── Event delegation ──────────────────────────────────────────────────────
+document.addEventListener("click", async (e) => {
+  // Toolbar chips
+  const chip = e.target.closest(".chip[data-lane], .chip[data-mode], .chip[data-toggle]");
+  if (chip) {
+    if (chip.dataset.lane !== undefined) UI.lane = chip.dataset.lane;
+    else if (chip.dataset.mode !== undefined) UI.mode = chip.dataset.mode;
+    else if (chip.dataset.toggle) {
+      const k = { unfinished:"unfinished", rep:"repsOnly", hidepkg:"hidePkg" }[chip.dataset.toggle];
+      UI[k] = !UI[k];
+    }
+    render(); return;
+  }
+  // Sort headers
+  const th = e.target.closest("thead th[data-sort]");
+  if (th) {
+    const col = th.dataset.sort;
+    if (SORT.col === col) SORT.dir = SORT.dir === "asc" ? "desc" : "asc";
+    else { SORT.col = col; SORT.dir = "desc"; }
+    render(); return;
+  }
+  // Pick row click → expand
+  const pick = e.target.closest("[data-act='jump-pick']");
+  if (pick) {
+    const u = pick.dataset.uuid;
+    EXPANDED.add(u); SELECTED = u;
+    render();
+    const el = document.querySelector(`tr[data-uuid='${u}']`);
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+    return;
+  }
+  // Row buttons
+  const btn = e.target.closest("button[data-act]");
+  if (!btn) return;
+  const tr = btn.closest("tr");
+  const uuid = tr?.dataset.uuid || tr?.dataset.expandFor;
+  const c = uuid && findChat(uuid);
+  const act = btn.dataset.act;
+  if (act === "dec" && c) { setDecision(c, btn.dataset.val); }
+  else if (act === "expand" && c) { EXPANDED.has(c.uuid) ? EXPANDED.delete(c.uuid) : EXPANDED.add(c.uuid); SELECTED = c.uuid; render(); }
+  else if (act === "send" && c) { await sendOne(c); }
+  else if (act === "prompts-menu" && c) { openPromptMenu("row", c); }
+  else if (act === "ai" && c) { EXPANDED.add(c.uuid); SELECTED = c.uuid; render(); setTimeout(() => { const t = document.getElementById("ai-" + c.uuid); if (t) aiSummarize(c, t); }, 50); }
+  else if (act === "preview" && c) { const t = document.getElementById("prev-" + c.uuid); if (t) previewChat(c, t); }
+  else if (act === "recheck" && c) { await recheckLane(c); }
+  else if (act === "ai-summary" && c) { const t = document.getElementById("ai-" + c.uuid); if (t) aiSummarize(c, t); }
+  else if (act === "ai-shape" && c) { const t = document.getElementById("ai-" + c.uuid); if (t) aiShape(c, t); }
+  else if (act === "ai-lane" && c) { const t = document.getElementById("ai-" + c.uuid); if (t) aiVerifyLane(c, t); }
+  else if (act === "cycleLane" && c) { cycleLane(c); }
+});
+
+// span[data-act='cycleLane'] is not a button; listen on click for spans too
+document.addEventListener("click", (e) => {
+  const span = e.target.closest("span[data-act='cycleLane']");
+  if (!span) return;
+  const tr = span.closest("tr"); const c = tr && findChat(tr.dataset.uuid);
+  if (c) cycleLane(c);
+});
+
+document.addEventListener("change", (e) => {
+  const t = e.target;
+  if (t.id === "filterScore" || t.id === "filterDecision") { render(); return; }
+  if (t.dataset.act === "note") {
+    const ex = t.closest("tr.expand"); const c = ex && findChat(ex.dataset.expandFor);
+    if (c) { rowState(c.uuid).note = t.value; saveState(); }
+  }
+});
+
+document.getElementById("filterSearch").addEventListener("input", () => render());
+document.getElementById("refreshBtn").onclick = async () => { await probeAPIs(); if (await loadFromDisk()) { preprocess(); render(); } };
+document.getElementById("aiPicksBtn").onclick = () => aiTopPicks();
+document.getElementById("organizeBtn").onclick = () => openPromptMenu("global", null);
+document.getElementById("distributeBtn").onclick = () => openPromptMenu("global", null, "distribute");
+document.getElementById("exportBtn").onclick = () => {
+  const visible = sortChats(filterChats(CHATS));
+  const out = visible.map(c => ({
+    score: c.score, title: c.title, mode: c.mode, msgs: c.msg_count,
+    lane: c._lane, packaged: c._packaged, decision: rowState(c.uuid).decision || null,
+    path: c.path, uuid: c.uuid, flags: c.flags,
+  }));
+  navigator.clipboard?.writeText(JSON.stringify(out, null, 2)).then(
+    () => toast(`Copied ${out.length} rows`, "ok"),
+    () => toast("Clipboard write failed", "err"),
+  );
+};
+document.getElementById("resetBtn").onclick = () => {
+  openModal("Reset all tags + decisions?", "This clears every Extract/Skip/Defer/Done flag and lane override across all 3,540 chats. <strong>Can't be undone.</strong>", `
+    <button class="ctrl-btn" onclick="closeModal()">Cancel</button>
+    <button class="ctrl-btn warn" id="confirmReset">Reset everything</button>
+  `);
+  document.getElementById("confirmReset").onclick = () => {
+    STATE = {}; localStorage.removeItem(STATE_KEY);
+    for (const c of CHATS) applyLane(c);
+    closeModal(); render(); toast("State cleared", "warn");
+  };
+};
+document.getElementById("helpBtn").onclick = () => {
+  openModal("⌨ Keyboard shortcuts", `
+    <div class="kbd-grid">
+      <kbd>/</kbd><span>Focus search</span>
+      <kbd>J</kbd><span>Next row</span>
+      <kbd>K</kbd><span>Previous row</span>
+      <kbd>Enter</kbd><span>Expand selected row</span>
+      <kbd>X</kbd><span>Mark Extract</span>
+      <kbd>S</kbd><span>Mark Skip</span>
+      <kbd>D</kbd><span>Mark Defer</span>
+      <kbd>?</kbd><span>Show this help</span>
+      <kbd>Esc</kbd><span>Close modal / clear selection</span>
+    </div>
+    <p style="margin-top:14px;color:var(--text-mute);font-size:12px">Lane chips on each row cycle through lanes when clicked. ✨ buttons invoke AI.</p>
+  `, `<button class="ctrl-btn" onclick="closeModal()">Got it</button>`);
+};
+
+// Keyboard navigation
+document.addEventListener("keydown", (e) => {
+  if (e.target.matches("input,textarea,select")) {
+    if (e.key === "Escape") { e.target.blur(); }
+    return;
+  }
+  if (e.key === "/") { e.preventDefault(); document.getElementById("filterSearch").focus(); return; }
+  if (e.key === "?") { e.preventDefault(); document.getElementById("helpBtn").click(); return; }
+  if (e.key === "Escape") { closeModal(); SELECTED = null; render(); return; }
+  const rows = Array.from(document.querySelectorAll("tr.data"));
+  const idx = rows.findIndex(r => r.dataset.uuid === SELECTED);
+  const sel = (i) => { const r = rows[Math.max(0, Math.min(rows.length-1, i))]; if (r) { SELECTED = r.dataset.uuid; r.scrollIntoView({block:"nearest"}); render(); } };
+  if (e.key === "j") { e.preventDefault(); sel(idx + 1); }
+  else if (e.key === "k") { e.preventDefault(); sel(idx - 1); }
+  else if (e.key === "Enter" && SELECTED) {
+    e.preventDefault();
+    const c = findChat(SELECTED);
+    if (c) { EXPANDED.has(c.uuid) ? EXPANDED.delete(c.uuid) : EXPANDED.add(c.uuid); render(); }
+  } else if ((e.key === "x" || e.key === "X") && SELECTED) {
+    e.preventDefault(); const c = findChat(SELECTED); if (c) setDecision(c, "extract");
+  } else if ((e.key === "s" || e.key === "S") && SELECTED) {
+    e.preventDefault(); const c = findChat(SELECTED); if (c) setDecision(c, "skip");
+  } else if ((e.key === "d" || e.key === "D") && SELECTED) {
+    e.preventDefault(); const c = findChat(SELECTED); if (c) setDecision(c, "defer");
+  }
+});
+
+// ─── Boot ──────────────────────────────────────────────────────────────────
+(async () => {
+  renderOnboard();
+  renderApiStatus();   // render initial "checking" state immediately
+  setStatus("waiting for MCP bridge…", "busy");
+  probeAPIs();         // fire-and-forget; updates dots as each probe completes
+  // Brief retry loop in case MCP bridge isn't ready at first paint
+  let loaded = false;
+  for (let i = 0; i < 5 && !loaded; i++) {
+    if (window.cowork?.callMcpTool) { loaded = await loadFromDisk(); break; }
+    await new Promise(r => setTimeout(r, 400));
+  }
+  if (loaded) {
+    preprocess();
+    // Try to merge shared state from disk (silent if missing)
+    await mergeStateFromDisk();
+    render();
+  }
+  else { setStatus("MCP unavailable", "err"); render(); }
+})();
+</script>
+</body>
+</html>

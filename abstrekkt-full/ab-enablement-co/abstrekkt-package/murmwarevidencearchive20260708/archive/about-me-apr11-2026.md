@@ -1,0 +1,140 @@
+# about-me.txt — April 11, 2026
+
+> Provenance: [SOURCED] — Compact personal context file (under-1000-token target). Cognitive profile, bad-times excavation summary, blockers, next actions as of Apr 11 2026. STATE.md supersedes all status claims.
+> Archived from session dump 2026-07-08 (pass 3). Raw extract, unedited.
+
+---
+
+about-me
+about-me.txt
+Last updated: April 11, 2026
+Target: under 1000 tokens. Update when priorities shift.
+============================
+WHO I AM
+============================
+Kyle Rosebrook. Born January 16, 1986. 40 this year. Grayslake, IL.
+Self-taught engineer — no CS degree. Father to Kinsley (Friday custody).
+Public identity built entirely on personal work, not employer.
+The through-line: the diagnostic instinct. Reading rooms at O'Toole's.
+Reading processes in QC. Reading systems in engineering. This survived
+everything. It is the spine of everything I build.
+============================
+WHAT I'M BUILDING
+============================
+Literary memoir — construction not recovery. Primary audience: Kinsley.
+FlashFusion — B2B AI enablement. Demo Day April 18, 2026.
+Chaos Club Co. — mental health peer support platform.
+The Prompt — weekly AI newsletter. Thursdays.
+kylerosebrook.com — personal brand. Blocked on 3 WP clicks.
+============================
+CURRENT PRIORITIES (April 2026)
+============================
+1. FlashFusion Demo Day — April 18
+2. Memoir — scene seed confirmation, O'Toole's excavation
+3. The Prompt — Thursday April 16
+4. INT — Jackie Miles update overdue, HMAC verify
+5. kylerosebrook.com — turn off Coming Soon mode
+============================
+COGNITIVE PROFILE (Amen Clinics, July 2022)
+============================
+Processing Speed 99th / Recall Memory 12th / Flexibility 17th /
+Resilience 2nd / Stress Control 27th / Focus 59th / Planning 46th.
+Engine at full speed. Storage near-empty. 240+ tools exist because
+they had to. This is the memoir's thesis in data.
+============================
+THE BAD TIMES — EXCAVATED
+============================
+Confirmed in prior sessions. Do not probe further without Kyle's lead.
+Crisis period (approx 2021-2022):
+- Panic attack triggered by journaling about Mackenzie Campbell
+- Called crisis hotline — put on hold, never answered
+- Father walked in, showed concern — Kyle responded with anger
+- Shredded the journal
+- Mackenzie introduced meditation (life-changing) and reproduced
+enabling/controlling patterns. Anger and gratitude coexist.
+- Phillis offered lifeline — Sedona trip to meet Soaring Bear
+- Kyle: "I've tried everything else. Now I'm going to try my hardest."
+- Pivotal reframe: "I am open to this helping"
+============================
+THE BAD TIMES — SEEDS (not yet excavated via Cowork)
+============================
+DO NOT PROBE WITHOUT KYLE'S EXPLICIT LEAD.
+DO NOT surface unprompted. Wait for Kyle to open a thread.
+Substance timeline:
+- Nicotine 2005+ / Alcohol 2007 / Marijuana 2007-2018
+- Xanax: prescribed 2015, became severe addiction
+- Cocaine: approx 20x, 2018-2021
+- Opiates: intermittent 2017
+- Heroin: 2021. OD September 2021. Mackenzie Campbell rescued him.
+- Hypoxia event: summer 2020 (Ambien + Xanax)
+Amen eval date conflict (p2: "summer 2020" / p3: "Oct 2021") —
+this IS the memoir. Do not reconcile.
+Treatment: Lexington Brothers, Salvation Army, Rogers Behavioral Health
+(1.5mo summer 2020), 2 outpatient programs.
+Framing rules (non-negotiable):
+- Self-medication for nervous system dysregulation. NOT clinical addiction.
+- Brain injury caused BY addiction (hypoxia) — recursive trap.
+- Family rescued from every consequence — agency had to be CONSTRUCTED.
+============================
+MEMOIR CHARACTERS — EVIDENCE LEDGER
+============================
+Real names used for excavation context only.
+Publishing decisions (pseudonyms, composites, legal) are separate.
+TIER 1 — STRUCTURAL ANCHORS (need 2-5 scenes each)
+Phillis Rosebrook — Lifeline / control tension
+Scenes needed: Sedona decision (confirmed), hospital avoidance,
+childhood micromanagement. Status: partial.
+Dad — Emotional absence / silent judgment
+Scenes needed: hospital bed eye contact avoidance (CRITICAL),
+one childhood moment (CRITICAL). Status: NOT excavated.
+Kinsley — Purpose / identity reconstruction
+Scenes needed: the apology, first felt-like-a-man moment,
+one present-day interaction. Status: PROTECTED. Kyle's lead only.
+Soaring Bear — Transformation vector
+Scenes needed: first meeting, resistance moment, breakthrough.
+Status: context confirmed, scenes pending.
+Mackenzie Campbell — Literal life-saver / destructive relationship
+Scenes needed: OD rescue (Sept 2021), relationship peak, fracture.
+Status: NOT directly excavated. Do not probe without Kyle's lead.
+Michael — Psychological descent mirror
+Scenes needed: "seen for first time," first control shift, police
+incident. Status: NOT excavated.
+TIER 2 — COLLAPSE & CONSEQUENCE (one scene each)
+Pete — relapse → death (seed only)
+Dave Datt — parallel failure + death (seed only)
+Drug Dealer (Milwaukee) — OD survival witness (seed only)
+Michael's Ex-Husband — chaos escalation (seed only)
+TIER 3 — MEMORY DISTORTION / IDENTITY MARKERS
+Write as: sensory-heavy, slightly fragmented, possibly contradictory.
+Ryan (CLC) — forgotten → rediscovered. CLC = layered symbol.
+Window Girl — asymmetry of memory.
+Ryan's Grandmother — hyper-sensory anchor. HIGH PRIORITY when ready.
+TIER 4 — STRUCTURAL GAPS (memoir currently underpowered here)
+Childhood people (non-family) — ZERO scenes currently
+O'Toole's coworkers/regulars — 4-year witness gap
+NIU era people — none
+Other OD witnesses — 3 missing
+============================
+STRUCTURAL INSIGHT
+============================
+Current story shape: Collapse → Treatment → Reflection → Rebuild
+Missing: witnesses across time (before / during / now).
+Without them: internal monologue risk, "told" not "experienced."
+Biggest weapon: contrast (Bear vs Michael, Kinsley vs OD)
+Second weapon: specificity ("empanadas in a blue kitchen")
+Biggest risk: over-explaining instead of letting scenes carry meaning
+SCENE EXTRACTION PROTOCOL (apply to every Tier 1-3 character):
+For [CHARACTER]:
+1. One real moment — physical environment, exact positioning, one
+line of dialogue
+2. Add: body sensation / what I misunderstood then / understand now
+3. Constraint: no summarizing, no explaining, only scene
+============================
+HARD RULES
+============================
+NEVER name employer in any output.
+NEVER frame substance history as clinical addiction.
+Each project lane stays separate.
+TBI specifics and Kinsley specifics: Kyle's lead only, always.
+Tier 2-4 characters and seeds: present but never pushed.
+Wait for Kyle to open them.

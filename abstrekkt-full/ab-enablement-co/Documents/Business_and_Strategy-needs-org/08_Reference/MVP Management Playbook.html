@@ -1,0 +1,1527 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI MVP Management Playbook</title>
+    <style>
+        :root {
+            --color-primary: #2180 8D;
+            --color-primary-hover: #1B7475;
+            --color-primary-active: #1A6873;
+            --color-text: #134252;
+            --color-text-secondary: #626C71;
+            --color-bg: #FCFCF9;
+            --color-surface: #FFFFFF;
+            --color-border: #E8EAEA;
+            --color-success: #2180 8D;
+            --color-warning: #A84B2F;
+            --color-error: #C0152F;
+            --color-info: #626C71;
+            --color-bg-1: rgba(33, 128, 141, 0.08);
+            --color-bg-2: rgba(230, 129, 97, 0.08);
+            --color-bg-3: rgba(168, 75, 47, 0.08);
+            --spacing-unit: 8px;
+            --radius: 8px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--color-bg);
+            color: var(--color-text);
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: calc(var(--spacing-unit) * 2);
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            gap: calc(var(--spacing-unit) * 2);
+            min-height: 100vh;
+        }
+
+        .sidebar {
+            position: sticky;
+            top: 0;
+            height: 100vh;
+            overflow-y: auto;
+            background: var(--color-surface);
+            border-right: 1px solid var(--color-border);
+            padding: calc(var(--spacing-unit) * 2);
+        }
+
+        .sidebar-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: calc(var(--spacing-unit) * 2);
+            color: var(--color-primary);
+        }
+
+        .nav-section {
+            margin-bottom: calc(var(--spacing-unit) * 2);
+        }
+
+        .nav-section-title {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            color: var(--color-text-secondary);
+            margin-bottom: calc(var(--spacing-unit) * 1);
+            padding-left: calc(var(--spacing-unit) * 0.5);
+        }
+
+        .nav-link {
+            display: block;
+            padding: calc(var(--spacing-unit) * 1) calc(var(--spacing-unit) * 1.5);
+            margin-bottom: calc(var(--spacing-unit) * 0.5);
+            border-radius: var(--radius);
+            cursor: pointer;
+            transition: all 200ms;
+            color: var(--color-text-secondary);
+            font-size: 13px;
+            border-left: 3px solid transparent;
+        }
+
+        .nav-link:hover {
+            background: var(--color-bg-1);
+            color: var(--color-primary);
+        }
+
+        .nav-link.active {
+            background: var(--color-bg-1);
+            color: var(--color-primary);
+            border-left-color: var(--color-primary);
+            font-weight: 500;
+        }
+
+        .main {
+            background: var(--color-surface);
+            border-radius: var(--radius);
+            padding: calc(var(--spacing-unit) * 3);
+            border: 1px solid var(--color-border);
+            overflow-y: auto;
+            max-height: 100vh;
+        }
+
+        .page {
+            display: none;
+        }
+
+        .page.active {
+            display: block;
+        }
+
+        .page h2 {
+            font-size: 28px;
+            margin-bottom: calc(var(--spacing-unit) * 1);
+            color: var(--color-primary);
+        }
+
+        .page h3 {
+            font-size: 20px;
+            margin-top: calc(var(--spacing-unit) * 2.5);
+            margin-bottom: calc(var(--spacing-unit) * 1.5);
+            color: var(--color-text);
+        }
+
+        .page h4 {
+            font-size: 16px;
+            margin-top: calc(var(--spacing-unit) * 1.5);
+            margin-bottom: calc(var(--spacing-unit) * 1);
+            color: var(--color-text);
+            font-weight: 600;
+        }
+
+        .page p {
+            margin-bottom: calc(var(--spacing-unit) * 1.5);
+            color: var(--color-text-secondary);
+            line-height: 1.7;
+        }
+
+        .intro-text {
+            font-size: 16px;
+            color: var(--color-text-secondary);
+            margin-bottom: calc(var(--spacing-unit) * 2);
+            line-height: 1.7;
+        }
+
+        .card {
+            background: var(--color-bg-1);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius);
+            padding: calc(var(--spacing-unit) * 2);
+            margin-bottom: calc(var(--spacing-unit) * 2);
+        }
+
+        .card.warning {
+            background: rgba(230, 129, 97, 0.08);
+            border-color: rgba(230, 129, 97, 0.2);
+        }
+
+        .card.success {
+            background: rgba(33, 128, 141, 0.08);
+            border-color: rgba(33, 128, 141, 0.2);
+        }
+
+        .card h4 {
+            margin-top: 0;
+            color: var(--color-primary);
+        }
+
+        .timeline {
+            position: relative;
+            padding-left: calc(var(--spacing-unit) * 3);
+        }
+
+        .timeline-item {
+            margin-bottom: calc(var(--spacing-unit) * 2);
+            position: relative;
+        }
+
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: calc(var(--spacing-unit) * -2);
+            top: calc(var(--spacing-unit) * 1);
+            width: calc(var(--spacing-unit) * 1.2);
+            height: calc(var(--spacing-unit) * 1.2);
+            background: var(--color-primary);
+            border-radius: 50%;
+            border: 3px solid var(--color-surface);
+        }
+
+        .timeline-item h4 {
+            margin: 0 0 calc(var(--spacing-unit) * 0.5) 0;
+        }
+
+        .tool-matrix {
+            width: 100%;
+            border-collapse: collapse;
+            margin: calc(var(--spacing-unit) * 2) 0;
+            background: var(--color-surface);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius);
+            overflow: hidden;
+        }
+
+        .tool-matrix th {
+            background: var(--color-bg-1);
+            padding: calc(var(--spacing-unit) * 1.5);
+            text-align: left;
+            font-weight: 600;
+            color: var(--color-primary);
+            border-bottom: 2px solid var(--color-border);
+        }
+
+        .tool-matrix td {
+            padding: calc(var(--spacing-unit) * 1.5);
+            border-bottom: 1px solid var(--color-border);
+            color: var(--color-text-secondary);
+        }
+
+        .tool-matrix tr:last-child td {
+            border-bottom: none;
+        }
+
+        .tool-matrix tr:hover {
+            background: var(--color-bg-1);
+        }
+
+        .decision-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: calc(var(--spacing-unit) * 2);
+            margin: calc(var(--spacing-unit) * 2) 0;
+        }
+
+        .decision-box {
+            background: var(--color-surface);
+            border: 2px solid var(--color-border);
+            border-radius: var(--radius);
+            padding: calc(var(--spacing-unit) * 2);
+            transition: all 200ms;
+        }
+
+        .decision-box:hover {
+            border-color: var(--color-primary);
+            box-shadow: 0 4px 12px rgba(33, 128, 141, 0.1);
+        }
+
+        .decision-box h4 {
+            color: var(--color-primary);
+            margin-bottom: calc(var(--spacing-unit) * 1);
+        }
+
+        .checklist {
+            list-style: none;
+            margin: calc(var(--spacing-unit) * 1) 0;
+        }
+
+        .checklist li {
+            padding: calc(var(--spacing-unit) * 0.75) 0;
+            padding-left: calc(var(--spacing-unit) * 2.5);
+            position: relative;
+            color: var(--color-text-secondary);
+        }
+
+        .checklist li::before {
+            content: '✓';
+            position: absolute;
+            left: 0;
+            color: var(--color-success);
+            font-weight: bold;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: calc(var(--spacing-unit) * 1);
+            margin: calc(var(--spacing-unit) * 2) 0;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: calc(var(--spacing-unit) * 1) calc(var(--spacing-unit) * 2);
+            border: none;
+            border-radius: var(--radius);
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 200ms;
+        }
+
+        .btn-primary {
+            background: var(--color-primary);
+            color: #FFFFFF;
+        }
+
+        .btn-primary:hover {
+            background: var(--color-primary-hover);
+        }
+
+        .btn-secondary {
+            background: var(--color-border);
+            color: var(--color-text);
+        }
+
+        .btn-secondary:hover {
+            background: var(--color-text-secondary);
+            color: #FFFFFF;
+        }
+
+        .btn-small {
+            padding: calc(var(--spacing-unit) * 0.5) calc(var(--spacing-unit) * 1);
+            font-size: 12px;
+        }
+
+        .toggle-calculator {
+            margin: calc(var(--spacing-unit) * 2) 0;
+            padding: calc(var(--spacing-unit) * 2);
+            background: var(--color-bg-2);
+            border: 1px solid rgba(230, 129, 97, 0.2);
+            border-radius: var(--radius);
+        }
+
+        .calc-row {
+            display: grid;
+            grid-template-columns: 150px 1fr;
+            gap: calc(var(--spacing-unit) * 1);
+            margin-bottom: calc(var(--spacing-unit) * 1);
+            align-items: center;
+        }
+
+        .calc-row input {
+            padding: calc(var(--spacing-unit) * 0.75);
+            border: 1px solid var(--color-border);
+            border-radius: calc(var(--radius) / 2);
+            font-size: 14px;
+        }
+
+        .calc-result {
+            background: var(--color-surface);
+            padding: calc(var(--spacing-unit) * 1.5);
+            border-radius: calc(var(--radius) / 2);
+            margin-top: calc(var(--spacing-unit) * 1);
+            border-left: 4px solid var(--color-warning);
+        }
+
+        .calc-result h5 {
+            margin: 0 0 calc(var(--spacing-unit) * 0.5) 0;
+            color: var(--color-text);
+            font-size: 14px;
+        }
+
+        .calc-result p {
+            margin: 0;
+            color: var(--color-warning);
+            font-weight: 600;
+            font-size: 16px;
+        }
+
+        .icon {
+            display: inline-block;
+            margin-right: calc(var(--spacing-unit) * 0.5);
+        }
+
+        code {
+            background: #F5F5F5;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Monaco', monospace;
+            font-size: 13px;
+            color: var(--color-error);
+        }
+
+        ul, ol {
+            margin: calc(var(--spacing-unit) * 1) 0 calc(var(--spacing-unit) * 1.5) calc(var(--spacing-unit) * 2);
+            color: var(--color-text-secondary);
+        }
+
+        li {
+            margin-bottom: calc(var(--spacing-unit) * 0.75);
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+
+            .sidebar {
+                position: relative;
+                height: auto;
+                border-right: none;
+                border-bottom: 1px solid var(--color-border);
+                margin-bottom: calc(var(--spacing-unit) * 2);
+            }
+
+            .main {
+                max-height: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="sidebar">
+            <div class="sidebar-title">📚 MVP Playbook</div>
+            
+            <div class="nav-section">
+                <div class="nav-section-title">Core Sections</div>
+                <div class="nav-link active" onclick="showPage('home')">Overview</div>
+                <div class="nav-link" onclick="showPage('solo-decision')">Solo vs Hire</div>
+                <div class="nav-link" onclick="showPage('code-quality')">Code Quality</div>
+                <div class="nav-link" onclick="showPage('security')">Security</div>
+            </div>
+
+            <div class="nav-section">
+                <div class="nav-section-title">Performance & Ops</div>
+                <div class="nav-link" onclick="showPage('database')">Database</div>
+                <div class="nav-link" onclick="showPage('performance')">Performance</div>
+                <div class="nav-link" onclick="showPage('automation')">Automation</div>
+            </div>
+
+            <div class="nav-section">
+                <div class="nav-section-title">Tools & Planning</div>
+                <div class="nav-link" onclick="showPage('tools')">Tool Comparison</div>
+                <div class="nav-link" onclick="showPage('action-plan')">Action Plan</div>
+                <div class="nav-link" onclick="showPage('roadmap')">12-Month Roadmap</div>
+            </div>
+        </div>
+
+        <div class="main">
+            <!-- HOME PAGE -->
+            <div id="home" class="page active">
+                <h2>🚀 AI MVP Management Playbook</h2>
+                <p class="intro-text"><strong>The Complete 2025 Guide to Building & Scaling Solo</strong></p>
+                <p class="intro-text">You've built an MVP with AI code generation tools (Lovable, Replit, Bolt.new). Now what? This playbook answers: How far can you go solo? What prevents hiring delays? When is hiring truly unavoidable?</p>
+
+                <div class="card success">
+                    <h4>🎯 What You'll Learn</h4>
+                    <ul style="margin: 0;">
+                        <li><strong>Code Quality & Maintenance:</strong> DIY strategies for maintaining AI-generated codebases</li>
+                        <li><strong>Security & Compliance:</strong> Hardening your MVP without professional audits</li>
+                        <li><strong>Database & Performance:</strong> Identifying N+1 queries and optimization strategies</li>
+                        <li><strong>Backend Logic & Automation:</strong> Building background jobs and workflows with no-code tools</li>
+                        <li><strong>Decision Framework:</strong> Clear metrics for solo vs hiring decisions</li>
+                    </ul>
+                </div>
+
+                <h3>📊 Quick Stats</h3>
+                <div class="decision-grid">
+                    <div class="decision-box">
+                        <h4>Stay Solo If:</h4>
+                        <ul class="checklist">
+                            <li>&lt;100 active users</li>
+                            <li>&lt;$10K monthly revenue</li>
+                            <li>Simple CRUD operations</li>
+                            <li>No regulatory compliance</li>
+                            <li>No PII/payment data yet</li>
+                        </ul>
+                    </div>
+
+                    <div class="decision-box">
+                        <h4>Consider Help If:</h4>
+                        <ul class="checklist">
+                            <li>100-1K active users</li>
+                            <li>$10-50K monthly revenue</li>
+                            <li>Handling sensitive data</li>
+                            <li>3+ integrations needed</li>
+                            <li>Performance issues ongoing</li>
+                        </ul>
+                    </div>
+
+                    <div class="decision-box">
+                        <h4>Must Hire If:</h4>
+                        <ul class="checklist">
+                            <li>&gt;1K active users</li>
+                            <li>&gt;$50K monthly revenue</li>
+                            <li>Regulatory compliance required</li>
+                            <li>Multiple critical bugs/week</li>
+                            <li>Burnout warning signs</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <h3>🛠️ Technology Stack</h3>
+                <div class="card">
+                    <h4>Recommended Stack for Solo Founders</h4>
+                    <p><strong>Database:</strong> Supabase (PostgreSQL with RLS) - Row Level Security is your unfair advantage</p>
+                    <p><strong>Backend:</strong> Supabase Functions + n8n (workflows) + Temporal.io (complex jobs)</p>
+                    <p><strong>Frontend:</strong> React + TypeScript (from Lovable/Bolt)</p>
+                    <p><strong>Hosting:</strong> Vercel (frontend) + Supabase (database) + Railway (n8n)</p>
+                    <p><strong>Monitoring:</strong> Sentry + LogRocket + Datadog free tier</p>
+                </div>
+
+                <h3>📈 Your 12-Month Path</h3>
+                <div class="timeline">
+                    <div class="timeline-item">
+                        <h4>Months 1-3: Launch MVP</h4>
+                        <p>Use Lovable/Bolt for quick iteration. Focus on 1 core feature. Get first 50 users. Do code quality at launch speed.</p>
+                    </div>
+                    <div class="timeline-item">
+                        <h4>Months 4-6: Harden</h4>
+                        <p>Security audit. Performance optimization. Monitoring setup. This 4-week playbook covers this phase.</p>
+                    </div>
+                    <div class="timeline-item">
+                        <h4>Months 7-9: Automate</h4>
+                        <p>Background jobs. Email workflows. Customer automation. Handle 500-1K users solo with self-healing systems.</p>
+                    </div>
+                    <div class="timeline-item">
+                        <h4>Months 10-12: Decision</h4>
+                        <p>If revenue &gt;$20K/mo → iterate solo. If $20-50K → hire fractional. If &gt;$50K → hire first employee.</p>
+                    </div>
+                </div>
+
+                <div class="card warning">
+                    <h4>💡 Your Unfair Advantage</h4>
+                    <p>You understand AI tools, system architecture, and security. Most solo founders don't. You can build what would take traditional teams 3+ months in 3 weeks. Use this advantage to validate product-market fit before hiring.</p>
+                </div>
+            </div>
+
+            <!-- SOLO VS HIRE -->
+            <div id="solo-decision" class="page">
+                <h2>💼 Solo vs Hiring Decision Framework</h2>
+                <p class="intro-text">Clear metrics to know when you need help vs staying solo.</p>
+
+                <h3>Decision Matrix</h3>
+                <table class="tool-matrix">
+                    <tr>
+                        <th>Metric</th>
+                        <th>Stay Solo</th>
+                        <th>Consider Fractional</th>
+                        <th>Must Hire</th>
+                    </tr>
+                    <tr>
+                        <td><strong>Monthly Revenue</strong></td>
+                        <td>&lt;$10K</td>
+                        <td>$10-50K</td>
+                        <td>&gt;$50K</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Active Users</strong></td>
+                        <td>&lt;100</td>
+                        <td>100-1K</td>
+                        <td>&gt;1K</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Daily API Requests</strong></td>
+                        <td>&lt;5K</td>
+                        <td>5-50K</td>
+                        <td>&gt;50K</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Data Sensitivity</strong></td>
+                        <td>No PII/Payments</td>
+                        <td>Basic PII Only</td>
+                        <td>Health/Financial/PII</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Integrations</strong></td>
+                        <td>0-1</td>
+                        <td>2-3</td>
+                        <td>&gt;3</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Time Availability</strong></td>
+                        <td>10+ hrs/week</td>
+                        <td>5-10 hrs/week</td>
+                        <td>&lt;5 hrs/week</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Critical Bugs/Week</strong></td>
+                        <td>0-1</td>
+                        <td>1-3</td>
+                        <td>&gt;3</td>
+                    </tr>
+                </table>
+
+                <h3>🎯 Hiring Timeline</h3>
+                <div class="card success">
+                    <h4>When Revenue = $20-30K/month</h4>
+                    <ul style="margin: 0;">
+                        <li><strong>Hire fractional engineer (10 hrs/week):</strong> $2-4K/month</li>
+                        <li><strong>Use case:</strong> Code reviews, database optimization, scaling prep</li>
+                        <li><strong>Where to find:</strong> Toptal, Gun.io, PeoplePerHour</li>
+                    </ul>
+                </div>
+
+                <div class="card success">
+                    <h4>When Revenue = $50K+/month</h4>
+                    <ul style="margin: 0;">
+                        <li><strong>Hire full-time engineer:</strong> $70-150K/year depending on seniority</li>
+                        <li><strong>Focus areas:</strong> Scaling backend, architectural decisions, DevOps</li>
+                        <li><strong>Payroll math:</strong> At $50K revenue, engineer = 30-50% of revenue (healthy at this stage)</li>
+                    </ul>
+                </div>
+
+                <h3>🚩 Burnout Warning Signs</h3>
+                <div class="card warning">
+                    <ul style="margin: 0;">
+                        <li>Working &gt;60 hours/week consistently</li>
+                        <li>Sleep deprivation affecting decision-making</li>
+                        <li>Skipping security/performance for feature speed</li>
+                        <li>Multiple critical incidents per week</li>
+                        <li>Dreading code reviews or new bug reports</li>
+                    </ul>
+                    <p style="margin-top: calc(var(--spacing-unit) * 1.5); margin-bottom: 0;"><strong>→ If ANY of these apply: Hire immediately. Your mental health &gt; revenue targets.</strong></p>
+                </div>
+
+                <h3>💰 Solo vs Hiring Cost Analysis</h3>
+                <div class="toggle-calculator">
+                    <h4>Calculate Your Hiring Decision</h4>
+                    <div class="calc-row">
+                        <label>Monthly Revenue ($)</label>
+                        <input type="number" id="revenue" value="30000" placeholder="30000">
+                    </div>
+                    <div class="calc-row">
+                        <label>Hours You Work/Week</label>
+                        <input type="number" id="hours" value="50" placeholder="50">
+                    </div>
+                    <div class="calc-row">
+                        <label>Target Hourly Rate ($)</label>
+                        <input type="number" id="rate" value="100" placeholder="100">
+                    </div>
+                    <button class="btn-primary" onclick="calculateHiring()">Calculate</button>
+                    <div id="hiringResult"></div>
+                </div>
+
+                <h3>What Hiring Means</h3>
+                <div class="decision-grid">
+                    <div class="decision-box">
+                        <h4>Fractional Help ($2-4K/mo)</h4>
+                        <ul class="checklist">
+                            <li>10 hrs/week contractor</li>
+                            <li>Code reviews</li>
+                            <li>DB optimization</li>
+                            <li>Security hardening</li>
+                            <li>You stay hands-on</li>
+                        </ul>
+                    </div>
+
+                    <div class="decision-box">
+                        <h4>Full-Time Employee ($70-150K/yr)</h4>
+                        <ul class="checklist">
+                            <li>Dedicated focus</li>
+                            <li>System design</li>
+                            <li>Mentorship from you</li>
+                            <li>Code ownership</li>
+                            <li>You handle sales/product</li>
+                        </ul>
+                    </div>
+
+                    <div class="decision-box">
+                        <h4>Co-Founder (equity split)</h4>
+                        <ul class="checklist">
+                            <li>Full-time technical CTO</li>
+                            <li>Aligned on vision</li>
+                            <li>Shared decision-making</li>
+                            <li>Long-term commitment</li>
+                            <li>Needs investment/revenue</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CODE QUALITY -->
+            <div id="code-quality" class="page">
+                <h2>✨ Code Quality & Maintenance</h2>
+                <p class="intro-text">DIY strategies for maintaining AI-generated codebases without professional help.</p>
+
+                <h3>Week 3 Action: Code Quality (10-12 hours)</h3>
+                <div class="timeline">
+                    <div class="timeline-item">
+                        <h4>Monday-Tuesday: Error Handling & Logging (4 hrs)</h4>
+                        <p>Set up Sentry to catch all errors. Add proper error messages. Remove generic "Something went wrong" messages.</p>
+                        <ul style="margin-top: calc(var(--spacing-unit) * 1);">
+                            <li>Install: <code>npm install @sentry/react @sentry/tracing</code></li>
+                            <li>Initialize in your React app at startup</li>
+                            <li>Capture errors automatically + manual error tracking</li>
+                        </ul>
+                    </div>
+
+                    <div class="timeline-item">
+                        <h4>Wednesday-Thursday: TypeScript Strict Mode (4 hrs)</h4>
+                        <p>Enable strict type checking. Catch entire classes of bugs before production.</p>
+                        <ul style="margin-top: calc(var(--spacing-unit) * 1);">
+                            <li>In <code>tsconfig.json</code>: set <code>"strict": true</code></li>
+                            <li>Fix type errors (usually 50-200 errors initially)</li>
+                            <li>Future you: "Why didn't I do this earlier?"</li>
+                        </ul>
+                    </div>
+
+                    <div class="timeline-item">
+                        <h4>Friday: Automated Testing Setup (2-3 hrs)</h4>
+                        <p>Add testing framework. Start with critical user flows.</p>
+                        <ul style="margin-top: calc(var(--spacing-unit) * 1);">
+                            <li>Use Vitest (faster than Jest)</li>
+                            <li>Cover: auth flow, main feature, payment (if applicable)</li>
+                            <li>Goal: 80% critical paths, not 100% coverage</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <h3>Debugging AI Code</h3>
+                <div class="card">
+                    <h4>The "Black Box" Problem</h4>
+                    <p>You don't understand every line of your AI-generated code. That's OK. Here's the framework:</p>
+                    <ol style="margin-top: calc(var(--spacing-unit) * 1);">
+                        <li><strong>Understand the problem:</strong> What behavior is wrong? (Specific &gt; generic)</li>
+                        <li><strong>Add logging:</strong> console.log key variables at decision points</li>
+                        <li><strong>Check assumptions:</strong> "I think X happens here" - verify with logs</li>
+                        <li><strong>Use browser DevTools:</strong> Breakpoints are your friend</li>
+                        <li><strong>Ask Claude:</strong> Paste the code + error. Explain the intended behavior.</li>
+                    </ol>
+                </div>
+
+                <h3>Code Quality Checklist</h3>
+                <div class="card success">
+                    <h4>Before Every Production Deploy</h4>
+                    <ul class="checklist">
+                        <li>All TypeScript errors resolved</li>
+                        <li>No console.log() statements left</li>
+                        <li>Error handling on all API calls</li>
+                        <li>Testing: Run npm test, verify pass</li>
+                        <li>Security: No hardcoded credentials</li>
+                        <li>Performance: No N+1 queries visible</li>
+                        <li>Accessibility: Tab navigation works</li>
+                    </ul>
+                </div>
+
+                <h3>Common AI-Generated Code Problems</h3>
+                <div class="decision-grid">
+                    <div class="decision-box">
+                        <h4>Problem: Duplicate Code</h4>
+                        <p>AI loves copy-paste. Solution: Extract to functions/components. Reduces bugs by 40%.</p>
+                    </div>
+
+                    <div class="decision-box">
+                        <h4>Problem: Missing Error Handling</h4>
+                        <p>API calls without try-catch. Solution: Wrap all async in error handlers. Use Sentry.</p>
+                    </div>
+
+                    <div class="decision-box">
+                        <h4>Problem: Type Confusion</h4>
+                        <p>String vs number vs enum. Solution: Strict TypeScript catches 90% automatically.</p>
+                    </div>
+
+                    <div class="decision-box">
+                        <h4>Problem: Fragile Logic</h4>
+                        <p>Magic numbers, edge cases unhandled. Solution: Add comments, write tests for edge cases.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SECURITY -->
+            <div id="security" class="page">
+                <h2>🔒 Security & Compliance</h2>
+                <p class="intro-text">Hardening your MVP without professional security audits. Focus on the 80/20 that stops 95% of attacks.</p>
+
+                <h3>Week 1 Action: Security Audit (15 hours)</h3>
+                <div class="timeline">
+                    <div class="timeline-item">
+                        <h4>Monday: Row Level Security (RLS) Audit (2 hrs)</h4>
+                        <p>RLS is your #1 security feature in Supabase. This prevents unauthorized data access.</p>
+                        <ul style="margin-top: calc(var(--spacing-unit) * 1);">
+                            <li>Script to check RLS: Ask Claude to review your Supabase RLS policies</li>
+                            <li>Verify: Users can ONLY see their own data</li>
+                            <li>Test: Log in as User A, try to fetch User B's data → Should fail</li>
+                        </ul>
+                    </div>
+
+                    <div class="timeline-item">
+                        <h4>Tuesday-Wednesday: Fix RLS Policies (3 hrs)</h4>
+                        <p>Use Claude to generate corrected RLS policies for each table.</p>
+                        <ul style="margin-top: calc(var(--spacing-unit) * 1);">
+                            <li>Common pattern: <code>SELECT * FROM table WHERE user_id = auth.uid()</code></li>
+                            <li>Apply policies to: users, posts, comments, transactions tables</li>
+                            <li>Test after each change</li>
+                        </ul>
+                    </div>
+
+                    <div class="timeline-item">
+                        <h4>Thursday: Authentication Flow Review (2 hrs)</h4>
+                        <p>Ensure sessions can't be hijacked or spoofed.</p>
+                        <ul style="margin-top: calc(var(--spacing-unit) * 1);">
+                            <li>Using Supabase Auth? ✓ (Built-in, secure by default)</li>
+                            <li>Check: HTTPS enforced everywhere</li>
+                            <li>Check: httpOnly cookies enabled</li>
+                            <li>Check: CORS properly configured (only your domain)</li>
+                        </ul>
+                    </div>
+
+                    <div class="timeline-item">
+                        <h4>Friday: Environment Secrets Audit (1 hr)</h4>
+                        <p>Ensure API keys aren't exposed in code/git.</p>
+                        <ul style="margin-top: calc(var(--spacing-unit) * 1);">
+                            <li>Run: <code>git log -p | grep -i "api\|key\|secret"</code> → Should be empty</li>
+                            <li>Check: .env file in .gitignore ✓</li>
+                            <li>Check: Public keys OK in code, secret keys ONLY in .env</li>
+                            <li>If leaked: Rotate keys immediately at provider dashboard</li>
+                        </ul>
+                    </div>
+
+                    <div class="timeline-item">
+                        <h4>OWASP Top 10 Overview (2 hrs)</h4>
+                        <p>The 10 most common web vulnerabilities. You should know all 10.</p>
+                    </div>
+                </div>
+
+                <h3>OWASP Top 10 (2023) - Solo Founder Edition</h3>
+                <div class="decision-grid">
+                    <div class="decision-box">
+                        <h4>1. Injection</h4>
+                        <p><strong>Risk:</strong> SQL injection, command injection</p>
+                        <p><strong>Fix:</strong> Use parameterized queries (Supabase does this by default)</p>
+                        <p><strong>Action:</strong> Never concatenate SQL strings. Ever.</p>
+                    </div>
+
+                    <div class="decision-box">
+                        <h4>2. Authentication</h4>
+                        <p><strong>Risk:</strong> Weak passwords, session hijacking</p>
+                        <p><strong>Fix:</strong> Use Supabase Auth or Auth0</p>
+                        <p><strong>Action:</strong> Don't build auth yourself</p>
+                    </div>
+
+                    <div class="decision-box">
+                        <h4>3. Sensitive Data Exposure</h4>
+                        <p><strong>Risk:</strong> PII leaked in logs, error messages</p>
+                        <p><strong>Fix:</strong> Never log passwords, SSNs, tokens</p>
+                        <p><strong>Action:</strong> Use Sentry to detect leaks automatically</p>
+                    </div>
+
+                    <div class="decision-box">
+                        <h4>4. XML External Entities (XXE)</h4>
+                        <p><strong>Risk:</strong> Low if you use modern frameworks</p>
+                        <p><strong>Fix:</strong> Disable XXE parsing in XML libraries</p>
+                        <p><strong>Action:</strong> Not a priority unless processing XML files</p>
+                    </div>
+
+                    <div class="decision-box">
+                        <h4>5. Broken Access Control</h4>
+                        <p><strong>Risk:</strong> User A accesses User B's data</p>
+                        <p><strong>Fix:</strong> Row Level Security (RLS) in Supabase</p>
+                        <p><strong>Action:</strong> This is your security priority #1</p>
+                    </div>
+
+                    <div class="decision-box">
+                        <h4>6. Security Misconfiguration</h4>
+                        <p><strong>Risk:</strong> Default credentials, exposed secrets</p>
+                        <p><strong>Fix:</strong> Use checklists, automation</p>
+                        <p><strong>Action:</strong> Run security audits monthly</p>
+                    </div>
+
+                    <div class="decision-box">
+                        <h4>7. XSS (Cross-Site Scripting)</h4>
+                        <p><strong>Risk:</strong> Injected JavaScript runs in user's browser</p>
+                        <p><strong>Fix:</strong> Sanitize user input, use textContent not innerHTML</p>
+                        <p><strong>Action:</strong> React does most of this automatically</p>
+                    </div>
+
+                    <div class="decision-box">
+                        <h4>8. Insecure Deserialization</h4>
+                        <p><strong>Risk:</strong> Low in modern stacks (JSON-based)</p>
+                        <p><strong>Fix:</strong> Use JSON, not pickle/pickle equivalents</p>
+                        <p><strong>Action:</strong> Not a priority for most MVPs</p>
+                    </div>
+
+                    <div class="decision-box">
+                        <h4>9. Using Components With Known Vulns</h4>
+                        <p><strong>Risk:</strong> Outdated dependencies with exploits</p>
+                        <p><strong>Fix:</strong> <code>npm audit</code> + Dependabot</p>
+                        <p><strong>Action:</strong> Run weekly, fix high/critical immediately</p>
+                    </div>
+
+                    <div class="decision-box">
+                        <h4>10. Insufficient Logging</h4>
+                        <p><strong>Risk:</strong> Can't detect/respond to attacks</p>
+                        <p><strong>Fix:</strong> Sentry + Supabase audit logs</p>
+                        <p><strong>Action:</strong> Set up alerts for suspicious patterns</p>
+                    </div>
+                </div>
+
+                <h3>Security Checklist</h3>
+                <div class="card warning">
+                    <h4>Before Taking Payment</h4>
+                    <ul class="checklist">
+                        <li>HTTPS on all pages ✓</li>
+                        <li>RLS policies configured + tested ✓</li>
+                        <li>No hardcoded secrets in code ✓</li>
+                        <li>Auth flow tested (can't login as other users) ✓</li>
+                        <li>CORS: only your domain allowed ✓</li>
+                        <li>Error messages don't leak data ✓</li>
+                        <li>SQL injection: using parameterized queries ✓</li>
+                        <li>XSS: sanitizing user input ✓</li>
+                        <li>Dependencies: no critical vulns (npm audit) ✓</li>
+                        <li>Sentry integrated for error tracking ✓</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- DATABASE -->
+            <div id="database" class="page">
+                <h2>🗄️ Database & Performance</h2>
+                <p class="intro-text">Optimizing queries and scaling your database for growth. N+1 queries are your #1 hidden performance killer.</p>
+
+                <h3>Week 2 Action: Performance Optimization (14-18 hours)</h3>
+                <div class="timeline">
+                    <div class="timeline-item">
+                        <h4>Monday: N+1 Query Detection (3 hrs)</h4>
+                        <p>The #1 performance problem in AI-generated code. 1 query becomes 100.</p>
+                        <ul style="margin-top: calc(var(--spacing-unit) * 1);">
+                            <li><strong>What is N+1?</strong> Getting a list of posts (1 query), then for each post getting author (N queries) = 1+N</li>
+                            <li><strong>Find them:</strong> Open DevTools Network tab. Fetch posts. Count DB queries. If &gt; 5 for 10 posts = N+1</li>
+                            <li><strong>Fix:</strong> Use eager loading (fetch author in same query)</li>
+                        </ul>
+                    </div>
+
+                    <div class="timeline-item">
+                        <h4>Tuesday: Add Indexes (2 hrs)</h4>
+                        <p>Queries 10-100x faster with proper indexes.</p>
+                        <ul style="margin-top: calc(var(--spacing-unit) * 1);">
+                            <li><strong>Index:</strong> Columns you filter/sort by (WHERE, ORDER BY)</li>
+                            <li><strong>In Supabase:</strong> SQL: <code>CREATE INDEX idx_user_id ON posts(user_id);</code></li>
+                            <li><strong>Check:</strong> DevTools → Network → Slow queries? Add index on WHERE column</li>
+                        </ul>
+                    </div>
+
+                    <div class="timeline-item">
+                        <h4>Wednesday: Eager Loading (4 hrs)</h4>
+                        <p>Fetch related data in 1 query instead of N.</p>
+                        <ul style="margin-top: calc(var(--spacing-unit) * 1);">
+                            <li><strong>Bad:</strong> Get posts, then loop and get author for each</li>
+                            <li><strong>Good:</strong> <code>SELECT posts.*, users.* FROM posts JOIN users ON posts.user_id = users.id</code></li>
+                            <li><strong>Supabase:</strong> <code>.select("*, users(*)")</code> does this automatically</li>
+                        </ul>
+                    </div>
+
+                    <div class="timeline-item">
+                        <h4>Thursday: Connection Pooling (2 hrs)</h4>
+                        <p>Database connections are expensive. Reuse them.</p>
+                        <ul style="margin-top: calc(var(--spacing-unit) * 1);">
+                            <li><strong>Problem:</strong> Each request opens new connection → slow</li>
+                            <li><strong>Solution:</strong> Supabase built-in pooling (free tier includes 30 concurrent)</li>
+                            <li><strong>Check:</strong> Connection pool size in dashboard. Monitor usage.</li>
+                        </ul>
+                    </div>
+
+                    <div class="timeline-item">
+                        <h4>Friday: Performance Testing (3-5 hrs)</h4>
+                        <p>Measure, don't guess.</p>
+                        <ul style="margin-top: calc(var(--spacing-unit) * 1);">
+                            <li><strong>Tool:</strong> Lighthouse (built into Chrome DevTools)</li>
+                            <li><strong>Target:</strong> Critical queries under 100ms</li>
+                            <li><strong>Test:</strong> Load your slowest page. Measure load time before/after optimizations.</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <h3>Database Schema Best Practices</h3>
+                <div class="card success">
+                    <h4>Design Patterns That Scale</h4>
+                    <ol style="margin-top: calc(var(--spacing-unit) * 1);">
+                        <li><strong>Normalized vs Denormalized:</strong> Start normalized. Denormalize only after profiling shows it's slow.</li>
+                        <li><strong>Soft Deletes:</strong> Add <code>deleted_at</code> timestamp instead of DELETE. Easier recovery, auditing.</li>
+                        <li><strong>Audit Trail:</strong> Add <code>created_at</code>, <code>updated_at</code>, <code>created_by</code> to important tables.</li>
+                        <li><strong>Pagination:</strong> Never SELECT all rows. Always use LIMIT + OFFSET or cursor pagination.</li>
+                        <li><strong>Data Types:</strong> Use INT for IDs (faster), UUID for distributed, TEXT for flexible.</li>
+                    </ol>
+                </div>
+
+                <h3>Query Optimization Checklist</h3>
+                <div class="card">
+                    <h4>Performance Debug Workflow</h4>
+                    <ul class="checklist">
+                        <li>Page loading slow? Check: Browser DevTools Network tab query count</li>
+                        <li>Too many queries? Use eager loading or aggregates</li>
+                        <li>Still slow? Add index on WHERE/ORDER BY columns</li>
+                        <li>Still slow? Use EXPLAIN ANALYZE to see query plan</li>
+                        <li>Still slow? Denormalize (last resort)</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- AUTOMATION -->
+            <div id="automation" class="page">
+                <h2>⚙️ Backend Logic & Automation</h2>
+                <p class="intro-text">Background jobs, scheduled tasks, and complex workflows without servers.</p>
+
+                <h3>Week 4 Action: Automation & Monitoring (8-10 hours)</h3>
+                <div class="timeline">
+                    <div class="timeline-item">
+                        <h4>Monday-Tuesday: n8n Setup for Background Jobs (3 hrs)</h4>
+                        <p>Automating work that happens after user action (send email, process data, notify others).</p>
+                        <ul style="margin-top: calc(var(--spacing-unit) * 1);">
+                            <li><strong>Setup:</strong> Deploy n8n on Railway.app ($5/month)</li>
+                            <li><strong>Connect:</strong> Supabase webhook → n8n workflow</li>
+                            <li><strong>Example workflow:</strong> User signs up → Send welcome email → Log in CRM</li>
+                        </ul>
+                    </div>
+
+                    <div class="timeline-item">
+                        <h4>Wednesday: Email Notification Workflows (2 hrs)</h4>
+                        <p>Transactional emails (password reset, order confirmation, notifications).</p>
+                        <ul style="margin-top: calc(var(--spacing-unit) * 1);">
+                            <li><strong>Use Resend or SendGrid:</strong> Free tier includes 100 emails/day</li>
+                            <li><strong>In n8n:</strong> Trigger on database events → send email</li>
+                            <li><strong>Test:</strong> Trigger workflow manually first</li>
+                        </ul>
+                    </div>
+
+                    <div class="timeline-item">
+                        <h4>Thursday: Monitoring Setup (2 hrs)</h4>
+                        <p>Know when things break before customers do.</p>
+                        <ul style="margin-top: calc(var(--spacing-unit) * 1);">
+                            <li><strong>Sentry:</strong> Error tracking (free tier: 5K events/month)</li>
+                            <li><strong>LogRocket:</strong> Session replay + errors (free tier)</li>
+                            <li><strong>n8n Webhooks:</strong> Monitor n8n workflow success/failure</li>
+                            <li><strong>Set up alerts:</strong> Slack notification on error spike</li>
+                        </ul>
+                    </div>
+
+                    <div class="timeline-item">
+                        <h4>Friday: Documentation & Runbooks (2 hrs)</h4>
+                        <p>How to fix things when they break at 2 AM.</p>
+                        <ul style="margin-top: calc(var(--spacing-unit) * 1);">
+                            <li>Document: "If emails not sending, check [here]"</li>
+                            <li>Document: How to restart n8n</li>
+                            <li>Document: Database backup/restore steps</li>
+                            <li>Store in Notion/GitHub for easy access</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <h3>Common Workflows for Solo Founders</h3>
+                <div class="decision-grid">
+                    <div class="decision-box">
+                        <h4>User Signup</h4>
+                        <p>Trigger: New user created</p>
+                        <p>Action: Send welcome email, add to email list, log analytics</p>
+                    </div>
+
+                    <div class="decision-box">
+                        <h4>Payment Received</h4>
+                        <p>Trigger: Stripe webhook (payment_intent.succeeded)</p>
+                        <p>Action: Update user subscription status, send receipt, notify support</p>
+                    </div>
+
+                    <div class="decision-box">
+                        <h4>Scheduled Task</h4>
+                        <p>Trigger: Every day at 9 AM</p>
+                        <p>Action: Send daily digest email, clean up old data, generate reports</p>
+                    </div>
+
+                    <div class="decision-box">
+                        <h4>Error Recovery</h4>
+                        <p>Trigger: Webhook fails 3 times</p>
+                        <p>Action: Retry with exponential backoff, alert on Slack</p>
+                    </div>
+                </div>
+
+                <h3>Tools Comparison</h3>
+                <table class="tool-matrix">
+                    <tr>
+                        <th>Platform</th>
+                        <th>Complexity</th>
+                        <th>Cost</th>
+                        <th>Best For</th>
+                    </tr>
+                    <tr>
+                        <td><strong>n8n</strong></td>
+                        <td>Medium (visual)</td>
+                        <td>Free-$50/mo self-hosted</td>
+                        <td>Complex workflows, data sync, integrations</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Zapier</strong></td>
+                        <td>Easy (simple UI)</td>
+                        <td>Free-$50/mo</td>
+                        <td>Quick integrations, less technical</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Make.com</strong></td>
+                        <td>Medium</td>
+                        <td>Free-$60/mo</td>
+                        <td>API chaining, scenario building</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Supabase Functions</strong></td>
+                        <td>Hard (code)</td>
+                        <td>Free-$10/mo</td>
+                        <td>Custom logic, low latency</td>
+                    </tr>
+                </table>
+
+                <div class="card success">
+                    <h4>🎯 Recommendation</h4>
+                    <p><strong>Start with n8n self-hosted on Railway:</strong> $5/month, unlimited workflows, visual UI, powerful enough to scale to $100K+ revenue.</p>
+                </div>
+            </div>
+
+            <!-- TOOLS COMPARISON -->
+            <div id="tools" class="page">
+                <h2>🛠️ Tool Comparison Matrix</h2>
+                <p class="intro-text">Choosing the right tools for your solo founder stack.</p>
+
+                <h3>AI Code Generation Tools</h3>
+                <table class="tool-matrix">
+                    <tr>
+                        <th>Platform</th>
+                        <th>Best For</th>
+                        <th>Ease</th>
+                        <th>Scalability</th>
+                        <th>Cost</th>
+                    </tr>
+                    <tr>
+                        <td><strong>Lovable.dev</strong></td>
+                        <td>Fast MVP scaffold, UI-first</td>
+                        <td>⭐⭐⭐⭐⭐</td>
+                        <td>To 100 users</td>
+                        <td>$40/mo</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Bolt.new</strong></td>
+                        <td>Full-stack features, code control</td>
+                        <td>⭐⭐⭐⭐</td>
+                        <td>To 1K users</td>
+                        <td>Free (Claude Pro)</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Replit</strong></td>
+                        <td>Backend + frontend, learning</td>
+                        <td>⭐⭐⭐</td>
+                        <td>To 500 users</td>
+                        <td>Free-$7/mo</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Google AI Studio</strong></td>
+                        <td>Long-context reasoning, complex logic</td>
+                        <td>⭐⭐⭐⭐</td>
+                        <td>Architecture, design</td>
+                        <td>Free</td>
+                    </tr>
+                </table>
+
+                <h3>Database Solutions</h3>
+                <table class="tool-matrix">
+                    <tr>
+                        <th>Platform</th>
+                        <th>Database</th>
+                        <th>Real-time</th>
+                        <th>Auth</th>
+                        <th>Cost</th>
+                        <th>Best For</th>
+                    </tr>
+                    <tr>
+                        <td><strong>Supabase</strong></td>
+                        <td>PostgreSQL</td>
+                        <td>WebSockets ✓</td>
+                        <td>Built-in ✓</td>
+                        <td>Free-$500/mo</td>
+                        <td>Solo founders (RLS is amazing)</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Firebase</strong></td>
+                        <td>NoSQL</td>
+                        <td>Firestore ✓</td>
+                        <td>Built-in ✓</td>
+                        <td>Free-usage based</td>
+                        <td>Real-time apps, prototypes</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Hasura</strong></td>
+                        <td>Any SQL DB</td>
+                        <td>Subscriptions ✓</td>
+                        <td>Via rules</td>
+                        <td>Free-$300/mo</td>
+                        <td>GraphQL + SQL flexibility</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Planetscale</strong></td>
+                        <td>MySQL</td>
+                        <td>No</td>
+                        <td>No</td>
+                        <td>Free-$50/mo</td>
+                        <td>MySQL experts only</td>
+                    </tr>
+                </table>
+
+                <h3>Monitoring & Error Tracking</h3>
+                <table class="tool-matrix">
+                    <tr>
+                        <th>Tool</th>
+                        <th>What It Does</th>
+                        <th>Free Tier</th>
+                        <th>Cost Paid</th>
+                    </tr>
+                    <tr>
+                        <td><strong>Sentry</strong></td>
+                        <td>Error tracking + source maps</td>
+                        <td>5K events/month</td>
+                        <td>$29/mo</td>
+                    </tr>
+                    <tr>
+                        <td><strong>LogRocket</strong></td>
+                        <td>Session replay + errors</td>
+                        <td>500 sessions/month</td>
+                        <td>$99/mo</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Datadog</strong></td>
+                        <td>APM + monitoring</td>
+                        <td>Free tier limited</td>
+                        <td>$100+/mo</td>
+                    </tr>
+                    <tr>
+                        <td><strong>New Relic</strong></td>
+                        <td>APM + infrastructure</td>
+                        <td>Free tier good</td>
+                        <td>$200+/mo</td>
+                    </tr>
+                </table>
+
+                <div class="card success">
+                    <h4>⭐ Recommended Stack for $0-100/month</h4>
+                    <ul style="margin-top: 0;">
+                        <li><strong>Database:</strong> Supabase (free tier)</li>
+                        <li><strong>Frontend Hosting:</strong> Vercel (free tier)</li>
+                        <li><strong>Workflows:</strong> n8n on Railway ($5/mo)</li>
+                        <li><strong>Error Tracking:</strong> Sentry (free tier)</li>
+                        <li><strong>Emails:</strong> Resend (free tier: 100/day)</li>
+                        <li><strong>Total:</strong> ~$5-10/month</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- ACTION PLAN -->
+            <div id="action-plan" class="page">
+                <h2>📋 4-Week Immediate Action Plan</h2>
+                <p class="intro-text">Your step-by-step path to hardening your MVP from weeks 4-7 post-launch.</p>
+
+                <h3>Week 1: Security Foundation (15 hours)</h3>
+                <div class="timeline">
+                    <div class="timeline-item">
+                        <h4>Monday: Row Level Security Audit</h4>
+                        <p><strong>Time:</strong> 2 hours | <strong>Deliverable:</strong> RLS audit complete</p>
+                        <p>Have Claude review all your Supabase RLS policies. Test that users can't access each other's data.</p>
+                    </div>
+                    <div class="timeline-item">
+                        <h4>Tuesday-Wednesday: Fix RLS Policies</h4>
+                        <p><strong>Time:</strong> 3 hours | <strong>Deliverable:</strong> All policies enforced + tested</p>
+                        <p>Apply corrected policies to all tables. Manual testing: log as User A, try to fetch User B's data.</p>
+                    </div>
+                    <div class="timeline-item">
+                        <h4>Thursday: Authentication Flow Review</h4>
+                        <p><strong>Time:</strong> 2 hours | <strong>Deliverable:</strong> Auth security verified</strong></p>
+                        <p>Check: HTTPS everywhere, httpOnly cookies, proper CORS, session timeouts.</p>
+                    </div>
+                    <div class="timeline-item">
+                        <h4>Friday: Environment Secrets & OWASP</h4>
+                        <p><strong>Time:</strong> 2 hours | <strong>Deliverable:</strong> No secrets in git, OWASP overview</p>
+                        <p>Audit secrets. Read OWASP Top 10 overview. Begin planning Week 2.</p>
+                    </div>
+                </div>
+
+                <h3>Week 2: Performance (14-18 hours)</h3>
+                <div class="timeline">
+                    <div class="timeline-item">
+                        <h4>Monday: N+1 Detection</h4>
+                        <p><strong>Time:</strong> 3 hours | <strong>Deliverable:</strong> List of N+1 queries found</p>
+                    </div>
+                    <div class="timeline-item">
+                        <h4>Tuesday: Indexes</h4>
+                        <p><strong>Time:</strong> 2 hours | <strong>Deliverable:</strong> Indexes on hot tables</strong></p>
+                    </div>
+                    <div class="timeline-item">
+                        <h4>Wednesday: Eager Loading</h4>
+                        <p><strong>Time:</strong> 4 hours | <strong>Deliverable:</strong> Critical queries optimized</p>
+                    </div>
+                    <div class="timeline-item">
+                        <h4>Thursday: Connection Pooling</h4>
+                        <p><strong>Time:</strong> 2 hours | <strong>Deliverable:</strong> Pool monitoring configured</p>
+                    </div>
+                    <div class="timeline-item">
+                        <h4>Friday: Performance Testing</h4>
+                        <p><strong>Time:</strong> 3-5 hours | <strong>Deliverable:</strong> Critical paths &lt;100ms</p>
+                    </div>
+                </div>
+
+                <h3>Week 3: Code Quality (10-12 hours)</h3>
+                <div class="timeline">
+                    <div class="timeline-item">
+                        <h4>Monday-Tuesday: Error Handling & Sentry</h4>
+                        <p><strong>Time:</strong> 4 hours | <strong>Deliverable:</strong> Sentry integrated + 80% errors caught</p>
+                    </div>
+                    <div class="timeline-item">
+                        <h4>Wednesday-Thursday: TypeScript Strict</h4>
+                        <p><strong>Time:</strong> 4 hours | <strong>Deliverable:</strong> Strict mode enabled, type errors fixed</p>
+                    </div>
+                    <div class="timeline-item">
+                        <h4>Friday: Testing</h4>
+                        <p><strong>Time:</strong> 2-3 hours | <strong>Deliverable:</strong> 80% critical paths have tests</p>
+                    </div>
+                </div>
+
+                <h3>Week 4: Automation & Monitoring (8-10 hours)</h3>
+                <div class="timeline">
+                    <div class="timeline-item">
+                        <h4>Monday-Tuesday: n8n Setup</h4>
+                        <p><strong>Time:</strong> 3 hours | <strong>Deliverable:</strong> n8n deployed + first workflow</p>
+                    </div>
+                    <div class="timeline-item">
+                        <h4>Wednesday: Email Workflows</h4>
+                        <p><strong>Time:</strong> 2 hours | <strong>Deliverable:</strong> Transactional emails automated</p>
+                    </div>
+                    <div class="timeline-item">
+                        <h4>Thursday: Monitoring</h4>
+                        <p><strong>Time:</strong> 2 hours | <strong>Deliverable:</strong> Slack alerts on errors/failures</p>
+                    </div>
+                    <div class="timeline-item">
+                        <h4>Friday: Documentation</h4>
+                        <p><strong>Time:</strong> 1-2 hours | <strong>Deliverable:</strong> Runbooks for common issues</p>
+                    </div>
+                </div>
+
+                <div class="card success">
+                    <h4>📊 By End of Week 4</h4>
+                    <ul style="margin-top: 0;">
+                        <li>✅ Security: RLS audited, auth hardened, secrets secured</li>
+                        <li>✅ Performance: N+1 queries fixed, queries under 100ms</li>
+                        <li>✅ Quality: TypeScript strict, errors tracked, tests written</li>
+                        <li>✅ Automation: Background jobs running, emails automated, monitoring live</li>
+                        <li>✅ Capable of: Handling 500-1K concurrent users solo</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- ROADMAP -->
+            <div id="roadmap" class="page">
+                <h2>📈 12-Month Roadmap</h2>
+                <p class="intro-text">Your path from MVP to sustainable solo business or hiring ready.</p>
+
+                <h3>Months 1-3: Launch Phase</h3>
+                <div class="card success">
+                    <h4>Goal: Get first 50 users, validate product-market fit</h4>
+                    <ul style="margin-top: calc(var(--spacing-unit) * 1);">
+                        <li><strong>Priority:</strong> Speed over perfection. Use Lovable/Bolt</li>
+                        <li><strong>Focus:</strong> 1 core feature done well, not 5 half-baked features</li>
+                        <li><strong>Quality:</strong> Code quality matters ONLY if it blocks features</li>
+                        <li><strong>Metrics:</strong> 50 users, 20% weekly growth</li>
+                    </ul>
+                </div>
+
+                <h3>Months 4-6: Hardening Phase</h3>
+                <div class="card success">
+                    <h4>Goal: Secure, stable, and scalable infrastructure (This playbook)</h4>
+                    <ul style="margin-top: calc(var(--spacing-unit) * 1);">
+                        <li><strong>Security Audit:</strong> Run the Week 1 security audit</li>
+                        <li><strong>Performance Optimization:</strong> Complete Week 2 optimization</li>
+                        <li><strong>Code Quality:</strong> Setup TypeScript, tests, error tracking (Week 3)</li>
+                        <li><strong>Prepare to Scale:</strong> Monitoring, logging, alerting live</li>
+                        <li><strong>Metrics:</strong> 100-300 users, 10-50K daily API requests</li>
+                    </ul>
+                </div>
+
+                <h3>Months 7-9: Automation Phase</h3>
+                <div class="card success">
+                    <h4>Goal: Self-healing systems, zero-touch operations</h4>
+                    <ul style="margin-top: calc(var(--spacing-unit) * 1);">
+                        <li><strong>Background Jobs:</strong> Complex workflows automated (Week 4)</li>
+                        <li><strong>Customer Automation:</strong> Email sequences, onboarding flows</li>
+                        <li><strong>DevOps Automation:</strong> GitHub Actions for deployments, backups</li>
+                        <li><strong>Monitoring Maturity:</strong> Can detect and fix issues before customers notice</li>
+                        <li><strong>Metrics:</strong> 500-1K users, 50K-500K daily API requests, you work 40 hrs/week</li>
+                    </ul>
+                </div>
+
+                <h3>Months 10-12: Decision Phase</h3>
+                <div class="decision-grid">
+                    <div class="decision-box">
+                        <h4>Scenario 1: Revenue &lt; $10K/month</h4>
+                        <p><strong>Action:</strong> Keep iterating. Focus on product-market fit first.</p>
+                        <p><strong>Hiring:</strong> Not yet. Continue solo.</p>
+                        <p><strong>Strategy:</strong> Validate that customers will pay more. Return to months 1-3 thinking.</p>
+                    </div>
+
+                    <div class="decision-box">
+                        <h4>Scenario 2: $20-50K/month</h4>
+                        <p><strong>Action:</strong> Hire fractional engineer (10 hrs/week, $2-4K/mo).</p>
+                        <p><strong>Hiring:</strong> Look on Toptal, Gun.io for senior engineer (code reviews, optimization).</p>
+                        <p><strong>Strategy:</strong> You handle sales/product/strategy. Engineer handles scaling.</p>
+                    </div>
+
+                    <div class="decision-box">
+                        <h4>Scenario 3: $50K+/month</h4>
+                        <p><strong>Action:</strong> Hire full-time engineer ($70-150K/year).</p>
+                        <p><strong>Hiring:</strong> Look for early-career developers who are hungry. Your edge: you understand the codebase.</p>
+                        <p><strong>Strategy:</strong> Team of 2 can scale to $500K+ revenue. You stay on product/sales.</p>
+                    </div>
+
+                    <div class="decision-box">
+                        <h4>Scenario 4: High Growth (&gt;50% MoM)</h4>
+                        <p><strong>Action:</strong> Hire immediately, regardless of revenue.</p>
+                        <p><strong>Reason:</strong> You'll burn out. Quality will suffer. Hiring solves both.</p>
+                        <p><strong>Strategy:</strong> Growth compounds. 1 engineer → 3x faster feature velocity.</p>
+                    </div>
+                </div>
+
+                <h3>Success Metrics by Month</h3>
+                <table class="tool-matrix">
+                    <tr>
+                        <th>Month</th>
+                        <th>Users</th>
+                        <th>Daily API Requests</th>
+                        <th>Revenue Target</th>
+                        <th>Key Focus</th>
+                    </tr>
+                    <tr>
+                        <td>1-3</td>
+                        <td>0 → 50</td>
+                        <td>&lt;500</td>
+                        <td>$0 (validate)</td>
+                        <td>Product-market fit</td>
+                    </tr>
+                    <tr>
+                        <td>4-6</td>
+                        <td>50 → 300</td>
+                        <td>500 → 10K</td>
+                        <td>$0-5K</td>
+                        <td>Security + Performance</td>
+                    </tr>
+                    <tr>
+                        <td>7-9</td>
+                        <td>300 → 1K</td>
+                        <td>10K → 100K</td>
+                        <td>$5K-30K</td>
+                        <td>Automation + Scale</td>
+                    </tr>
+                    <tr>
+                        <td>10-12</td>
+                        <td>1K → 5K</td>
+                        <td>100K → 500K</td>
+                        <td>$30K+</td>
+                        <td>Hiring decision</td>
+                    </tr>
+                </table>
+
+                <div class="card warning">
+                    <h4>🎯 Key Insight</h4>
+                    <p>Your unfair advantage: You understand AI code generation, system design, and security. Most solo founders don't. Use months 1-9 to build something defensible. By month 10, you'll have product, traction, and a clean codebase. That's when hiring happens organically.</p>
+                </div>
+
+                <h3>Final Thoughts</h3>
+                <div class="card success">
+                    <p><strong>This playbook isn't about doing everything perfectly.</strong> It's about doing the 80/20 that prevents 95% of problems. Follow the 4-week plan starting month 4. Then execute relentlessly.</p>
+                    <p style="margin-top: calc(var(--spacing-unit) * 1.5); margin-bottom: 0;"><strong>You can do this solo. The tech is ready. The tools exist. All that's left is commitment.</strong></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function showPage(pageId) {
+            // Hide all pages
+            document.querySelectorAll('.page').forEach(page => {
+                page.classList.remove('active');
+            });
+
+            // Remove active class from all nav links
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.classList.remove('active');
+            });
+
+            // Show selected page
+            document.getElementById(pageId).classList.add('active');
+
+            // Add active class to clicked nav link
+            event.target.classList.add('active');
+
+            // Scroll to top
+            document.querySelector('.main').scrollTop = 0;
+        }
+
+        function calculateHiring() {
+            const revenue = parseFloat(document.getElementById('revenue').value) || 0;
+            const hours = parseFloat(document.getElementById('hours').value) || 0;
+            const rate = parseFloat(document.getElementById('rate').value) || 0;
+
+            const yourWeeklyValue = (hours * rate * 4.33);
+            const yourMonthlyValue = yourWeeklyValue;
+            const engineerCost = (hours * 4 < 40) ? 3000 : 8000;
+
+            let recommendation = '';
+            let reasoning = '';
+
+            if (revenue < 10000) {
+                recommendation = 'Stay Solo';
+                reasoning = 'Your monthly revenue doesn\'t yet support outside help. Focus on growth first.';
+            } else if (revenue < 20000) {
+                recommendation = 'Consider Fractional Help';
+                reasoning = 'You could afford basic fractional help, but might not need it yet. Monitor burnout levels.';
+            } else if (revenue < 50000) {
+                recommendation = 'Hire Fractional Engineer';
+                reasoning = `Revenue of $${revenue.toLocaleString()}/mo supports $2-4K/mo fractional engineer (10 hrs/week). Their value easily exceeds cost.`;
+            } else {
+                recommendation = 'Hire Full-Time Engineer';
+                reasoning = `Revenue of $${revenue.toLocaleString()}/mo supports $70-150K/yr full-time engineer. This dramatically scales your product capacity.`;
+            }
+
+            const result = `
+                <div class="calc-result">
+                    <h5>${recommendation}</h5>
+                    <p>${reasoning}</p>
+                    <p style="margin-top: calc(var(--spacing-unit) * 1); color: var(--color-text-secondary); font-weight: normal;">Your effective hourly rate: $${rate}/hr × ${hours} hrs = $${yourMonthlyValue.toLocaleString()}/mo in value created</p>
+                </div>
+            `;
+
+            document.getElementById('hiringResult').innerHTML = result;
+        }
+    </script>
+</body>
+</html>

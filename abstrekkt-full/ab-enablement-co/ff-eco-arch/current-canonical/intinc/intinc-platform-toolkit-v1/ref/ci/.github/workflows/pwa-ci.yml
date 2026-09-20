@@ -1,0 +1,65 @@
+name: PWA CI
+
+on:
+  push:
+    branches: [main, develop]
+    paths: ["code/pwa-react/**", "code/pwa-vanilla/**"]
+  pull_request:
+    branches: [main]
+    paths: ["code/pwa-react/**", "code/pwa-vanilla/**"]
+
+jobs:
+  lint-and-typecheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm, cache-dependency-path: code/pwa-react/package-lock.json }
+      - run: cd code/pwa-react && npm ci
+      - run: cd code/pwa-react && npm run typecheck
+      - run: cd code/pwa-react && npm run lint
+
+  unit-tests:
+    runs-on: ubuntu-latest
+    needs: lint-and-typecheck
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm, cache-dependency-path: code/pwa-react/package-lock.json }
+      - run: cd code/pwa-react && npm ci
+      - run: cd code/pwa-react && npm run test:coverage
+      - uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: code/pwa-react/coverage/
+
+  e2e-tests:
+    runs-on: ubuntu-latest
+    needs: unit-tests
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm, cache-dependency-path: code/pwa-react/package-lock.json }
+      - run: cd code/pwa-react && npm ci
+      - run: cd code/pwa-react && npx playwright install --with-deps chromium firefox webkit
+      - run: cd code/pwa-react && npm run build
+      - run: cd code/pwa-react && npm run e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: code/pwa-react/playwright-report/
+
+  lighthouse:
+    runs-on: ubuntu-latest
+    needs: unit-tests
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm, cache-dependency-path: code/pwa-react/package-lock.json }
+      - run: cd code/pwa-react && npm ci && npm run build
+      - name: Run Lighthouse
+        uses: treosh/lighthouse-ci-action@v12
+        with:
+          configPath: code/pwa-react/lighthouserc.json
+          uploadArtifacts: true

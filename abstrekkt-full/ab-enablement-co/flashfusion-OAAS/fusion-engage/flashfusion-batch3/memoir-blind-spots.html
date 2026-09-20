@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Memoir — Blind Spots Audit</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0f0e0d;--bg2:#161412;--bg3:#1e1b18;--border:#2a2520;--border2:#38332d;
+  --text:#e8e0d4;--text2:#9a9088;--text3:#5a5048;
+  --crit:#e24b4a;--crit-bg:rgba(226,75,74,.1);--crit-border:rgba(226,75,74,.2);
+  --mod:#ef9f27;--mod-bg:rgba(239,159,39,.1);--mod-border:rgba(239,159,39,.2);
+  --low:#639922;--low-bg:rgba(99,153,34,.1);--low-border:rgba(99,153,34,.2);
+  --void:#d4537e;--struct:#ef9f27;--conflict:#e24b4a;--tissue:#378add;
+  --font:system-ui,-apple-system,sans-serif;--mono:'Courier New',monospace
+}
+body{background:var(--bg);color:var(--text);font-family:var(--font);padding:2rem 1.5rem;max-width:820px;margin:0 auto;line-height:1.6}
+h1{font-size:22px;font-weight:500;margin-bottom:4px}
+.subtitle{font-size:13px;color:var(--text2);margin-bottom:2rem}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:1.75rem}
+.stat{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:12px 14px}
+.stat-label{font-family:var(--mono);font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px}
+.stat-val{font-size:24px;font-weight:500}
+.stat-sub{font-size:11px;color:var(--text3);margin-top:2px}
+.filters{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:1.5rem}
+.fb{font-size:12px;padding:5px 12px;border-radius:99px;border:1px solid var(--border2);background:transparent;color:var(--text2);cursor:pointer;font-family:var(--font);transition:all .15s}
+.fb:hover{background:var(--bg3)}
+.fb.active{background:var(--text);color:var(--bg);border-color:var(--text)}
+.section-label{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);margin:1.5rem 0 8px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+.cards{display:flex;flex-direction:column;gap:6px}
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:14px 16px;cursor:pointer;transition:border-color .15s;display:flex;gap:12px}
+.card:hover{border-color:var(--border2)}
+.card.open{border-color:var(--border2);background:var(--bg3)}
+.card-left{display:flex;flex-direction:column;align-items:center;gap:6px;padding-top:2px;flex-shrink:0}
+.dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.dc{background:var(--crit)}.dm{background:var(--mod)}.dl{background:var(--low)}
+.chev{font-size:9px;color:var(--text3);transition:transform .2s;user-select:none}
+.card.open .chev{transform:rotate(90deg)}
+.card-body{flex:1;min-width:0}
+.card-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:3px}
+.card-title{font-size:14px;font-weight:500;color:var(--text)}
+.card-desc{font-size:12px;color:var(--text2);line-height:1.5}
+.badge{font-size:10px;font-family:var(--mono);letter-spacing:.05em;padding:2px 7px;border-radius:4px;border:1px solid;white-space:nowrap;flex-shrink:0}
+.bv{color:#d4537e;border-color:rgba(212,83,126,.3);background:rgba(212,83,126,.08)}
+.bs{color:#ef9f27;border-color:rgba(239,159,39,.3);background:rgba(239,159,39,.08)}
+.bc{color:#e24b4a;border-color:rgba(226,75,74,.3);background:rgba(226,75,74,.08)}
+.bt{color:#378add;border-color:rgba(55,138,221,.3);background:rgba(55,138,221,.08)}
+.detail{display:none;margin-top:12px;padding-top:12px;border-top:1px solid var(--border);font-size:13px;color:var(--text2);line-height:1.65}
+.card.open .detail{display:block}
+.prompt-btn{margin-top:10px;display:inline-flex;align-items:center;gap:5px;font-size:12px;padding:5px 10px;border-radius:6px;border:1px solid var(--border2);background:transparent;color:var(--text2);cursor:pointer;font-family:var(--font);text-decoration:none}
+.prompt-btn:hover{background:var(--bg)}
+.hidden{display:none!important}
+@media(max-width:480px){.stats{grid-template-columns:repeat(2,1fr)}.stat-val{font-size:20px}}
+</style>
+</head>
+<body>
+
+<h1>Memoir — Blind Spots Audit</h1>
+<p class="subtitle">Knowledge base gaps, structural decisions, and conflicts mapped as of April 2026</p>
+
+<div class="stats">
+  <div class="stat"><div class="stat-label">Total gaps</div><div class="stat-val">17</div><div class="stat-sub">across 4 categories</div></div>
+  <div class="stat"><div class="stat-label">Critical</div><div class="stat-val" style="color:var(--crit)">8</div><div class="stat-sub">block drafting now</div></div>
+  <div class="stat"><div class="stat-label">Chapters drafted</div><div class="stat-val">0</div><div class="stat-sub">of 5 threads</div></div>
+  <div class="stat"><div class="stat-label">Conflicts</div><div class="stat-val" style="color:var(--mod)">3</div><div class="stat-sub">resolve before publishing</div></div>
+</div>
+
+<div class="filters">
+  <button class="fb active" onclick="filter('all',this)">All (17)</button>
+  <button class="fb" onclick="filter('void',this)">Excavation voids (7)</button>
+  <button class="fb" onclick="filter('struct',this)">Structural (4)</button>
+  <button class="fb" onclick="filter('conflict',this)">Conflicts (3)</button>
+  <button class="fb" onclick="filter('tissue',this)">Connective tissue (3)</button>
+  <button class="fb" onclick="filter('crit',this)">Critical only (8)</button>
+</div>
+
+<div id="board">
+
+<div class="section-label" data-cat="void">Excavation voids — no raw material exists</div>
+<div class="cards">
+
+<div class="card" data-cat="void" data-sev="crit" onclick="toggle(this)">
+  <div class="card-left"><div class="dot dc"></div><span class="chev">▶</span></div>
+  <div class="card-body">
+    <div class="card-top"><div class="card-title">The gap year (2020–2022)</div><span class="badge bv">void</span></div>
+    <div class="card-desc">Between TBI event and AMEN eval — confirmed empty across 8 archive searches</div>
+    <div class="detail">AMEN eval is July 2022. TBI is ~2020–21. Approximately a year with no excavated material. This is the rupture period — when old strategies stopped working, when the thesis begins. Without it Thread 2 (Rupture) has no material and Thread 3 (Construction) has no starting point.<br><br>What's needed: When did you first notice old strategies had stopped working? How did you survive that year? Who knew? What was the first thing that actually helped?</div>
+  </div>
+</div>
+
+<div class="card" data-cat="void" data-sev="crit" onclick="toggle(this)">
+  <div class="card-left"><div class="dot dc"></div><span class="chev">▶</span></div>
+  <div class="card-body">
+    <div class="card-top"><div class="card-title">Tool archaeology (Session 3)</div><span class="badge bv">void</span></div>
+    <div class="card-desc">Chronological mapping of tools — current session goal, no answers yet recorded</div>
+    <div class="detail">The questions exist. The session is open. What's needed is Kyle's answers: which tools came first, what problem each solved, when construction became visible as construction and not just coping.<br><br>The tool timeline is the skeleton of Thread 3. Without it that entire narrative thread has no sequence — and the memoir's central contribution (systems as prosthetic cognition) stays abstract.</div>
+  </div>
+</div>
+
+<div class="card" data-cat="void" data-sev="crit" onclick="toggle(this)">
+  <div class="card-left"><div class="dot dc"></div><span class="chev">▶</span></div>
+  <div class="card-body">
+    <div class="card-top"><div class="card-title">Turnaround sequence</div><span class="badge bv">void</span></div>
+    <div class="card-desc">Meditation specifics, therapy modalities, coaching timeline — order unknown</div>
+    <div class="detail">The skeptic-to-convert arc for meditation is confirmed ("thought it was bullshit → transformative"). But: when, what practice, which teacher, what was the breakthrough moment? Same gaps for therapy (which modalities worked), coaching (who was "out west," what frameworks), and which of 5 recovery attempts failed and why.<br><br>These are the mechanisms of construction. Thread 3 stays abstract without them.</div>
+  </div>
+</div>
+
+<div class="card" data-cat="void" data-sev="crit" onclick="toggle(this)">
+  <div class="card-left"><div class="dot dc"></div><span class="chev">▶</span></div>
+  <div class="card-body">
+    <div class="card-top"><div class="card-title">Kinsley scenes — none exist</div><span class="badge bv">void</span></div>
+    <div class="card-desc">The memoir's intended reader appears in scheduling notes only — no specific scenes</div>
+    <div class="detail">The memoir is framed as a letter to Kinsley. She's the load-bearing reason to write it. But no specific things she has said or done appear anywhere in the archive. Kinsley appears only in custody scheduling, app-building notes, and energy frameworks.<br><br>The absence may be protective. At some point, one real scene needs to exist.</div>
+  </div>
+</div>
+
+<div class="card" data-cat="void" data-sev="crit" onclick="toggle(this)">
+  <div class="card-left"><div class="dot dc"></div><span class="chev">▶</span></div>
+  <div class="card-body">
+    <div class="card-top"><div class="card-title">Life coach / going west</div><span class="badge bv">void</span></div>
+    <div class="card-desc">Mom's suggestion, the coach who introduced meditation — confirmed empty</div>
+    <div class="detail">8 searches returned nothing on this period. The life coach who introduced meditation is mentioned in the architecture but has zero excavated material. This may be the pivot from old-Kyle to construction-Kyle. Either a rich scene that hasn't been touched, or a period genuinely inaccessible — both are important to know.</div>
+  </div>
+</div>
+
+<div class="card" data-cat="void" data-sev="mod" onclick="toggle(this)">
+  <div class="card-left"><div class="dot dm"></div><span class="chev">▶</span></div>
+  <div class="card-body">
+    <div class="card-top"><div class="card-title">Childhood / pre-break origin</div><span class="badge bv">void</span></div>
+    <div class="card-desc">Family dynamics framed (choice-overriding, micromanagement) but no scenes excavated</div>
+    <div class="detail">The strongest line in the archive may be: "Never exceptional at anything. Choices always corrected. Terrified to find out I'm not good at this too." That's a childhood sentence, not an injury sentence. The break may predate the TBI. But there's no raw material — no specific memories, no sensory detail, no scenes from before O'Toole's.</div>
+  </div>
+</div>
+
+<div class="card" data-cat="void" data-sev="mod" onclick="toggle(this)">
+  <div class="card-left"><div class="dot dm"></div><span class="chev">▶</span></div>
+  <div class="card-body">
+    <div class="card-top"><div class="card-title">O'Toole's — excavated but not drafted</div><span class="badge bv">void</span></div>
+    <div class="card-desc">Excavation complete March 25 — nothing converted to prose yet</div>
+    <div class="detail">The O'Toole's excavation is the most complete piece of raw material in the project. But it hasn't been converted to prose. Thread 1 (Before the Break) exists as confirmed scene seeds, not as a chapter.<br><br>This is the lowest-barrier entry point for a first draft attempt — the material is there, the voice is defined. The only missing step is sitting down and writing the thing.</div>
+  </div>
+</div>
+
+</div>
+
+<div class="section-label" data-cat="struct">Structural decisions — not yet made</div>
+<div class="cards">
+
+<div class="card" data-cat="struct" data-sev="crit" onclick="toggle(this)">
+  <div class="card-left"><div class="dot dc"></div><span class="chev">▶</span></div>
+  <div class="card-body">
+    <div class="card-top"><div class="card-title">Zero chapters drafted</div><span class="badge bs">structural</span></div>
+    <div class="card-desc">0 of 5 threads in prose form — voice defined but untested at chapter length</div>
+    <div class="detail">The project has: locked thesis, Voice DNA v2, 5 confirmed scene seeds, complete O'Toole's excavation, comparable works identified. What it doesn't have is a single paragraph of actual chapter draft.<br><br>The structural decision (chronological vs. systems-as-chapters vs. parallel timelines) can't be made until one chapter exists to test it. This is the single biggest unblocking action available.</div>
+  </div>
+</div>
+
+<div class="card" data-cat="struct" data-sev="crit" onclick="toggle(this)">
+  <div class="card-left"><div class="dot dc"></div><span class="chev">▶</span></div>
+  <div class="card-body">
+    <div class="card-top"><div class="card-title">Structure not decided</div><span class="badge bs">structural</span></div>
+    <div class="card-desc">4 options identified, none chosen — blocks sequencing and excavation priority</div>
+    <div class="detail">Options: (1) chronological with flashbacks, (2) systems as chapters, (3) parallel timelines, (4) Arsenal structure. The project explicitly notes a chapter needs drafting before committing. Without structure there's no roadmap — which means it's unclear what to excavate next, and the backlog stays undifferentiated.</div>
+  </div>
+</div>
+
+<div class="card" data-cat="struct" data-sev="mod" onclick="toggle(this)">
+  <div class="card-left"><div class="dot dm"></div><span class="chev">▶</span></div>
+  <div class="card-body">
+    <div class="card-top"><div class="card-title">Breathe Through the BS build pending</div><span class="badge bs">structural</span></div>
+    <div class="card-desc">Manuscript complete, build script written — node script never executed</div>
+    <div class="detail">The Breathe Through the BS manuscript is content-complete. The .docx build script exists at /home/claude/build_manuscript.js but hasn't been run. Chapters 1–6 exist twice in source (deduplication needed before build). This is a ~15-minute task that has been deferred multiple sessions.</div>
+  </div>
+</div>
+
+<div class="card" data-cat="struct" data-sev="low" onclick="toggle(this)">
+  <div class="card-left"><div class="dot dl"></div><span class="chev">▶</span></div>
+  <div class="card-body">
+    <div class="card-top"><div class="card-title">Session numbering inconsistency</div><span class="badge bs">structural</span></div>
+    <div class="card-desc">Tool Archaeology called "Session 1" in current prompt but "Session 3" in project state</div>
+    <div class="detail">Minor record-keeping issue. Two prior sessions confirmed: O'Toole's excavation (Mar 25) and scene seed confirmation. Tool Archaeology is Session 3. Worth correcting in project state for continuity.</div>
+  </div>
+</div>
+
+</div>
+
+<div class="section-label" data-cat="conflict">Active conflicts — resolve before any external use</div>
+<div class="cards">
+
+<div class="card" data-cat="conflict" data-sev="crit" onclick="toggle(this)">
+  <div class="card-left"><div class="dot dc"></div><span class="chev">▶</span></div>
+  <div class="card-body">
+    <div class="card-top"><div class="card-title">Lee Chong Ming pitch: killed or drafting?</div><span class="badge bc">conflict</span></div>
+    <div class="card-desc">One memory says killed — April 11 Kyle answered "still drafting." Two states, no resolution.</div>
+    <div class="detail">Business Insider, He/Him, covers vibe coding and non-traditional builders. Pitch angle: Moltbook API key failure mode, competence story not productivity story. No action possible until status resolved. Also: kylerosebrook.com must be live and a playbook URL must exist before sending — neither condition is met.</div>
+  </div>
+</div>
+
+<div class="card" data-cat="conflict" data-sev="mod" onclick="toggle(this)">
+  <div class="card-left"><div class="dot dm"></div><span class="chev">▶</span></div>
+  <div class="card-body">
+    <div class="card-top"><div class="card-title">Public title vs. ground truth</div><span class="badge bc">conflict</span></div>
+    <div class="card-desc">"Staff Engineer" in public identity vs. "L1 Service Desk Tech" in PROJECT_STATE.md</div>
+    <div class="detail">Intentional distinction — Intinc cannot appear in external content, Kyle's public identity is his own trajectory. But the memoir's Thread 4 (Late-Life Emergence) will need to hold this tension deliberately. The constructed self and the job title are not the same thing. The book needs to be honest about that without betraying the boundary.</div>
+  </div>
+</div>
+
+<div class="card" data-cat="conflict" data-sev="mod" onclick="toggle(this)">
+  <div class="card-left"><div class="dot dm"></div><span class="chev">▶</span></div>
+  <div class="card-body">
+    <div class="card-top"><div class="card-title">Tool count framing</div><span class="badge bc">conflict</span></div>
+    <div class="card-desc">"240+ tools" (public) vs. "~30 with genuine use" (project state) — AI-inflated figure flagged</div>
+    <div class="detail">PROJECT_STATE.md explicitly flags "240+ tools mastered" as AI-generated padding. For the memoir the honest number is actually more compelling — 30 tools used daily by a brain that can't trust itself is the point. The dependency is what matters, not the count. This needs consistent framing across memoir and public copy.</div>
+  </div>
+</div>
+
+</div>
+
+<div class="section-label" data-cat="tissue">Missing connective tissue — bridges between known material</div>
+<div class="cards">
+
+<div class="card" data-cat="tissue" data-sev="crit" onclick="toggle(this)">
+  <div class="card-left"><div class="dot dc"></div><span class="chev">▶</span></div>
+  <div class="card-body">
+    <div class="card-top"><div class="card-title">"The gap" — crisis to construction</div><span class="badge bt">connective</span></div>
+    <div class="card-desc">From graphic suicidal content period to systematic tool orchestration — transition unexcavated</div>
+    <div class="detail">The archive contains a period characterized by graphic suicidal content and a separate period of systematic tool orchestration. What happened in between is the hinge of the construction thesis — the moment building started. It's also the most sensitive gap in the project. May require dedicated session work, or may need to be acknowledged as genuinely inaccessible. Both are valid. Neither can be ignored in the book.</div>
+  </div>
+</div>
+
+<div class="card" data-cat="tissue" data-sev="mod" onclick="toggle(this)">
+  <div class="card-left"><div class="dot dm"></div><span class="chev">▶</span></div>
+  <div class="card-body">
+    <div class="card-top"><div class="card-title">Kinsley's birth — not on timeline</div><span class="badge bt">connective</span></div>
+    <div class="card-desc">Before or after the TBI? Timeline placement changes the weight of the fatherhood thread.</div>
+    <div class="detail">Confirmed timeline: Michaels 2018-20 → injury ~2020-21 → O'Toole's Oct 2021 → AMEN eval Jul 2022. Kinsley's birth isn't placed anywhere on this sequence. Whether she was born before or after the TBI fundamentally changes how the fatherhood thread reads in relation to the rupture and construction narratives.</div>
+  </div>
+</div>
+
+<div class="card" data-cat="tissue" data-sev="mod" onclick="toggle(this)">
+  <div class="card-left"><div class="dot dm"></div><span class="chev">▶</span></div>
+  <div class="card-body">
+    <div class="card-top"><div class="card-title">Michael relationship arc</div><span class="badge bt">connective</span></div>
+    <div class="card-desc">Framed as "failed reconstruction period" — no material excavated, boundary decision needed</div>
+    <div class="detail">Michael is referenced in the timeline as a relationship representing a failed attempt at reconstruction during the rupture/addiction period. The framing exists but no raw material does. This may be protected material — but if it belongs in the book at all, an excavation boundary decision needs to be made explicitly, not left open.</div>
+  </div>
+</div>
+
+</div>
+</div>
+
+<script>
+function toggle(card){
+  card.classList.toggle('open');
+}
+function filter(cat,btn){
+  document.querySelectorAll('.fb').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  const cards=document.querySelectorAll('.card');
+  const heads=document.querySelectorAll('.section-label');
+  if(cat==='all'){
+    cards.forEach(c=>c.classList.remove('hidden'));
+    heads.forEach(h=>h.classList.remove('hidden'));
+    return;
+  }
+  if(cat==='crit'){
+    cards.forEach(c=>c.dataset.sev==='crit'?c.classList.remove('hidden'):c.classList.add('hidden'));
+    heads.forEach(h=>h.classList.remove('hidden'));
+    return;
+  }
+  cards.forEach(c=>c.dataset.cat===cat?c.classList.remove('hidden'):c.classList.add('hidden'));
+  heads.forEach(h=>h.dataset.cat===cat?h.classList.remove('hidden'):h.classList.add('hidden'));
+}
+</script>
+</body>
+</html>

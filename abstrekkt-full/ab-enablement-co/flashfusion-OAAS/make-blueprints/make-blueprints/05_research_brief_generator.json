@@ -1,0 +1,110 @@
+{
+  "name": "Research Brief Generator — Friday 8AM CT",
+  "flow": [
+    {
+      "id": 1,
+      "module": "http:ActionSendData",
+      "version": 3,
+      "parameters": {},
+      "mapper": {
+        "url": "https://api.notion.com/v1/databases/02dcdeff6afe43d6a1325882a14289dc/query",
+        "method": "POST",
+        "headers": [
+          {"name": "Authorization", "value": "Bearer {{CONNECTION_KEY:notion}}"},
+          {"name": "Notion-Version", "value": "2022-06-28"},
+          {"name": "Content-Type", "value": "application/json"}
+        ],
+        "body": "{\"filter\":{\"property\":\"Status\",\"select\":{\"equals\":\"Inbox\"}},\"sorts\":[{\"timestamp\":\"created_time\",\"direction\":\"descending\"}],\"page_size\":20}"
+      },
+      "metadata": {"designer": {"x": 0, "y": 0}, "label": "Query Research Inbox"}
+    },
+    {
+      "id": 2,
+      "module": "flow:Router",
+      "version": 1,
+      "parameters": {},
+      "routes": [
+        {
+          "label": "Has Data",
+          "filter": {"conditions": [[{"a": "{{length(1.data.results)}}", "b": 0, "o": "number:greater"}]]},
+          "flow": [
+            {
+              "id": 3,
+              "module": "http:ActionSendData",
+              "version": 3,
+              "parameters": {},
+              "mapper": {
+                "url": "https://api.anthropic.com/v1/messages",
+                "method": "POST",
+                "headers": [
+                  {"name": "x-api-key", "value": "{{CONNECTION_KEY:anthropic}}"},
+                  {"name": "anthropic-version", "value": "2023-06-01"},
+                  {"name": "content-type", "value": "application/json"}
+                ],
+                "body": "{\"model\":\"claude-sonnet-4-20250514\",\"max_tokens\":2000,\"messages\":[{\"role\":\"user\",\"content\":\"You are a research brief writer for FlashFusion, a B2B AI enablement consultancy.\\n\\nHere are this week's research inbox items:\\n\\n{{1.data.results}}\n\\nWrite a concise weekly research brief covering:\\n1. Key themes and patterns\\n2. Most actionable items for FlashFusion's clients\\n3. What to watch next week\\n\\nBe specific, no fluff, practitioner voice.\"}]}"
+              },
+              "metadata": {"designer": {"x": 300, "y": -100}, "label": "Claude Generate Brief"}
+            },
+            {
+              "id": 4,
+              "module": "http:ActionSendData",
+              "version": 3,
+              "parameters": {},
+              "mapper": {
+                "url": "https://api.notion.com/v1/pages",
+                "method": "POST",
+                "headers": [
+                  {"name": "Authorization", "value": "Bearer {{CONNECTION_KEY:notion}}"},
+                  {"name": "Notion-Version", "value": "2022-06-28"},
+                  {"name": "Content-Type", "value": "application/json"}
+                ],
+                "body": "{\"parent\":{\"database_id\":\"CONFIGURE_BRIEFS_DB_ID\"},\"properties\":{\"Title\":{\"title\":[{\"text\":{\"content\":\"Research Brief — Week of {{formatDate(now; \\\"MMM D YYYY\\\")}}\"}}]},\"Status\":{\"select\":{\"name\":\"Draft\"}}},\"children\":[{\"object\":\"block\",\"type\":\"paragraph\",\"paragraph\":{\"rich_text\":[{\"text\":{\"content\":\"{{3.data.content[0].text}}\"}}]}}]}"
+              },
+              "metadata": {"designer": {"x": 600, "y": -100}, "label": "Save Brief to Notion"}
+            },
+            {
+              "id": 5,
+              "module": "http:ActionSendData",
+              "version": 3,
+              "parameters": {},
+              "mapper": {
+                "url": "https://api.resend.com/emails",
+                "method": "POST",
+                "headers": [
+                  {"name": "Authorization", "value": "Bearer {{CONNECTION_KEY:resend}}"},
+                  {"name": "Content-Type", "value": "application/json"}
+                ],
+                "body": "{\"from\":\"FlashFusion <kyle@flashfusion.co>\",\"to\":[\"kylerosebrook@gmail.com\"],\"subject\":\"📋 Research Brief Ready — {{formatDate(now; \\\"MMM D\\\")}}\",\"text\":\"Your weekly research brief is in Notion.\\n\\nPreview:\\n{{3.data.content[0].text}}\"}"
+              },
+              "metadata": {"designer": {"x": 900, "y": -100}, "label": "Email Brief Ready"}
+            }
+          ]
+        },
+        {
+          "label": "No Items",
+          "flow": [],
+          "metadata": {"designer": {"x": 300, "y": 100}}
+        }
+      ],
+      "mapper": {},
+      "metadata": {"designer": {"x": 200, "y": 0}}
+    }
+  ],
+  "metadata": {
+    "instant": false,
+    "version": 1,
+    "scenario": {
+      "roundtrips": 1,
+      "maxErrors": 3,
+      "autoCommit": true,
+      "autoCommitTriggerLast": true,
+      "sequential": true,
+      "confidential": false,
+      "dataloss": false,
+      "dlq": false,
+      "freshVariables": false
+    },
+    "zone": "us1.make.com",
+    "notes": "Migrated from n8n wlGeCq7iEz0zs8Hc. CONFIGURE: CONFIGURE_BRIEFS_DB_ID with your Notion briefs database ID. Schedule: Friday 8AM CT. Requires: Notion API key, Anthropic API key, Resend API key."
+  }
+}

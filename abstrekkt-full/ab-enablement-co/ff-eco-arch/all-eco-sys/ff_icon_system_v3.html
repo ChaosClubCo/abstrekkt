@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--v:#A855F7;--v-lo:#8B5CF6;--m:#EC4899;--c:#22D3EE;--c-lo:#06B6D4;--surface:#0B0B14;--raised:#13131F;--border:rgba(139,92,246,0.12);--border-s:rgba(139,92,246,0.35);--t1:#fff;--t2:#C7C7D1;--t3:#8A8A96;--t4:#5A5A64;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--surface);font-family:'Geist',sans-serif;color:var(--t2);padding:40px 36px;}
+.eyebrow{font-family:'Geist Mono',monospace;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--t4);display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+.eyebrow::before{content:'';width:24px;height:1px;background:linear-gradient(90deg,var(--v),transparent);}
+h2{font-size:32px;font-weight:300;letter-spacing:-.02em;color:var(--t1);margin-bottom:36px;line-height:1;}
+.tier-row{display:flex;align-items:baseline;gap:14px;margin-bottom:14px;}
+.tier-tag{font-family:'Geist Mono',monospace;font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--v);background:rgba(139,92,246,0.08);border:1px solid rgba(139,92,246,0.2);padding:3px 10px;border-radius:100px;}
+.tier-desc{font-family:'Geist Mono',monospace;font-size:10px;color:var(--t4);letter-spacing:.03em;}
+.grid{display:grid;grid-template-columns:repeat(9,1fr);gap:8px;margin-bottom:40px;}
+.cell{display:flex;flex-direction:column;align-items:center;gap:12px;border:1px solid var(--border);border-radius:14px;padding:22px 8px 16px;background:rgba(5,5,10,.55);transition:border-color .3s,transform .3s;cursor:default;}
+.cell:hover{border-color:var(--border-s);transform:translateY(-2px);}
+.cell svg{width:22px;height:22px;overflow:visible;}
+.lbl{font-family:'Geist Mono',monospace;font-size:8px;letter-spacing:.1em;text-transform:uppercase;color:var(--t4);text-align:center;}
+
+/* Glyph box — the actual production component from landing v3 */
+.glyph-box{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;border:1px solid var(--border-s);background:rgba(139,92,246,0.08);}
+.glyph-box.v{color:var(--v);border-color:rgba(168,85,247,.35);}
+.glyph-box.m{color:var(--m);border-color:rgba(236,72,153,.35);}
+.glyph-box.c{color:var(--c);border-color:rgba(34,211,238,.35);}
+.glyph-box svg{width:22px;height:22px;}
+.glyph-cell{display:flex;flex-direction:column;align-items:center;gap:10px;border:1px solid var(--border);border-radius:14px;padding:22px 8px 16px;background:rgba(5,5,10,.55);transition:border-color .3s,transform .3s;}
+.glyph-cell:hover{border-color:var(--border-s);transform:translateY(-2px);}
+
+/* Neon filters */
+.neon-cool{filter:drop-shadow(0 0 5px rgba(34,211,238,.75)) drop-shadow(0 0 14px rgba(168,85,247,.45)) drop-shadow(0 0 28px rgba(168,85,247,.15));}
+.neon-warm{filter:drop-shadow(0 0 5px rgba(236,72,153,.75)) drop-shadow(0 0 14px rgba(168,85,247,.45)) drop-shadow(0 0 28px rgba(168,85,247,.15));}
+.neon-multi{filter:drop-shadow(0 0 5px rgba(34,211,238,.6)) drop-shadow(0 0 14px rgba(236,72,153,.4)) drop-shadow(0 0 28px rgba(168,85,247,.15));}
+
+.divider{height:1px;background:var(--border);margin:0 0 36px;}
+
+/* Spec section */
+.spec-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:36px;}
+.spec-card{border:1px solid var(--border);border-radius:12px;padding:16px 18px;background:rgba(5,5,10,.55);}
+.spec-bar{height:4px;border-radius:2px;margin-bottom:12px;}
+.spec-name{font-family:'Geist Mono',monospace;font-size:8px;letter-spacing:.14em;text-transform:uppercase;color:var(--t3);margin-bottom:8px;}
+.stop{display:flex;align-items:center;gap:7px;font-family:'Geist Mono',monospace;font-size:9px;color:var(--t4);line-height:2;}
+.dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
+
+/* Context table */
+.ctx-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;}
+.ctx-card{border:1px solid var(--border);border-radius:12px;padding:16px 18px;background:rgba(5,5,10,.55);}
+.ctx-tag{font-family:'Geist Mono',monospace;font-size:8px;letter-spacing:.14em;text-transform:uppercase;padding:2px 8px;border-radius:100px;margin-bottom:10px;display:inline-block;}
+.ctx-tag.v{color:var(--v);background:rgba(168,85,247,.08);border:1px solid rgba(168,85,247,.2);}
+.ctx-tag.m{color:var(--m);background:rgba(236,72,153,.08);border:1px solid rgba(236,72,153,.2);}
+.ctx-tag.c{color:var(--c);background:rgba(34,211,238,.08);border:1px solid rgba(34,211,238,.2);}
+.ctx-title{font-size:12px;color:var(--t1);font-weight:500;margin-bottom:4px;}
+.ctx-desc{font-size:11px;color:var(--t4);line-height:1.5;}
+</style>
+</head>
+<body>
+
+<div class="eyebrow">FlashFusion design system · v3</div>
+<h2>Icon system</h2>
+
+<!-- TIER 1: Glyph box (production component) -->
+<div class="tier-row">
+  <span class="tier-tag">Tier 1 — Glyph box</span>
+  <span class="tier-desc">44×44 · stroke currentColor · v/m/c color variants · cards, tiles, capability sections</span>
+</div>
+<div class="grid" style="grid-template-columns:repeat(9,1fr);">
+
+  <!-- Clipboard list (violet) -->
+  <div class="glyph-cell">
+    <div class="glyph-box v">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4"/><path d="M12 16h4"/><path d="M8 11h.01"/><path d="M8 16h.01"/>
+      </svg>
+    </div>
+    <span class="lbl">Audit</span>
+  </div>
+
+  <!-- Shield (violet) -->
+  <div class="glyph-cell">
+    <div class="glyph-box v">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/>
+      </svg>
+    </div>
+    <span class="lbl">Security</span>
+  </div>
+
+  <!-- Layers (violet) -->
+  <div class="glyph-cell">
+    <div class="glyph-box v">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83z"/><path d="M2 12a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 12"/><path d="M2 17a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 17"/>
+      </svg>
+    </div>
+    <span class="lbl">Enablement</span>
+  </div>
+
+  <!-- Message square (magenta) -->
+  <div class="glyph-cell">
+    <div class="glyph-box m">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M22 17a2 2 0 0 1-2 2H6.828a2 2 0 0 0-1.414.586l-2.202 2.202A.71.71 0 0 1 2 21.286V5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2z"/>
+      </svg>
+    </div>
+    <span class="lbl">Prompt</span>
+  </div>
+
+  <!-- Zap (magenta) -->
+  <div class="glyph-cell">
+    <div class="glyph-box m">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"/>
+      </svg>
+    </div>
+    <span class="lbl">Automation</span>
+  </div>
+
+  <!-- Sparkles (magenta) -->
+  <div class="glyph-cell">
+    <div class="glyph-box m">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z"/><path d="M20 2v4"/><path d="M22 4h-4"/><circle cx="4" cy="20" r="2"/>
+      </svg>
+    </div>
+    <span class="lbl">AI Output</span>
+  </div>
+
+  <!-- Database (cyan) -->
+  <div class="glyph-cell">
+    <div class="glyph-box c">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 5V19A9 3 0 0 0 21 19V5"/><path d="M3 12A9 3 0 0 0 21 12"/>
+      </svg>
+    </div>
+    <span class="lbl">Data</span>
+  </div>
+
+  <!-- CPU (cyan) -->
+  <div class="glyph-cell">
+    <div class="glyph-box c">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 20v2"/><path d="M12 2v2"/><path d="M17 20v2"/><path d="M17 2v2"/><path d="M2 12h2"/><path d="M2 17h2"/><path d="M2 7h2"/><path d="M20 12h2"/><path d="M20 17h2"/><path d="M20 7h2"/><path d="M7 20v2"/><path d="M7 2v2"/><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="8" y="8" width="8" height="8" rx="1"/>
+      </svg>
+    </div>
+    <span class="lbl">Infrastructure</span>
+  </div>
+
+  <!-- Bar chart (cyan) -->
+  <div class="glyph-cell">
+    <div class="glyph-box c">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M5 21v-6"/><path d="M12 21V3"/><path d="M19 21V9"/>
+      </svg>
+    </div>
+    <span class="lbl">Analytics</span>
+  </div>
+
+</div>
+
+<div class="divider"></div>
+
+<!-- TIER 2: Flat gradient (marketing/hero flat) -->
+<div class="tier-row">
+  <span class="tier-tag">Tier 2 — Flat gradient</span>
+  <span class="tier-desc">linearGradient stroke · no box · standalone icons · section markers, feature lists</span>
+</div>
+<div class="grid">
+
+  <div class="cell">
+    <svg viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <defs><linearGradient id="g1" x1="0" y1="0" x2="24" y2="24" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#22D3EE"/><stop offset="50%" stop-color="#6366F1"/><stop offset="100%" stop-color="#A855F7"/></linearGradient></defs>
+      <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" stroke="url(#g1)" stroke-width="1.75"/>
+    </svg>
+    <span class="lbl">Security</span>
+  </div>
+
+  <div class="cell">
+    <svg viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <defs><linearGradient id="g2" x1="24" y1="0" x2="0" y2="24" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#22D3EE"/><stop offset="100%" stop-color="#EC4899"/></linearGradient></defs>
+      <path d="M12 8V4H8" stroke="url(#g2)" stroke-width="1.75"/><rect width="16" height="12" x="4" y="8" rx="2" stroke="url(#g2)" stroke-width="1.75"/><path d="M2 14h2" stroke="url(#g2)" stroke-width="1.75"/><path d="M20 14h2" stroke="url(#g2)" stroke-width="1.75"/><path d="M15 13v2" stroke="url(#g2)" stroke-width="1.75"/><path d="M9 13v2" stroke="url(#g2)" stroke-width="1.75"/>
+    </svg>
+    <span class="lbl">AI Agent</span>
+  </div>
+
+  <div class="cell">
+    <svg viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <defs><linearGradient id="g3" x1="0" y1="0" x2="24" y2="24" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#22D3EE"/><stop offset="50%" stop-color="#6366F1"/><stop offset="100%" stop-color="#A855F7"/></linearGradient></defs>
+      <path d="M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83z" stroke="url(#g3)" stroke-width="1.75"/><path d="M2 12a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 12" stroke="url(#g3)" stroke-width="1.75"/><path d="M2 17a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 17" stroke="url(#g3)" stroke-width="1.75"/>
+    </svg>
+    <span class="lbl">Enablement</span>
+  </div>
+
+  <div class="cell">
+    <svg viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <defs><linearGradient id="g4" x1="24" y1="0" x2="0" y2="24" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#22D3EE"/><stop offset="100%" stop-color="#EC4899"/></linearGradient></defs>
+      <path d="M22 17a2 2 0 0 1-2 2H6.828a2 2 0 0 0-1.414.586l-2.202 2.202A.71.71 0 0 1 2 21.286V5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2z" stroke="url(#g4)" stroke-width="1.75"/>
+    </svg>
+    <span class="lbl">Prompt</span>
+  </div>
+
+  <div class="cell">
+    <svg viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <defs><linearGradient id="g5" x1="0" y1="0" x2="24" y2="24" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#22D3EE"/><stop offset="50%" stop-color="#A855F7"/><stop offset="100%" stop-color="#EC4899"/></linearGradient></defs>
+      <path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z" stroke="url(#g5)" stroke-width="1.75"/>
+    </svg>
+    <span class="lbl">Automation</span>
+  </div>
+
+  <div class="cell">
+    <svg viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <defs><linearGradient id="g6" x1="12" y1="0" x2="12" y2="24" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#22D3EE"/><stop offset="55%" stop-color="#A855F7"/><stop offset="82%" stop-color="#EC4899"/><stop offset="100%" stop-color="#F97316"/></linearGradient></defs>
+      <path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5" stroke="url(#g6)" stroke-width="1.75"/><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09" stroke="url(#g6)" stroke-width="1.75"/><path d="M9 12a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.4 22.4 0 0 1-4 2z" stroke="url(#g6)" stroke-width="1.75"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 .05 5 .05" stroke="url(#g6)" stroke-width="1.75"/>
+    </svg>
+    <span class="lbl">Launch</span>
+  </div>
+
+  <div class="cell">
+    <svg viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <defs><linearGradient id="g7" x1="0" y1="0" x2="24" y2="24" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#22D3EE"/><stop offset="100%" stop-color="#A855F7"/></linearGradient></defs>
+      <path d="M3 5V19A9 3 0 0 0 21 19V5" stroke="url(#g7)" stroke-width="1.75"/><path d="M3 12A9 3 0 0 0 21 12" stroke="url(#g7)" stroke-width="1.75"/>
+    </svg>
+    <span class="lbl">Data</span>
+  </div>
+
+  <div class="cell">
+    <svg viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <defs><linearGradient id="g8" x1="0" y1="24" x2="24" y2="0" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#22D3EE"/><stop offset="100%" stop-color="#A855F7"/></linearGradient></defs>
+      <path d="M16 7h6v6" stroke="url(#g8)" stroke-width="1.75"/><path d="m22 7-8.5 8.5-5-5L2 17" stroke="url(#g8)" stroke-width="1.75"/>
+    </svg>
+    <span class="lbl">Growth</span>
+  </div>
+
+  <div class="cell">
+    <svg viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <defs><linearGradient id="g9" x1="0" y1="0" x2="24" y2="24" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#22D3EE"/><stop offset="50%" stop-color="#6366F1"/><stop offset="100%" stop-color="#A855F7"/></linearGradient></defs>
+      <circle cx="12" cy="12" r="10" stroke="url(#g9)" stroke-width="1.75"/><circle cx="12" cy="12" r="6" stroke="url(#g9)" stroke-width="1.75"/><circle cx="12" cy="12" r="2" stroke="url(#g9)" stroke-width="1.75"/>
+    </svg>
+    <span class="lbl">Target</span>
+  </div>
+
+</div>
+
+<div class="divider"></div>
+
+<!-- TIER 3: Neon hero -->
+<div class="tier-row">
+  <span class="tier-tag">Tier 3 — Neon hero</span>
+  <span class="tier-desc">flat gradient + drop-shadow bloom · hero sections · above-the-fold callouts only</span>
+</div>
+<div class="grid">
+
+  <div class="cell">
+    <svg class="neon-cool" viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <defs><linearGradient id="n1" x1="0" y1="0" x2="24" y2="24" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#22D3EE"/><stop offset="50%" stop-color="#6366F1"/><stop offset="100%" stop-color="#A855F7"/></linearGradient></defs>
+      <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" stroke="url(#n1)" stroke-width="1.75"/>
+    </svg>
+    <span class="lbl">Security</span>
+  </div>
+
+  <div class="cell">
+    <svg class="neon-multi" viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <defs><linearGradient id="n2" x1="24" y1="0" x2="0" y2="24" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#22D3EE"/><stop offset="100%" stop-color="#EC4899"/></linearGradient></defs>
+      <path d="M12 8V4H8" stroke="url(#n2)" stroke-width="1.75"/><rect width="16" height="12" x="4" y="8" rx="2" stroke="url(#n2)" stroke-width="1.75"/><path d="M2 14h2" stroke="url(#n2)" stroke-width="1.75"/><path d="M20 14h2" stroke="url(#n2)" stroke-width="1.75"/><path d="M15 13v2" stroke="url(#n2)" stroke-width="1.75"/><path d="M9 13v2" stroke="url(#n2)" stroke-width="1.75"/>
+    </svg>
+    <span class="lbl">AI Agent</span>
+  </div>
+
+  <div class="cell">
+    <svg class="neon-cool" viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <defs><linearGradient id="n3" x1="0" y1="0" x2="24" y2="24" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#22D3EE"/><stop offset="50%" stop-color="#6366F1"/><stop offset="100%" stop-color="#A855F7"/></linearGradient></defs>
+      <path d="M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83z" stroke="url(#n3)" stroke-width="1.75"/><path d="M2 12a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 12" stroke="url(#n3)" stroke-width="1.75"/><path d="M2 17a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 17" stroke="url(#n3)" stroke-width="1.75"/>
+    </svg>
+    <span class="lbl">Enablement</span>
+  </div>
+
+  <div class="cell">
+    <svg class="neon-warm" viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <defs><linearGradient id="n4" x1="24" y1="0" x2="0" y2="24" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#22D3EE"/><stop offset="100%" stop-color="#EC4899"/></linearGradient></defs>
+      <path d="M22 17a2 2 0 0 1-2 2H6.828a2 2 0 0 0-1.414.586l-2.202 2.202A.71.71 0 0 1 2 21.286V5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2z" stroke="url(#n4)" stroke-width="1.75"/>
+    </svg>
+    <span class="lbl">Prompt</span>
+  </div>
+
+  <div class="cell">
+    <svg class="neon-multi" viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <defs><linearGradient id="n5" x1="0" y1="0" x2="24" y2="24" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#22D3EE"/><stop offset="50%" stop-color="#A855F7"/><stop offset="100%" stop-color="#EC4899"/></linearGradient></defs>
+      <path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z" stroke="url(#n5)" stroke-width="1.75"/>
+    </svg>
+    <span class="lbl">Automation</span>
+  </div>
+
+  <div class="cell">
+    <svg class="neon-multi" viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <defs><linearGradient id="n6" x1="12" y1="0" x2="12" y2="24" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#22D3EE"/><stop offset="55%" stop-color="#A855F7"/><stop offset="82%" stop-color="#EC4899"/><stop offset="100%" stop-color="#F97316"/></linearGradient></defs>
+      <path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5" stroke="url(#n6)" stroke-width="1.75"/><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09" stroke="url(#n6)" stroke-width="1.75"/><path d="M9 12a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.4 22.4 0 0 1-4 2z" stroke="url(#n6)" stroke-width="1.75"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 .05 5 .05" stroke="url(#n6)" stroke-width="1.75"/>
+    </svg>
+    <span class="lbl">Launch</span>
+  </div>
+
+  <div class="cell">
+    <svg class="neon-cool" viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <defs><linearGradient id="n7" x1="0" y1="0" x2="24" y2="24" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#22D3EE"/><stop offset="100%" stop-color="#A855F7"/></linearGradient></defs>
+      <path d="M3 5V19A9 3 0 0 0 21 19V5" stroke="url(#n7)" stroke-width="1.75"/><path d="M3 12A9 3 0 0 0 21 12" stroke="url(#n7)" stroke-width="1.75"/>
+    </svg>
+    <span class="lbl">Data</span>
+  </div>
+
+  <div class="cell">
+    <svg class="neon-cool" viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <defs><linearGradient id="n8" x1="0" y1="24" x2="24" y2="0" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#22D3EE"/><stop offset="100%" stop-color="#A855F7"/></linearGradient></defs>
+      <path d="M16 7h6v6" stroke="url(#n8)" stroke-width="1.75"/><path d="m22 7-8.5 8.5-5-5L2 17" stroke="url(#n8)" stroke-width="1.75"/>
+    </svg>
+    <span class="lbl">Growth</span>
+  </div>
+
+  <div class="cell">
+    <svg class="neon-warm" viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <defs><linearGradient id="n9" x1="0" y1="0" x2="24" y2="24" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#22D3EE"/><stop offset="50%" stop-color="#6366F1"/><stop offset="100%" stop-color="#A855F7"/></linearGradient></defs>
+      <circle cx="12" cy="12" r="10" stroke="url(#n9)" stroke-width="1.75"/><circle cx="12" cy="12" r="6" stroke="url(#n9)" stroke-width="1.75"/><circle cx="12" cy="12" r="2" stroke="url(#n9)" stroke-width="1.75"/>
+    </svg>
+    <span class="lbl">Target</span>
+  </div>
+
+</div>
+
+<div class="divider"></div>
+
+<!-- Context of use -->
+<div class="tier-row" style="margin-bottom:14px;">
+  <span class="tier-tag">Context of use</span>
+</div>
+<div class="ctx-grid">
+  <div class="ctx-card">
+    <span class="ctx-tag v">Tier 1 · Glyph box</span>
+    <div class="ctx-title">Cards · capability sections</div>
+    <div class="ctx-desc">44×44 container · 12px radius · <code style="font-size:10px;color:var(--v)">stroke="currentColor"</code> · colored by <code style="font-size:10px;">.v/.m/.c</code> · matches landing v3 agent-glyph exactly</div>
+  </div>
+  <div class="ctx-card">
+    <span class="ctx-tag m">Tier 2 · Flat gradient</span>
+    <div class="ctx-title">Feature lists · section markers</div>
+    <div class="ctx-desc">No container box · <code style="font-size:10px;color:var(--m)">stroke="url(#grad)"</code> · cool/warm/multi gradient variants · marketing sections, blog headers</div>
+  </div>
+  <div class="ctx-card">
+    <span class="ctx-tag c">Tier 3 · Neon hero</span>
+    <div class="ctx-title">Hero · above-the-fold only</div>
+    <div class="ctx-desc">Flat gradient + CSS <code style="font-size:10px;color:var(--c)">drop-shadow</code> bloom · never inside cards · single icon per visual region max</div>
+  </div>
+</div>
+
+</body>
+</html>

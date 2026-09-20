@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Skill Browser — Kyle's Project</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Inter:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --void: #0A0A0F; --deep: #141328; --surface: #1C1B3A; --border: #2E2B5A;
+    --primary: #8B5CF6; --primary-light: #C4B5FD; --glow: #A855F7;
+    --electric: #06B6D4; --electric-light: #67E8F9;
+    --text: #F8FAFC; --muted: #94A3B8; --success: #34D399; --radius: 10px;
+  }
+  body { background: var(--void); color: var(--text); font-family: 'Inter', sans-serif; min-height: 100vh; padding: 32px 24px; }
+
+  .header { max-width: 1120px; margin: 0 auto 28px; display: flex; align-items: flex-end; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+  .header-title { font-family: 'Poppins', sans-serif; font-size: 26px; font-weight: 700; background: linear-gradient(135deg, var(--primary-light), var(--electric-light)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  .header-sub { color: var(--muted); font-size: 12px; margin-top: 4px; font-family: 'JetBrains Mono', monospace; }
+  .header-badge { background: rgba(6,182,212,0.1); border: 1px solid rgba(6,182,212,0.3); border-radius: 8px; color: var(--electric-light); font-size: 12px; font-weight: 600; padding: 6px 14px; }
+
+  .tip { max-width: 1120px; margin: 0 auto 20px; background: rgba(6,182,212,0.06); border: 1px solid rgba(6,182,212,0.18); border-radius: var(--radius); padding: 11px 15px; font-size: 12px; color: var(--muted); line-height: 1.5; }
+  .tip strong { color: var(--electric-light); }
+
+  .controls { max-width: 1120px; margin: 0 auto 18px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  .search-wrap { position: relative; flex: 1; min-width: 200px; }
+  .search-wrap svg { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--muted); pointer-events: none; }
+  input.search { width: 100%; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); color: var(--text); font-family: 'Inter', sans-serif; font-size: 14px; padding: 10px 14px 10px 38px; outline: none; transition: border-color 0.2s; }
+  input.search::placeholder { color: var(--muted); }
+  input.search:focus { border-color: var(--primary); }
+
+  .tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+  .tab { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; color: var(--muted); cursor: pointer; font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 500; padding: 8px 14px; transition: all 0.15s; white-space: nowrap; }
+  .tab:hover { border-color: var(--primary); color: var(--primary-light); }
+  .tab.on { background: linear-gradient(135deg, #3B1F8C, #1A3A6E); border-color: var(--primary); color: var(--primary-light); }
+  .tab .n { background: rgba(139,92,246,0.25); border-radius: 4px; font-size: 11px; margin-left: 6px; padding: 1px 5px; }
+
+  .stats { max-width: 1120px; margin: 0 auto 16px; color: var(--muted); font-size: 12px; }
+  .stats b { color: var(--electric-light); font-weight: 500; }
+
+  .grid { max-width: 1120px; margin: 0 auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 12px; }
+
+  .card { background: var(--deep); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; display: flex; flex-direction: column; gap: 10px; transition: border-color 0.2s, transform 0.15s; position: relative; overflow: hidden; }
+  .card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; opacity: 0; transition: opacity 0.2s; }
+  .card:hover { border-color: var(--primary); transform: translateY(-1px); }
+  .card:hover::before { opacity: 1; }
+  .card[data-c="user"]::before { background: linear-gradient(90deg, var(--primary), var(--glow)); }
+  .card[data-c="public"]::before { background: linear-gradient(90deg, var(--electric), var(--electric-light)); }
+  .card[data-c="examples"]::before { background: linear-gradient(90deg, #F59E0B, #FCD34D); }
+
+  .card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+  .card-name { font-family: 'Poppins', sans-serif; font-size: 13.5px; font-weight: 600; color: var(--text); line-height: 1.3; }
+  .badge { border-radius: 5px; font-size: 10px; font-weight: 600; letter-spacing: 0.05em; padding: 3px 7px; text-transform: uppercase; white-space: nowrap; flex-shrink: 0; }
+  .bu { background: rgba(139,92,246,0.2); color: var(--primary-light); }
+  .bp { background: rgba(6,182,212,0.2); color: var(--electric-light); }
+  .be { background: rgba(245,158,11,0.2); color: #FCD34D; }
+
+  .desc { color: var(--muted); font-size: 12px; line-height: 1.55; flex: 1; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+
+  .card-foot { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .fname { background: rgba(0,0,0,0.4); border-radius: 5px; color: #7DD3FC; font-family: 'JetBrains Mono', monospace; font-size: 10px; padding: 3px 8px; white-space: nowrap; max-width: 170px; overflow: hidden; text-overflow: ellipsis; }
+  .fsize { color: var(--muted); font-size: 10.5px; margin-right: auto; }
+
+  .btn { align-items: center; border-radius: 7px; cursor: pointer; display: inline-flex; font-family: 'Inter', sans-serif; font-size: 11.5px; font-weight: 500; gap: 5px; padding: 5px 10px; transition: all 0.15s; text-decoration: none; border: 1px solid transparent; }
+  .dl { background: linear-gradient(135deg, rgba(139,92,246,0.2), rgba(168,85,247,0.15)); border-color: var(--primary); color: var(--primary-light); }
+  .dl:hover { background: linear-gradient(135deg, rgba(139,92,246,0.35), rgba(168,85,247,0.3)); }
+  .cp { background: var(--surface); border-color: var(--border); color: var(--muted); }
+  .cp:hover { background: var(--border); color: var(--text); }
+  .cp.ok { border-color: var(--success); color: var(--success); }
+  .active-pill { color: var(--success); font-size: 11px; display: flex; align-items: center; gap: 4px; margin-left: auto; white-space: nowrap; }
+  .dot { width: 6px; height: 6px; background: var(--success); border-radius: 50%; box-shadow: 0 0 5px var(--success); display: inline-block; }
+
+  .empty { grid-column: 1/-1; text-align: center; color: var(--muted); padding: 60px 0; font-size: 14px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <div class="header-title">Skill Browser</div>
+    <div class="header-sub">/mnt/skills · Kyle's Claude Project</div>
+  </div>
+  <div class="header-badge">75 skills packaged</div>
+</div>
+
+<div class="tip">
+  Download any <strong>.skill</strong> file below, then install via <strong>Settings → Skills → Upload</strong> in Cowork or Claude Desktop.
+  Skills marked <strong style="color:var(--success)">Active</strong> are already loaded in this project session.
+</div>
+
+<div class="controls">
+  <div class="search-wrap">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+    <input class="search" id="sq" placeholder="Search by name or description…" autocomplete="off">
+  </div>
+  <div class="tabs" id="tabs">
+    <button class="tab on" data-f="all">All <span class="n">75</span></button>
+    <button class="tab" data-f="user">User <span class="n">45</span></button>
+    <button class="tab" data-f="public">Public <span class="n">8</span></button>
+    <button class="tab" data-f="examples">Examples <span class="n">22</span></button>
+  </div>
+</div>
+
+<div class="stats" id="st"></div>
+<div class="grid" id="grid"></div>
+
+<script>
+const S=[
+  {c:"user",n:"advanced-ux-patterns",f:"advanced-ux-patterns.skill",kb:4.1,d:"Comprehensive UX best practices including accessibility (WCAG 2.2), interaction patterns, user research methods, and usability principles."},
+  {c:"user",n:"advanced-visual-design",f:"advanced-visual-design.skill",kb:12.7,d:"Advanced visual design: typography systems, color theory, grid-based layouts, visual hierarchy, composition principles."},
+  {c:"user",n:"ai-solution-architecture",f:"ai-solution-architecture.skill",kb:9.2,d:"Design pre-sales technical architectures for AI/ML solutions. Reference architectures, integration patterns, infrastructure sizing."},
+  {c:"user",n:"anchor",f:"anchor.skill",kb:19.6,d:"Calm, adaptive anxiety companion for daily support between therapy sessions. Check-ins, grounding, journaling, reframing, mood tracking."},
+  {c:"user",n:"applying-sparc-methodology",f:"applying-sparc-methodology.skill",kb:7.5,d:"Full SPARC methodology coach: Specification, Pseudocode, Architecture, Refinement, Completion. Structured thinking before coding."},
+  {c:"user",n:"code-auditor",f:"code-auditor.skill",kb:1.8,d:"Comprehensive codebase analysis: architecture, code quality, security, performance, testing, and maintainability."},
+  {c:"user",n:"code-transfer",f:"code-transfer.skill",kb:3.7,d:"Transfer code between files with line-based precision. Move functions/classes, extract blocks, insert at specific line numbers."},
+  {c:"user",n:"create-agent-skills",f:"create-agent-skills.skill",kb:66.7,d:"Expert guidance for creating, writing, building, and refining Claude Code Skills and SKILL.md files."},
+  {c:"user",n:"create-meta-prompts",f:"create-meta-prompts.skill",kb:33.3,d:"Create optimized prompts for Claude-to-Claude pipelines with research, planning, and execution stages."},
+  {c:"user",n:"create-subagents",f:"create-subagents.skill",kb:44.8,d:"Expert guidance for creating and using Claude Code subagents and the Task tool."},
+  {c:"user",n:"debug-like-expert",f:"debug-like-expert.skill",kb:26.3,d:"Deep analysis debugging mode. Methodical investigation with evidence gathering, hypothesis testing, root cause analysis."},
+  {c:"user",n:"design-system-builder",f:"design-system-builder.skill",kb:23.7,d:"Build cohesive, scalable design systems with design tokens, component libraries, documentation, and governance."},
+  {c:"user",n:"developing-skills",f:"developing-skills.skill",kb:21.1,d:"Authoritative guidance for creating and managing Claude skills. YAML frontmatter, trigger phrases, progressive disclosure, hooks."},
+  {c:"user",n:"drafting-multi-format-content",f:"drafting-multi-format-content.skill",kb:30.1,d:"Draft production-ready templates for video/audio scripts, threaded long-form social, and FlashFusion customer lifecycle comms."},
+  {c:"user",n:"elite-ui-design",f:"elite-ui-design.skill",kb:30.0,d:"End-to-end product design orchestrator. Experience thesis, design systems, interaction models, component architecture, anti-slop audit."},
+  {c:"user",n:"enforcing-output-formats",f:"enforcing-output-formats.skill",kb:4.2,d:"Enforces industry-standard formatting conventions: songs, scripts, screenplays, emails, legal docs, resumes, recipes, meeting minutes."},
+  {c:"user",n:"engineering-staff-workflows",f:"engineering-staff-workflows.skill",kb:13.4,d:"Security-first, scope-gated Staff Engineer workflow. WSJF prioritization, AppSec threat modeling, full-stack to edge to AI pipeline."},
+  {c:"user",n:"fixing-tests",f:"fixing-tests.skill",kb:2.4,d:"Run tests and systematically fix all failing tests using smart error grouping."},
+  {c:"user",n:"generating-intinc-documents",f:"generating-intinc-documents.skill",kb:1103.3,d:"Structured document generation engine for Intinc employees following INT brand standards and templates."},
+  {c:"user",n:"generating-kb-articles",f:"generating-kb-articles.skill",kb:1145.3,d:"Generate professionally formatted .docx Knowledge Base articles following the INT brand template."},
+  {c:"user",n:"generating-msm-documents",f:"generating-msm-documents.skill",kb:66.0,d:"Generate professionally formatted .docx documents following MSM (Multimedia Sales & Marketing) brand standards."},
+  {c:"user",n:"generating-social-posts",f:"generating-social-posts.skill",kb:11.1,d:"Platform-optimized social posts in Kyle Rosebrook's voice. LinkedIn, Twitter/X, Threads, Blog, Audio Script."},
+  {c:"user",n:"implementing-review-feedback",f:"implementing-review-feedback.skill",kb:2.8,d:"Process and implement code review feedback from reviewer comments, PR feedback, and code review notes."},
+  {c:"user",n:"kb-screenshot-automator",f:"kb-screenshot-automator.skill",kb:12.6,d:"Automate screenshot capture and insertion for Scribe-formatted KB articles with Screenshot Placeholder markers."},
+  {c:"user",n:"managing-design-briefs",f:"managing-design-briefs.skill",kb:33.8,d:"Generates design briefs, enforces anti-slop gates, manages locked design tokens. INT and FlashFusion brand profiles."},
+  {c:"user",n:"orchestrating-ai-agents",f:"orchestrating-ai-agents.skill",kb:22.0,d:"Build AI agents, automation workflows, and tool orchestrations. MCP servers, LangChain/CrewAI, multi-LLM workflows."},
+  {c:"user",n:"organizing-projects",f:"organizing-projects.skill",kb:42.2,d:"Analyze, reorganize, and scaffold project repositories. Structure audits, convention enforcement, migration planning."},
+  {c:"user",n:"packaging-skills",f:"packaging-skills.skill",kb:13.8,d:"Package Claude skills into production-ready zip files with full Anthropic spec compliance and 14-point validation."},
+  {c:"user",n:"producing-ai-newsletter",f:"producing-ai-newsletter.skill",kb:36.2,d:"Multi-configuration AI newsletter production system. INT (Teams/SharePoint) and FlashFusion (Substack/email) profiles."},
+  {c:"user",n:"producing-graphics",f:"producing-graphics.skill",kb:6.2,d:"Create export-ready graphics for web, print, and social media with proper formats, color spaces, resolution, optimization."},
+  {c:"user",n:"professional-web-design",f:"professional-web-design.skill",kb:20.7,d:"Industry-standard web design: responsive design, Core Web Vitals, CSS Grid, WCAG accessibility, dark mode, design tokens."},
+  {c:"user",n:"project-bootstrapper",f:"project-bootstrapper.skill",kb:2.0,d:"Set up new projects or improve existing with best practices, tooling, documentation, workflow automation."},
+  {c:"user",n:"prototyping-testing",f:"prototyping-testing.skill",kb:5.2,d:"Prototyping strategy, usability test planning, heuristic evaluation, A/B experiment design, tree testing, concept testing."},
+  {c:"user",n:"refactoring-code",f:"refactoring-code.skill",kb:2.6,d:"Bulk code refactoring: rename across files, replace deprecated patterns, update API calls, consistent changes."},
+  {c:"user",n:"reminding-skill-usage",f:"reminding-skill-usage.skill",kb:5.9,d:"Analyzes your task and suggests which skills from your library would be most helpful."},
+  {c:"user",n:"roi-calculator-building",f:"roi-calculator-building.skill",kb:6.4,d:"Build AI implementation ROI models for B2B enterprise sales. Cost savings, revenue projections, payback period, TCO."},
+  {c:"user",n:"running-drive-automation",f:"running-drive-automation.skill",kb:18.2,d:"Operates the Drive Automation Chain 1+2 — multi-agent Google Drive classification and routing pipeline with Supabase audit trail."},
+  {c:"user",n:"social-post-generator",f:"social-post-generator.skill",kb:11.1,d:"Platform-optimized social posts in Kyle Rosebrook's voice. Lesson, about_me, tidbit, tool_tip, review, hot_take, workflow."},
+  {c:"user",n:"task-decomposition",f:"task-decomposition.skill",kb:4.9,d:"Decompose complex multi-part requests into parallel workstreams with dependency tracking and integration planning."},
+  {c:"user",n:"tracking-personal-challenges",f:"tracking-personal-challenges.skill",kb:2.8,d:"Track personal challenges across learning, fitness, building, creative, and habit domains with adaptive check-ins."},
+  {c:"user",n:"troubleshooting-skills",f:"troubleshooting-skills.skill",kb:10.7,d:"Diagnose and fix Claude skill pack issues: corrupted zips, path errors, upload failures, YAML errors, structure problems."},
+  {c:"user",n:"ui-component-library",f:"ui-component-library.skill",kb:14.2,d:"Reusable UI component patterns for React, Vue, vanilla JS. Compound components, headless hooks, virtualized lists, drag and drop."},
+  {c:"user",n:"unifying-service-desk",f:"unifying-service-desk.skill",kb:67.6,d:"Intelligent multi-tier IT support (L0–L4) with automatic escalation routing. 12 issue categories, incident triage."},
+  {c:"user",n:"workflow-automation",f:"workflow-automation.skill",kb:17.1,d:"Build automated workflows using n8n, Zapier, Make/Integromat and custom automation scripts."},
+  {c:"user",n:"writing-shell-scripts",f:"writing-shell-scripts.skill",kb:9.1,d:"Production-ready shell and automation scripts (Bash .sh and PowerShell .ps1) with adversarial audit gate, MSP-grade error handling."},
+  {c:"public",n:"docx",f:"docx.skill",kb:154.8,d:"Create, read, edit, or manipulate Word documents (.docx). Tables of contents, headings, page numbers, letterheads, tracked changes."},
+  {c:"public",n:"file-reading",f:"file-reading.skill",kb:5.4,d:"Router for reading uploaded files not in context. Covers PDF, docx, xlsx, csv, json, images, archives, ebooks."},
+  {c:"public",n:"frontend-design",f:"frontend-design.skill",kb:5.8,d:"Create distinctive, production-grade frontend interfaces with high design quality. Avoids generic AI aesthetics."},
+  {c:"public",n:"pdf",f:"pdf.skill",kb:21.1,d:"Read, extract, combine, split, rotate, watermark, create, fill forms, encrypt/decrypt, OCR PDFs."},
+  {c:"public",n:"pdf-reading",f:"pdf-reading.skill",kb:7.6,d:"Read, inspect, or extract content from PDF files. Text extraction, page rasterization, image/table/form-field extraction."},
+  {c:"public",n:"pptx",f:"pptx.skill",kb:160.6,d:"Create, read, parse, edit, combine, or split .pptx presentations. Templates, layouts, speaker notes, comments."},
+  {c:"public",n:"product-self-knowledge",f:"product-self-knowledge.skill",kb:1.3,d:"Authoritative facts about Anthropic products: Claude Code, Claude API, Claude.ai plans, features, limits, pricing."},
+  {c:"public",n:"xlsx",f:"xlsx.skill",kb:147.3,d:"Open, read, edit, fix, or create .xlsx, .xlsm, .csv, .tsv spreadsheets. Formulas, formatting, charts, data cleaning."},
+  {c:"examples",n:"algorithmic-art",f:"algorithmic-art.skill",kb:18.8,d:"Create algorithmic art using p5.js with seeded randomness and interactive parameter exploration. Flow fields, particle systems."},
+  {c:"examples",n:"benepass-reimbursement",f:"benepass-reimbursement.skill",kb:6.6,d:"Handle Benepass expense reimbursement workflows and submission assistance."},
+  {c:"examples",n:"brand-guidelines",f:"brand-guidelines.skill",kb:5.2,d:"Applies Anthropic's official brand colors and typography to artifacts."},
+  {c:"examples",n:"call-to-book",f:"call-to-book.skill",kb:6.0,d:"Handle call booking requests, scheduling workflows, and appointment coordination."},
+  {c:"examples",n:"cancel-unsubscribe",f:"cancel-unsubscribe.skill",kb:6.7,d:"Guide users through cancellation and unsubscribe workflows."},
+  {c:"examples",n:"canvas-design",f:"canvas-design.skill",kb:2587.0,d:"Create beautiful visual art in .png and .pdf documents using design philosophy. Posters, illustrations, static pieces."},
+  {c:"examples",n:"doc-coauthoring",f:"doc-coauthoring.skill",kb:5.8,d:"Structured workflow for co-authoring documentation, proposals, technical specs, and decision docs."},
+  {c:"examples",n:"event-planning",f:"event-planning.skill",kb:6.2,d:"Plan and coordinate events, venues, logistics, and attendee management."},
+  {c:"examples",n:"file-expenses",f:"file-expenses.skill",kb:5.6,d:"Handle expense filing, categorization, and submission workflows."},
+  {c:"examples",n:"file-form",f:"file-form.skill",kb:5.8,d:"Guide users through form completion and document filing workflows."},
+  {c:"examples",n:"financial-calculator",f:"financial-calculator.skill",kb:6.2,d:"Financial calculations, projections, and analysis tools."},
+  {c:"examples",n:"grocery-shopping",f:"grocery-shopping.skill",kb:5.5,d:"Assist with grocery list building, shopping planning, and meal prep coordination."},
+  {c:"examples",n:"hire-help",f:"hire-help.skill",kb:5.9,d:"Guide users through hiring workflows, job posting, and candidate coordination."},
+  {c:"examples",n:"internal-comms",f:"internal-comms.skill",kb:9.8,d:"Write internal communications: status reports, leadership updates, newsletters, FAQs, incident reports, project updates."},
+  {c:"examples",n:"mcp-builder",f:"mcp-builder.skill",kb:41.4,d:"Guide for creating high-quality MCP servers in Python (FastMCP) or TypeScript (MCP SDK)."},
+  {c:"examples",n:"meal-delivery",f:"meal-delivery.skill",kb:5.4,d:"Assist with meal delivery ordering, preferences, and dietary coordination."},
+  {c:"examples",n:"prescription-refill",f:"prescription-refill.skill",kb:6.8,d:"Guide users through prescription refill requests and pharmacy coordination."},
+  {c:"examples",n:"return-refund",f:"return-refund.skill",kb:5.8,d:"Handle product return and refund request workflows."},
+  {c:"examples",n:"skill-creator",f:"skill-creator.skill",kb:71.3,d:"Create new skills, modify existing skills, run evals, benchmark performance with variance analysis."},
+  {c:"examples",n:"slack-gif-creator",f:"slack-gif-creator.skill",kb:15.5,d:"Create animated GIFs optimized for Slack with correct constraints, validation tools, and animation concepts."},
+  {c:"examples",n:"theme-factory",f:"theme-factory.skill",kb:120.5,d:"Style artifacts with themes: slides, docs, reporting, HTML landing pages. 10 pre-set themes + on-the-fly generation."},
+  {c:"examples",n:"web-artifacts-builder",f:"web-artifacts-builder.skill",kb:29.5,d:"Create elaborate, multi-component Claude.ai HTML artifacts using React, Tailwind CSS, shadcn/ui."},
+];
+
+const ACTIVE=new Set(["advanced-ux-patterns","advanced-visual-design","ai-solution-architecture","anchor","applying-sparc-methodology","code-auditor","code-transfer","create-agent-skills","create-meta-prompts","create-subagents","debug-like-expert","design-system-builder","developing-skills","drafting-multi-format-content","elite-ui-design","enforcing-output-formats","engineering-staff-workflows","fixing-tests","generating-intinc-documents","generating-kb-articles","generating-msm-documents","generating-social-posts","implementing-review-feedback","kb-screenshot-automator","managing-design-briefs","orchestrating-ai-agents","organizing-projects","packaging-skills","producing-ai-newsletter","producing-graphics","professional-web-design","project-bootstrapper","prototyping-testing","refactoring-code","reminding-skill-usage","roi-calculator-building","running-drive-automation","social-post-generator","task-decomposition","tracking-personal-challenges","troubleshooting-skills","ui-component-library","unifying-service-desk","workflow-automation","writing-shell-scripts","docx","file-reading","frontend-design","pdf","pdf-reading","pptx","product-self-knowledge","xlsx","algorithmic-art","brand-guidelines","canvas-design","doc-coauthoring","internal-comms","mcp-builder","skill-creator","slack-gif-creator","theme-factory","web-artifacts-builder"]);
+
+const DL_ICO=`<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 15V3M7 10l5 5 5-5"/><path d="M3 17v2a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-2"/></svg>`;
+const CP_ICO=`<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>`;
+const OK_ICO=`<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>`;
+
+function fmt(kb){return kb>=1024?`${(kb/1024).toFixed(1)} MB`:`${Math.round(kb)} KB`}
+
+let fil="all",q="";
+
+function render(){
+  const qL=q.toLowerCase();
+  const vis=S.filter(s=>(fil==="all"||s.c===fil)&&(!qL||s.n.includes(qL)||s.d.toLowerCase().includes(qL)));
+  document.getElementById("st").innerHTML=`Showing <b>${vis.length}</b> of <b>${S.length}</b> skills`;
+  const g=document.getElementById("grid");
+  if(!vis.length){g.innerHTML=`<div class="empty">No skills match "${q}"</div>`;return;}
+  g.innerHTML=vis.map(s=>{
+    const bl=s.c==="user"?"bu":s.c==="public"?"bp":"be";
+    const blLabel=s.c==="user"?"User":s.c==="public"?"Public":"Example";
+    const act=ACTIVE.has(s.n);
+    return `<div class="card" data-c="${s.c}">
+  <div class="card-top"><div class="card-name">${s.n}</div><span class="badge ${bl}">${blLabel}</span></div>
+  <div class="desc">${s.d}</div>
+  <div class="card-foot">
+    <span class="fname">${s.f}</span><span class="fsize">${fmt(s.kb)}</span>
+    <a class="btn dl" href="skills/${s.f}" download="${s.f}">${DL_ICO} Install</a>
+    <button class="btn cp" onclick="cp(this,'${s.n}')">${CP_ICO} Copy</button>
+    ${act?`<span class="active-pill"><span class="dot"></span>Active</span>`:''}
+  </div>
+</div>`;
+  }).join("");
+}
+
+function cp(btn,name){
+  navigator.clipboard.writeText(name).catch(()=>{const t=document.createElement("textarea");t.value=name;document.body.appendChild(t);t.select();document.execCommand("copy");document.body.removeChild(t);});
+  btn.classList.add("ok");btn.innerHTML=`${OK_ICO} Copied`;
+  setTimeout(()=>{btn.classList.remove("ok");btn.innerHTML=`${CP_ICO} Copy`;},2000);
+}
+
+document.getElementById("tabs").addEventListener("click",e=>{
+  const b=e.target.closest(".tab");if(!b)return;
+  fil=b.dataset.f;
+  document.querySelectorAll(".tab").forEach(t=>t.classList.remove("on"));
+  b.classList.add("on");render();
+});
+document.getElementById("sq").addEventListener("input",e=>{q=e.target.value;render();});
+render();
+</script>
+</body>
+</html>

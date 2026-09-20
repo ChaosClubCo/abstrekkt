@@ -1,0 +1,873 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Claude Checklists — AI Command Center</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+--bg:#0a0a0f;--bg2:#12121a;--bg3:#1a1a25;--bg4:#22222f;
+--text:#e0e0e8;--text-dim:#8888a0;--text-bright:#ffffff;
+--accent:#6c5ce7;--accent2:#a29bfe;--green:#00b894;--green-dim:#00b89433;
+--red:#ff6b6b;--orange:#fdcb6e;--yellow:#ffeaa7;
+--claude:#d4a574;--gemini:#4285f4;--codex:#10a37f;--copilot:#0078d4;
+--border:#2a2a3a;--radius:8px;--radius-lg:12px;
+--focus-ring:0 0 0 2px var(--accent2);
+--font:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+--font-mono:'SF Mono','Cascadia Code','Fira Code',monospace;
+}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+body{font-family:var(--font);background:var(--bg);color:var(--text);line-height:1.5;overflow:hidden;height:100vh}
+a{color:var(--accent2)}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.skip-link{position:absolute;top:-100%;left:8px;background:var(--accent);color:#fff;padding:8px 16px;border-radius:var(--radius);z-index:10000;text-decoration:none;font-weight:600}
+.skip-link:focus{top:8px}
+
+/* Layout */
+.app{display:flex;height:100vh;flex-direction:column}
+.top-bar{display:flex;align-items:center;justify-content:space-between;padding:10px 20px;background:var(--bg2);border-bottom:1px solid var(--border);flex-shrink:0;gap:12px;flex-wrap:wrap}
+.top-bar h1{font-size:16px;font-weight:700;white-space:nowrap}
+.top-bar h1 span{color:var(--accent)}
+.global-stats{display:flex;gap:16px;font-size:13px;color:var(--text-dim)}
+.global-stats strong{color:var(--text)}
+.global-progress{width:200px;height:6px;background:var(--bg4);border-radius:3px;overflow:hidden}
+.global-progress-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--green));border-radius:3px;transition:width .3s}
+.kbd-hints{font-size:11px;color:var(--text-dim);white-space:nowrap}
+.kbd-hints kbd{background:var(--bg4);padding:1px 5px;border-radius:3px;font-family:var(--font-mono);font-size:10px;border:1px solid var(--border)}
+
+.main-area{display:flex;flex:1;overflow:hidden}
+
+/* Controls */
+.controls{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.controls button{padding:5px 14px;border-radius:var(--radius);border:1px solid var(--border);background:var(--bg3);color:var(--text);cursor:pointer;font-size:12px;font-family:var(--font);transition:all .15s}
+.controls button:hover{background:var(--bg4);border-color:var(--accent)}
+.controls button:focus-visible{box-shadow:var(--focus-ring);outline:none}
+.controls button[aria-pressed="true"]{background:var(--accent);color:#fff;border-color:var(--accent)}
+.btn-scan{background:linear-gradient(135deg,var(--accent),#8b5cf6)!important;color:#fff!important;border-color:var(--accent)!important;font-weight:600}
+.btn-scan:hover{filter:brightness(1.1)}
+
+/* Grid */
+.grid-container{flex:1;overflow-y:auto;padding:16px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px}
+
+/* Domain Card */
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px;transition:border-color .2s,box-shadow .2s}
+.card.selected{border-color:var(--gemini);box-shadow:0 0 12px #4285f433}
+.card.complete{border-color:var(--green);box-shadow:0 0 12px var(--green-dim)}
+.card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;cursor:pointer;padding:4px;border-radius:var(--radius)}
+.card-header:focus-visible{box-shadow:var(--focus-ring);outline:none}
+.card-title{font-size:15px;font-weight:700;text-transform:capitalize}
+.badge{font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;text-transform:uppercase;letter-spacing:.5px}
+.badge-critical{background:#ff6b6b33;color:var(--red)}
+.badge-high{background:#fdcb6e33;color:var(--orange)}
+.badge-medium{background:#74b9ff33;color:#74b9ff}
+.badge-low{background:#55efc433;color:#55efc4}
+.card-progress{display:flex;align-items:center;gap:8px;margin-bottom:12px}
+.card-progress-bar{flex:1;height:4px;background:var(--bg4);border-radius:2px;overflow:hidden}
+.card-progress-fill{height:100%;background:var(--green);border-radius:2px;transition:width .3s}
+.card-progress-text{font-size:11px;color:var(--text-dim);font-family:var(--font-mono)}
+.section-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text-dim);margin:10px 0 4px;padding-left:4px}
+.check-item{display:flex;align-items:flex-start;gap:8px;padding:4px 4px;border-radius:4px;cursor:pointer;font-size:13px;transition:background .1s}
+.check-item:hover{background:var(--bg3)}
+.check-item:focus-visible{box-shadow:var(--focus-ring);outline:none}
+.check-item input[type="checkbox"]{accent-color:var(--green);margin-top:3px;cursor:pointer;flex-shrink:0}
+.check-item.checked span{text-decoration:line-through;color:var(--text-dim)}
+.stale-dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--orange);margin-left:6px;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.stale-badge{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--orange);margin-left:6px;animation:pulse 2s infinite}
+.card-overflow{display:none}
+.card.expanded .card-overflow{display:block}
+.show-more{font-size:12px;color:var(--accent2);cursor:pointer;padding:4px;border:none;background:none;font-family:var(--font)}
+.show-more:hover{text-decoration:underline}
+.show-more:focus-visible{box-shadow:var(--focus-ring);outline:none}
+
+/* AI Panel */
+.ai-panel{width:440px;border-left:1px solid var(--border);display:flex;flex-direction:column;background:var(--bg2);flex-shrink:0}
+.provider-tabs{display:flex;border-bottom:1px solid var(--border)}
+.provider-tab{flex:1;padding:10px 8px;text-align:center;font-size:12px;font-weight:600;cursor:pointer;border:none;background:transparent;color:var(--text-dim);font-family:var(--font);border-bottom:2px solid transparent;transition:all .15s}
+.provider-tab:hover{color:var(--text);background:var(--bg3)}
+.provider-tab:focus-visible{box-shadow:var(--focus-ring);outline:none}
+.provider-tab[aria-selected="true"]{color:var(--text-bright)}
+.provider-tab[data-provider="claude"][aria-selected="true"]{border-bottom-color:var(--claude);color:var(--claude)}
+.provider-tab[data-provider="gemini"][aria-selected="true"]{border-bottom-color:var(--gemini);color:var(--gemini)}
+.provider-tab[data-provider="codex"][aria-selected="true"]{border-bottom-color:var(--codex);color:var(--codex)}
+.provider-tab[data-provider="copilot"][aria-selected="true"]{border-bottom-color:var(--copilot);color:var(--copilot)}
+
+.ai-content{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.api-key-bar{display:flex;gap:6px;padding:8px 12px;border-bottom:1px solid var(--border);align-items:center}
+.api-key-bar input{flex:1;padding:6px 10px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-size:12px;font-family:var(--font)}
+.api-key-bar input:focus{border-color:var(--accent);outline:none;box-shadow:var(--focus-ring)}
+.api-key-bar button{padding:6px 12px;background:var(--accent);color:#fff;border:none;border-radius:var(--radius);cursor:pointer;font-size:12px;font-weight:600}
+.key-status{font-size:10px;padding:2px 8px;border-radius:10px;white-space:nowrap}
+.key-status.set{background:#00b89433;color:var(--green)}
+.key-status.unset{background:#ff6b6b33;color:var(--red)}
+
+.context-bar{display:flex;align-items:center;gap:8px;padding:6px 12px;font-size:11px;color:var(--text-dim);border-bottom:1px solid var(--border)}
+.context-bar label{display:flex;align-items:center;gap:4px;cursor:pointer}
+.context-bar input{accent-color:var(--accent)}
+
+.quick-actions{display:flex;gap:4px;padding:8px 12px;flex-wrap:wrap;border-bottom:1px solid var(--border)}
+.quick-actions button{padding:4px 10px;font-size:11px;border:1px solid var(--border);border-radius:14px;background:var(--bg3);color:var(--text-dim);cursor:pointer;font-family:var(--font);white-space:nowrap;transition:all .15s}
+.quick-actions button:hover{border-color:var(--accent);color:var(--text)}
+.quick-actions button:focus-visible{box-shadow:var(--focus-ring);outline:none}
+
+.chat-messages{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px}
+.chat-msg{padding:8px 12px;border-radius:var(--radius);font-size:13px;line-height:1.5;max-width:95%;word-wrap:break-word;white-space:pre-wrap}
+.chat-msg.user{background:var(--accent);color:#fff;align-self:flex-end;border-bottom-right-radius:2px}
+.chat-msg.ai{background:var(--bg3);align-self:flex-start;border-bottom-left-radius:2px}
+.chat-msg.system{background:var(--bg4);color:var(--text-dim);align-self:center;font-size:11px;text-align:center}
+.chat-msg.error{background:#ff6b6b22;color:var(--red);align-self:center;font-size:12px}
+.typing{display:flex;gap:4px;padding:8px 12px;align-self:flex-start}
+.typing span{width:6px;height:6px;background:var(--text-dim);border-radius:50%;animation:bounce .6s infinite alternate}
+.typing span:nth-child(2){animation-delay:.2s}
+.typing span:nth-child(3){animation-delay:.4s}
+@keyframes bounce{to{transform:translateY(-6px);opacity:.3}}
+
+.placeholder-notice{margin:12px;padding:16px;background:#fdcb6e11;border:1px solid #fdcb6e44;border-radius:var(--radius);font-size:13px;color:var(--orange);text-align:center}
+
+.chat-input-area{display:flex;gap:6px;padding:8px 12px;border-top:1px solid var(--border);align-items:flex-end}
+.chat-input-area textarea{flex:1;padding:8px 10px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-size:13px;font-family:var(--font);resize:none;min-height:38px;max-height:120px}
+.chat-input-area textarea:focus{border-color:var(--accent);outline:none;box-shadow:var(--focus-ring)}
+.chat-input-area button{padding:8px 16px;background:var(--accent);color:#fff;border:none;border-radius:var(--radius);cursor:pointer;font-weight:600;font-size:13px;white-space:nowrap}
+.chat-input-area button:hover{filter:brightness(1.1)}
+.chat-input-area button:focus-visible{box-shadow:var(--focus-ring);outline:none}
+
+.model-selector{display:flex;align-items:center;gap:6px;padding:4px 12px;font-size:11px;color:var(--text-dim);border-top:1px solid var(--border)}
+.model-selector select{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);padding:3px 6px;font-size:11px;font-family:var(--font)}
+.model-selector select:focus{border-color:var(--accent);outline:none;box-shadow:var(--focus-ring)}
+.model-hint{font-style:italic;color:var(--text-dim)}
+
+/* Spotlight */
+.spotlight-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9000;display:none;justify-content:center;padding-top:15vh}
+.spotlight-overlay.open{display:flex}
+.spotlight-box{width:560px;max-height:60vh;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;display:flex;flex-direction:column}
+.spotlight-input{padding:14px 18px;font-size:16px;background:transparent;border:none;border-bottom:1px solid var(--border);color:var(--text);font-family:var(--font);outline:none;width:100%}
+.spotlight-results{overflow-y:auto;flex:1}
+.spotlight-item{padding:10px 18px;cursor:pointer;display:flex;align-items:center;gap:10px;font-size:13px;transition:background .1s}
+.spotlight-item:hover,.spotlight-item.highlighted{background:var(--bg4)}
+.spotlight-item .domain-badge{font-size:10px;padding:1px 6px;border-radius:8px;background:var(--bg4);color:var(--text-dim)}
+
+/* Activity Modal */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:8000;display:none;justify-content:center;align-items:center}
+.modal-overlay.open{display:flex}
+.modal{width:500px;max-height:70vh;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);display:flex;flex-direction:column}
+.modal-header{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid var(--border)}
+.modal-header h2{font-size:16px}
+.modal-header button{background:none;border:none;color:var(--text-dim);cursor:pointer;font-size:18px}
+.modal-body{overflow-y:auto;padding:12px 18px;flex:1}
+.activity-entry{display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);font-size:12px}
+.activity-entry:last-child{border:none}
+.activity-icon{font-size:14px;flex-shrink:0;margin-top:1px}
+.activity-time{color:var(--text-dim);font-family:var(--font-mono);white-space:nowrap;min-width:40px}
+.activity-text{color:var(--text)}
+.activity-text .domain{color:var(--accent2)}
+
+/* Mobile */
+.fab{display:none;position:fixed;bottom:20px;right:20px;width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,var(--accent),#8b5cf6);color:#fff;border:none;font-size:18px;font-weight:700;cursor:pointer;z-index:5000;box-shadow:0 4px 16px rgba(108,92,231,.4)}
+.fab:focus-visible{box-shadow:var(--focus-ring)}
+
+@media(max-width:1100px){.ai-panel{width:360px}}
+@media(max-width:860px){
+.ai-panel{position:fixed;right:0;top:0;bottom:0;width:380px;z-index:6000;transform:translateX(100%);transition:transform .2s}
+.ai-panel.open{transform:translateX(0)}
+.fab{display:block}
+.grid{grid-template-columns:repeat(auto-fill,minmax(280px,1fr))}
+.kbd-hints{display:none}
+}
+@media(max-width:600px){
+.grid{grid-template-columns:1fr}
+.top-bar h1{font-size:14px}
+.top-bar{padding:8px 12px}
+.grid-container{padding:10px}
+.spotlight-box{width:95vw}
+}
+</style>
+</head>
+<body>
+<a href="#checklist-grid" class="skip-link">Skip to checklist</a>
+<a href="#ai-chat-input" class="skip-link" style="left:160px">Skip to AI chat</a>
+
+<div class="app">
+<div class="top-bar">
+  <h1><span>Claude</span> Checklists — AI Command Center</h1>
+  <div class="global-stats" aria-live="polite">
+    <span>Total: <strong id="stat-total">0/0</strong></span>
+    <div class="global-progress"><div class="global-progress-fill" id="global-progress" style="width:0%"></div></div>
+    <span id="stat-pct">0%</span>
+  </div>
+  <div class="controls">
+    <button aria-pressed="true" data-filter="all" onclick="setFilter('all')">All</button>
+    <button aria-pressed="false" data-filter="critical" onclick="setFilter('critical')">Critical</button>
+    <button aria-pressed="false" data-filter="high" onclick="setFilter('high')">High</button>
+    <button aria-pressed="false" data-filter="medium" onclick="setFilter('medium')">Medium</button>
+    <span style="width:1px;height:20px;background:var(--border)"></span>
+    <button class="btn-scan" onclick="aiScan()">AI Scan</button>
+    <button onclick="openActivity()">Activity</button>
+    <button onclick="exportChecklist()">Export</button>
+  </div>
+  <div class="kbd-hints">
+    <kbd>Ctrl+K</kbd> Search &nbsp; <kbd>Ctrl+Z</kbd> Undo &nbsp; <kbd>J</kbd>/<kbd>K</kbd> Nav
+  </div>
+</div>
+
+<div class="main-area">
+<div class="grid-container" id="checklist-grid" role="list" aria-label="Domain checklists">
+  <div class="grid" id="grid"></div>
+</div>
+
+<div class="ai-panel" id="ai-panel" role="complementary" aria-label="AI Chat">
+  <div class="provider-tabs" role="tablist" aria-label="AI Provider">
+    <button class="provider-tab" role="tab" data-provider="claude" aria-selected="true" onclick="switchProvider('claude')">Claude</button>
+    <button class="provider-tab" role="tab" data-provider="gemini" aria-selected="false" onclick="switchProvider('gemini')">Gemini</button>
+    <button class="provider-tab" role="tab" data-provider="codex" aria-selected="false" onclick="switchProvider('codex')">Codex</button>
+    <button class="provider-tab" role="tab" data-provider="copilot" aria-selected="false" onclick="switchProvider('copilot')">Copilot</button>
+  </div>
+  <div class="ai-content" id="ai-content"></div>
+</div>
+</div>
+</div>
+
+<button class="fab" id="fab" onclick="togglePanel()" aria-label="Toggle AI chat">AI</button>
+
+<!-- Spotlight -->
+<div class="spotlight-overlay" id="spotlight" onclick="if(event.target===this)closeSpotlight()">
+  <div class="spotlight-box" role="dialog" aria-label="Search checklists">
+    <input class="spotlight-input" id="spotlight-input" placeholder="Search all checklist items..." autocomplete="off" aria-label="Search checklist items">
+    <div class="spotlight-results" id="spotlight-results" role="listbox"></div>
+  </div>
+</div>
+
+<!-- Activity Modal -->
+<div class="modal-overlay" id="activity-modal" onclick="if(event.target===this)closeActivity()">
+  <div class="modal" role="dialog" aria-label="Activity log">
+    <div class="modal-header"><h2>Activity Log</h2><button onclick="closeActivity()" aria-label="Close">&times;</button></div>
+    <div class="modal-body" id="activity-body"></div>
+  </div>
+</div>
+
+<script>
+// ============ DOMAINS DATA ============
+const DOMAINS = [
+  {
+    id:'homebase',priority:'critical',title:'Homebase',description:'Central hub, meta-coordination, ecosystem health',
+    sections:[
+      {name:'Meta-Coordination',items:['Audit all domain checklists for completeness and accuracy','Establish weekly review cadence for checklist maintenance','Define cross-domain dependency map between critical domains','Set up notification triggers for stale critical items','Document escalation paths for blocked items']},
+      {name:'Ecosystem Health',items:['Verify all AI provider integrations are configured and tested','Review dashboard accessibility compliance (WCAG 2.1 AA)','Validate localStorage and sessionStorage data integrity','Run cross-browser compatibility check on dashboard','Confirm export feature produces accurate markdown snapshots']},
+      {name:'Strategic Planning',items:['Draft quarterly objectives aligned to domain priorities','Identify top three cross-domain initiatives for the month','Review and update CURRENT-PROJECT.md with accurate focus','Assess resource allocation across critical and high domains']},
+      {name:'Documentation',items:['Keep GUIDE.md current with any workflow changes','Update DESCRIPTION-OF-THIS-AREA.md after structural changes','Maintain EXAMPLES.md with real usage patterns','Review CLAUDE.md instructions for clarity and completeness']}
+    ]
+  },
+  {
+    id:'system',priority:'high',title:'System',description:'OS environment, CLI tooling, shell config, dev setup',
+    sections:[
+      {name:'OS Environment',items:['Update Windows 11 to latest stable build','Audit installed applications and remove unused software','Verify disk health and storage capacity across drives','Configure automated backup schedule for critical directories','Review and harden Windows security settings']},
+      {name:'CLI Tooling',items:['Update Node.js to latest LTS version','Verify npm and pnpm global installations are current','Update Python and pip to latest stable versions','Install or update Vercel CLI globally','Audit PATH environment variable for conflicts']},
+      {name:'Shell Configuration',items:['Review and optimize bash/zsh profile settings','Configure Git global settings and aliases','Set up SSH keys for all active remote services','Verify terminal color scheme and font rendering']},
+      {name:'Dev Setup',items:['Update VS Code and extensions to latest versions','Configure Claude Code CLI with current API credentials','Verify Docker Desktop is running and up to date','Test local development server startup across projects','Validate environment variable management workflow']}
+    ]
+  },
+  {
+    id:'development',priority:'high',title:'Development',description:'General repos, builds, dev infrastructure',
+    sections:[
+      {name:'Repository Management',items:['Audit all active repositories for stale branches','Verify CI/CD pipelines are green across critical repos','Update dependency versions and resolve security advisories','Review and consolidate .gitignore patterns','Archive inactive repositories with proper documentation']},
+      {name:'Build Infrastructure',items:['Validate build scripts produce consistent outputs','Configure remote caching for monorepo builds','Optimize build times by profiling slow steps','Test deployment pipelines end-to-end in staging']},
+      {name:'Code Quality',items:['Enforce linting rules across all active projects','Set up pre-commit hooks for formatting and type checks','Review test coverage targets and identify gaps','Establish code review standards and checklist']},
+      {name:'Developer Experience',items:['Document local setup instructions for each project','Create project-specific CLAUDE.md files for AI assistance','Standardize environment variable naming conventions','Set up shared component libraries where applicable']}
+    ]
+  },
+  {
+    id:'intinc',priority:'critical',title:'INTINC',description:'INTINC business operations and products',
+    sections:[
+      {name:'Business Operations',items:['Review and update business strategy documentation','Audit current product roadmap for alignment with goals','Assess revenue streams and identify growth opportunities','Update stakeholder communication materials','Review operational workflows for efficiency gains']},
+      {name:'Product Development',items:['Prioritize feature backlog based on customer impact','Define acceptance criteria for next sprint items','Review technical debt inventory and schedule remediation','Validate product analytics instrumentation','Conduct user feedback synthesis from recent sessions']},
+      {name:'AI Integration Layer',items:['Review AI operating layer PRD for current accuracy','Test cross-functional simulator workflows end-to-end','Validate AI newsletter generation pipeline','Assess Claude best practices documentation freshness','Identify new AI capabilities to integrate into products']},
+      {name:'Compliance and Documentation',items:['Verify all client-facing documentation is current','Review data handling procedures for compliance','Update internal knowledge base with recent decisions','Audit access controls across business systems']}
+    ]
+  },
+  {
+    id:'flashfusion',priority:'critical',title:'FlashFusion',description:'FlashFusion Enterprise platform',
+    sections:[
+      {name:'Platform Architecture',items:['Review current architecture for scalability bottlenecks','Validate database schema migrations are up to date','Audit API endpoint performance and response times','Verify edge function deployments are healthy','Document infrastructure topology and dependencies']},
+      {name:'Feature Development',items:['Implement next priority feature from product roadmap','Write integration tests for recently shipped features','Review and merge pending pull requests','Update API documentation for new endpoints','Conduct code review on critical path changes']},
+      {name:'Security and Reliability',items:['Run security vulnerability scan on dependencies','Verify authentication and authorization flows','Test disaster recovery procedures','Review error monitoring alerts and thresholds','Validate rate limiting and DDoS protections']},
+      {name:'Deployment and Operations',items:['Verify staging environment mirrors production config','Test deployment rollback procedures','Review monitoring dashboards for coverage gaps','Optimize CI/CD pipeline execution time','Update runbook for common operational scenarios']}
+    ]
+  },
+  {
+    id:'media',priority:'medium',title:'Media',description:'Media production, audio, video, design assets',
+    sections:[
+      {name:'Audio Production',items:['Organize audio project files into standardized folder structure','Back up completed audio projects to cloud storage','Update audio software and plugins to latest versions','Review and tag audio asset library for searchability']},
+      {name:'Video Production',items:['Audit video project backlog and prioritize completions','Verify video encoding presets match distribution requirements','Organize raw footage into labeled project folders','Update video templates with current branding']},
+      {name:'Design Assets',items:['Consolidate brand assets into a single source of truth','Update design system components for consistency','Review and refresh social media templates','Export and catalog reusable design elements']}
+    ]
+  },
+  {
+    id:'anthropic',priority:'high',title:'Anthropic',description:'Claude, Claude Code, Anthropic API, plugins',
+    sections:[
+      {name:'Claude Code Configuration',items:['Update Claude Code CLI to latest version','Review and optimize CLAUDE.md files across all projects','Audit installed plugins for compatibility and usefulness','Configure MCP server connections for active integrations','Test hook configurations for automated workflows']},
+      {name:'API Integration',items:['Verify API key rotation schedule is current','Review API usage patterns and optimize token consumption','Test all active API integrations for correct behavior','Update SDK versions in projects using Anthropic API','Document API rate limits and fallback strategies']},
+      {name:'Plugin Development',items:['Review plugin architecture for improvement opportunities','Test plugin skills and commands for correct triggering','Update plugin documentation with latest capabilities','Validate plugin hooks fire correctly in all contexts']},
+      {name:'Knowledge and Best Practices',items:['Update Claude best practices documentation','Review prompt engineering patterns for effectiveness','Document successful Claude workflows for reuse','Assess new Claude features for adoption potential','Share learnings with team and update training materials']}
+    ]
+  },
+  {
+    id:'google',priority:'medium',title:'Google',description:'GCP, AI Studio, Google Workspace',
+    sections:[
+      {name:'Google Cloud Platform',items:['Review active GCP projects and disable unused services','Audit IAM roles and service account permissions','Verify billing alerts are configured correctly','Update Terraform or infrastructure-as-code definitions','Test Cloud Functions deployments and triggers']},
+      {name:'AI Studio',items:['Evaluate latest Gemini model capabilities for use cases','Update API integrations to use current model versions','Test prompt templates in AI Studio playground','Document effective Gemini prompting patterns']},
+      {name:'Google Workspace',items:['Review shared drive organization and permissions','Audit Google Apps Script automations for reliability','Update email filters and label structure','Verify calendar integrations are syncing correctly']}
+    ]
+  },
+  {
+    id:'openai',priority:'medium',title:'OpenAI',description:'OpenAI API integrations',
+    sections:[
+      {name:'API Management',items:['Review API key security and rotation schedule','Audit usage dashboard for unexpected consumption spikes','Verify billing limits and alerts are configured','Update organization settings and team access controls']},
+      {name:'Model Integrations',items:['Test active integrations against latest model versions','Evaluate GPT-5 series capabilities for current use cases','Update model references from deprecated versions','Benchmark response quality across model tiers']},
+      {name:'Tooling and SDKs',items:['Update OpenAI SDK to latest version in all projects','Review function calling implementations for correctness','Test streaming response handlers end-to-end','Document integration patterns and error handling']}
+    ]
+  },
+  {
+    id:'microsoft-copilot',priority:'medium',title:'Microsoft Copilot',description:'Azure, Copilot, M365',
+    sections:[
+      {name:'Azure Services',items:['Review active Azure subscriptions and resource groups','Audit Azure AD app registrations and permissions','Verify cost management alerts and budgets','Update Azure CLI and SDK installations']},
+      {name:'Copilot Integration',items:['Evaluate Copilot features for productivity improvements','Configure Copilot settings in VS Code and M365 apps','Test Copilot-generated code suggestions for quality','Document effective Copilot usage patterns']},
+      {name:'Microsoft 365',items:['Review Teams channels and clean up inactive ones','Audit OneDrive storage and sharing permissions','Update Power Automate flows for current workflows','Verify Outlook rules and calendar sync settings']}
+    ]
+  },
+  {
+    id:'aws',priority:'medium',title:'AWS',description:'AWS services and infrastructure',
+    sections:[
+      {name:'Account Management',items:['Review IAM users and roles for least-privilege compliance','Audit security groups and network ACLs','Verify CloudTrail logging is enabled across regions','Update billing alerts and cost anomaly detection','Review and rotate access keys on schedule']},
+      {name:'Infrastructure',items:['Audit running EC2 instances and right-size if needed','Review S3 bucket policies and lifecycle rules','Verify RDS backup configurations and retention periods','Test Lambda function deployments and cold start times']},
+      {name:'Services and Integrations',items:['Update AWS SDK versions in active projects','Review CloudFormation or CDK stacks for drift','Test API Gateway endpoints and authorizers','Verify SNS/SQS message processing pipelines']}
+    ]
+  }
+];
+
+// ============ STATE ============
+const STORAGE_KEY = 'claude-checklists-state';
+const STALE_KEY = 'claude-checklists-stale-ts';
+const ACTIVITY_KEY = 'claude-checklists-activity';
+const UNDO_KEY = 'claude-checklists-undo';
+let state = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+let staleTs = JSON.parse(localStorage.getItem(STALE_KEY) || '{}');
+let activityLog = JSON.parse(localStorage.getItem(ACTIVITY_KEY) || '[]');
+let undoStack = JSON.parse(sessionStorage.getItem(UNDO_KEY) || '[]');
+let currentFilter = 'all';
+let selectedDomain = null;
+let focusedCardIdx = -1;
+let currentProvider = 'claude';
+let chatHistories = { claude:[], gemini:[], codex:[], copilot:[] };
+let claudeApiKey = sessionStorage.getItem('claude-api-key') || '';
+let fullContext = false;
+let isLoading = false;
+
+function stateKey(domainId, section, item) { return `${domainId}::${section}::${item}`; }
+function isChecked(domainId, section, item) { return !!state[stateKey(domainId, section, item)]; }
+function setChecked(domainId, section, item, val) {
+  const key = stateKey(domainId, section, item);
+  const prev = !!state[key];
+  if (prev === val) return;
+  undoStack.push({ key, previousValue: prev, timestamp: Date.now() });
+  if (undoStack.length > 20) undoStack.shift();
+  sessionStorage.setItem(UNDO_KEY, JSON.stringify(undoStack));
+  state[key] = val;
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  if (val) { delete staleTs[key]; } else { staleTs[key] = Date.now(); }
+  localStorage.setItem(STALE_KEY, JSON.stringify(staleTs));
+  logActivity(domainId, item, val);
+  render();
+}
+function undoLast() {
+  if (!undoStack.length) return;
+  const entry = undoStack.pop();
+  sessionStorage.setItem(UNDO_KEY, JSON.stringify(undoStack));
+  state[entry.key] = entry.previousValue;
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  if (!entry.previousValue) { staleTs[entry.key] = Date.now(); } else { delete staleTs[entry.key]; }
+  localStorage.setItem(STALE_KEY, JSON.stringify(staleTs));
+  addSystemMsg('Undid last change');
+  render();
+}
+
+// ============ STALE DETECTION ============
+const STALE_DAYS = { critical: 5, high: 7, medium: 14, low: 14 };
+function initStaleTimestamps() {
+  let changed = false;
+  DOMAINS.forEach(d => d.sections.forEach(s => s.items.forEach(item => {
+    const key = stateKey(d.id, s.name, item);
+    if (!state[key] && !staleTs[key]) { staleTs[key] = Date.now(); changed = true; }
+  })));
+  if (changed) localStorage.setItem(STALE_KEY, JSON.stringify(staleTs));
+}
+function isStale(domainId, section, item, priority) {
+  const key = stateKey(domainId, section, item);
+  if (state[key]) return false;
+  const ts = staleTs[key];
+  if (!ts) return false;
+  const days = (Date.now() - ts) / 86400000;
+  return days > (STALE_DAYS[priority] || 14);
+}
+function getStaleItems() {
+  const items = [];
+  DOMAINS.forEach(d => d.sections.forEach(s => s.items.forEach(item => {
+    if (isStale(d.id, s.name, item, d.priority)) {
+      const days = Math.floor((Date.now() - staleTs[stateKey(d.id, s.name, item)]) / 86400000);
+      items.push({ domain: d.id, item, days });
+    }
+  })));
+  return items;
+}
+
+// ============ ACTIVITY LOG ============
+function logActivity(domain, item, checked) {
+  activityLog.unshift({ timestamp: Date.now(), domain, item, checked });
+  if (activityLog.length > 200) activityLog.length = 200;
+  localStorage.setItem(ACTIVITY_KEY, JSON.stringify(activityLog));
+}
+
+// ============ STATS ============
+function getDomainStats(domain) {
+  let total = 0, done = 0;
+  domain.sections.forEach(s => s.items.forEach(item => { total++; if (isChecked(domain.id, s.name, item)) done++; }));
+  return { total, done };
+}
+function getGlobalStats() {
+  let total = 0, done = 0;
+  DOMAINS.forEach(d => { const s = getDomainStats(d); total += s.total; done += s.done; });
+  return { total, done };
+}
+
+// ============ RENDER ============
+function render() {
+  const grid = document.getElementById('grid');
+  const gs = getGlobalStats();
+  document.getElementById('stat-total').textContent = `${gs.done}/${gs.total}`;
+  document.getElementById('stat-pct').textContent = gs.total ? Math.round(gs.done/gs.total*100)+'%' : '0%';
+  document.getElementById('global-progress').style.width = gs.total ? (gs.done/gs.total*100)+'%' : '0%';
+
+  const filtered = DOMAINS.filter(d => currentFilter === 'all' || d.priority === currentFilter);
+  grid.innerHTML = filtered.map((d, idx) => {
+    const stats = getDomainStats(d);
+    const pct = stats.total ? Math.round(stats.done/stats.total*100) : 0;
+    const isComplete = stats.done === stats.total && stats.total > 0;
+    const isSelected = selectedDomain === d.id;
+    const hasStale = d.sections.some(s => s.items.some(item => isStale(d.id, s.name, item, d.priority)));
+    let allItems = [];
+    d.sections.forEach(s => s.items.forEach(item => allItems.push({ section: s.name, item })));
+    const collapsed = allItems.length > 5;
+
+    return `<div class="card${isComplete?' complete':''}${isSelected?' selected':''}" role="listitem" data-domain="${d.id}" data-idx="${idx}">
+      <div class="card-header" tabindex="0" role="button" aria-label="Select ${d.title} as AI context" onclick="selectDomain('${d.id}')" onkeydown="if(event.key==='Enter'){selectDomain('${d.id}')}">
+        <span class="card-title">${d.title}${hasStale?'<span class="stale-badge" title="Has stale items"></span>':''}</span>
+        <span class="badge badge-${d.priority}">${d.priority}</span>
+      </div>
+      <div class="card-progress">
+        <div class="card-progress-bar"><div class="card-progress-fill" style="width:${pct}%"></div></div>
+        <span class="card-progress-text">${stats.done}/${stats.total}</span>
+      </div>
+      ${(() => {
+        let itemCount = 0;
+        let visibleHtml = '';
+        let overflowHtml = '';
+        d.sections.forEach(s => {
+          const label = `<div class="section-label">${s.name}</div>`;
+          let sectionVisible = '';
+          let sectionOverflow = '';
+          s.items.forEach(item => {
+            const checked = isChecked(d.id, s.name, item);
+            const stale = isStale(d.id, s.name, item, d.priority);
+            const html = `<div class="check-item${checked?' checked':''}" role="checkbox" aria-checked="${checked}" tabindex="0"
+              onclick="setChecked('${d.id}','${esc(s.name)}','${esc(item)}',${!checked})"
+              onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();setChecked('${d.id}','${esc(s.name)}','${esc(item)}',${!checked})}">
+              <input type="checkbox" ${checked?'checked':''} tabindex="-1" aria-hidden="true"
+                onchange="event.stopPropagation();setChecked('${d.id}','${esc(s.name)}','${esc(item)}',this.checked)">
+              <span>${item}${stale?'<span class="stale-dot" title="Stale item"></span>':''}</span>
+            </div>`;
+            itemCount++;
+            if (!collapsed || itemCount <= 5) sectionVisible += html;
+            else sectionOverflow += html;
+          });
+          if (sectionVisible) visibleHtml += label + sectionVisible;
+          if (sectionOverflow) {
+            if (!sectionVisible) overflowHtml += label;
+            overflowHtml += sectionOverflow;
+          }
+        });
+        return visibleHtml + (overflowHtml ? `<div class="card-overflow">${overflowHtml}</div>` : '');
+      })()}
+      ${collapsed ? `<button class="show-more" aria-expanded="false" onclick="this.parentElement.classList.toggle('expanded');this.setAttribute('aria-expanded',this.getAttribute('aria-expanded')==='true'?'false':'true');this.textContent=this.getAttribute('aria-expanded')==='true'?'Show less':'Show all ${allItems.length} items'">Show all ${allItems.length} items</button>` : ''}
+    </div>`;
+  }).join('');
+
+  renderAIPanel();
+}
+function esc(s) { return s.replace(/'/g, "\\'").replace(/"/g, '&quot;'); }
+
+// ============ FILTER ============
+function setFilter(f) {
+  currentFilter = f;
+  document.querySelectorAll('[data-filter]').forEach(b => b.setAttribute('aria-pressed', b.dataset.filter === f));
+  render();
+}
+
+// ============ SELECT DOMAIN ============
+function selectDomain(id) {
+  selectedDomain = selectedDomain === id ? null : id;
+  render();
+}
+
+// ============ AI PANEL ============
+function switchProvider(p) {
+  currentProvider = p;
+  document.querySelectorAll('.provider-tab').forEach(t => t.setAttribute('aria-selected', t.dataset.provider === p));
+  renderAIPanel();
+}
+function renderAIPanel() {
+  const container = document.getElementById('ai-content');
+  if (currentProvider === 'claude') {
+    container.innerHTML = `
+      <div class="api-key-bar">
+        <label for="api-key-input" class="sr-only">Claude API Key</label>
+        <input id="api-key-input" type="password" placeholder="sk-ant-..." value="${claudeApiKey ? '••••••••' : ''}" onfocus="if(this.value.startsWith('••'))this.value=''">
+        <button onclick="setApiKey()">Set</button>
+        <span class="key-status ${claudeApiKey ? 'set' : 'unset'}">${claudeApiKey ? 'Key set' : 'No key'}</span>
+      </div>
+      <div class="context-bar">
+        <span>Context: <strong>${selectedDomain ? selectedDomain : 'None selected'}</strong></span>
+        <label><input type="checkbox" ${fullContext?'checked':''} onchange="fullContext=this.checked"> Full context</label>
+      </div>
+      <div class="quick-actions">
+        <button onclick="quickAction('What is my current status across all domains? Summarize progress and highlight areas needing attention.')">What's my status?</button>
+        <button onclick="quickAction('Based on my checklist state, what should I focus on next? Consider priority levels and stale items.')">What should I do next?</button>
+        <button onclick="quickAction('Audit the selected domain thoroughly. Identify missing items, suggest improvements, and flag any concerns.')">Audit this domain</button>
+        <button onclick="quickAction('Find all blockers and dependencies across my checklists. What is preventing progress?')">Find blockers</button>
+        <button onclick="quickAction('Summarize my recent progress. What has been completed and what momentum do I have?')">Summarize progress</button>
+      </div>
+      <div class="chat-messages" id="chat-messages" role="log" aria-live="polite">${renderMessages('claude')}</div>
+      <div class="chat-input-area">
+        <label for="ai-chat-input" class="sr-only">Chat message</label>
+        <textarea id="ai-chat-input" placeholder="Ask Claude about your checklists..." rows="1" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMessage()}"></textarea>
+        <button onclick="sendMessage()">Send</button>
+      </div>
+      <div class="model-selector">
+        <label for="model-select">Model:</label>
+        <select id="model-select">
+          <option value="auto">Auto (smart select)</option>
+          <option value="claude-sonnet-4-6-20250514">Sonnet 4.6</option>
+          <option value="claude-opus-4-6-20250514">Opus 4.6</option>
+          <option value="claude-haiku-4-5-20251001">Haiku 4.5</option>
+        </select>
+        <span class="model-hint" id="model-hint"></span>
+      </div>`;
+  } else {
+    container.innerHTML = `
+      <div class="placeholder-notice">API integration coming soon. Use the chat to compose prompts — click Copy to include checklist context.</div>
+      <div class="context-bar">
+        <span>Context: <strong>${selectedDomain ? selectedDomain : 'None selected'}</strong></span>
+        <label><input type="checkbox" ${fullContext?'checked':''} onchange="fullContext=this.checked"> Full context</label>
+      </div>
+      <div class="chat-messages" id="chat-messages" role="log" aria-live="polite">${renderMessages(currentProvider)}</div>
+      <div class="chat-input-area">
+        <label for="ai-chat-input" class="sr-only">Chat message</label>
+        <textarea id="ai-chat-input" placeholder="Compose your prompt..." rows="1"></textarea>
+        <button onclick="copyWithContext()">Copy</button>
+      </div>`;
+  }
+  const msgs = document.getElementById('chat-messages');
+  if (msgs) msgs.scrollTop = msgs.scrollHeight;
+}
+function renderMessages(provider) {
+  return (chatHistories[provider] || []).map(m =>
+    `<div class="chat-msg ${m.role}">${escHtml(m.content)}</div>`
+  ).join('');
+}
+function escHtml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// ============ CHAT ============
+function addSystemMsg(text) {
+  chatHistories[currentProvider].push({ role: 'system', content: text });
+  renderAIPanel();
+}
+function quickAction(prompt) {
+  if (currentProvider === 'claude') {
+    const input = document.getElementById('ai-chat-input');
+    if (input) input.value = prompt;
+    sendMessage();
+  } else {
+    const input = document.getElementById('ai-chat-input');
+    if (input) input.value = prompt;
+  }
+}
+function buildContext() {
+  let ctx = '';
+  if (selectedDomain) {
+    const d = DOMAINS.find(x => x.id === selectedDomain);
+    if (d) {
+      ctx += `Selected domain: ${d.title} (${d.priority})\n`;
+      d.sections.forEach(s => {
+        ctx += `\n## ${s.name}\n`;
+        s.items.forEach(item => {
+          ctx += `- [${isChecked(d.id, s.name, item) ? 'x' : ' '}] ${item}\n`;
+        });
+      });
+    }
+  } else {
+    ctx += 'Viewing all domains.\n';
+  }
+  if (fullContext) {
+    ctx += '\n--- Cross-Domain Summary ---\n';
+    DOMAINS.forEach(d => {
+      const stats = getDomainStats(d);
+      ctx += `${d.title} (${d.priority}): ${stats.done}/${stats.total}\n`;
+    });
+    const staleItems = getStaleItems();
+    if (staleItems.length) {
+      ctx += '\n--- Stale Items ---\n';
+      staleItems.forEach(s => ctx += `[${s.domain}] ${s.item} — stale ${s.days} days\n`);
+    }
+  }
+  return ctx;
+}
+function autoSelectModel(prompt) {
+  const p = prompt.toLowerCase();
+  const simpleWords = ['status','list','what','how many','count','show'];
+  const complexWords = ['audit','architect','design','plan','analyze','comprehensive','strategy','review all','deep dive'];
+  if (p.length < 80 && simpleWords.some(w => p.includes(w))) return { model: 'claude-haiku-4-5-20251001', hint: 'Auto: Haiku — quick task' };
+  if (p.length > 200 || complexWords.some(w => p.includes(w))) return { model: 'claude-opus-4-6-20250514', hint: 'Auto: Opus — complex task' };
+  return { model: 'claude-sonnet-4-6-20250514', hint: 'Auto: Sonnet — balanced' };
+}
+async function sendMessage() {
+  const input = document.getElementById('ai-chat-input');
+  if (!input || !input.value.trim()) return;
+  if (!claudeApiKey) { addSystemMsg('Set your Claude API key first.'); return; }
+  if (isLoading) return;
+  const text = input.value.trim();
+  input.value = '';
+  chatHistories.claude.push({ role: 'user', content: text });
+
+  const selector = document.getElementById('model-select');
+  let model = selector ? selector.value : 'auto';
+  const hint = document.getElementById('model-hint');
+  if (model === 'auto') {
+    const auto = autoSelectModel(text);
+    model = auto.model;
+    if (hint) hint.textContent = auto.hint;
+  } else {
+    if (hint) hint.textContent = '';
+  }
+
+  isLoading = true;
+  renderAIPanel();
+  const msgs = document.getElementById('chat-messages');
+  if (msgs) { msgs.innerHTML += '<div class="typing" aria-label="Claude is thinking"><span></span><span></span><span></span></div>'; msgs.scrollTop = msgs.scrollHeight; }
+
+  const ctx = buildContext();
+  const systemPrompt = `You are an AI assistant for the Claude Checklists system. You help the user manage their work across multiple domains. Be concise, actionable, and specific.\n\nCurrent checklist state:\n${ctx}`;
+  const apiMessages = chatHistories.claude.filter(m => m.role === 'user' || m.role === 'ai').slice(-6).map(m => ({ role: m.role === 'ai' ? 'assistant' : 'user', content: m.content }));
+
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'x-api-key': claudeApiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({ model, max_tokens: 4096, system: systemPrompt, messages: apiMessages })
+    });
+    if (!resp.ok) {
+      const err = await resp.text();
+      chatHistories.claude.push({ role: 'error', content: `API error ${resp.status}: ${err.slice(0,200)}` });
+    } else {
+      const data = await resp.json();
+      const reply = data.content.map(c => c.text).join('\n');
+      chatHistories.claude.push({ role: 'ai', content: reply });
+    }
+  } catch(e) {
+    chatHistories.claude.push({ role: 'error', content: `Network error: ${e.message}` });
+  }
+  isLoading = false;
+  renderAIPanel();
+}
+function copyWithContext() {
+  const input = document.getElementById('ai-chat-input');
+  const text = input ? input.value.trim() : '';
+  const ctx = buildContext();
+  const full = `--- Checklist Context ---\n${ctx}\n--- User Message ---\n${text || '(no message)'}`;
+  navigator.clipboard.writeText(full).then(() => addSystemMsg('Copied to clipboard with context.'));
+}
+function setApiKey() {
+  const input = document.getElementById('api-key-input');
+  if (input && input.value && !input.value.startsWith('••')) {
+    claudeApiKey = input.value;
+    sessionStorage.setItem('claude-api-key', claudeApiKey);
+    renderAIPanel();
+  }
+}
+
+// ============ AI SCAN ============
+function aiScan() {
+  switchProvider('claude');
+  const gs = getGlobalStats();
+  const staleItems = getStaleItems();
+  let scanPrompt = `Perform a comprehensive scan of my checklist system.\n\nOverall: ${gs.done}/${gs.total} complete (${gs.total?Math.round(gs.done/gs.total*100):0}%)\n\nPer-domain breakdown:\n`;
+  DOMAINS.forEach(d => {
+    const s = getDomainStats(d);
+    scanPrompt += `- ${d.title} (${d.priority}): ${s.done}/${s.total}\n`;
+  });
+  if (staleItems.length) {
+    scanPrompt += `\nStale items (${staleItems.length}):\n`;
+    staleItems.forEach(s => scanPrompt += `- [${s.domain}] ${s.item} — ${s.days} days stale\n`);
+  }
+  scanPrompt += `\nPlease provide:\n1. Top 3 priorities I should focus on right now\n2. Recommendations for stale items\n3. Any missing checklist items I should add\n4. Potential blockers or dependencies between domains\n5. Suggested daily focus order for maximum impact`;
+
+  const selector = document.getElementById('model-select');
+  if (selector) selector.value = 'claude-opus-4-6-20250514';
+
+  const input = document.getElementById('ai-chat-input');
+  if (input) input.value = scanPrompt;
+  sendMessage();
+}
+
+// ============ EXPORT ============
+function exportChecklist() {
+  let md = `# Claude Checklists Export\n_Generated: ${new Date().toISOString()}_\n\n`;
+  const gs = getGlobalStats();
+  md += `**Overall Progress: ${gs.done}/${gs.total} (${gs.total?Math.round(gs.done/gs.total*100):0}%)**\n\n---\n\n`;
+  DOMAINS.forEach(d => {
+    const stats = getDomainStats(d);
+    md += `## ${d.title} [${d.priority}] — ${stats.done}/${stats.total}\n\n`;
+    d.sections.forEach(s => {
+      md += `### ${s.name}\n`;
+      s.items.forEach(item => {
+        md += `- [${isChecked(d.id, s.name, item) ? 'x' : ' '}] ${item}\n`;
+      });
+      md += '\n';
+    });
+    md += '---\n\n';
+  });
+  const blob = new Blob([md], { type: 'text/markdown' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `claude-checklists-${new Date().toISOString().slice(0,10)}.md`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ============ ACTIVITY ============
+function openActivity() {
+  const body = document.getElementById('activity-body');
+  if (!activityLog.length) { body.innerHTML = '<p style="color:var(--text-dim);text-align:center;padding:20px">No activity yet.</p>'; }
+  else {
+    body.innerHTML = activityLog.map(e => {
+      const t = new Date(e.timestamp);
+      const time = `${String(t.getHours()).padStart(2,'0')}:${String(t.getMinutes()).padStart(2,'0')}`;
+      return `<div class="activity-entry">
+        <span class="activity-icon">${e.checked ? '&#10003;' : '&#8634;'}</span>
+        <span class="activity-time">${time}</span>
+        <span class="activity-text"><span class="domain">[${e.domain}]</span> ${escHtml(e.item)}</span>
+      </div>`;
+    }).join('');
+  }
+  document.getElementById('activity-modal').classList.add('open');
+}
+function closeActivity() { document.getElementById('activity-modal').classList.remove('open'); }
+
+// ============ SPOTLIGHT ============
+function openSpotlight() {
+  document.getElementById('spotlight').classList.add('open');
+  const input = document.getElementById('spotlight-input');
+  input.value = '';
+  input.focus();
+  renderSpotlightResults('');
+}
+function closeSpotlight() { document.getElementById('spotlight').classList.remove('open'); }
+let spotlightHighlight = -1;
+function renderSpotlightResults(query) {
+  const results = document.getElementById('spotlight-results');
+  if (!query) { results.innerHTML = '<div style="padding:16px;color:var(--text-dim);text-align:center;font-size:13px">Type to search across all checklist items</div>'; spotlightHighlight = -1; return; }
+  const q = query.toLowerCase();
+  let matches = [];
+  DOMAINS.forEach(d => {
+    if (d.title.toLowerCase().includes(q) || d.id.includes(q)) {
+      matches.push({ type: 'domain', domain: d.id, title: d.title, text: d.description });
+    }
+    d.sections.forEach(s => s.items.forEach(item => {
+      if (item.toLowerCase().includes(q)) {
+        matches.push({ type: 'item', domain: d.id, title: d.title, text: item });
+      }
+    }));
+  });
+  matches = matches.slice(0, 20);
+  spotlightHighlight = matches.length ? 0 : -1;
+  results.innerHTML = matches.map((m, i) =>
+    `<div class="spotlight-item${i===spotlightHighlight?' highlighted':''}" role="option" onclick="jumpToDomain('${m.domain}')">
+      <span>${escHtml(m.text)}</span>
+      <span class="domain-badge">${m.title}</span>
+    </div>`
+  ).join('') || '<div style="padding:16px;color:var(--text-dim);text-align:center;font-size:13px">No results</div>';
+}
+function jumpToDomain(id) {
+  closeSpotlight();
+  selectDomain(id);
+  const card = document.querySelector(`[data-domain="${id}"]`);
+  if (card) card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+document.getElementById('spotlight-input').addEventListener('input', function() { renderSpotlightResults(this.value); });
+document.getElementById('spotlight-input').addEventListener('keydown', function(e) {
+  const items = document.querySelectorAll('.spotlight-item');
+  if (e.key === 'ArrowDown') { e.preventDefault(); spotlightHighlight = Math.min(spotlightHighlight+1, items.length-1); items.forEach((el,i) => el.classList.toggle('highlighted', i===spotlightHighlight)); }
+  else if (e.key === 'ArrowUp') { e.preventDefault(); spotlightHighlight = Math.max(spotlightHighlight-1, 0); items.forEach((el,i) => el.classList.toggle('highlighted', i===spotlightHighlight)); }
+  else if (e.key === 'Enter' && items[spotlightHighlight]) { items[spotlightHighlight].click(); }
+  else if (e.key === 'Escape') { closeSpotlight(); }
+});
+
+// ============ KEYBOARD ============
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') {
+    if (document.getElementById('spotlight').classList.contains('open')) { closeSpotlight(); return; }
+    if (document.getElementById('activity-modal').classList.contains('open')) { closeActivity(); return; }
+  }
+  if (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA' || document.activeElement.tagName === 'SELECT') return;
+  if (e.key === 'k' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); openSpotlight(); }
+  else if (e.key === 'z' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); undoLast(); }
+  else if (e.key === '/') { e.preventDefault(); const inp = document.getElementById('ai-chat-input'); if(inp) inp.focus(); }
+  else if (e.key === 'j' || e.key === 'k') {
+    const cards = document.querySelectorAll('.card');
+    if (!cards.length) return;
+    if (e.key === 'j') focusedCardIdx = Math.min(focusedCardIdx+1, cards.length-1);
+    else focusedCardIdx = Math.max(focusedCardIdx-1, 0);
+    cards[focusedCardIdx].querySelector('.card-header').focus();
+  }
+  else if (e.key === 'x' || e.key === 'X') {
+    // Toggle first unchecked item in focused card
+    if (focusedCardIdx >= 0) {
+      const cards = document.querySelectorAll('.card');
+      const card = cards[focusedCardIdx];
+      if (card) {
+        const firstItem = card.querySelector('.check-item');
+        if (firstItem) firstItem.click();
+      }
+    }
+  }
+  else if (e.key === '1') switchProvider('claude');
+  else if (e.key === '2') switchProvider('gemini');
+  else if (e.key === '3') switchProvider('codex');
+  else if (e.key === '4') switchProvider('copilot');
+});
+
+// ============ MOBILE TOGGLE ============
+function togglePanel() {
+  document.getElementById('ai-panel').classList.toggle('open');
+}
+
+// ============ INIT ============
+initStaleTimestamps();
+render();
+</script>
+</body>
+</html>

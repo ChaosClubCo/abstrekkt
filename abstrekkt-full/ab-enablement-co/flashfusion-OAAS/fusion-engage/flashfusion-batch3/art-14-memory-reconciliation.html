@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Memory Reconciliation — Memoir Source Material</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@400;500;600&family=Crimson+Pro:wght@300;400&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0c0c0b; --surface: #111110; --card: #181815; --border: #232320;
+  --border-hi: #303030; --accent: #d4893a; --accent-hi: #e8a050;
+  --text: #ddd8ce; --text-2: #807c74; --text-3: #3a3835;
+  --green: #5a9c5a; --red: #c05050; --tag: #1e1e1a;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: 'Crimson Pro', Georgia, serif; font-weight: 300; font-size: 17px; line-height: 1.65; padding: 48px 24px 80px; }
+.container { max-width: 880px; margin: 0 auto; }
+.eyebrow { font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.2em; color: var(--accent); margin-bottom: 16px; }
+h1 { font-family: 'Fraunces', Georgia, serif; font-weight: 600; font-size: 38px; line-height: 1.15; letter-spacing: -0.02em; margin-bottom: 16px; }
+.dek { font-style: italic; font-size: 19px; color: var(--text-2); margin-bottom: 32px; line-height: 1.5; max-width: 720px; }
+.thesis { background: var(--card); border: 1px solid var(--border-hi); border-left: 2px solid var(--accent); padding: 20px 24px; margin-bottom: 48px; font-family: 'Fraunces', Georgia, serif; font-style: italic; font-size: 17px; line-height: 1.55; color: var(--text); }
+.event { background: var(--card); border: 1px solid var(--border); border-radius: 2px; margin-bottom: 24px; overflow: hidden; transition: border-color 0.15s; }
+.event-header { padding: 20px 24px; cursor: pointer; display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; transition: background 0.15s; }
+.event-header:hover { background: var(--surface); }
+.event-meta { flex: 1; }
+.event-date { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--text-2); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 6px; }
+.event-title { font-family: 'Fraunces', Georgia, serif; font-weight: 500; font-size: 22px; color: var(--text); letter-spacing: -0.01em; }
+.event-status { font-family: 'IBM Plex Mono', monospace; font-size: 10px; padding: 4px 10px; border-radius: 2px; letter-spacing: 0.15em; text-transform: uppercase; flex-shrink: 0; }
+.status-conflict { color: var(--accent); border: 1px solid rgba(212, 137, 58, 0.4); background: rgba(212, 137, 58, 0.05); }
+.status-gap { color: var(--text-2); border: 1px solid var(--border); }
+.status-confirmed { color: var(--green); border: 1px solid rgba(90, 156, 90, 0.3); }
+.event-body { padding: 0 24px 24px; display: none; border-top: 1px solid var(--border); }
+.event.open .event-body { display: block; }
+.col-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px; }
+.col { background: var(--bg); border: 1px solid var(--border); border-radius: 2px; padding: 16px 18px; }
+.col h4 { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--text-2); letter-spacing: 0.2em; text-transform: uppercase; margin-bottom: 10px; font-weight: 500; }
+.col p { font-size: 15px; line-height: 1.55; color: var(--text); margin: 0; }
+.contradiction { background: rgba(212, 137, 58, 0.08); border-left: 2px solid var(--accent); padding: 16px 20px; margin-top: 20px; border-radius: 2px; }
+.contradiction h4 { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--accent); letter-spacing: 0.2em; text-transform: uppercase; margin-bottom: 8px; font-weight: 500; }
+.contradiction p { font-size: 15px; line-height: 1.55; color: var(--text); margin: 0; }
+.what-it-reveals { background: var(--card); border: 1px solid var(--border); padding: 16px 20px; margin-top: 16px; border-radius: 2px; font-family: 'Fraunces', Georgia, serif; font-style: italic; font-size: 16px; line-height: 1.5; color: var(--text); }
+.what-it-reveals h4 { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--text-2); letter-spacing: 0.2em; text-transform: uppercase; margin-bottom: 8px; font-weight: 500; font-style: normal; }
+.footer { margin-top: 64px; padding-top: 32px; border-top: 1px solid var(--border); font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--text-3); letter-spacing: 0.05em; line-height: 1.8; }
+.toggle-icon { font-family: 'IBM Plex Mono', monospace; color: var(--text-2); font-size: 12px; margin-left: 8px; transition: transform 0.15s; }
+.event.open .toggle-icon { transform: rotate(45deg); }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="eyebrow">Memoir &middot; Source material reconciliation</div>
+  <h1>The contradictions are evidence.</h1>
+  <p class="dek">Five life events. Each one has what I remember, what the clinical record says, and what doesn't reconcile. The friction between the two is not a problem to solve. It is the subject.</p>
+
+  <div class="thesis">
+    The Amen Clinics evaluation contains an internal date conflict — page 2 says the hypoxia event was summer 2020; page 3 says October 2021. This contradiction is load-bearing. It demonstrates the very memory impairment the book is about. To resolve the contradiction is to perform the dishonesty the book refuses.
+  </div>
+
+  <div class="event" id="e1">
+    <div class="event-header" onclick="toggleEvent('e1')">
+      <div class="event-meta">
+        <div class="event-date">Summer 2020 / October 2021 &middot; Hypoxia event</div>
+        <div class="event-title">The OD that caused the brain injury</div>
+      </div>
+      <div style="display: flex; gap: 8px; align-items: flex-start;">
+        <div class="event-status status-conflict">Date conflict</div>
+        <span class="toggle-icon">+</span>
+      </div>
+    </div>
+    <div class="event-body">
+      <div class="col-grid">
+        <div class="col">
+          <h4>What I remember</h4>
+          <p>The basic structure: heroin, OD, hypoxia, mom finding me, EMS. The when is uncertain. Some chains of association place it earlier, some later. I have not been able to reconstruct the date with confidence.</p>
+        </div>
+        <div class="col">
+          <h4>What the clinical record says</h4>
+          <p>Two different dates in the same document. Page 2 of the Amen Clinics evaluation places the hypoxia event in summer 2020. Page 3 of the same evaluation places it in October 2021. Both attributed to the same examining physician. Neither corrected.</p>
+        </div>
+      </div>
+      <div class="contradiction">
+        <h4>The contradiction</h4>
+        <p>A contradiction this clean — a 16-month gap between two dates in a single clinical document — should have been caught and corrected. It was not. Either the patient (me) gave inconsistent dates and the physician recorded both, or the document is itself a record of the kind of cognitive disruption it diagnoses.</p>
+      </div>
+      <div class="what-it-reveals">
+        <h4>What it reveals about cognition</h4>
+        <p>Memory does not store dates as dates. Memory stores associations, contexts, surrounding environments. When the surrounding environment changes — and the period 2020-2021 was one of significant disruption — the date becomes structurally unreliable. The contradiction in the clinical record may be more accurate than a single resolved date would be. It preserves the uncertainty.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="event" id="e2">
+    <div class="event-header" onclick="toggleEvent('e2')">
+      <div class="event-meta">
+        <div class="event-date">~2014/2015 &middot; Settlement money</div>
+        <div class="event-title">Hit by a car, $50K settlement, and the months that followed</div>
+      </div>
+      <div style="display: flex; gap: 8px; align-items: flex-start;">
+        <div class="event-status status-conflict">Memory uncertain</div>
+        <span class="toggle-icon">+</span>
+      </div>
+    </div>
+    <div class="event-body">
+      <div class="col-grid">
+        <div class="col">
+          <h4>What I remember</h4>
+          <p>I was on Xanax. I was walking to a girl's house because my parents wouldn't let me take the car. I got hit. There was a settlement, $50,000. I spent it across the next 3-4 months on drugs, a car, and a Trump Tower weekend trip. The trip was Kyle, Matt, Tom, and one other person. I had thought it was Dave. Dave was in India.</p>
+        </div>
+        <div class="col">
+          <h4>What the photograph shows</h4>
+          <p>A photograph from that weekend exists. It shows three people. Not five, as the original memory suggested. The faces in the photograph correct the count without correcting which faces.</p>
+        </div>
+      </div>
+      <div class="contradiction">
+        <h4>The contradiction</h4>
+        <p>The memory was a group of five. The artifact is a group of three. The corrected count is verifiable. Whether Dave was actually present, or whether the additional people were composited from other weekends, is not.</p>
+      </div>
+      <div class="what-it-reveals">
+        <h4>What it reveals about cognition</h4>
+        <p>Memory composites. It pulls a face from one weekend and places it in another, particularly when both weekends share a stronger emotional signature. The photograph is corrective evidence not because it disproves the memory, but because it shows the memory was already a composite by the time it was first told.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="event" id="e3">
+    <div class="event-header" onclick="toggleEvent('e3')">
+      <div class="event-meta">
+        <div class="event-date">2022 &middot; Sedona, Bear, the card table</div>
+        <div class="event-title">The construction era's origin point</div>
+      </div>
+      <div style="display: flex; gap: 8px; align-items: flex-start;">
+        <div class="event-status status-confirmed">Strongly confirmed</div>
+        <span class="toggle-icon">+</span>
+      </div>
+    </div>
+    <div class="event-body">
+      <div class="col-grid">
+        <div class="col">
+          <h4>What I remember</h4>
+          <p>Mom arranged the Sedona trip. I met Soaring Bear there. He gave me work — actual assignments, including building a website. I built it on a folding card table. The screenshot method was born. There is a 1:30am photo of that table. The associate's degree from CLC finished during the same period — six years, ten withdrawals, five failures, eventually completed.</p>
+        </div>
+        <div class="col">
+          <h4>What the artifacts confirm</h4>
+          <p>The 1:30am photo exists and has been located. Bear's website exists and was built. The CLC degree was conferred. Soaring Bear sent assignments through what would later become the FlashFusion ticketing system. Phillis (mom) confirmed the Sedona trip arrangement.</p>
+        </div>
+      </div>
+      <div class="contradiction">
+        <h4>What's not contradicted</h4>
+        <p>Most details of this period reconcile cleanly. The artifacts back the memory. This is one of the few life events where the clinical record, the photographic record, and the personal recollection all align.</p>
+      </div>
+      <div class="what-it-reveals">
+        <h4>What it reveals about cognition</h4>
+        <p>When a memory has multiple anchoring artifacts — a photo, a degree, a third-party confirmation — it survives intact. The construction era is documented because Kyle was, in this period, deliberately building the prosthetic memory system the brain itself could no longer reliably provide. The artifact-richness of the period is the period's defining characteristic, not just its byproduct.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="event" id="e4">
+    <div class="event-header" onclick="toggleEvent('e4')">
+      <div class="event-meta">
+        <div class="event-date">~2014/2015 &middot; The Five &middot; Dave's death</div>
+        <div class="event-title">A friend group that survived the rupture, and one who didn't</div>
+      </div>
+      <div style="display: flex; gap: 8px; align-items: flex-start;">
+        <div class="event-status status-gap">Timeline gaps</div>
+        <span class="toggle-icon">+</span>
+      </div>
+    </div>
+    <div class="event-body">
+      <div class="col-grid">
+        <div class="col">
+          <h4>What I remember</h4>
+          <p>The Five: Kyle, Matt, Tom, Dave, Ryan. Matt and Tom reappeared at Kinsley's 5th birthday. Dave died of a brain aneurysm. Ryan is now a counselor at College of Lake County and has not responded to outreach. Dave's funeral happened.</p>
+        </div>
+        <div class="col">
+          <h4>What's verifiable</h4>
+          <p>Kinsley's 5th birthday reunion confirmed (photographic evidence). Dave's death and funeral confirmed (Kyle attended). Ryan's CLC employment confirmed (publicly listed). The exact date of Dave's death, and whether the timing aligns with other events as memory places it, is not confirmed.</p>
+        </div>
+      </div>
+      <div class="contradiction">
+        <h4>The gap</h4>
+        <p>Whether Dave's death preceded or followed the OD, the settlement period, or the construction era is unclear. This is not a contradiction so much as a gap. Memory has placed it in a relationship to other events that may or may not be temporally accurate.</p>
+      </div>
+      <div class="what-it-reveals">
+        <h4>What it reveals about cognition</h4>
+        <p>Some events are remembered for their emotional weight independent of when they happened. Dave's death is one of these. The structure of the memory ("Dave died, that's why X happened") may be a retrospective causal arrangement rather than an accurate sequence. Both can be true: the death was real, the framing of cause-and-effect around it may not be.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="event" id="e5">
+    <div class="event-header" onclick="toggleEvent('e5')">
+      <div class="event-meta">
+        <div class="event-date">2016-2023 &middot; CLC &middot; The degree</div>
+        <div class="event-title">Six years, ten withdrawals, five failures</div>
+      </div>
+      <div style="display: flex; gap: 8px; align-items: flex-start;">
+        <div class="event-status status-confirmed">Documented</div>
+        <span class="toggle-icon">+</span>
+      </div>
+    </div>
+    <div class="event-body">
+      <div class="col-grid">
+        <div class="col">
+          <h4>What I remember</h4>
+          <p>NIU expulsion, 2016. CLC enrollment shortly after. Six total years. Ten withdrawals. Five failures. The associate's degree completed during the construction era, alongside Bear's website on the card table. Returning to CLC now would mean walking into the building where Ryan works.</p>
+        </div>
+        <div class="col">
+          <h4>What the transcript shows</h4>
+          <p>NIU expulsion confirmed. CLC transcript reflects multiple withdrawals and failures across the timeline. Degree conferred on a date that aligns with the construction era. The exact ratio (10 withdrawals, 5 failures) is approximate &mdash; transcript verification could refine the count.</p>
+        </div>
+      </div>
+      <div class="contradiction">
+        <h4>What this isn't a contradiction of</h4>
+        <p>This event isn't structurally contradicted by any source. It is structurally instructive: the same self that failed five courses and withdrew from ten eventually completed a degree. The completion happened during a period when other things were also being completed. That is not coincidence.</p>
+      </div>
+      <div class="what-it-reveals">
+        <h4>What it reveals about cognition</h4>
+        <p>The pattern of failure-to-completion at CLC is the same shape as the broader memoir. The diagnostic instinct, when it had no environmental support, produced repeated abandonment. With Bear, the card table, and the screenshot method &mdash; environmental scaffolds &mdash; the same self produced completion. The story is not "I changed." The story is: the same person, in different conditions, produced different outcomes. That distinction is the book.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    Source materials: Amen Clinics evaluation (July 2022), CLC transcripts, photographic records, third-party confirmations &middot;<br>
+    Reconciliation principle: contradictions are evidence, not errors &middot; preserve, do not resolve &middot;<br>
+    For memoir manuscript use only &middot; not for publication in this form &middot; May 2026
+  </div>
+</div>
+
+<script>
+function toggleEvent(id) {
+  document.getElementById(id).classList.toggle('open');
+}
+</script>
+</body>
+</html>

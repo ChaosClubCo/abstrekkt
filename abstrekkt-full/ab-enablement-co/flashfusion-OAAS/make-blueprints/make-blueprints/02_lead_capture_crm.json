@@ -1,0 +1,78 @@
+{
+  "name": "Lead Capture CRM — Webhook → Notion + Resend",
+  "flow": [
+    {
+      "id": 1,
+      "module": "gateway:CustomWebHook",
+      "version": 1,
+      "parameters": {"hook": "{{HOOK:ff-lead-capture}}"},
+      "mapper": {},
+      "metadata": {"designer": {"x": 0, "y": 0}}
+    },
+    {
+      "id": 2,
+      "module": "flow:Router",
+      "version": 1,
+      "parameters": {},
+      "mapper": {},
+      "routes": [
+        {
+          "flow": [
+            {
+              "id": 3,
+              "module": "http:ActionSendData",
+              "version": 3,
+              "parameters": {},
+              "mapper": {
+                "url": "https://api.notion.com/v1/pages",
+                "method": "POST",
+                "headers": [
+                  {"name": "Authorization", "value": "Bearer {{CONNECTION_KEY:notion}}"},
+                  {"name": "Notion-Version", "value": "2022-06-28"},
+                  {"name": "Content-Type", "value": "application/json"}
+                ],
+                "body": "{\"parent\":{\"database_id\":\"CONFIGURE_LEADS_DB_ID\"},\"properties\":{\"Name\":{\"title\":[{\"text\":{\"content\":\"{{1.name}}\"}}]},\"Email\":{\"email\":\"{{1.email}}\"},\"Company\":{\"rich_text\":[{\"text\":{\"content\":\"{{1.company}}\"}}]},\"Source\":{\"select\":{\"name\":\"{{1.source}}\"}},\"Status\":{\"select\":{\"name\":\"New\"}},\"Submitted\":{\"date\":{\"start\":\"{{formatDate(now; \\\"YYYY-MM-DD\\\")}}\"}}}}"
+              },
+              "metadata": {"designer": {"x": 300, "y": -100}}
+            },
+            {
+              "id": 4,
+              "module": "http:ActionSendData",
+              "version": 3,
+              "parameters": {},
+              "mapper": {
+                "url": "https://api.resend.com/emails",
+                "method": "POST",
+                "headers": [
+                  {"name": "Authorization", "value": "Bearer {{CONNECTION_KEY:resend}}"},
+                  {"name": "Content-Type", "value": "application/json"}
+                ],
+                "body": "{\"from\":\"FlashFusion <kyle@flashfusion.co>\",\"to\":[\"kylerosebrook@gmail.com\"],\"subject\":\"New Lead: {{1.name}} — {{1.company}}\",\"text\":\"New lead from {{1.source}}\\n\\nName: {{1.name}}\\nEmail: {{1.email}}\\nCompany: {{1.company}}\\nMessage: {{1.message}}\\n\\nAdded to Notion.\"}"
+              },
+              "metadata": {"designer": {"x": 600, "y": -100}}
+            }
+          ]
+        }
+      ],
+      "metadata": {"designer": {"x": 200, "y": 0}}
+    }
+  ],
+  "metadata": {
+    "instant": true,
+    "version": 1,
+    "scenario": {
+      "roundtrips": 1,
+      "maxErrors": 3,
+      "autoCommit": true,
+      "autoCommitTriggerLast": true,
+      "sequential": true,
+      "confidential": false,
+      "dataloss": false,
+      "dlq": false,
+      "freshVariables": false
+    },
+    "designer": {"orphans": []},
+    "zone": "us1.make.com",
+    "notes": "Migrated from n8n GwQpwZTiacEV0Zhc. CONFIGURE: Replace CONFIGURE_LEADS_DB_ID with your Notion leads database ID. Webhook URL will be assigned by Make on import — update audit.flashfusion.co to POST to new URL. Requires: Notion API key, Resend API key."
+  }
+}

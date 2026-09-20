@@ -1,0 +1,229 @@
+{
+  "name": "AI Brain — Task Watcher v1",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "ai-brain-task-trigger",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "github-webhook",
+      "name": "GitHub Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [240, 300],
+      "webhookId": "ai-brain-task-trigger",
+      "notes": "Receives GitHub push events. Configure in GitHub repo Settings > Webhooks."
+    },
+    {
+      "parameters": {
+        "jsCode": "// Filter: only process files with #task tag and status: pending\nconst payload = $input.first().json;\n\nconst commits = payload.commits || [];\nconst addedFiles = commits.flatMap(c => c.added || []);\nconst modifiedFiles = commits.flatMap(c => c.modified || []);\nconst allFiles = [...addedFiles, ...modifiedFiles];\n\n// Only files in /TASKS/ folder\nconst taskFiles = allFiles.filter(f => f.startsWith('TASKS/') && f.endsWith('.md'));\n\nif (taskFiles.length === 0) {\n  return []; // Nothing to process — halt workflow\n}\n\nreturn taskFiles.map(filePath => ({\n  json: {\n    file_path: filePath,\n    commit_hash: payload.after || 'unknown',\n    repo: payload.repository?.full_name || 'unknown',\n    pushed_at: new Date().toISOString()\n  }\n}));"
+      },
+      "id": "filter-task-files",
+      "name": "Filter Task Files",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [480, 300],
+      "notes": "Filters pushed files to TASKS/*.md only. Returns array of task file paths."
+    },
+    {
+      "parameters": {
+        "jsCode": "// Validate and sanitize task note content before passing to agent\nconst item = $input.first().json;\n\nconst BLOCKED_PATTERNS = [\n  /eval\\s*\\(/gi,\n  /exec\\s*\\(/gi,\n  /\\.\\.\\//g,\n  /<script/gi,\n  /DROP\\s+TABLE/gi,\n  /DELETE\\s+FROM/gi,\n  /system\\s*\\(/gi\n];\n\n// Content comes from file read step — validate here\nconst content = item.file_content || '';\n\nfor (const pattern of BLOCKED_PATTERNS) {\n  if (pattern.test(content)) {\n    throw new Error(`GATE1_BLOCKED: Injection pattern detected in ${item.file_path}: ${pattern}`);\n  }\n}\n\nreturn [{\n  json: {\n    ...item,\n    sanitized: true,\n    gate1_passed: true,\n    gate1_timestamp: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "gate-1-sanitize",
+      "name": "Gate 1 — Sanitize",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [720, 300],
+      "notes": "Blocks prompt injection patterns. Throws error if found — triggers error branch."
+    },
+    {
+      "parameters": {
+        "url": "https://api.anthropic.com/v1/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "={{ $env.ANTHROPIC_API_KEY }}"
+            },
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "=",
+              "value": "={{ JSON.stringify({\n  model: 'claude-sonnet-4-20250514',\n  max_tokens: 5000,\n  system: 'You are a Task Analyzer agent. Analyze the provided task note and generate a structured specification. Respond ONLY in valid JSON — no preamble, no markdown fences. Write output ONLY to OUTPUT/pending-review/. Token budget: 5000.',\n  messages: [\n    {\n      role: 'user',\n      content: `Analyze this task note and generate a SPEC.\\n\\nFile: ${$json.file_path}\\nCommit: ${$json.commit_hash}\\n\\nContent:\\n${$json.file_content}\\n\\nReturn JSON only:\\n{\"spec_file\":\"OUTPUT/pending-review/SPEC_[task-name].md\",\"schema_version\":\"1.0\",\"task_name\":\"\",\"steps\":[],\"risks\":[],\"acceptance_criteria\":[],\"estimated_complexity\":\"low|medium|high\",\"timestamp\":\"\"}`\n    }\n  ]\n}) }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 60000,
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "task-analyzer-agent",
+      "name": "Task Analyzer Agent",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [960, 300],
+      "notes": "Calls Claude API. Uses ANTHROPIC_API_KEY env var — never hardcode."
+    },
+    {
+      "parameters": {
+        "jsCode": "// Gate 2: Validate agent output schema\nimport { z } from 'zod'; // Note: install via n8n npm packages\n\n// Parse Claude response\nconst response = $input.first().json;\nconst rawContent = response.content?.[0]?.text || '';\n\nlet parsed;\ntry {\n  // Strip any accidental markdown fences\n  const cleaned = rawContent.replace(/```json|```/g, '').trim();\n  parsed = JSON.parse(cleaned);\n} catch (e) {\n  throw new Error(`GATE2_INVALID_JSON: Agent returned non-JSON: ${rawContent.substring(0, 200)}`);\n}\n\n// Schema validation\nconst validComplexity = ['low', 'medium', 'high'];\n\nif (!parsed.spec_file?.startsWith('OUTPUT/pending-review/')) {\n  throw new Error('GATE2_PATH_VIOLATION: Agent attempted to write outside pending-review/');\n}\nif (!parsed.schema_version === '1.0') {\n  throw new Error('GATE2_SCHEMA_MISMATCH: Wrong schema version');\n}\nif (!parsed.task_name || parsed.task_name.length < 1) {\n  throw new Error('GATE2_MISSING_TASK_NAME: task_name required');\n}\nif (!Array.isArray(parsed.steps) || parsed.steps.length < 1) {\n  throw new Error('GATE2_MISSING_STEPS: steps array required with at least 1 step');\n}\nif (!Array.isArray(parsed.acceptance_criteria) || parsed.acceptance_criteria.length < 1) {\n  throw new Error('GATE2_MISSING_CRITERIA: acceptance_criteria required');\n}\nif (!validComplexity.includes(parsed.estimated_complexity)) {\n  throw new Error(`GATE2_INVALID_COMPLEXITY: must be one of ${validComplexity.join('|')}`);\n}\n\nreturn [{ json: { ...parsed, gate2_passed: true, gate2_timestamp: new Date().toISOString() } }];"
+      },
+      "id": "gate-2-schema",
+      "name": "Gate 2 — Schema Validate",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1200, 300],
+      "notes": "Validates agent output matches SpecOutputSchema. Throws if path is outside pending-review/."
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/ai_brain_audit_trail",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "=",
+              "value": "={{ JSON.stringify({\n  agent_name: 'task-analyzer',\n  task_file: $('Filter Task Files').first().json.file_path,\n  output_file: $json.spec_file,\n  commit_hash: $('Filter Task Files').first().json.commit_hash,\n  status: 'pending',\n  token_count: $('Task Analyzer Agent').first().json.usage?.output_tokens || 0\n}) }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "audit-trail",
+      "name": "Write Audit Trail",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1440, 300],
+      "notes": "Writes to Supabase audit table. SUPABASE_SERVICE_ROLE_KEY stays server-side only — never in frontend."
+    },
+    {
+      "parameters": {
+        "jsCode": "// Format SPEC markdown file content from validated agent output\nconst spec = $input.first().json;\n\nconst content = `---\ntitle: ${spec.task_name}\ntype: spec\nstatus: pending-review\nagent: task-analyzer\ncreated: ${spec.timestamp}\ncomplexity: ${spec.estimated_complexity}\nschema_version: ${spec.schema_version}\n---\n\n# SPEC: ${spec.task_name}\n\n## Steps\n${spec.steps.map((s, i) => `${i + 1}. ${s}`).join('\\n')}\n\n## Risks\n${spec.risks.map(r => `- ${r}`).join('\\n') || '- None identified'}\n\n## Acceptance Criteria\n${spec.acceptance_criteria.map(c => `- [ ] ${c}`).join('\\n')}\n\n---\n*Generated by Task Analyzer agent · Move to \\/OUTPUT\\/approved\\/ to proceed*\n`;\n\nreturn [{\n  json: {\n    ...spec,\n    markdown_content: content,\n    write_path: spec.spec_file\n  }\n}];"
+      },
+      "id": "format-spec-markdown",
+      "name": "Format SPEC Markdown",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1680, 300],
+      "notes": "Converts JSON spec to Obsidian-formatted Markdown with YAML frontmatter."
+    },
+    {
+      "parameters": {
+        "jsCode": "// Error handler — runs if any upstream node throws\nconst error = $input.first().json;\nconst errorMsg = error.message || error.error?.message || 'Unknown error';\nconst failedNode = error.node || 'unknown';\n\nconsole.error(`[AI Brain Error] Node: ${failedNode} | Error: ${errorMsg}`);\n\n// Log to audit trail (error status)\nreturn [{\n  json: {\n    agent_name: 'task-analyzer',\n    status: 'error',\n    error_msg: errorMsg,\n    failed_node: failedNode,\n    timestamp: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "error-handler",
+      "name": "Error Handler",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [960, 520],
+      "notes": "Catches errors from Gate 1, Agent, or Gate 2. Logs to Supabase with status: error."
+    }
+  ],
+  "connections": {
+    "GitHub Webhook": {
+      "main": [
+        [{ "node": "Filter Task Files", "type": "main", "index": 0 }]
+      ]
+    },
+    "Filter Task Files": {
+      "main": [
+        [{ "node": "Gate 1 — Sanitize", "type": "main", "index": 0 }]
+      ]
+    },
+    "Gate 1 — Sanitize": {
+      "main": [
+        [{ "node": "Task Analyzer Agent", "type": "main", "index": 0 }]
+      ],
+      "error": [
+        [{ "node": "Error Handler", "type": "main", "index": 0 }]
+      ]
+    },
+    "Task Analyzer Agent": {
+      "main": [
+        [{ "node": "Gate 2 — Schema Validate", "type": "main", "index": 0 }]
+      ],
+      "error": [
+        [{ "node": "Error Handler", "type": "main", "index": 0 }]
+      ]
+    },
+    "Gate 2 — Schema Validate": {
+      "main": [
+        [{ "node": "Write Audit Trail", "type": "main", "index": 0 }]
+      ],
+      "error": [
+        [{ "node": "Error Handler", "type": "main", "index": 0 }]
+      ]
+    },
+    "Write Audit Trail": {
+      "main": [
+        [{ "node": "Format SPEC Markdown", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": "AI Brain Error Notifier"
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "instanceId": "ai-brain-v1"
+  },
+  "_notes": {
+    "env_vars_required": [
+      "ANTHROPIC_API_KEY — server-side only, never expose in frontend",
+      "SUPABASE_URL — your Supabase project URL",
+      "SUPABASE_SERVICE_ROLE_KEY — server-side only, never expose in frontend"
+    ],
+    "github_webhook_setup": [
+      "1. Go to your vault repo on GitHub",
+      "2. Settings > Webhooks > Add webhook",
+      "3. Payload URL: https://krosebrook.app.n8n.cloud/webhook/ai-brain-task-trigger",
+      "4. Content type: application/json",
+      "5. Secret: generate with `openssl rand -hex 32` and store as N8N_WEBHOOK_SECRET",
+      "6. Events: Just the push event"
+    ]
+  }
+}

@@ -1,0 +1,1059 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FlashFusion - RACI Matrix</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #0a0e27 0%, #1a1a2e 100%);
+            color: #ffffff;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 1800px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        /* Header */
+        header {
+            text-align: center;
+            margin-bottom: 60px;
+            padding-top: 40px;
+        }
+
+        h1 {
+            font-size: 3.5rem;
+            font-weight: 800;
+            margin-bottom: 16px;
+            line-height: 1.2;
+        }
+
+        .gradient-text {
+            background: linear-gradient(90deg, #4ade80 0%, #00d9ff 25%, #b24bf3 75%, #ff006e 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .subtitle {
+            font-size: 1.25rem;
+            color: #94a3b8;
+            max-width: 800px;
+            margin: 0 auto 40px;
+            line-height: 1.6;
+        }
+
+        /* RACI Legend */
+        .raci-legend {
+            display: flex;
+            justify-content: center;
+            gap: 32px;
+            margin-bottom: 40px;
+            padding: 24px;
+            background: rgba(26, 26, 46, 0.95);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .legend-badge {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            font-weight: 700;
+        }
+
+        .legend-badge.r {
+            background: linear-gradient(135deg, #00d9ff 0%, #0ea5e9 100%);
+            color: #ffffff;
+        }
+
+        .legend-badge.a {
+            background: linear-gradient(135deg, #b24bf3 0%, #9333ea 100%);
+            color: #ffffff;
+        }
+
+        .legend-badge.c {
+            background: linear-gradient(135deg, #4ade80 0%, #22c55e 100%);
+            color: #ffffff;
+        }
+
+        .legend-badge.i {
+            background: linear-gradient(135deg, #FFB800 0%, #f59e0b 100%);
+            color: #ffffff;
+        }
+
+        .legend-info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .legend-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .legend-desc {
+            font-size: 0.85rem;
+            color: #94a3b8;
+        }
+
+        /* Phase Tabs */
+        .phase-tabs {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 40px;
+            flex-wrap: wrap;
+        }
+
+        .phase-tab {
+            padding: 12px 24px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 24px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: #94a3b8;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .phase-tab:hover {
+            background: rgba(255, 255, 255, 0.08);
+            color: #ffffff;
+        }
+
+        .phase-tab.active {
+            background: linear-gradient(135deg, #FF8C42 0%, #FF6B35 100%);
+            border-color: #FF8C42;
+            color: #ffffff;
+        }
+
+        /* RACI Matrix Table */
+        .matrix-container {
+            background: rgba(26, 26, 46, 0.95);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 40px;
+            overflow-x: auto;
+        }
+
+        .matrix-table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 1200px;
+        }
+
+        .matrix-table thead th {
+            padding: 20px 16px;
+            text-align: left;
+            font-size: 0.9rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #FF8C42;
+            background: rgba(255, 140, 66, 0.1);
+            border-bottom: 2px solid rgba(255, 140, 66, 0.3);
+        }
+
+        .matrix-table thead th:first-child {
+            border-radius: 12px 0 0 0;
+            padding-left: 24px;
+        }
+
+        .matrix-table thead th:last-child {
+            border-radius: 0 12px 0 0;
+            padding-right: 24px;
+        }
+
+        .matrix-table tbody tr {
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            transition: all 0.2s ease;
+        }
+
+        .matrix-table tbody tr:hover {
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .matrix-table tbody tr:last-child {
+            border-bottom: none;
+        }
+
+        .matrix-table tbody td {
+            padding: 20px 16px;
+            font-size: 0.9rem;
+        }
+
+        .matrix-table tbody td:first-child {
+            padding-left: 24px;
+        }
+
+        .matrix-table tbody td:last-child {
+            padding-right: 24px;
+        }
+
+        .role-cell {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .role-icon {
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, #00d9ff 0%, #b24bf3 50%, #ff006e 100%);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            flex-shrink: 0;
+        }
+
+        .role-name {
+            font-weight: 600;
+            color: #ffffff;
+        }
+
+        .raci-badge {
+            display: inline-block;
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            text-align: center;
+            line-height: 36px;
+            font-weight: 700;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .raci-badge:hover {
+            transform: scale(1.15);
+        }
+
+        .raci-badge.r {
+            background: linear-gradient(135deg, #00d9ff 0%, #0ea5e9 100%);
+            color: #ffffff;
+        }
+
+        .raci-badge.a {
+            background: linear-gradient(135deg, #b24bf3 0%, #9333ea 100%);
+            color: #ffffff;
+        }
+
+        .raci-badge.c {
+            background: linear-gradient(135deg, #4ade80 0%, #22c55e 100%);
+            color: #ffffff;
+        }
+
+        .raci-badge.i {
+            background: linear-gradient(135deg, #FFB800 0%, #f59e0b 100%);
+            color: #ffffff;
+        }
+
+        .raci-badge.empty {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px dashed rgba(255, 255, 255, 0.1);
+            color: rgba(255, 255, 255, 0.2);
+        }
+
+        /* Phase Cards */
+        .phase-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 24px;
+            margin-top: 40px;
+        }
+
+        .phase-card {
+            background: rgba(26, 26, 46, 0.95);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 32px;
+            transition: all 0.3s ease;
+        }
+
+        .phase-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .phase-card.discovery { border-left: 4px solid #4ade80; }
+        .phase-card.design { border-left: 4px solid #00d9ff; }
+        .phase-card.build { border-left: 4px solid #b24bf3; }
+        .phase-card.release { border-left: 4px solid #ff006e; }
+        .phase-card.growth { border-left: 4px solid #FFB800; }
+        .phase-card.maintenance { border-left: 4px solid #10b981; }
+
+        .phase-card-header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 24px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .phase-card-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+
+        .phase-card-icon.discovery { background: linear-gradient(135deg, #4ade80 0%, #00d9ff 100%); }
+        .phase-card-icon.design { background: linear-gradient(135deg, #00d9ff 0%, #b24bf3 100%); }
+        .phase-card-icon.build { background: linear-gradient(135deg, #b24bf3 0%, #ff006e 100%); }
+        .phase-card-icon.release { background: linear-gradient(135deg, #ff006e 0%, #FFB800 100%); }
+        .phase-card-icon.growth { background: linear-gradient(135deg, #FFB800 0%, #4ade80 100%); }
+        .phase-card-icon.maintenance { background: linear-gradient(135deg, #10b981 0%, #00d9ff 100%); }
+
+        .phase-card-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+        }
+
+        .raci-group {
+            margin-bottom: 20px;
+        }
+
+        .raci-group-label {
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .raci-group-label.r { color: #00d9ff; }
+        .raci-group-label.a { color: #b24bf3; }
+        .raci-group-label.c { color: #4ade80; }
+        .raci-group-label.i { color: #FFB800; }
+
+        .role-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .role-tag {
+            padding: 6px 12px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            font-size: 0.8rem;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        /* Export Section */
+        .export-section {
+            margin-top: 40px;
+            padding: 24px;
+            background: rgba(26, 26, 46, 0.95);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            text-align: center;
+        }
+
+        .export-title {
+            font-size: 1rem;
+            font-weight: 700;
+            margin-bottom: 16px;
+        }
+
+        .export-buttons {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+        }
+
+        .export-btn {
+            padding: 12px 24px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            color: #ffffff;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: none;
+        }
+
+        .export-btn:hover {
+            background: rgba(255, 255, 255, 0.08);
+            transform: translateY(-2px);
+        }
+
+        .export-btn.primary {
+            background: linear-gradient(135deg, #FF8C42 0%, #FF6B35 100%);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 2.5rem;
+            }
+
+            .raci-legend {
+                flex-direction: column;
+                gap: 16px;
+            }
+
+            .phase-tabs {
+                justify-content: flex-start;
+            }
+
+            .phase-cards {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>RACI <span class="gradient-text">Matrix</span></h1>
+            <p class="subtitle">
+                Clear accountability framework across all 6 development phases.
+                Understand who is Responsible, Accountable, Consulted, and Informed.
+            </p>
+        </header>
+
+        <!-- RACI Legend -->
+        <div class="raci-legend">
+            <div class="legend-item">
+                <div class="legend-badge r">R</div>
+                <div class="legend-info">
+                    <div class="legend-title">Responsible</div>
+                    <div class="legend-desc">Does the work to complete the task</div>
+                </div>
+            </div>
+            <div class="legend-item">
+                <div class="legend-badge a">A</div>
+                <div class="legend-info">
+                    <div class="legend-title">Accountable</div>
+                    <div class="legend-desc">Delegates and reviews the work</div>
+                </div>
+            </div>
+            <div class="legend-item">
+                <div class="legend-badge c">C</div>
+                <div class="legend-info">
+                    <div class="legend-title">Consulted</div>
+                    <div class="legend-desc">Provides input and expertise</div>
+                </div>
+            </div>
+            <div class="legend-item">
+                <div class="legend-badge i">I</div>
+                <div class="legend-info">
+                    <div class="legend-title">Informed</div>
+                    <div class="legend-desc">Kept up-to-date on progress</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Phase Tabs -->
+        <div class="phase-tabs">
+            <div class="phase-tab active" data-phase="all">
+                🎯 All Phases
+            </div>
+            <div class="phase-tab" data-phase="discovery">
+                🔍 Discovery
+            </div>
+            <div class="phase-tab" data-phase="design">
+                ✏️ Design
+            </div>
+            <div class="phase-tab" data-phase="build">
+                ⚒️ Build
+            </div>
+            <div class="phase-tab" data-phase="release">
+                🚀 Release
+            </div>
+            <div class="phase-tab" data-phase="growth">
+                📈 Growth
+            </div>
+            <div class="phase-tab" data-phase="maintenance">
+                🔧 Maintenance
+            </div>
+        </div>
+
+        <!-- RACI Matrix Table -->
+        <div class="matrix-container">
+            <table class="matrix-table">
+                <thead>
+                    <tr>
+                        <th>Role</th>
+                        <th>Discovery</th>
+                        <th>Design</th>
+                        <th>Build</th>
+                        <th>Release</th>
+                        <th>Growth</th>
+                        <th>Maintenance</th>
+                    </tr>
+                </thead>
+                <tbody id="matrixBody">
+                    <!-- Dynamically populated -->
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Phase Cards Detail View -->
+        <div class="phase-cards">
+            <div class="phase-card discovery">
+                <div class="phase-card-header">
+                    <div class="phase-card-icon discovery">🔍</div>
+                    <div class="phase-card-title">Discovery</div>
+                </div>
+
+                <div class="raci-group">
+                    <div class="raci-group-label r">
+                        <span class="raci-badge r" style="width: 24px; height: 24px; line-height: 24px; font-size: 0.7rem;">R</span>
+                        Responsible
+                    </div>
+                    <div class="role-tags">
+                        <div class="role-tag">🎯 Visionary</div>
+                        <div class="role-tag">📊 Business Analyst</div>
+                    </div>
+                </div>
+
+                <div class="raci-group">
+                    <div class="raci-group-label a">
+                        <span class="raci-badge a" style="width: 24px; height: 24px; line-height: 24px; font-size: 0.7rem;">A</span>
+                        Accountable
+                    </div>
+                    <div class="role-tags">
+                        <div class="role-tag">📦 Product Manager</div>
+                    </div>
+                </div>
+
+                <div class="raci-group">
+                    <div class="raci-group-label c">
+                        <span class="raci-badge c" style="width: 24px; height: 24px; line-height: 24px; font-size: 0.7rem;">C</span>
+                        Consulted
+                    </div>
+                    <div class="role-tags">
+                        <div class="role-tag">🎨 UX Designer</div>
+                        <div class="role-tag">🔒 Security Analyst</div>
+                    </div>
+                </div>
+
+                <div class="raci-group">
+                    <div class="raci-group-label i">
+                        <span class="raci-badge i" style="width: 24px; height: 24px; line-height: 24px; font-size: 0.7rem;">I</span>
+                        Informed
+                    </div>
+                    <div class="role-tags">
+                        <div class="role-tag">📈 Marketing</div>
+                        <div class="role-tag">🚀 DevOps</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="phase-card design">
+                <div class="phase-card-header">
+                    <div class="phase-card-icon design">✏️</div>
+                    <div class="phase-card-title">Design</div>
+                </div>
+
+                <div class="raci-group">
+                    <div class="raci-group-label r">
+                        <span class="raci-badge r" style="width: 24px; height: 24px; line-height: 24px; font-size: 0.7rem;">R</span>
+                        Responsible
+                    </div>
+                    <div class="role-tags">
+                        <div class="role-tag">🎨 UX Designer</div>
+                        <div class="role-tag">🎭 UI Designer</div>
+                    </div>
+                </div>
+
+                <div class="raci-group">
+                    <div class="raci-group-label a">
+                        <span class="raci-badge a" style="width: 24px; height: 24px; line-height: 24px; font-size: 0.7rem;">A</span>
+                        Accountable
+                    </div>
+                    <div class="role-tags">
+                        <div class="role-tag">📦 Product Manager</div>
+                    </div>
+                </div>
+
+                <div class="raci-group">
+                    <div class="raci-group-label c">
+                        <span class="raci-badge c" style="width: 24px; height: 24px; line-height: 24px; font-size: 0.7rem;">C</span>
+                        Consulted
+                    </div>
+                    <div class="role-tags">
+                        <div class="role-tag">🎯 Visionary</div>
+                        <div class="role-tag">🧪 QA Engineer</div>
+                    </div>
+                </div>
+
+                <div class="raci-group">
+                    <div class="raci-group-label i">
+                        <span class="raci-badge i" style="width: 24px; height: 24px; line-height: 24px; font-size: 0.7rem;">I</span>
+                        Informed
+                    </div>
+                    <div class="role-tags">
+                        <div class="role-tag">📈 Marketing</div>
+                        <div class="role-tag">⚙️ Backend Developer</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="phase-card build">
+                <div class="phase-card-header">
+                    <div class="phase-card-icon build">⚒️</div>
+                    <div class="phase-card-title">Build</div>
+                </div>
+
+                <div class="raci-group">
+                    <div class="raci-group-label r">
+                        <span class="raci-badge r" style="width: 24px; height: 24px; line-height: 24px; font-size: 0.7rem;">R</span>
+                        Responsible
+                    </div>
+                    <div class="role-tags">
+                        <div class="role-tag">📱 Mobile Developer</div>
+                        <div class="role-tag">⚙️ Backend Developer</div>
+                        <div class="role-tag">🚀 DevOps</div>
+                    </div>
+                </div>
+
+                <div class="raci-group">
+                    <div class="raci-group-label a">
+                        <span class="raci-badge a" style="width: 24px; height: 24px; line-height: 24px; font-size: 0.7rem;">A</span>
+                        Accountable
+                    </div>
+                    <div class="role-tags">
+                        <div class="role-tag">📦 Product Manager</div>
+                    </div>
+                </div>
+
+                <div class="raci-group">
+                    <div class="raci-group-label c">
+                        <span class="raci-badge c" style="width: 24px; height: 24px; line-height: 24px; font-size: 0.7rem;">C</span>
+                        Consulted
+                    </div>
+                    <div class="role-tags">
+                        <div class="role-tag">🔒 Security Analyst</div>
+                        <div class="role-tag">🧪 QA Engineer</div>
+                    </div>
+                </div>
+
+                <div class="raci-group">
+                    <div class="raci-group-label i">
+                        <span class="raci-badge i" style="width: 24px; height: 24px; line-height: 24px; font-size: 0.7rem;">I</span>
+                        Informed
+                    </div>
+                    <div class="role-tags">
+                        <div class="role-tag">🎭 UI Designer</div>
+                        <div class="role-tag">📈 Marketing</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="phase-card release">
+                <div class="phase-card-header">
+                    <div class="phase-card-icon release">🚀</div>
+                    <div class="phase-card-title">Release</div>
+                </div>
+
+                <div class="raci-group">
+                    <div class="raci-group-label r">
+                        <span class="raci-badge r" style="width: 24px; height: 24px; line-height: 24px; font-size: 0.7rem;">R</span>
+                        Responsible
+                    </div>
+                    <div class="role-tags">
+                        <div class="role-tag">🧪 QA Engineer</div>
+                        <div class="role-tag">🚀 DevOps</div>
+                    </div>
+                </div>
+
+                <div class="raci-group">
+                    <div class="raci-group-label a">
+                        <span class="raci-badge a" style="width: 24px; height: 24px; line-height: 24px; font-size: 0.7rem;">A</span>
+                        Accountable
+                    </div>
+                    <div class="role-tags">
+                        <div class="role-tag">📦 Product Manager</div>
+                    </div>
+                </div>
+
+                <div class="raci-group">
+                    <div class="raci-group-label c">
+                        <span class="raci-badge c" style="width: 24px; height: 24px; line-height: 24px; font-size: 0.7rem;">C</span>
+                        Consulted
+                    </div>
+                    <div class="role-tags">
+                        <div class="role-tag">🔒 Security Analyst</div>
+                    </div>
+                </div>
+
+                <div class="raci-group">
+                    <div class="raci-group-label i">
+                        <span class="raci-badge i" style="width: 24px; height: 24px; line-height: 24px; font-size: 0.7rem;">I</span>
+                        Informed
+                    </div>
+                    <div class="role-tags">
+                        <div class="role-tag">📈 Marketing</div>
+                        <div class="role-tag">🎯 Visionary</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="phase-card growth">
+                <div class="phase-card-header">
+                    <div class="phase-card-icon growth">📈</div>
+                    <div class="phase-card-title">Growth</div>
+                </div>
+
+                <div class="raci-group">
+                    <div class="raci-group-label r">
+                        <span class="raci-badge r" style="width: 24px; height: 24px; line-height: 24px; font-size: 0.7rem;">R</span>
+                        Responsible
+                    </div>
+                    <div class="role-tags">
+                        <div class="role-tag">📈 Marketing & Growth</div>
+                    </div>
+                </div>
+
+                <div class="raci-group">
+                    <div class="raci-group-label a">
+                        <span class="raci-badge a" style="width: 24px; height: 24px; line-height: 24px; font-size: 0.7rem;">A</span>
+                        Accountable
+                    </div>
+                    <div class="role-tags">
+                        <div class="role-tag">🎯 Visionary</div>
+                    </div>
+                </div>
+
+                <div class="raci-group">
+                    <div class="raci-group-label c">
+                        <span class="raci-badge c" style="width: 24px; height: 24px; line-height: 24px; font-size: 0.7rem;">C</span>
+                        Consulted
+                    </div>
+                    <div class="role-tags">
+                        <div class="role-tag">📦 Product Manager</div>
+                        <div class="role-tag">📊 Business Analyst</div>
+                    </div>
+                </div>
+
+                <div class="raci-group">
+                    <div class="raci-group-label i">
+                        <span class="raci-badge i" style="width: 24px; height: 24px; line-height: 24px; font-size: 0.7rem;">I</span>
+                        Informed
+                    </div>
+                    <div class="role-tags">
+                        <div class="role-tag">🎨 UX Designer</div>
+                        <div class="role-tag">🚀 DevOps</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="phase-card maintenance">
+                <div class="phase-card-header">
+                    <div class="phase-card-icon maintenance">🔧</div>
+                    <div class="phase-card-title">Maintenance</div>
+                </div>
+
+                <div class="raci-group">
+                    <div class="raci-group-label r">
+                        <span class="raci-badge r" style="width: 24px; height: 24px; line-height: 24px; font-size: 0.7rem;">R</span>
+                        Responsible
+                    </div>
+                    <div class="role-tags">
+                        <div class="role-tag">🚀 DevOps</div>
+                        <div class="role-tag">🧪 QA Engineer</div>
+                        <div class="role-tag">🔒 Security Analyst</div>
+                    </div>
+                </div>
+
+                <div class="raci-group">
+                    <div class="raci-group-label a">
+                        <span class="raci-badge a" style="width: 24px; height: 24px; line-height: 24px; font-size: 0.7rem;">A</span>
+                        Accountable
+                    </div>
+                    <div class="role-tags">
+                        <div class="role-tag">📦 Product Manager</div>
+                    </div>
+                </div>
+
+                <div class="raci-group">
+                    <div class="raci-group-label c">
+                        <span class="raci-badge c" style="width: 24px; height: 24px; line-height: 24px; font-size: 0.7rem;">C</span>
+                        Consulted
+                    </div>
+                    <div class="role-tags">
+                        <div class="role-tag">⚙️ Backend Developer</div>
+                        <div class="role-tag">📱 Mobile Developer</div>
+                    </div>
+                </div>
+
+                <div class="raci-group">
+                    <div class="raci-group-label i">
+                        <span class="raci-badge i" style="width: 24px; height: 24px; line-height: 24px; font-size: 0.7rem;">I</span>
+                        Informed
+                    </div>
+                    <div class="role-tags">
+                        <div class="role-tag">🎯 Visionary</div>
+                        <div class="role-tag">📈 Marketing</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Export Section -->
+        <div class="export-section">
+            <div class="export-title">Export RACI Matrix</div>
+            <div class="export-buttons">
+                <button class="export-btn primary">📄 Export as JSON</button>
+                <button class="export-btn">📊 Export as CSV</button>
+                <button class="export-btn">📋 Copy to Clipboard</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const raciData = {
+            roles: [
+                { 
+                    name: 'Visionary', 
+                    icon: '🎯',
+                    discovery: 'R',
+                    design: 'C',
+                    build: '-',
+                    release: 'I',
+                    growth: 'A',
+                    maintenance: 'I'
+                },
+                { 
+                    name: 'Product Manager', 
+                    icon: '📦',
+                    discovery: 'A',
+                    design: 'A',
+                    build: 'A',
+                    release: 'A',
+                    growth: 'C',
+                    maintenance: 'A'
+                },
+                { 
+                    name: 'Business Analyst', 
+                    icon: '📊',
+                    discovery: 'R',
+                    design: '-',
+                    build: '-',
+                    release: '-',
+                    growth: 'C',
+                    maintenance: '-'
+                },
+                { 
+                    name: 'UX Designer', 
+                    icon: '🎨',
+                    discovery: 'C',
+                    design: 'R',
+                    build: '-',
+                    release: '-',
+                    growth: 'I',
+                    maintenance: '-'
+                },
+                { 
+                    name: 'UI Designer', 
+                    icon: '🎭',
+                    discovery: '-',
+                    design: 'R',
+                    build: 'I',
+                    release: '-',
+                    growth: '-',
+                    maintenance: '-'
+                },
+                { 
+                    name: 'Mobile Developer', 
+                    icon: '📱',
+                    discovery: '-',
+                    design: '-',
+                    build: 'R',
+                    release: '-',
+                    growth: '-',
+                    maintenance: 'C'
+                },
+                { 
+                    name: 'Backend Developer', 
+                    icon: '⚙️',
+                    discovery: '-',
+                    design: 'I',
+                    build: 'R',
+                    release: '-',
+                    growth: '-',
+                    maintenance: 'C'
+                },
+                { 
+                    name: 'QA Engineer', 
+                    icon: '🧪',
+                    discovery: '-',
+                    design: 'C',
+                    build: 'C',
+                    release: 'R',
+                    growth: '-',
+                    maintenance: 'R'
+                },
+                { 
+                    name: 'DevOps', 
+                    icon: '🚀',
+                    discovery: 'I',
+                    design: '-',
+                    build: 'R',
+                    release: 'R',
+                    growth: 'I',
+                    maintenance: 'R'
+                },
+                { 
+                    name: 'Security Analyst', 
+                    icon: '🔒',
+                    discovery: 'C',
+                    design: '-',
+                    build: 'C',
+                    release: 'C',
+                    growth: '-',
+                    maintenance: 'R'
+                },
+                { 
+                    name: 'Marketing & Growth', 
+                    icon: '📈',
+                    discovery: 'I',
+                    design: 'I',
+                    build: 'I',
+                    release: 'I',
+                    growth: 'R',
+                    maintenance: 'I'
+                }
+            ]
+        };
+
+        // Populate matrix table
+        const matrixBody = document.getElementById('matrixBody');
+        raciData.roles.forEach(role => {
+            const row = document.createElement('tr');
+            
+            row.innerHTML = `
+                <td>
+                    <div class="role-cell">
+                        <div class="role-icon">${role.icon}</div>
+                        <div class="role-name">${role.name}</div>
+                    </div>
+                </td>
+                <td>
+                    <span class="raci-badge ${role.discovery.toLowerCase()}">${role.discovery}</span>
+                </td>
+                <td>
+                    <span class="raci-badge ${role.design.toLowerCase()}">${role.design}</span>
+                </td>
+                <td>
+                    <span class="raci-badge ${role.build.toLowerCase()}">${role.build}</span>
+                </td>
+                <td>
+                    <span class="raci-badge ${role.release.toLowerCase()}">${role.release}</span>
+                </td>
+                <td>
+                    <span class="raci-badge ${role.growth.toLowerCase()}">${role.growth}</span>
+                </td>
+                <td>
+                    <span class="raci-badge ${role.maintenance.toLowerCase()}">${role.maintenance}</span>
+                </td>
+            `;
+            
+            matrixBody.appendChild(row);
+        });
+
+        // Replace '-' with empty class
+        document.querySelectorAll('.raci-badge.-').forEach(badge => {
+            badge.classList.add('empty');
+            badge.textContent = '—';
+        });
+
+        // Phase tabs functionality
+        const phaseTabs = document.querySelectorAll('.phase-tab');
+        phaseTabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                phaseTabs.forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                
+                // Filter functionality can be added here
+                const phase = tab.dataset.phase;
+                console.log('Selected phase:', phase);
+            });
+        });
+
+        // Export functionality
+        const exportButtons = document.querySelectorAll('.export-btn');
+        exportButtons.forEach((btn, index) => {
+            btn.addEventListener('click', () => {
+                if (index === 0) {
+                    // Export as JSON
+                    const dataStr = JSON.stringify(raciData, null, 2);
+                    const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+                    const exportFileDefaultName = 'raci-matrix.json';
+                    
+                    const linkElement = document.createElement('a');
+                    linkElement.setAttribute('href', dataUri);
+                    linkElement.setAttribute('download', exportFileDefaultName);
+                    linkElement.click();
+                } else if (index === 2) {
+                    // Copy to clipboard
+                    navigator.clipboard.writeText(JSON.stringify(raciData, null, 2));
+                    btn.textContent = '✓ Copied!';
+                    setTimeout(() => {
+                        btn.textContent = '📋 Copy to Clipboard';
+                    }, 2000);
+                }
+            });
+        });
+
+        // Hover effects for RACI badges
+        document.querySelectorAll('.raci-badge').forEach(badge => {
+            badge.addEventListener('mouseenter', function() {
+                const raciType = this.textContent.trim();
+                const descriptions = {
+                    'R': 'Responsible: Does the work',
+                    'A': 'Accountable: Delegates and reviews',
+                    'C': 'Consulted: Provides input',
+                    'I': 'Informed: Kept up-to-date'
+                };
+                if (descriptions[raciType]) {
+                    this.setAttribute('title', descriptions[raciType]);
+                }
+            });
+        });
+    </script>
+</body>
+</html>

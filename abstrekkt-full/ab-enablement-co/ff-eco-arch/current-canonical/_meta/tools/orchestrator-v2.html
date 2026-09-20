@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Orchestrator Session — v2</title>
+<style>
+  :root {
+    --bg: #0a0a0b;
+    --surface: #131316;
+    --surface-2: #1a1a1f;
+    --surface-3: #22222a;
+    --border: #2a2a32;
+    --border-soft: #1f1f26;
+    --text: #e8e8ea;
+    --muted: #8a8a93;
+    --dim: #5a5a63;
+    --accent: #7c5cff;
+    --accent-soft: rgba(124, 92, 255, 0.12);
+    --memoir: #f472b6;
+    --strategy: #60a5fa;
+    --decision: #fbbf24;
+    --audit: #4ade80;
+    --warn: #ffb84d;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.55;
+    padding: 32px 20px 60px;
+    min-height: 100vh;
+  }
+  .wrap { max-width: 920px; margin: 0 auto; }
+
+  header { margin-bottom: 28px; }
+  .eyebrow {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--muted);
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .scope-pill {
+    background: var(--accent-soft);
+    color: var(--accent);
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+  }
+  h1 { font-size: 28px; font-weight: 600; letter-spacing: -0.02em; margin-bottom: 6px; }
+  .subtitle { font-size: 14px; color: var(--muted); }
+
+  h2 {
+    font-size: 13px;
+    font-weight: 600;
+    margin: 28px 0 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .mode-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+  .mode {
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    padding: 14px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    text-align: left;
+  }
+  .mode:hover { background: var(--surface-2); }
+  .mode.active {
+    background: var(--surface-2);
+    border-color: var(--mode-color, var(--accent));
+  }
+  .mode-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--mode-color, var(--accent));
+    display: inline-block;
+    margin-right: 8px;
+  }
+  .mode-title { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+  .mode-desc { font-size: 12px; color: var(--muted); }
+
+  .controls {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+  .time-btn {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    padding: 8px 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 500;
+    transition: all 0.15s ease;
+    font-family: inherit;
+  }
+  .time-btn:hover { background: var(--surface-2); color: var(--text); }
+  .time-btn.active {
+    background: var(--accent-soft);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  .prompt-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .prompt-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    background: var(--surface-2);
+    border-bottom: 1px solid var(--border);
+  }
+  .prompt-label { font-size: 12px; color: var(--muted); font-weight: 500; }
+  .copy-btn {
+    background: var(--accent);
+    color: white;
+    border: none;
+    padding: 6px 14px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.15s ease;
+  }
+  .copy-btn:hover { background: #6d4dee; }
+  .copy-btn.copied { background: var(--audit); }
+  .prompt-body {
+    padding: 16px;
+    font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
+    font-size: 12.5px;
+    line-height: 1.65;
+    color: #c4c4ca;
+    white-space: pre-wrap;
+    max-height: 380px;
+    overflow-y: auto;
+  }
+  .prompt-body::-webkit-scrollbar { width: 6px; }
+  .prompt-body::-webkit-scrollbar-track { background: transparent; }
+  .prompt-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  .phases {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 6px 18px;
+  }
+  .phase {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 14px 0;
+    border-top: 1px solid var(--border-soft);
+    cursor: pointer;
+    user-select: none;
+  }
+  .phase:first-of-type { border-top: none; }
+  .phase-num {
+    width: 24px; height: 24px;
+    border-radius: 6px;
+    background: var(--surface-3);
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 600;
+    flex-shrink: 0;
+    transition: all 0.15s ease;
+  }
+  .phase.done .phase-num {
+    background: var(--accent);
+    color: white;
+  }
+  .phase-body { flex: 1; }
+  .phase-title-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2px;
+  }
+  .phase-title { font-size: 14px; font-weight: 500; }
+  .phase-time { font-size: 11px; color: var(--dim); font-family: 'SF Mono', monospace; }
+  .phase-detail { font-size: 12.5px; color: var(--muted); }
+  .phase.done .phase-title { color: var(--muted); text-decoration: line-through; }
+
+  .session-log {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+  }
+  .log-field {
+    margin-bottom: 14px;
+  }
+  .log-field:last-child { margin-bottom: 0; }
+  .log-label {
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 6px;
+    font-weight: 600;
+  }
+  .log-input {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 12px;
+    color: var(--text);
+    font-family: inherit;
+    font-size: 13px;
+    resize: vertical;
+  }
+  .log-input:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+  textarea.log-input { min-height: 60px; }
+  .export-btn {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 10px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    font-family: inherit;
+    margin-top: 6px;
+    width: 100%;
+    transition: all 0.15s ease;
+  }
+  .export-btn:hover { background: var(--surface-3); }
+
+  .delta {
+    background: var(--surface-2);
+    border-left: 3px solid var(--accent);
+    border-radius: 0 8px 8px 0;
+    padding: 14px 18px;
+    margin-top: 28px;
+    font-size: 13px;
+  }
+  .delta-label {
+    font-size: 10px;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+  .delta ul { list-style: none; }
+  .delta li {
+    padding: 3px 0;
+    color: #c4c4ca;
+  }
+  .delta li::before {
+    content: "→";
+    color: var(--accent);
+    opacity: 0.6;
+    margin-right: 10px;
+  }
+  .delta strong { color: var(--text); }
+
+  .footer {
+    margin-top: 28px;
+    padding: 14px 18px;
+    background: var(--surface-2);
+    border-radius: 10px;
+    font-size: 12px;
+    color: var(--muted);
+    border-left: 3px solid var(--accent);
+  }
+  .footer-label {
+    color: var(--accent);
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-size: 10px;
+    margin-bottom: 6px;
+  }
+  .footer p { margin: 3px 0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="eyebrow">
+      <span>Orchestrator Session</span>
+      <span class="scope-pill">SCOPE · STANDARD</span>
+    </div>
+    <h1>v2 — Kyle-grade</h1>
+    <div class="subtitle">Mode-aware Claude session protocol. Adversarial pass built in.</div>
+  </header>
+
+  <h2>1. Pick mode</h2>
+  <div class="mode-grid">
+    <div class="mode active" data-mode="memoir" style="--mode-color: var(--memoir)">
+      <div class="mode-title"><span class="mode-dot"></span>Memoir</div>
+      <div class="mode-desc">Raw material → narrative beats → emotional truth check</div>
+    </div>
+    <div class="mode" data-mode="strategy" style="--mode-color: var(--strategy)">
+      <div class="mode-title"><span class="mode-dot"></span>Strategy</div>
+      <div class="mode-desc">FlashFusion / INT moves. State → options → one play</div>
+    </div>
+    <div class="mode" data-mode="decision" style="--mode-color: var(--decision)">
+      <div class="mode-title"><span class="mode-dot"></span>Decision</div>
+      <div class="mode-desc">Forked choices. Both sides hard → constraint → pick</div>
+    </div>
+    <div class="mode" data-mode="audit" style="--mode-color: var(--audit)">
+      <div class="mode-title"><span class="mode-dot"></span>Build-Audit</div>
+      <div class="mode-desc">Spec → blast radius → ship gate</div>
+    </div>
+  </div>
+
+  <h2>2. Time box</h2>
+  <div class="controls">
+    <button class="time-btn" data-time="30">30 min</button>
+    <button class="time-btn active" data-time="60">60 min</button>
+    <button class="time-btn" data-time="90">90 min</button>
+  </div>
+
+  <h2>3. Paste this into Claude</h2>
+  <div class="prompt-box">
+    <div class="prompt-header">
+      <div class="prompt-label">System prompt · adapts to mode</div>
+      <button class="copy-btn" id="copyBtn">Copy</button>
+    </div>
+    <div class="prompt-body" id="promptBody"></div>
+  </div>
+
+  <h2>4. Run the phases</h2>
+  <div class="phases">
+    <div class="phase" data-phase="1">
+      <div class="phase-num">1</div>
+      <div class="phase-body">
+        <div class="phase-title-row">
+          <div class="phase-title">Frame</div>
+          <div class="phase-time" data-pct="0.08">5 min</div>
+        </div>
+        <div class="phase-detail">Name the mode out loud. State the question or the rawness in one sentence. Note the constraint.</div>
+      </div>
+    </div>
+    <div class="phase" data-phase="2">
+      <div class="phase-num">2</div>
+      <div class="phase-body">
+        <div class="phase-title-row">
+          <div class="phase-title">Dump</div>
+          <div class="phase-time" data-pct="0.33">20 min</div>
+        </div>
+        <div class="phase-detail">Unstructured. No editing. Type or talk-to-text. Stop when you're empty, not when the timer says.</div>
+      </div>
+    </div>
+    <div class="phase" data-phase="3">
+      <div class="phase-num">3</div>
+      <div class="phase-body">
+        <div class="phase-title-row">
+          <div class="phase-title">Mirror</div>
+          <div class="phase-time" data-pct="0.08">5 min</div>
+        </div>
+        <div class="phase-detail">Claude reflects back what you actually said. Read it. Flag what's missing or wrong.</div>
+      </div>
+    </div>
+    <div class="phase" data-phase="4">
+      <div class="phase-num">4</div>
+      <div class="phase-body">
+        <div class="phase-title-row">
+          <div class="phase-title">Adversarial pass</div>
+          <div class="phase-time" data-pct="0.25">15 min</div>
+        </div>
+        <div class="phase-detail">CLAIMS / COUNTEREXAMPLE / CONTRADICTIONS on the dump. Steelman the opposite view.</div>
+      </div>
+    </div>
+    <div class="phase" data-phase="5">
+      <div class="phase-num">5</div>
+      <div class="phase-body">
+        <div class="phase-title-row">
+          <div class="phase-title">Synthesis</div>
+          <div class="phase-time" data-pct="0.17">10 min</div>
+        </div>
+        <div class="phase-detail">One insight. One next step (not three). One thing to drop or stop doing.</div>
+      </div>
+    </div>
+    <div class="phase" data-phase="6">
+      <div class="phase-num">6</div>
+      <div class="phase-body">
+        <div class="phase-title-row">
+          <div class="phase-title">Log</div>
+          <div class="phase-time" data-pct="0.08">5 min</div>
+        </div>
+        <div class="phase-detail">Fill the session log below. One sentence each. Export when done.</div>
+      </div>
+    </div>
+  </div>
+
+  <h2>5. Session log</h2>
+  <div class="session-log">
+    <div class="log-field">
+      <div class="log-label">Insight</div>
+      <input class="log-input" id="logInsight" placeholder="One sentence." />
+    </div>
+    <div class="log-field">
+      <div class="log-label">Next step</div>
+      <input class="log-input" id="logStep" placeholder="One. Executable in &lt;24h." />
+    </div>
+    <div class="log-field">
+      <div class="log-label">Drop</div>
+      <input class="log-input" id="logDrop" placeholder="What you're stopping or releasing." />
+    </div>
+    <div class="log-field">
+      <div class="log-label">Counterexample worth remembering</div>
+      <textarea class="log-input" id="logCounter" placeholder="What Claude flagged that you hadn't seen."></textarea>
+    </div>
+    <button class="export-btn" id="exportBtn">Copy session log as markdown</button>
+  </div>
+
+  <div class="delta">
+    <div class="delta-label">What changed from v1</div>
+    <ul>
+      <li><strong>Stack swap:</strong> ChatGPT → Claude. Prompts are Claude-shaped.</li>
+      <li><strong>Mode-aware:</strong> Memoir uses a different prompt than Strategy. Generic doesn't generalize.</li>
+      <li><strong>Adversarial pass is a phase</strong>, not a footer. It happens mid-session while you can still respond.</li>
+      <li><strong>Structured log out:</strong> insight / next step / drop / counterexample. Markdown export, copy-paste anywhere.</li>
+      <li><strong>Time per phase</strong>, not a 60-minute blob. Phase 2 (Dump) gets the largest share; phase 4 (Adversarial) gets second.</li>
+    </ul>
+  </div>
+
+  <div class="footer">
+    <div class="footer-label">Claims · Counterexample · Contradictions</div>
+    <p><strong>Claims:</strong> v2 is more useful than v1 because it removes the "what do I do once I'm in there" gap — modes + prompts + phase timing.</p>
+    <p><strong>Counterexample:</strong> Could be over-structured. The original Wolf Challenge's value was deliberately unstructured journaling; protocolizing it might kill the surprise. If you start sessions and find yourself performing the protocol instead of thinking, the protocol is in the way.</p>
+    <p><strong>Contradictions:</strong> "Adversarial pass at min 30" assumes you'll feel like being challenged then. Sometimes the dump itself is the work and the right phase 4 is rest, not critique. The protocol is a default, not a law.</p>
+  </div>
+
+</div>
+
+<script>
+  const prompts = {
+    memoir: `MODE: Memoir session.
+CONTEXT: I'm working on a memoir grounded in a "Construction over Recovery" philosophy. This session is for raw material, not polish.
+
+ROLE: Be a careful, sober reader. Do not flatter. Do not therapize. Do not soften.
+
+PHASES:
+1. I will brain-dump for ~20 min. Don't interrupt. Just read.
+2. When I say "mirror", reflect back what I actually said — themes, contradictions, what I circled around but didn't say. Be specific. Quote me back.
+3. When I say "adversarial", apply CLAIMS / COUNTEREXAMPLE / CONTRADICTIONS:
+   - What did I assert that I haven't actually shown?
+   - What's the strongest counterexample to my framing?
+   - Where am I contradicting something I said earlier in this dump or in prior sessions?
+4. When I say "synthesis", give me: one narrative beat worth keeping, one emotional truth I'm avoiding, one thing to write next.
+
+CONSTRAINT: Don't generate prose for the memoir. That's my job. You're the reader, not the writer.
+
+Ready when I am.`,
+
+    strategy: `MODE: Strategy session.
+CONTEXT: FlashFusion / INT / business-level decision. I think out loud; you organize and push back.
+
+ROLE: Strategic operator with a bias toward execution. No happy-path-only thinking.
+
+PHASES:
+1. I dump the situation — state of things, what's stuck, what I'm considering. ~20 min.
+2. On "mirror": surface the actual decision tree underneath the dump. What are the real forks? What am I treating as fixed that isn't?
+3. On "adversarial": CLAIMS / COUNTEREXAMPLE / CONTRADICTIONS, plus:
+   - Where am I assuming I have time/budget/attention I don't?
+   - What's the WSJF reality of each option?
+   - Steelman the do-nothing option.
+4. On "synthesis": one move worth making, one trap to avoid, one thing to stop investing in.
+
+CONSTRAINTS: Use my decision priority order (Maintainability > Correctness > Security > Observability > Scalability > Performance > Cleverness). Flag [SOURCED] vs [GENERATED] when you make claims about my context.
+
+Ready when I am.`,
+
+    decision: `MODE: Forked decision.
+CONTEXT: I'm staring at a choice (or pretending I'm not). This session converts staring into deciding.
+
+ROLE: Decision facilitator. You don't pick for me. You make the picking honest.
+
+PHASES:
+1. I describe the fork and what I'm leaning toward. ~15 min.
+2. On "mirror": restate the fork in my own words. Then ask: is this actually the decision, or am I avoiding a deeper one?
+3. On "adversarial":
+   - Steelman the option I'm NOT picking. Make it the strongest version.
+   - What constraint am I treating as load-bearing that might not be?
+   - What's the reversibility cost of each option?
+   - CLAIMS / COUNTEREXAMPLE / CONTRADICTIONS on my reasoning.
+4. On "synthesis": the decision, the reason in one sentence, and the earliest signal I'd be wrong.
+
+CONSTRAINT: If I haven't decided by the end, you push me. "Not deciding" is a decision and it gets named.
+
+Ready when I am.`,
+
+    audit: `MODE: Build-audit session.
+CONTEXT: Technical work — design, build, or post-mortem. I describe; you stress-test.
+
+ROLE: Staff-level reviewer. Production mindset. Blast-radius brain.
+
+PHASES:
+1. I describe what I'm building or what shipped. Architecture, assumptions, edges. ~20 min.
+2. On "mirror": restate the architecture in your words. Surface what I described as "obvious" that isn't.
+3. On "adversarial":
+   - Where does this fail under load, partial failure, or adversarial input?
+   - What's the blast radius if the worst plausible bug ships?
+   - Security: secrets in client code? RLS gaps? Auth assumptions?
+   - Observability: how would I know it broke?
+   - CLAIMS / COUNTEREXAMPLE / CONTRADICTIONS on the design.
+4. On "synthesis": the one thing to fix before ship, the one thing safe to defer, the one thing to monitor.
+
+CONSTRAINTS: My stack is React 19 / Vite / TS / Tailwind / Supabase / Cloudflare / Resend / Stripe / PostHog. Don't recommend tools outside this set without explicit reason. Never suggest putting secrets in client-side code.
+
+Ready when I am.`
+  };
+
+  let currentMode = 'memoir';
+  let currentTime = 60;
+
+  function renderPrompt() {
+    document.getElementById('promptBody').textContent = prompts[currentMode];
+  }
+
+  function renderTimes() {
+    document.querySelectorAll('.phase-time').forEach(el => {
+      const pct = parseFloat(el.dataset.pct);
+      const mins = Math.round(currentTime * pct);
+      el.textContent = mins + ' min';
+    });
+  }
+
+  document.querySelectorAll('.mode').forEach(m => {
+    m.addEventListener('click', () => {
+      document.querySelectorAll('.mode').forEach(x => x.classList.remove('active'));
+      m.classList.add('active');
+      currentMode = m.dataset.mode;
+      renderPrompt();
+    });
+  });
+
+  document.querySelectorAll('.time-btn').forEach(b => {
+    b.addEventListener('click', () => {
+      document.querySelectorAll('.time-btn').forEach(x => x.classList.remove('active'));
+      b.classList.add('active');
+      currentTime = parseInt(b.dataset.time);
+      renderTimes();
+    });
+  });
+
+  document.querySelectorAll('.phase').forEach(p => {
+    p.addEventListener('click', () => p.classList.toggle('done'));
+  });
+
+  document.getElementById('copyBtn').addEventListener('click', async (e) => {
+    try {
+      await navigator.clipboard.writeText(prompts[currentMode]);
+      e.target.textContent = 'Copied';
+      e.target.classList.add('copied');
+      setTimeout(() => {
+        e.target.textContent = 'Copy';
+        e.target.classList.remove('copied');
+      }, 1500);
+    } catch (err) {}
+  });
+
+  document.getElementById('exportBtn').addEventListener('click', async (e) => {
+    const date = new Date().toISOString().split('T')[0];
+    const md = `# Orchestrator session — ${date}
+
+**Mode:** ${currentMode}
+**Duration:** ${currentTime} min
+
+**Insight:** ${document.getElementById('logInsight').value || '—'}
+
+**Next step:** ${document.getElementById('logStep').value || '—'}
+
+**Drop:** ${document.getElementById('logDrop').value || '—'}
+
+**Counterexample worth remembering:**
+${document.getElementById('logCounter').value || '—'}
+`;
+    try {
+      await navigator.clipboard.writeText(md);
+      e.target.textContent = 'Copied to clipboard';
+      setTimeout(() => { e.target.textContent = 'Copy session log as markdown'; }, 1500);
+    } catch (err) {}
+  });
+
+  renderPrompt();
+  renderTimes();
+</script>
+</body>
+</html>

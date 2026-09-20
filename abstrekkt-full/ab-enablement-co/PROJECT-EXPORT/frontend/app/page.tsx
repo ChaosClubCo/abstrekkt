@@ -1,0 +1,1 @@
+export default function HomePage(){return <main className="shell"><p className="eyebrow">Memoir</p><h1>Turn scattered project memory into a production-ready repository export.</h1><p>Ingest sources, build a provenance-aware graph, resolve decisions, eliminate gaps, validate completeness, and export.</p></main>}

@@ -1,0 +1,2 @@
+- Apply `supabase/schema.sql` and `supabase/policies.sql`.
+- Use service role key on server only. Enable RLS.

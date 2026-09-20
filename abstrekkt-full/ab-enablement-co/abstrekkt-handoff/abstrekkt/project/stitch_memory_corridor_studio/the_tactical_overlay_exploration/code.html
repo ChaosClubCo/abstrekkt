@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,100..900&amp;family=Crimson+Pro:ital,wght@0,200..900;1,200..900&amp;family=JetBrains+Mono:wght@100..800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-tertiary": "#472a00",
+                    "primary": "#cac6c1",
+                    "on-surface-variant": "#ccc6bd",
+                    "surface-container-high": "#2e2a1e",
+                    "secondary-fixed": "#e5e2dc",
+                    "on-primary-fixed": "#1d1b19",
+                    "secondary-container": "#474743",
+                    "on-tertiary-fixed-variant": "#633f0d",
+                    "on-tertiary-container": "#9d703b",
+                    "surface-dim": "#171309",
+                    "tertiary-fixed-dim": "#f2bd80",
+                    "secondary": "#c9c6c1",
+                    "brass": "#eab308", /* Sharper Brass */
+                    "surface-container-highest": "#393428",
+                    "primary-container": "#0a0907",
+                    "paper": "#f2efe9",
+                    "surface-bright": "#3e392d",
+                    "outline": "#959088",
+                    "on-secondary-fixed": "#1c1c18",
+                    "inverse-on-surface": "#353024",
+                    "primary-fixed": "#e7e2dd",
+                    "surface-container": "#231f14",
+                    "rule-white": "rgba(255, 255, 255, 0.15)", /* Higher contrast */
+                    "error-container": "#93000a",
+                    "on-error-container": "#ffdad6",
+                    "surface-container-lowest": "#110e05",
+                    "on-error": "#690005",
+                    "paper-dim": "#a09888",
+                    "tertiary-container": "#120700",
+                    "ink": "#000000", /* Deep black for HUD contrast */
+                    "on-secondary-container": "#b7b5af",
+                    "inverse-primary": "#615e5a",
+                    "technical-blue": "#3b82f6", /* Sharper technical blue */
+                    "surface": "#0a0907",
+                    "primary-fixed-dim": "#cac6c1",
+                    "outline-variant": "#4a463f",
+                    "technical-green": "#22c55e", /* Sharper technical green */
+                    "brass-deep": "#ca8a04", /* Sharper deep brass */
+                    "on-secondary-fixed-variant": "#474743",
+                    "surface-container-low": "#1f1b11",
+                    "on-primary": "#32302d",
+                    "on-secondary": "#31312d",
+                    "surface-tint": "#cac6c1",
+                    "on-surface": "#ffffff", /* High contrast white */
+                    "error": "#ffb4ab",
+                    "on-primary-container": "#7c7875",
+                    "on-background": "#ebe2d0",
+                    "surface-variant": "#393428",
+                    "on-tertiary-fixed": "#2b1700",
+                    "on-primary-fixed-variant": "#494643",
+                    "background": "#000000",
+                    "tertiary-fixed": "#ffddb9",
+                    "tertiary": "#f2bd80",
+                    "secondary-fixed-dim": "#c9c6c1",
+                    "inverse-surface": "#ebe2d0"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "scene-gap": "clamp(4rem, 8vw, 6rem)",
+                    "measure": "38rem",
+                    "stage-padding-x": "clamp(1.25rem, 4vw, 2rem)",
+                    "gutter-technical": "1.5rem",
+                    "stage-padding-y": "clamp(4rem, 10vw, 7rem)"
+            },
+            "fontFamily": {
+                    "headline-lg": ["Fraunces"],
+                    "display-title": ["Fraunces"],
+                    "drop-cap": ["Fraunces"],
+                    "body-prose": ["Crimson Pro"],
+                    "kicker-label": ["JetBrains Mono"],
+                    "technical-note": ["JetBrains Mono"]
+            },
+            "fontSize": {
+                    "headline-lg": ["2.2rem", {"lineHeight": "1.2", "fontWeight": "380"}],
+                    "display-title": ["3.6rem", {"lineHeight": "1.06", "letterSpacing": "-0.02em", "fontWeight": "320"}],
+                    "drop-cap": ["4.4rem", {"lineHeight": "0.82", "fontWeight": "380"}],
+                    "body-prose": ["19px", {"lineHeight": "1.8", "fontWeight": "380"}],
+                    "kicker-label": ["0.6rem", {"lineHeight": "1.4", "letterSpacing": "0.4em", "fontWeight": "600"}],
+                    "technical-note": ["0.75rem", {"lineHeight": "1.5", "fontWeight": "400"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        body {
+            background-color: #000000;
+            color: #ffffff;
+            overflow-x: hidden;
+        }
+
+        .grain-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 9999;
+            opacity: 0.04;
+            background-image: url("https://www.transparenttextures.com/patterns/stardust.png");
+        }
+
+        /* Tactical HUD Grid Overlay */
+        .hud-grid {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 9998;
+            background-image: 
+                linear-gradient(rgba(234, 179, 8, 0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(234, 179, 8, 0.05) 1px, transparent 1px);
+            background-size: 50px 50px;
+        }
+
+        /* Diagnostic Scan Line */
+        .scan-line {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background-color: rgba(234, 179, 8, 0.3);
+            box-shadow: 0 0 10px rgba(234, 179, 8, 0.5);
+            z-index: 9997;
+            pointer-events: none;
+            animation: scan 8s linear infinite;
+        }
+
+        @keyframes scan {
+            0% { top: -10%; }
+            100% { top: 110%; }
+        }
+
+        .wall-note {
+            box-shadow: 0 0 20px rgba(234, 179, 8, 0.1);
+            transition: transform 0.3s ease;
+            border: 1px solid rgba(234, 179, 8, 0.3);
+        }
+        .wall-note:hover {
+            transform: scale(1.02) rotate(0deg) !important;
+            box-shadow: 0 0 30px rgba(234, 179, 8, 0.3);
+            border-color: rgba(234, 179, 8, 0.8);
+        }
+
+        .tape-effect {
+            position: absolute;
+            top: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60px;
+            height: 20px;
+            background: rgba(234, 179, 8, 0.3); /* Sharper brass tape */
+            backdrop-filter: blur(2px);
+            border: 1px solid rgba(234, 179, 8, 0.5);
+        }
+
+        .vertical-plumb-line {
+            position: fixed;
+            left: calc(50% - 22rem);
+            top: 0;
+            bottom: 0;
+            width: 1px;
+            background: linear-gradient(to bottom, transparent, rgba(234, 179, 8, 0.6) 15%, rgba(234, 179, 8, 0.6) 85%, transparent);
+            z-index: 10;
+        }
+
+        @media (max-width: 1024px) {
+            .vertical-plumb-line { display: none; }
+        }
+
+        .asymmetric-grid {
+            display: grid;
+            grid-template-columns: repeat(12, 1fr);
+            gap: 1.5rem;
+        }
+
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
+        }
+
+        /* Target Reticle Corners */
+        .reticle-corners::before, .reticle-corners::after {
+            content: '';
+            position: absolute;
+            width: 10px; height: 10px;
+            border-color: rgba(234, 179, 8, 0.6);
+            border-style: solid;
+            pointer-events: none;
+        }
+        .reticle-corners::before { top: 0; left: 0; border-width: 1px 0 0 1px; }
+        .reticle-corners::after { bottom: 0; right: 0; border-width: 0 1px 1px 0; }
+        
+        .reticle-corners-br::before { top: 0; right: 0; border-width: 1px 1px 0 0; }
+        .reticle-corners-br::after { bottom: 0; left: 0; border-width: 0 0 1px 1px; }
+    </style>
+</head>
+<body class="font-body-prose selection:bg-brass selection:text-ink">
+<div class="grain-overlay"></div>
+<div class="hud-grid"></div>
+<div class="scan-line"></div>
+<!-- HUD Static Overlays -->
+<div class="fixed top-4 left-4 z-50 font-technical-note text-[10px] text-brass opacity-70 pointer-events-none">
+    COORD: 42.2667° N, 88.0006° W [MUNDELEIN, IL]
+</div>
+<div class="fixed bottom-4 right-4 z-50 font-technical-note text-[10px] text-brass opacity-70 pointer-events-none">
+    SYS_STATUS: DEGRADED / SCAN: ACTIVE
+</div>
+<div class="vertical-plumb-line"></div>
+<!-- Top Navigation -->
+<header class="fixed top-0 w-full z-40 bg-ink/80 backdrop-blur-md border-b border-brass/30">
+<nav class="flex justify-between items-center px-stage-padding-x py-4 max-w-full relative">
+<div class="absolute inset-0 reticle-corners reticle-corners-br z-[-1]"></div>
+<div class="font-display-title text-headline-lg text-brass cursor-pointer active:opacity-70">
+                Construction, Not Recovery
+            </div>
+<div class="hidden md:flex items-center gap-8">
+<a class="font-kicker-label text-kicker-label uppercase tracking-widest text-brass border-b border-brass pb-1 hover:text-white transition-colors duration-300" href="#">Hub</a>
+<a class="font-kicker-label text-kicker-label uppercase tracking-widest text-brass/70 hover:text-white transition-colors duration-300" href="#">Chronology</a>
+<a class="font-kicker-label text-kicker-label uppercase tracking-widest text-brass/70 hover:text-white transition-colors duration-300" href="#">Archives</a>
+<a class="font-kicker-label text-kicker-label uppercase tracking-widest text-brass/70 hover:text-white transition-colors duration-300" href="#">Manifesto</a>
+</div>
+<button class="bg-brass/10 border border-brass text-brass px-6 py-2 font-kicker-label uppercase tracking-widest text-xs hover:bg-brass hover:text-ink transition-all duration-300">
+                Sign In
+            </button>
+</nav>
+</header>
+<!-- Sidebar Navigation -->
+<aside class="fixed left-0 top-0 h-full w-64 z-30 bg-ink border-r border-brass/30 hidden lg:flex flex-col p-gutter-technical pt-24">
+<div class="mb-12 relative">
+<div class="absolute -left-2 top-0 bottom-0 w-1 bg-brass/20"></div>
+<div class="font-kicker-label text-kicker-label text-brass uppercase mb-1">Project: Reconstruction</div>
+<div class="font-technical-note text-technical-note text-brass/70">v2.4.0-archival_tactical</div>
+</div>
+<nav class="flex-1 space-y-4">
+<div class="flex items-center gap-3 p-3 bg-brass/10 border-l-2 border-brass text-brass font-bold transition-all duration-200 cursor-pointer">
+<span class="material-symbols-outlined">menu_book</span>
+<span class="font-technical-note text-technical-note">Current Chapter</span>
+</div>
+<div class="flex items-center gap-3 p-3 text-brass/60 hover:bg-brass/5 hover:text-brass transition-all duration-200 cursor-pointer border-l-2 border-transparent">
+<span class="material-symbols-outlined">list_alt</span>
+<span class="font-technical-note text-technical-note">Scene Index</span>
+</div>
+<div class="flex items-center gap-3 p-3 text-brass/60 hover:bg-brass/5 hover:text-brass transition-all duration-200 cursor-pointer border-l-2 border-transparent">
+<span class="material-symbols-outlined">architecture</span>
+<span class="font-technical-note text-technical-note">Blueprint View</span>
+</div>
+<div class="flex items-center gap-3 p-3 text-brass/60 hover:bg-brass/5 hover:text-brass transition-all duration-200 cursor-pointer border-l-2 border-transparent">
+<span class="material-symbols-outlined">find_in_page</span>
+<span class="font-technical-note text-technical-note">Glossary</span>
+</div>
+</nav>
+<div class="mt-auto pt-8">
+<button class="w-full border border-brass-deep text-brass-deep py-2 font-technical-note uppercase tracking-tighter hover:bg-brass hover:text-ink transition-all">
+                Return to Hub
+            </button>
+</div>
+</aside>
+<main class="relative pt-32 pb-stage-padding-y px-stage-padding-x lg:ml-64">
+<div class="max-w-[75rem] mx-auto">
+<!-- Header Section -->
+<header class="mb-24 relative reticle-corners p-4">
+<div class="font-technical-note text-kicker-label text-technical-blue mb-4 uppercase">[DIAGNOSTIC_RUN_01] // Structural Analysis</div>
+<h1 class="font-display-title text-display-title text-on-surface max-w-4xl mb-8">The Card Table and The Wall</h1>
+<p class="font-technical-note text-on-surface-variant max-w-measure italic text-sm border-l-2 border-technical-blue pl-6 bg-technical-blue/5 p-2">
+                    &gt;&gt; A study in fragmented memory and deliberate assembly.
+                </p>
+</header>
+<!-- Fragmented Grid Layout -->
+<div class="asymmetric-grid">
+<!-- Main Content (The Stage) -->
+<div class="col-span-12 lg:col-span-7 space-y-scene-gap">
+<section class="relative">
+<div class="font-technical-note text-kicker-label text-brass mb-2">SEQ: [01.0] - FOUNDATIONS</div>
+<div class="bg-ink border border-brass/40 p-8 relative overflow-hidden reticle-corners">
+<div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-brass to-transparent"></div>
+<p class="font-body-prose text-on-surface text-lg leading-relaxed">
+                                The card table was where the debris first began to take shape. It wasn't about recovery then; it was about inventory. I started with the scraps—the receipts, the torn photographs, the handwritten notes on cocktail napkins. They were laid out not chronologically, but by their weight in my chest. 
+                            </p>
+</div>
+</section>
+<section class="relative ml-12">
+<div class="font-technical-note text-kicker-label text-brass mb-2">SEQ: [01.1] - VERTICALITY</div>
+<p class="font-body-prose text-on-surface text-lg leading-relaxed p-4 border-l border-brass/30 bg-ink/50 backdrop-blur-sm">
+                            Then came the wall. Gravity demanded that the horizontal chaos of the table find a vertical order. I pinned a single thread—a red nylon string—across the drywall. It wasn't a timeline. It was a structural axis. Everything pinned above the line was "Construction." Everything below was "The Wreckage."
+                        </p>
+<div class="mt-8 flex gap-4 items-center">
+<div class="w-32 h-px bg-error"></div>
+<div class="font-technical-note text-technical-note text-error uppercase animate-pulse">Interference detected // SIG_LOSS</div>
+</div>
+</section>
+<section class="relative group">
+<div class="bg-ink border border-brass/50 p-10 relative reticle-corners">
+<div class="absolute -left-3 top-10 font-technical-note text-[8px] text-brass rotate-[-90deg] origin-left">HUD_TARGET_ALPHA</div>
+<h3 class="font-headline-lg text-headline-lg text-on-surface mb-6 font-technical-note">The Plumb Line</h3>
+<p class="font-body-prose text-on-surface-variant text-lg">
+                                If the wall was the site, the plumb line was the truth. It didn't care for narrative flow or the comfort of a "beginning, middle, and end." It only cared for alignment. I spent nights adjusting the tension of that string, making sure the reconstruction wouldn't lean. The past is a heavy material; if you don't build straight, it eventually collapses on the present.
+                            </p>
+</div>
+<!-- Decorative Element -->
+<div class="absolute -right-4 -bottom-4 w-24 h-24 border-r-2 border-b-2 border-brass/60 opacity-80"></div>
+</section>
+</div>
+<!-- The "Wall" Sidebar (Floating Notes) -->
+<div class="col-span-12 lg:col-span-5 relative">
+<div class="sticky top-32 space-y-12">
+<!-- Note 1 -->
+<div class="wall-note bg-ink text-brass p-6 w-72 rotate-[-2deg] relative mx-auto lg:ml-auto">
+<div class="tape-effect"></div>
+<div class="font-technical-note text-[10px] uppercase opacity-80 mb-2 border-b border-brass/30 pb-1">Note: Excavation Site A</div>
+<p class="font-technical-note text-sm leading-snug">
+                                "The table is a map of where I've been. The wall is a blueprint of where I'm going. Do not confuse the two."
+                            </p>
+</div>
+<!-- Note 2 -->
+<div class="wall-note bg-ink text-technical-blue p-6 w-64 rotate-[3deg] relative mx-auto lg:ml-12 border-technical-blue/40">
+<div class="tape-effect bg-technical-blue/30 border-technical-blue/50"></div>
+<div class="font-technical-note text-[10px] uppercase opacity-80 mb-2 border-b border-technical-blue/30 pb-1">Note: Technical Spec</div>
+<p class="font-technical-note text-sm leading-snug italic">
+                                Use brass pins for fixed memories. Use tape for temporary observations. The architecture is fluid until the mortar sets.
+                            </p>
+</div>
+<!-- Visual Fragment (Image) -->
+<div class="relative w-full aspect-[4/5] bg-ink border border-brass/50 overflow-hidden shadow-2xl reticle-corners p-2">
+<img alt="Fragmented Archive" class="w-full h-full object-cover grayscale contrast-150 opacity-80 mix-blend-screen" data-alt="A moody, high-contrast close-up of an old wooden table covered in scattered archival papers, Polaroids, and architectural blueprints. A single shaft of warm, golden light illuminates a brass compass and a red thread pinned to a dark, textured wall in the background. The aesthetic is Clinical Noir, with deep charcoal shadows and metallic brass highlights, creating a sense of mysterious reconstruction." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDZlEk_doQE2mz_rSz1QE3hWNB_1lYYk-61VurQeOSr0IF4Xe6-YevPSFSTvLH8G8vNg41mOZOCs12CLF9jczySqy2eOXkYoCCQ2H_PPbcffqveAfi_9EHJhmQcPo3T-PbWnydEnSTZHDnz8nQeH8AEyo63zY_b9dIv2G2Kmkh7kuaLhSopLI9ooMOkqmVcZ-WQebR5MfmaZYbO0I5VEVY8A4ceSII6WO_vdl8CwmE4VczHl-7Rtu7B57w1Uz_wrp6-laEF_0gxMP5x"/>
+<div class="absolute inset-0 bg-gradient-to-t from-ink via-transparent to-transparent opacity-80"></div>
+<div class="absolute inset-0 bg-[linear-gradient(rgba(234,179,8,0.1)_1px,transparent_1px)] bg-[size:100%_10px] pointer-events-none mix-blend-overlay"></div>
+<div class="absolute bottom-4 left-4 font-technical-note text-[10px] text-brass uppercase tracking-[0.2em] bg-ink/80 px-2 py-1 border border-brass/30">
+                                Fig 1.2: The Alignment of Scraps
+                            </div>
+</div>
+<!-- Note 3 -->
+<div class="wall-note bg-ink text-error p-5 w-56 rotate-[-1deg] relative mx-auto lg:ml-24 border-error/40">
+<div class="tape-effect bg-error/30 border-error/50"></div>
+<p class="font-technical-note text-xs font-bold mb-1 border-b border-error/30 pb-1">CRITICAL WARNING:</p>
+<p class="font-technical-note text-xs leading-tight">
+                                Recovery is an accident. Construction is a choice. Stick to the plan.
+                            </p>
+</div>
+</div>
+</div>
+</div>
+<!-- Full-Width Statement -->
+<section class="mt-scene-gap border-t border-brass/30 pt-24 pb-12 relative">
+<div class="absolute top-0 left-1/2 -translate-x-1/2 w-4 h-4 border border-brass/50 rotate-45 -mt-2 bg-ink"></div>
+<div class="max-w-measure mx-auto text-center">
+<div class="inline-block px-4 py-1 border border-brass text-brass font-technical-note text-[10px] mb-8 uppercase bg-brass/5">Conclusion of Sequence 01</div>
+<h2 class="font-display-title text-headline-lg text-on-surface mb-12">Building requires the destruction of the illusion of wholeness.</h2>
+<div class="flex justify-center items-center gap-12">
+<span class="w-12 h-[1px] bg-brass/40"></span>
+<span class="font-technical-note text-technical-note text-brass">END_SEQ</span>
+<span class="w-12 h-[1px] bg-brass/40"></span>
+</div>
+</div>
+</section>
+</div>
+</main>
+<!-- Footer -->
+<footer class="relative w-full mt-stage-padding-y border-t border-brass/30 bg-ink">
+<div class="max-w-measure mx-auto py-stage-padding-y px-stage-padding-x flex flex-col gap-6 text-center items-center relative reticle-corners-br">
+<div class="font-technical-note text-kicker-label text-brass uppercase">Construction, Not Recovery // SYS_HUD</div>
+<div class="flex flex-wrap justify-center gap-8">
+<a class="font-technical-note text-technical-note uppercase tracking-tighter text-brass/70 hover:text-brass transition-colors duration-300" href="#">Manifesto</a>
+<a class="font-technical-note text-technical-note uppercase tracking-tighter text-brass/70 hover:text-brass transition-colors duration-300" href="#">About</a>
+<a class="font-technical-note text-technical-note uppercase tracking-tighter text-brass/70 hover:text-brass transition-colors duration-300" href="#">Technical Specs</a>
+<a class="font-technical-note text-technical-note uppercase tracking-tighter text-brass/70 hover:text-brass transition-colors duration-300" href="#">Colophon</a>
+</div>
+<p class="font-technical-note text-[10px] text-brass/40 max-w-xs leading-relaxed">
+                © 2024 Construction, Not Recovery. All rights reserved. Archival copy v2.4.0_tactical. This digital ledger is a living document of personal reconstruction.
+            </p>
+</div>
+</footer>
+<!-- Background Atmospheric Effect -->
+<div class="fixed inset-0 pointer-events-none opacity-10 overflow-hidden bg-[radial-gradient(ellipse_at_center,rgba(234,179,8,0.15)_0%,transparent_70%)]">
+</div>
+<script>
+        // Subtle micro-interaction for the "plumb line"
+        document.addEventListener('mousemove', (e) => {
+            const line = document.querySelector('.vertical-plumb-line');
+            if(line) {
+                const moveX = (e.clientX - window.innerWidth / 2) * 0.01;
+                line.style.transform = `translateX(${moveX}px)`;
+            }
+        });
+
+        // Interactive Wall Notes: Slight "flutter" on scroll
+        window.addEventListener('scroll', () => {
+            const notes = document.querySelectorAll('.wall-note');
+            const scrolled = window.pageYOffset;
+            notes.forEach((note, index) => {
+                const speed = 0.05 + (index * 0.02);
+                const offset = scrolled * speed;
+                const baseRotation = index % 2 === 0 ? -2 : 3;
+                note.style.transform = `translateY(${offset * -0.1}px) rotate(${baseRotation + (Math.sin(scrolled/100) * 0.5)}deg)`;
+            });
+        });
+    </script>
+</body></html>

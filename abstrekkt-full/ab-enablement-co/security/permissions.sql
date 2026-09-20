@@ -1,0 +1,2 @@
+-- See database/seed.sql for role/permission inserts.
+-- Enforce role checks in app and RLS in database.

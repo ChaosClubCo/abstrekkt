@@ -1,0 +1,923 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>Zero-G Agent Orchestrator v4.1</title>
+<!--
+  ZERO-G AGENT ORCHESTRATOR v4.1  (faithful reconstruction)
+  --------------------------------------------------------------
+  Single-file Three.js (r128) HUD. A zero-gravity 3D ops center that
+  dispatches live prompts to Claude-backed role agents and visualizes
+  them as a switchable topology graph, with an optional MCP connector
+  overlay.
+
+  Fidelity note: rebuilt from recovered spec (architecture, palette,
+  shell, shortcuts). Agent roster, MCP node list and topology math are
+  a reconstruction — edit AGENTS / MCP_NODES / TOPOLOGIES freely.
+
+  Security:
+    - NO API key is embedded and none must be added. Dispatch calls the
+      Anthropic Messages proxy (api.anthropic.com/v1/messages) which is
+      authenticated by the host environment.
+    - User/AI text is rendered with textContent only (no innerHTML).
+    - localStorage is feature-detected; falls back to memory if blocked.
+
+  Active agents run REAL inference (claude-sonnet-4-6). Provider "slots"
+  (Codex / Gemini / Copilot) are inactive lanes and never fabricate output.
+-->
+<style>
+  :root{
+    /* Tokyo Night void palette */
+    --bg:#0a0a0f; --bg2:#0d0d16; --bg3:#11111d;
+    --panel:rgba(17,17,29,.72); --panel-solid:#11111d;
+    --bdr:rgba(122,162,247,.16); --bdr2:rgba(122,162,247,.28);
+    --tx:#c0caf5; --tx2:#a9b3da; --tx3:#7e88b8; /* tx2/tx3 lifted for WCAG 1.4.3 AA on small text */
+    --accent:#7aa2f7; --green:#9ece6a; --red:#f7768e; --amber:#e0af68;
+    --bg-input:#0e0e1a;
+    --font:ui-monospace,"JetBrains Mono","SFMono-Regular",Menlo,Consolas,monospace;
+    --radius:7px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--tx);font-family:var(--font)}
+  body{position:fixed;inset:0;-webkit-font-smoothing:antialiased}
+  #cv{position:fixed;inset:0;display:block;width:100%;height:100%;touch-action:none}
+
+  /* HUD layers */
+  .hz{position:fixed;z-index:10}
+  .pn{
+    background:var(--panel);
+    border:1px solid var(--bdr);
+    border-radius:var(--radius);
+    backdrop-filter:blur(11px);-webkit-backdrop-filter:blur(11px);
+    box-shadow:0 8px 28px rgba(0,0,0,.5);
+  }
+
+  /* Top bar */
+  #ht{top:12px;left:12px;right:12px;display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap;pointer-events:none}
+  #ht > *{pointer-events:auto}
+  #tb{padding:11px 15px}
+  #tb h1{font-size:14px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--tx)}
+  #tb h1 .glyph{color:var(--accent)}
+  #tb .s{font-size:9px;color:var(--tx3);letter-spacing:.06em;margin-top:3px}
+  #sb{display:flex;gap:8px;align-items:stretch;flex-wrap:wrap}
+  .stat{padding:8px 12px;min-width:62px}
+  .stat .v{font-size:16px;font-weight:600;line-height:1;color:var(--tx)}
+  .stat .k{font-size:8px;color:var(--tx3);text-transform:uppercase;letter-spacing:.08em;margin-top:4px}
+  .stat.ok .v{color:var(--green)} .stat.err .v{color:var(--red)} .stat.warn .v{color:var(--amber)}
+
+  /* Controls cluster (topology + mcp) */
+  #ctl{top:12px;right:12px;display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap;z-index:11}
+  #topo-bar{padding:7px;display:flex;gap:4px}
+  .topo-btn{
+    background:transparent;border:1px solid transparent;border-radius:5px;
+    color:var(--tx3);font-family:inherit;font-size:9px;letter-spacing:.07em;text-transform:uppercase;
+    padding:6px 9px;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:5px
+  }
+  .topo-btn .dot{width:6px;height:6px;border-radius:50%;background:currentColor;opacity:.5}
+  .topo-btn:hover{color:var(--tx2);border-color:var(--bdr)}
+  .topo-btn.active{color:var(--accent);border-color:var(--bdr2);background:rgba(122,162,247,.08)}
+  .topo-btn.active .dot{opacity:1}
+  #mcp-toggle{padding:9px 12px;display:flex;gap:9px;align-items:center}
+  #mcp-toggle label{font-size:9px;color:var(--tx2);letter-spacing:.07em;text-transform:uppercase;cursor:pointer;user-select:none}
+  .sw{width:34px;height:18px;border-radius:10px;background:var(--bg-input);border:1px solid var(--bdr);position:relative;cursor:pointer;transition:background .2s}
+  .sw .dot{position:absolute;top:2px;left:2px;width:12px;height:12px;border-radius:50%;background:var(--tx3);transition:all .2s}
+  .sw.on{background:rgba(122,162,247,.22);border-color:var(--bdr2)}
+  .sw.on .dot{left:18px;background:var(--accent)}
+
+  /* Agent legend */
+  #lg{left:12px;top:96px;max-width:220px;padding:11px 13px}
+  #lg .lt{font-size:9px;color:var(--tx3);text-transform:uppercase;letter-spacing:.09em;margin-bottom:9px}
+  .leg-row{display:flex;align-items:center;gap:8px;padding:5px 6px;cursor:pointer;border-radius:4px;background:none;border:none;width:100%;text-align:left;font-family:inherit;color:inherit}
+  .leg-row:hover{background:rgba(122,162,247,.06)}
+  .leg-row .sw-dot{width:9px;height:9px;border-radius:50%;flex:0 0 auto;box-shadow:0 0 7px currentColor}
+  .leg-row .nm{font-size:11px;color:var(--tx);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .leg-row .bd{font-size:7px;letter-spacing:.06em;text-transform:uppercase;padding:2px 5px;border-radius:3px;border:1px solid var(--bdr)}
+  .leg-row .bd.live{color:var(--green);border-color:rgba(158,206,106,.35)}
+  .leg-row .bd.slot{color:var(--tx3)}
+
+  /* Result panel */
+  #rp{right:12px;top:96px;width:330px;max-height:calc(100vh - 220px);display:flex;flex-direction:column;padding:0;overflow:hidden}
+  #rp .rh{padding:10px 13px;border-bottom:1px solid var(--bdr);display:flex;justify-content:space-between;align-items:center}
+  #rp .rh .t{font-size:9px;color:var(--tx3);text-transform:uppercase;letter-spacing:.09em}
+  #rp .rh .clr{background:none;border:none;color:var(--tx3);font-family:inherit;font-size:9px;cursor:pointer;text-transform:uppercase;letter-spacing:.06em}
+  #rp .rh .clr:hover{color:var(--red)}
+  #rl{overflow-y:auto;padding:9px;display:flex;flex-direction:column;gap:8px}
+  #rl::-webkit-scrollbar{width:7px}#rl::-webkit-scrollbar-thumb{background:var(--bdr2);border-radius:4px}
+  .rc{border:1px solid var(--bdr);border-radius:6px;padding:9px 11px;background:rgba(10,10,20,.5);animation:slideIn .22s ease}
+  .rc .rch{display:flex;align-items:center;gap:7px;margin-bottom:6px}
+  .rc .rch .d{width:7px;height:7px;border-radius:50%;flex:0 0 auto}
+  .rc .rch .an{font-size:11px;font-weight:600;color:var(--tx);flex:1}
+  .rc .rch .st{font-size:8px;text-transform:uppercase;letter-spacing:.07em;color:var(--tx3)}
+  .rc .rch .lat{font-size:8px;color:var(--tx3)}
+  .rc .body{font-size:11px;line-height:1.55;color:var(--tx2);white-space:pre-wrap;word-break:break-word;max-height:240px;overflow-y:auto}
+  .rc.running{border-color:var(--bdr2)} .rc.done .d{background:var(--green)} .rc.err{border-color:rgba(247,118,142,.4)} .rc.err .d{background:var(--red)} .rc.err .body{color:var(--red)}
+  .rc .body:empty::after{content:"…";color:var(--tx3)}
+
+  /* Input dock */
+  #id{left:50%;transform:translateX(-50%);bottom:calc(14px + env(safe-area-inset-bottom));width:min(720px,calc(100vw - 24px));z-index:12}
+  #id .in{padding:11px}
+  #tr{display:flex;gap:8px;align-items:center}
+  #ti{flex:1;background:var(--bg-input);border:1px solid var(--bdr);border-radius:6px;color:var(--tx);font-family:inherit;font-size:13px;padding:11px 13px;outline:none;transition:border-color .15s}
+  #ti:focus{border-color:var(--bdr2)}
+  #ti::placeholder{color:var(--tx3)}
+  #as{background:var(--bg-input);border:1px solid var(--bdr);border-radius:6px;color:var(--tx);font-family:inherit;font-size:11px;padding:11px 9px;outline:none;cursor:pointer;max-width:150px}
+  #db{background:var(--accent);border:none;border-radius:6px;color:#0a0a0f;font-family:inherit;font-size:12px;font-weight:600;letter-spacing:.04em;padding:11px 18px;cursor:pointer;transition:filter .15s,opacity .15s;white-space:nowrap}
+  #db:hover{filter:brightness(1.12)} #db:disabled{opacity:.45;cursor:not-allowed}
+  #hn{display:flex;justify-content:space-between;margin-top:8px;font-size:9px;color:var(--tx3);gap:10px}
+  #hn kbd{background:var(--bg-input);border:1px solid var(--bdr);border-radius:3px;padding:1px 5px;font-size:8px;color:var(--tx2)}
+  #qs{color:var(--amber);white-space:nowrap}
+
+  /* Shortcuts + config + history popovers */
+  #shortcuts{bottom:96px;right:12px;padding:9px 12px;font-size:9px;color:var(--tx3);line-height:1.85;display:none}
+  #shortcuts kbd{background:var(--bg-input);border:1px solid var(--bdr);border-radius:3px;padding:1px 5px;font-size:8px;color:var(--tx2)}
+  .pop{position:fixed;z-index:30;left:50%;top:50%;transform:translate(-50%,-50%);width:min(440px,calc(100vw - 24px));max-height:70vh;overflow-y:auto;padding:0;display:none}
+  .pop.open{display:block}
+  .pop .ph{padding:12px 15px;border-bottom:1px solid var(--bdr);display:flex;justify-content:space-between;align-items:center}
+  .pop .ph .t{font-size:11px;text-transform:uppercase;letter-spacing:.09em;color:var(--tx)}
+  .pop .ph .x{background:none;border:none;color:var(--tx3);font-size:16px;cursor:pointer;line-height:1}
+  .pop .pc{padding:14px 15px;display:flex;flex-direction:column;gap:12px}
+  .cfg-row{display:flex;justify-content:space-between;align-items:center;gap:12px}
+  .cfg-row label{font-size:11px;color:var(--tx2)}
+  .cfg-row input[type=range]{flex:1;accent-color:var(--accent)}
+  .cfg-row .val{font-size:11px;color:var(--accent);min-width:28px;text-align:right}
+  .hist-line{font-size:10px;color:var(--tx2);line-height:1.5;border-left:2px solid var(--bdr);padding-left:8px}
+  .hist-line .ts{color:var(--tx3)}
+  .scrim{position:fixed;inset:0;z-index:29;background:rgba(0,0,0,.45);display:none}
+  .scrim.open{display:block}
+
+  /* Tooltip on hover node */
+  #tt{position:fixed;z-index:20;pointer-events:none;padding:7px 10px;display:none;max-width:220px}
+  #tt .tn{font-size:11px;font-weight:600;color:var(--tx)}
+  #tt .tc{font-size:9px;color:var(--tx3);margin-top:2px}
+
+  @keyframes slideIn{from{opacity:0;transform:translateX(14px)}to{opacity:1;transform:none}}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+  .pulsing{animation:pulse 1.3s ease-in-out infinite}
+
+  @media (max-width:760px){
+    #sb{display:none}                 /* declutter top bar; per-card status remains */
+    #tb{padding:9px 12px}
+    #tb h1{font-size:12px;letter-spacing:.1em}
+    #ctl{top:64px;left:12px;right:12px;justify-content:flex-start}
+    #lg{display:none}                 /* agents still reachable via the select */
+    #shortcuts{display:none!important}
+    #rp{left:12px;right:12px;width:auto;top:auto;bottom:calc(116px + env(safe-area-inset-bottom));max-height:30vh}
+  }
+  @media (max-width:480px){
+    #tb h1{font-size:11px} #tb .s{display:none}
+    #tr{flex-wrap:wrap}               /* input on its own row, select + button below */
+    #ti{flex:1 1 100%}
+    #as{flex:1 1 auto;max-width:none}
+    #db{flex:1 1 auto}
+    #rp{bottom:calc(170px + env(safe-area-inset-bottom));max-height:26vh}
+  }
+  @media (prefers-reduced-motion:reduce){
+    .pulsing{animation:none}
+    .rc{animation:none}
+  }
+  :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+</style>
+</head>
+<body>
+<canvas id="cv" aria-hidden="true"></canvas>
+<p class="sr-only">Zero-G Agent Orchestrator. Enter a task in the prompt field, choose an agent or broadcast to all, then dispatch. Results appear in the dispatch results region; dispatch status is announced here.</p>
+<p id="sr-status" class="sr-only" aria-live="polite"></p>
+
+<!-- Top bar: title + stats -->
+<div id="ht">
+  <div id="tb" class="pn">
+    <h1><span class="glyph">⬡</span> Zero-G Agent Orchestrator</h1>
+    <div class="s">v4.1 · Topologies · MCP Layer · Live Inference</div>
+  </div>
+  <div id="sb"></div>
+</div>
+
+<!-- Controls: topology switcher + MCP toggle -->
+<div id="ctl">
+  <div id="topo-bar" class="pn" role="group" aria-label="Graph topology"></div>
+  <div id="mcp-toggle" class="pn">
+    <label for="mcp-sw">MCP Layer</label>
+    <div class="sw" id="mcp-sw" role="switch" aria-checked="false" tabindex="0"><div class="dot"></div></div>
+  </div>
+</div>
+
+<!-- Agent legend -->
+<div id="lg" class="pn"><div class="lt">Agents</div><div id="leg-list"></div></div>
+
+<!-- Result panel -->
+<div id="rp" class="pn">
+  <div class="rh"><span class="t">Dispatch Results</span><button class="clr" id="rp-clear">Clear</button></div>
+  <div id="rl" role="region" aria-label="Dispatch results"></div>
+</div>
+
+<!-- Input dock -->
+<div id="id" class="pn">
+  <div class="in">
+    <div id="tr">
+      <input id="ti" placeholder="Describe a task to dispatch…" autocomplete="off" aria-label="Task prompt" />
+      <select id="as" aria-label="Target agent"></select>
+      <button id="db">▶ Dispatch</button>
+    </div>
+    <div id="hn">
+      <span><kbd>Enter</kbd> dispatch · <kbd>⇧+Enter</kbd> broadcast · <kbd>Tab</kbd> cycle · <kbd>Ctrl+T</kbd> topology · <kbd>Ctrl+M</kbd> MCP · <kbd>Ctrl+H</kbd> log · <kbd>Ctrl+K</kbd> config</span>
+      <span id="qs"></span>
+    </div>
+  </div>
+</div>
+
+<!-- Shortcuts ref -->
+<div id="shortcuts" class="pn">
+  <div><kbd>⇧</kbd>+<kbd>Enter</kbd> Broadcast all</div>
+  <div><kbd>Ctrl</kbd>+<kbd>K</kbd> Config</div>
+  <div><kbd>Ctrl</kbd>+<kbd>H</kbd> History</div>
+  <div><kbd>Ctrl</kbd>+<kbd>T</kbd> Topology</div>
+  <div><kbd>Ctrl</kbd>+<kbd>M</kbd> MCP layer</div>
+  <div><kbd>Tab</kbd> Cycle agents · drag orbit · scroll zoom</div>
+</div>
+
+<!-- Hover tooltip -->
+<div id="tt" class="pn"><div class="tn"></div><div class="tc"></div></div>
+
+<!-- Config popover -->
+<div class="scrim" id="scrim"></div>
+<div class="pop" id="pop-cfg" role="dialog" aria-modal="true" aria-labelledby="pop-cfg-t" tabindex="-1">
+  <div class="ph"><span class="t" id="pop-cfg-t">Config</span><button class="x" data-close aria-label="Close config">×</button></div>
+  <div class="pc">
+    <div class="cfg-row"><label for="cf-conc">Max concurrent dispatches</label><input type="range" id="cf-conc" min="1" max="6" step="1" /><span class="val" id="cf-conc-v"></span></div>
+    <div class="cfg-row"><label for="cf-tok">Max tokens / response</label><input type="range" id="cf-tok" min="256" max="2000" step="128" /><span class="val" id="cf-tok-v"></span></div>
+    <div class="cfg-row"><label for="cf-drift">Ambient drift</label><input type="range" id="cf-drift" min="0" max="100" step="5" /><span class="val" id="cf-drift-v"></span></div>
+    <div class="cfg-row" style="font-size:9px;color:var(--tx3);display:block">Config persists locally when storage is available; otherwise it lives for this session only. No API key is stored — dispatch is authenticated by the host.</div>
+  </div>
+</div>
+
+<!-- History popover -->
+<div class="pop" id="pop-hist" role="dialog" aria-modal="true" aria-labelledby="pop-hist-t" tabindex="-1">
+  <div class="ph"><span class="t" id="pop-hist-t">Event Log</span><button class="x" data-close aria-label="Close event log">×</button></div>
+  <div class="pc" id="hist-body"></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+"use strict";
+/* ============================================================
+   ZERO-G AGENT ORCHESTRATOR v4.1
+   ============================================================ */
+
+/* ---------- EventBus ---------- */
+class EventBus {
+  constructor(){ this._h = {}; }
+  on(e, fn){ (this._h[e] ||= []).push(fn); return this; }
+  off(e, fn){ if(this._h[e]) this._h[e] = this._h[e].filter(f => f !== fn); }
+  emit(e, ...a){ (this._h[e] || []).forEach(fn => { try{ fn(...a); }catch(err){ console.error("[bus]", e, err); } }); }
+}
+const bus = new EventBus();
+
+/* ---------- ConfigStore (storage-safe) ---------- */
+class ConfigStore {
+  constructor(key, defaults){
+    this.key = key; this._mem = {}; this._storage = ConfigStore._detect();
+    let saved = {};
+    try { if(this._storage) saved = JSON.parse(this._storage.getItem(key) || "{}"); }
+    catch(e){ saved = {}; }
+    this._d = Object.assign({}, defaults, saved);
+    this._save();
+  }
+  static _detect(){
+    try { const t="__zg_t__"; localStorage.setItem(t,"1"); localStorage.removeItem(t); return localStorage; }
+    catch(e){ return null; }   // sandboxed/blocked -> memory fallback
+  }
+  get(k, def){ return (k in this._d) ? this._d[k] : def; }
+  set(k, v){ this._d[k] = v; this._save(); bus.emit("config:change", k, v); }
+  _save(){
+    if(this._storage){ try{ this._storage.setItem(this.key, JSON.stringify(this._d)); return; }catch(e){} }
+    this._mem = this._d;
+  }
+}
+const cfg = new ConfigStore("zg4_cfg", { conc:3, maxTokens:1000, drift:60, topology:"star", mcp:false });
+
+/* ---------- Logger (ring buffer + console) ---------- */
+class Logger {
+  constructor(cap=120){ this.cap = cap; this.buf = []; }
+  log(level, msg){
+    const e = { t:Date.now(), level, msg };
+    this.buf.push(e); if(this.buf.length > this.cap) this.buf.shift();
+    const fn = level === "error" ? console.error : level === "warn" ? console.warn : console.log;
+    fn(`[zg:${level}] ${msg}`);
+    bus.emit("log:add", e);
+  }
+  info(m){ this.log("info", m); } warn(m){ this.log("warn", m); } error(m){ this.log("error", m); }
+}
+const logger = new Logger();
+
+/* ---------- Category palette (color encodes MCP/agent domain) ---------- */
+const CAT_COLORS = {
+  dev:    { hex:0x89ddff, css:"#89ddff", label:"Dev Tools" },
+  biz:    { hex:0xe0af68, css:"#e0af68", label:"Business" },
+  deploy: { hex:0x73daca, css:"#73daca", label:"Deploy" },
+  media:  { hex:0xf7768e, css:"#f7768e", label:"Media" },
+  data:   { hex:0xbb9af7, css:"#bb9af7", label:"Data" },
+  auto:   { hex:0x2ac3de, css:"#2ac3de", label:"Automation" },
+  infra:  { hex:0x7982c7, css:"#7982c7", label:"Infra" },
+  comms:  { hex:0x9ece6a, css:"#9ece6a", label:"Comms" },
+};
+const catCss = c => (CAT_COLORS[c] || CAT_COLORS.infra).css;
+const catHex = c => (CAT_COLORS[c] || CAT_COLORS.infra).hex;
+
+/* ---------- Agent roster ----------
+   live=true  -> real claude-sonnet-4-6 call via host proxy
+   live=false -> inactive provider slot (no fabricated output)        */
+const AGENTS = [
+  { id:"architect", name:"Architect", cat:"infra", live:true,
+    system:"You are a staff-level systems architect. For the user's request, give system boundaries, data flow, failure modes and a recommended approach. Be concise and concrete. No filler." },
+  { id:"builder", name:"Builder", cat:"dev", live:true,
+    system:"You are a senior implementation engineer. Produce the most direct, production-ready solution or code outline for the request. No placeholders, no TODOs." },
+  { id:"security", name:"Security", cat:"infra", live:true,
+    system:"You are an application security reviewer. Surface threats, abuse vectors, auth/data risks and concrete mitigations for the request. Be specific." },
+  { id:"researcher", name:"Researcher", cat:"data", live:true,
+    system:"You are a research analyst. Synthesize what is known about the topic, note key tradeoffs and flag uncertainties. Cite reasoning, not invented sources." },
+  { id:"ops", name:"Ops", cat:"deploy", live:true,
+    system:"You are a production/DevOps engineer. Give the deployment, runbook, monitoring and rollback view of the request." },
+  { id:"scribe", name:"Scribe", cat:"comms", live:true,
+    system:"You are a precise technical writer. Turn the request into clear, well-structured documentation or comms in plain language." },
+  { id:"codex",   name:"Codex",   cat:"dev",  live:false, system:"" },
+  { id:"gemini",  name:"Gemini",  cat:"data", live:false, system:"" },
+  { id:"copilot", name:"Copilot", cat:"dev",  live:false, system:"" },
+];
+const agentById = id => AGENTS.find(a => a.id === id);
+const liveAgents = () => AGENTS.filter(a => a.live);
+
+/* ---------- MCP connector set (data-driven, real stack) ----------
+   Seeded with the consolidated working stack. Edit freely.
+   No inflated counts — this is the real hands-on set, not "240+".   */
+const MCP_NODES = [
+  { id:"github", name:"GitHub", cat:"dev" },
+  { id:"copilot-mcp", name:"GitHub Copilot", cat:"dev" },
+  { id:"context7", name:"Context7", cat:"dev" },
+  { id:"vercel", name:"Vercel", cat:"deploy" },
+  { id:"cloudflare", name:"Cloudflare", cat:"deploy" },
+  { id:"supabase", name:"Supabase", cat:"data" },
+  { id:"base44", name:"Base44", cat:"data" },
+  { id:"posthog", name:"PostHog", cat:"data" },
+  { id:"make", name:"Make", cat:"auto" },
+  { id:"zapier", name:"Zapier", cat:"auto" },
+  { id:"n8n", name:"n8n (legacy)", cat:"auto" },
+  { id:"stripe", name:"Stripe", cat:"biz" },
+  { id:"notion", name:"Notion", cat:"biz" },
+  { id:"hubspot", name:"HubSpot", cat:"biz" },
+  { id:"resend", name:"Resend", cat:"comms" },
+  { id:"gmail", name:"Gmail", cat:"comms" },
+  { id:"slack", name:"Slack", cat:"comms" },
+  { id:"cloudinary", name:"Cloudinary", cat:"media" },
+];
+
+/* ---------- Topology layouts (return Vector3[] for N agent nodes) ----------
+   Center orchestrator lives at origin and is index -1 (drawn separately). */
+const TOPOLOGIES = {
+  star: {
+    label:"Star", color:"#7aa2f7",
+    layout(n){ const r=7, out=[]; for(let i=0;i<n;i++){ const a=(i/n)*Math.PI*2; out.push(new THREE.Vector3(Math.cos(a)*r, Math.sin(a*1.7)*1.6, Math.sin(a)*r)); } return out; },
+    edges(n){ return Array.from({length:n}, (_,i)=>[-1,i]); } // center -> each
+  },
+  ring: {
+    label:"Ring", color:"#73daca",
+    layout(n){ const r=7.5, out=[]; for(let i=0;i<n;i++){ const a=(i/n)*Math.PI*2; out.push(new THREE.Vector3(Math.cos(a)*r, 0, Math.sin(a)*r)); } return out; },
+    edges(n){ return Array.from({length:n}, (_,i)=>[i,(i+1)%n]); } // neighbor ring
+  },
+  mesh: {
+    label:"Mesh", color:"#bb9af7",
+    layout(n){ const out=[], R=7, off=2/n, inc=Math.PI*(3-Math.sqrt(5)); for(let i=0;i<n;i++){ const y=i*off-1+off/2, rr=Math.sqrt(1-y*y), phi=i*inc; out.push(new THREE.Vector3(Math.cos(phi)*rr*R, y*R, Math.sin(phi)*rr*R)); } return out; },
+    edges(n){ const e=[]; for(let i=0;i<n;i++) for(let j=i+1;j<n;j++) e.push([i,j]); return e; } // full mesh
+  },
+  hier: {
+    label:"Hierarchy", color:"#e0af68",
+    layout(n){ const out=[], perRow=3, rowGap=4.2, colGap=5; for(let i=0;i<n;i++){ const row=Math.floor(i/perRow), col=i%perRow, cnt=Math.min(perRow,n-row*perRow); out.push(new THREE.Vector3((col-(cnt-1)/2)*colGap, 5-row*rowGap, 0)); } return out; },
+    edges(n){ const e=[]; for(let i=0;i<n;i++){ e.push([-1,i]); const parent=Math.floor(i/3)*3-3; if(parent>=0 && parent<i) e.push([parent,i]); } return e; }
+  },
+};
+
+/* ---------- ProviderFactory ---------- */
+const ProviderFactory = {
+  /** Real Anthropic call via host proxy. No API key. */
+  async claude(system, prompt, maxTokens){
+    const res = await fetch("https://api.anthropic.com/v1/messages", {
+      method:"POST",
+      headers:{ "Content-Type":"application/json" },
+      body: JSON.stringify({
+        model:"claude-sonnet-4-6",
+        max_tokens: maxTokens || 1000,
+        system: system || undefined,
+        messages:[{ role:"user", content: prompt }]
+      })
+    });
+    if(!res.ok){
+      let detail = "";
+      try { detail = (await res.json())?.error?.message || ""; } catch(e){}
+      throw new Error(`HTTP ${res.status}${detail ? " — " + detail : ""}`);
+    }
+    const data = await res.json();
+    const text = (Array.isArray(data.content) ? data.content : [])
+      .filter(b => b && b.type === "text")
+      .map(b => b.text)
+      .join("\n")
+      .trim();
+    if(!text) throw new Error("Empty response from model");
+    return text;
+  },
+  /** Inactive provider slot — explicit, never fabricated. */
+  async slot(_system, _prompt){
+    throw new Error("SLOT_INACTIVE");
+  },
+  for(agent){ return agent.live ? this.claude.bind(this) : this.slot.bind(this); }
+};
+
+/* ---------- TaskDispatcher (queue + bounded concurrency) ---------- */
+class TaskDispatcher {
+  constructor(){ this.queue = []; this.running = 0; this.stats = { done:0, err:0, totalMs:0 }; }
+  get concurrency(){ return Math.max(1, Math.min(6, cfg.get("conc",3))); }
+  enqueue(agentId, prompt){
+    const agent = agentById(agentId); if(!agent) return;
+    const task = { id:`t${Date.now()}_${Math.random().toString(36).slice(2,6)}`, agentId, prompt, ts:Date.now() };
+    this.queue.push(task);
+    bus.emit("task:queued", task, agent);
+    logger.info(`queued → ${agent.name}: "${prompt.slice(0,48)}${prompt.length>48?"…":""}"`);
+    this._pump();
+  }
+  broadcast(prompt){ liveAgents().forEach(a => this.enqueue(a.id, prompt)); }
+  _pump(){
+    bus.emit("queue:change", this.queue.length, this.running);
+    while(this.running < this.concurrency && this.queue.length){
+      const task = this.queue.shift();
+      this._run(task);
+    }
+    bus.emit("queue:change", this.queue.length, this.running);
+  }
+  async _run(task){
+    const agent = agentById(task.agentId);
+    this.running++;
+    const started = performance.now();
+    bus.emit("task:start", task, agent);
+    try {
+      const run = ProviderFactory.for(agent);
+      const maxTokens = Math.max(256, Math.min(2000, cfg.get("maxTokens",1000)));
+      const text = await run(agent.system, task.prompt, maxTokens);
+      const ms = Math.round(performance.now() - started);
+      this.stats.done++; this.stats.totalMs += ms;
+      bus.emit("task:done", task, agent, text, ms);
+      logger.info(`done ← ${agent.name} (${ms}ms)`);
+    } catch(err){
+      const ms = Math.round(performance.now() - started);
+      this.stats.err++;
+      const msg = err && err.message === "SLOT_INACTIVE"
+        ? `${agent.name} is an inactive provider slot. Wire a real proxy for ${agent.name} to dispatch to it.`
+        : `Dispatch failed: ${(err && err.message) || "unknown error"}`;
+      bus.emit("task:error", task, agent, msg, ms);
+      logger.error(`error ← ${agent.name}: ${msg}`);
+    } finally {
+      this.running--;
+      this._pump();
+      bus.emit("stats:change", this.stats);
+    }
+  }
+  avgMs(){ return this.stats.done ? Math.round(this.stats.totalMs / this.stats.done) : 0; }
+}
+const dispatcher = new TaskDispatcher();
+
+/* ---------- SceneManager (Three.js r128) ---------- */
+class SceneManager {
+  constructor(canvas){
+    this.canvas = canvas;
+    this.nodes = new Map();   // agentId -> { mesh, halo, label, base:Vector3, status, phase }
+    this.center = null;
+    this.edgeGroup = null; this.mcpGroup = null; this.pulses = [];
+    this.focus = null; this.camTarget = new THREE.Vector3();
+    this._initThree();
+    this._buildStatic();
+    this.applyTopology(cfg.get("topology","star"), true);
+    this.setMcp(cfg.get("mcp",false), true);
+    this._bind();
+    this._loop = this._loop.bind(this);
+    requestAnimationFrame(this._loop);
+  }
+  _initThree(){
+    this.scene = new THREE.Scene();
+    this.scene.fog = new THREE.FogExp2(0x0a0a0f, 0.018);
+    this.cam = new THREE.PerspectiveCamera(55, innerWidth/innerHeight, 0.1, 400);
+    this.orbit = { theta:0.6, phi:1.15, radius:24 };
+    this._applyCam();
+    this.renderer = new THREE.WebGLRenderer({ canvas:this.canvas, antialias:true, alpha:true });
+    this.renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+    this.renderer.setSize(innerWidth, innerHeight);
+
+    this.scene.add(new THREE.AmbientLight(0x404060, 1.1));
+    const key = new THREE.PointLight(0x7aa2f7, 1.3, 120); key.position.set(0,0,0); this.scene.add(key);
+    const rim = new THREE.PointLight(0xbb9af7, 0.6, 90); rim.position.set(14,18,-10); this.scene.add(rim);
+
+    this.raycaster = new THREE.Raycaster();
+    this.pointer = new THREE.Vector2(-2,-2);
+    this._haloTex = this._radialTexture();
+  }
+  _applyCam(){
+    const { theta, phi, radius } = this.orbit;
+    this.cam.position.set(
+      radius*Math.sin(phi)*Math.cos(theta),
+      radius*Math.cos(phi),
+      radius*Math.sin(phi)*Math.sin(theta)
+    );
+    this.cam.lookAt(this.camTarget);
+  }
+  _radialTexture(){
+    const s=128, c=document.createElement("canvas"); c.width=c.height=s;
+    const g=c.getContext("2d"); const grad=g.createRadialGradient(s/2,s/2,0,s/2,s/2,s/2);
+    grad.addColorStop(0,"rgba(255,255,255,0.9)"); grad.addColorStop(0.25,"rgba(255,255,255,0.35)"); grad.addColorStop(1,"rgba(255,255,255,0)");
+    g.fillStyle=grad; g.fillRect(0,0,s,s); return new THREE.CanvasTexture(c);
+  }
+  _labelSprite(text, css){
+    const pad=8, fs=34, c=document.createElement("canvas"), g=c.getContext("2d");
+    g.font=`600 ${fs}px ui-monospace,monospace`; const w=g.measureText(text).width;
+    c.width=w+pad*2; c.height=fs+pad*2;
+    g.font=`600 ${fs}px ui-monospace,monospace`; g.textBaseline="middle";
+    g.fillStyle=css||"#c0caf5"; g.fillText(text, pad, c.height/2);
+    const tex=new THREE.CanvasTexture(c);
+    const mat=new THREE.SpriteMaterial({ map:tex, transparent:true, depthWrite:false });
+    const sp=new THREE.Sprite(mat); const scale=0.012; sp.scale.set(c.width*scale, c.height*scale, 1);
+    return sp;
+  }
+  _buildStatic(){
+    // starfield
+    const N=2000, pos=new Float32Array(N*3);
+    for(let i=0;i<N;i++){ const r=120+Math.random()*120, a=Math.random()*Math.PI*2, b=Math.acos(2*Math.random()-1);
+      pos[i*3]=r*Math.sin(b)*Math.cos(a); pos[i*3+1]=r*Math.sin(b)*Math.sin(a); pos[i*3+2]=r*Math.cos(b); }
+    const geo=new THREE.BufferGeometry(); geo.setAttribute("position", new THREE.BufferAttribute(pos,3));
+    this.stars=new THREE.Points(geo, new THREE.PointsMaterial({ color:0x565f89, size:0.09, sizeAttenuation:true, transparent:true, opacity:0.8 }));
+    this.scene.add(this.stars);
+
+    // orchestrator core
+    const core=new THREE.Mesh(
+      new THREE.IcosahedronGeometry(1.4, 1),
+      new THREE.MeshPhongMaterial({ color:0x1a1a2e, emissive:0x7aa2f7, emissiveIntensity:0.7, shininess:80, flatShading:true })
+    );
+    const coreHalo=new THREE.Sprite(new THREE.SpriteMaterial({ map:this._haloTex, color:0x7aa2f7, transparent:true, blending:THREE.AdditiveBlending, depthWrite:false }));
+    coreHalo.scale.set(7,7,1); core.add(coreHalo);
+    const coreLabel=this._labelSprite("ORCHESTRATOR","#7aa2f7"); coreLabel.position.set(0,-2.4,0); core.add(coreLabel);
+    this.scene.add(core); this.center={ mesh:core, halo:coreHalo, phase:Math.random()*6.28 };
+
+    // agent nodes
+    const seg=20;
+    AGENTS.forEach(a=>{
+      const col=catHex(a.cat);
+      const mesh=new THREE.Mesh(
+        new THREE.SphereGeometry(a.live?0.9:0.7, seg, seg),
+        new THREE.MeshPhongMaterial({ color:0x12121d, emissive:col, emissiveIntensity:a.live?0.55:0.22, shininess:70, transparent:!a.live, opacity:a.live?1:0.7 })
+      );
+      const halo=new THREE.Sprite(new THREE.SpriteMaterial({ map:this._haloTex, color:col, transparent:true, blending:THREE.AdditiveBlending, depthWrite:false, opacity:a.live?0.85:0.4 }));
+      halo.scale.set(4,4,1); mesh.add(halo);
+      const label=this._labelSprite(a.name, catCss(a.cat)); label.position.set(0,-1.7,0); mesh.add(label);
+      mesh.userData={ agentId:a.id };
+      this.scene.add(mesh);
+      this.nodes.set(a.id, { mesh, halo, label, base:new THREE.Vector3(), baseEm:a.live?0.55:0.22, col, status:"idle", phase:Math.random()*6.28, live:a.live });
+    });
+
+    this.edgeGroup=new THREE.Group(); this.scene.add(this.edgeGroup);
+    this.mcpGroup=new THREE.Group(); this.mcpGroup.visible=false; this.scene.add(this.mcpGroup);
+    this._buildMcp();
+  }
+  _buildMcp(){
+    const n=MCP_NODES.length, R=13;
+    MCP_NODES.forEach((m,i)=>{
+      const col=catHex(m.cat);
+      const y=(i/ n)*2-1, rr=Math.sqrt(Math.max(0.001,1-y*y)), phi=i*2.399;
+      const p=new THREE.Vector3(Math.cos(phi)*rr*R, y*9, Math.sin(phi)*rr*R);
+      const mesh=new THREE.Mesh(new THREE.SphereGeometry(0.32,12,12),
+        new THREE.MeshPhongMaterial({ color:0x0e0e1a, emissive:col, emissiveIntensity:0.5, shininess:60 }));
+      mesh.position.copy(p);
+      const halo=new THREE.Sprite(new THREE.SpriteMaterial({ map:this._haloTex, color:col, transparent:true, blending:THREE.AdditiveBlending, depthWrite:false, opacity:0.5 }));
+      halo.scale.set(1.6,1.6,1); mesh.add(halo);
+      const line=this._line(new THREE.Vector3(0,0,0), p, col, 0.12);
+      this.mcpGroup.add(mesh); this.mcpGroup.add(line);
+    });
+  }
+  _line(a,b,colorHex,opacity){
+    const geo=new THREE.BufferGeometry().setFromPoints([a,b]);
+    return new THREE.Line(geo, new THREE.LineBasicMaterial({ color:colorHex, transparent:true, opacity:opacity }));
+  }
+  applyTopology(name, instant){
+    const topo=TOPOLOGIES[name] || TOPOLOGIES.star;
+    this._topoName=name;
+    const ids=AGENTS.map(a=>a.id);
+    const pts=topo.layout(ids.length);
+    ids.forEach((id,i)=>{ const node=this.nodes.get(id); if(node){ node.base.copy(pts[i]); if(instant) node.mesh.position.copy(pts[i]); } });
+    // rebuild edges
+    while(this.edgeGroup.children.length){ const c=this.edgeGroup.children.pop(); c.geometry?.dispose(); c.material?.dispose(); }
+    topo.edges(ids.length).forEach(([from,to])=>{
+      const A = from===-1 ? new THREE.Vector3(0,0,0) : pts[from];
+      const B = pts[to];
+      this.edgeGroup.add(this._line(A.clone(), B.clone(), 0x7982c7, 0.22));
+    });
+    this._edgeSpec=topo.edges(ids.length);
+    bus.emit("topology:change", name, topo.label);
+  }
+  setMcp(on, instant){ this.mcpGroup.visible=!!on; }
+  /* pulse animation along an edge into a dispatched node */
+  pulseTo(agentId){
+    const node=this.nodes.get(agentId); if(!node) return;
+    const from=new THREE.Vector3(0,0,0), to=node.mesh.position.clone();
+    const dot=new THREE.Sprite(new THREE.SpriteMaterial({ map:this._haloTex, color:node.col, transparent:true, blending:THREE.AdditiveBlending, depthWrite:false }));
+    dot.scale.set(1.1,1.1,1); dot.position.copy(from); this.scene.add(dot);
+    this.pulses.push({ dot, from, to, t:0, speed:0.9 });
+  }
+  setStatus(agentId, status){
+    const node=this.nodes.get(agentId); if(!node) return; node.status=status;
+  }
+  rebuildLabels(){ /* reserved */ }
+  _bind(){
+    const dom=this.renderer.domElement;
+    const pts=new Map(); let moved=0, lastX=0, lastY=0, pinchDist=0;
+    const dist=()=>{ const a=[...pts.values()]; return (a.length<2)?0:Math.hypot(a[0].x-a[1].x, a[0].y-a[1].y); };
+    dom.addEventListener("pointerdown", e=>{
+      pts.set(e.pointerId,{x:e.clientX,y:e.clientY}); dom.setPointerCapture(e.pointerId);
+      moved=0; lastX=e.clientX; lastY=e.clientY;
+      if(pts.size===2) pinchDist=dist();
+    });
+    dom.addEventListener("pointerup", e=>{ const single=pts.size===1; pts.delete(e.pointerId); pinchDist=0; if(single && moved<5) this._click(e); });
+    dom.addEventListener("pointercancel", e=>{ pts.delete(e.pointerId); pinchDist=0; });
+    dom.addEventListener("pointermove", e=>{
+      this.pointer.x=(e.clientX/innerWidth)*2-1; this.pointer.y=-(e.clientY/innerHeight)*2+1;
+      this._hoverXY={ x:e.clientX, y:e.clientY };
+      if(pts.has(e.pointerId)) pts.set(e.pointerId,{x:e.clientX,y:e.clientY});
+      if(pts.size>=2){                                   // pinch-zoom (touch)
+        const d=dist(); if(pinchDist && d){ this.orbit.radius=Math.max(10, Math.min(60, this.orbit.radius - (d-pinchDist)*0.05)); }
+        pinchDist=d; return;
+      }
+      if(pts.size===1){                                  // drag-orbit
+        const dx=e.clientX-lastX, dy=e.clientY-lastY; moved+=Math.abs(dx)+Math.abs(dy);
+        this.orbit.theta-=dx*0.005; this.orbit.phi=Math.max(0.25, Math.min(Math.PI-0.25, this.orbit.phi-dy*0.005));
+        lastX=e.clientX; lastY=e.clientY;
+      }
+    });
+    dom.addEventListener("wheel", e=>{ e.preventDefault(); this.orbit.radius=Math.max(10, Math.min(60, this.orbit.radius+e.deltaY*0.02)); }, { passive:false });
+    addEventListener("resize", ()=>{ this.cam.aspect=innerWidth/innerHeight; this.cam.updateProjectionMatrix(); this.renderer.setSize(innerWidth, innerHeight); });
+  }
+  _click(e){
+    this.raycaster.setFromCamera(this.pointer, this.cam);
+    const meshes=[...this.nodes.values()].map(n=>n.mesh);
+    const hit=this.raycaster.intersectObjects(meshes, false)[0];
+    if(hit){ const id=hit.object.userData.agentId; this.focusNode(id); bus.emit("agent:focus", id); }
+    else { this.focus=null; this.camTarget.set(0,0,0); }
+  }
+  focusNode(id){ const node=this.nodes.get(id); if(node){ this.focus=id; this.camTarget.copy(node.mesh.position); } }
+  _updateHover(){
+    if(!this._hoverXY) return;
+    this.raycaster.setFromCamera(this.pointer, this.cam);
+    const meshes=[...this.nodes.values()].map(n=>n.mesh);
+    const hit=this.raycaster.intersectObjects(meshes,false)[0];
+    bus.emit("node:hover", hit ? hit.object.userData.agentId : null, this._hoverXY);
+  }
+  _loop(){
+    requestAnimationFrame(this._loop);
+    const reduce=matchMedia("(prefers-reduced-motion:reduce)").matches;
+    const drift=(cfg.get("drift",60)/100)*(reduce?0:1);
+    const time=performance.now()*0.001;
+
+    // smooth orbit toward focus target
+    this.camTarget.lerp(this.focus!=null && this.nodes.get(this.focus) ? this.nodes.get(this.focus).mesh.position : new THREE.Vector3(0,0,0), 0.06);
+    this._applyCam();
+
+    // core pulse
+    if(this.center){ if(!reduce){ this.center.mesh.rotation.y+=0.003; this.center.mesh.rotation.x+=0.0012; }
+      const cp=reduce?0.78:0.7+Math.sin(time*1.5)*0.15; this.center.mesh.material.emissiveIntensity=cp; this.center.halo.material.opacity=0.5+cp*0.25; }
+
+    // agent nodes: drift toward base + float + status emissive
+    this.nodes.forEach((node,id)=>{
+      const fl=new THREE.Vector3(Math.sin(time*0.6+node.phase)*0.5*drift, Math.cos(time*0.5+node.phase)*0.45*drift, Math.sin(time*0.7+node.phase*1.3)*0.5*drift);
+      const target=node.base.clone().add(fl);
+      node.mesh.position.lerp(target, 0.08);
+      let em=node.baseEm, scl=1, haloOp=node.live?0.85:0.4;
+      if(node.status==="running"){ em=reduce?0.85:0.6+Math.sin(time*7)*0.35; scl=reduce?1.1:1.12+Math.sin(time*7)*0.05; haloOp=0.9; }
+      else if(node.status==="queued"){ em=reduce?0.45:0.3+Math.sin(time*3)*0.2; }
+      else if(node.status==="done"){ em=0.7; }
+      else if(node.status==="error"){ em=0.8; }
+      node.mesh.material.emissiveIntensity=em;
+      const col = node.status==="error" ? 0xf7768e : node.status==="done" ? 0x9ece6a : node.col;
+      node.mesh.material.emissive.setHex(col); node.halo.material.color.setHex(col);
+      node.halo.material.opacity=haloOp; node.halo.scale.setScalar((node.live?4:3)*scl);
+    });
+
+    // edges follow node motion
+    if(this._edgeSpec){
+      const pts=AGENTS.map(a=>this.nodes.get(a.id).mesh.position);
+      this._edgeSpec.forEach((spec,i)=>{
+        const line=this.edgeGroup.children[i]; if(!line) return;
+        const A = spec[0]===-1 ? new THREE.Vector3(0,0,0) : pts[spec[0]];
+        const B = pts[spec[1]];
+        line.geometry.setFromPoints([A,B]); line.geometry.attributes.position.needsUpdate=true;
+      });
+    }
+
+    // dispatch pulses
+    for(let i=this.pulses.length-1;i>=0;i--){
+      const p=this.pulses[i]; p.t+=0.016*p.speed;
+      if(p.t>=1){ this.scene.remove(p.dot); p.dot.material.dispose(); this.pulses.splice(i,1); continue; }
+      p.dot.position.lerpVectors(p.from, this.nodes.get([...this.nodes.keys()][0]) ? p.to : p.to, p.t);
+      p.dot.material.opacity=1-p.t;
+    }
+
+    this.stars.rotation.y+=0.0002;
+    this._updateHover();
+    this.renderer.render(this.scene, this.cam);
+  }
+}
+
+/* ---------- HUD wiring ---------- */
+const $ = s => document.querySelector(s);
+const el = (tag, cls) => { const e=document.createElement(tag); if(cls) e.className=cls; return e; };
+
+const HUD = {
+  init(scene){
+    this.scene=scene;
+    this.buildTopoBar(); this.buildLegend(); this.buildSelect(); this.buildStats();
+    this.bindDock(); this.bindMcp(); this.bindShortcuts(); this.bindPopovers(); this.bindBus();
+    this.refreshStats();
+  },
+  buildTopoBar(){
+    const bar=$("#topo-bar"); const cur=cfg.get("topology","star");
+    Object.entries(TOPOLOGIES).forEach(([key,t])=>{
+      const b=el("button","topo-btn"+(key===cur?" active":"")); b.dataset.topo=key; b.type="button";
+      b.setAttribute("aria-pressed", String(key===cur)); b.setAttribute("aria-label", "Topology: "+t.label);
+      const d=el("span","dot"); b.appendChild(d); b.appendChild(document.createTextNode(t.label));
+      b.onclick=()=>this.setTopology(key); bar.appendChild(b);
+    });
+  },
+  setTopology(key){
+    cfg.set("topology", key);
+    document.querySelectorAll(".topo-btn").forEach(b=>{ const on=b.dataset.topo===key; b.classList.toggle("active",on); b.setAttribute("aria-pressed",String(on)); });
+    this.scene.applyTopology(key, false);
+  },
+  cycleTopology(){ const keys=Object.keys(TOPOLOGIES); const i=keys.indexOf(cfg.get("topology","star")); this.setTopology(keys[(i+1)%keys.length]); },
+  buildLegend(){
+    const list=$("#leg-list"); list.textContent="";
+    AGENTS.forEach(a=>{
+      const row=el("button","leg-row"); row.dataset.agent=a.id; row.type="button";
+      const cat=CAT_COLORS[a.cat]?.label||a.cat;
+      row.setAttribute("aria-label", `${a.name}, ${cat}, ${a.live?"live agent — real inference":"inactive provider slot"}`);
+      const dot=el("span","sw-dot"); dot.style.color=catCss(a.cat); dot.style.background=catCss(a.cat);
+      const nm=el("span","nm"); nm.textContent=a.name;
+      const bd=el("span","bd "+(a.live?"live":"slot")); bd.textContent=a.live?"live":"slot";
+      row.append(dot,nm,bd);
+      row.onclick=()=>{ this.scene.focusNode(a.id); $("#as").value=a.id; };
+      list.appendChild(row);
+    });
+  },
+  buildSelect(){
+    const sel=$("#as"); sel.textContent="";
+    const ob=el("option"); ob.value="__broadcast__"; ob.textContent="◎ Broadcast (all live)"; sel.appendChild(ob);
+    AGENTS.forEach(a=>{ const o=el("option"); o.value=a.id; o.textContent=(a.live?"● ":"○ ")+a.name; sel.appendChild(o); });
+    sel.value=liveAgents()[0]?.id || "__broadcast__";
+  },
+  buildStats(){
+    const sb=$("#sb");
+    const defs=[["live","Live"],["queued","Queued"],["done","Done","ok"],["err","Errors","err"],["avg","Avg ms"]];
+    defs.forEach(([k,label,mod])=>{
+      const s=el("div","stat pn"+(mod?(" "+mod):"")); s.id="st-"+k;
+      const v=el("div","v"); v.textContent="0"; const kk=el("div","k"); kk.textContent=label;
+      s.append(v,kk); sb.appendChild(s);
+    });
+  },
+  refreshStats(){
+    $("#st-live .v").textContent=liveAgents().length;
+    $("#st-queued .v").textContent=dispatcher.queue.length;
+    $("#st-done .v").textContent=dispatcher.stats.done;
+    $("#st-err .v").textContent=dispatcher.stats.err;
+    $("#st-avg .v").textContent=dispatcher.avgMs();
+  },
+  bindDock(){
+    const input=$("#ti"), btn=$("#db"), sel=$("#as");
+    const send=(forceBroadcast)=>{
+      const prompt=input.value.trim();
+      if(!prompt){ this.flashInput(); return; }
+      if(prompt.length>4000){ logger.warn("Prompt capped at 4000 chars."); }
+      const p=prompt.slice(0,4000);
+      if(forceBroadcast || sel.value==="__broadcast__"){ dispatcher.broadcast(p); }
+      else { dispatcher.enqueue(sel.value, p); }
+      input.value=""; input.focus();
+    };
+    btn.onclick=()=>send(false);
+    input.addEventListener("keydown", e=>{
+      if(e.key==="Enter"){ e.preventDefault(); send(e.shiftKey); }
+    });
+  },
+  flashInput(){ const i=$("#ti"); i.style.borderColor="var(--red)"; setTimeout(()=>i.style.borderColor="", 400); },
+  bindMcp(){
+    const sw=$("#mcp-sw");
+    const set=(on)=>{ sw.classList.toggle("on",on); sw.setAttribute("aria-checked", String(on)); cfg.set("mcp",on); this.scene.setMcp(on); };
+    set(cfg.get("mcp",false));
+    sw.onclick=()=>set(!sw.classList.contains("on"));
+    sw.onkeydown=e=>{ if(e.key===" "||e.key==="Enter"){ e.preventDefault(); set(!sw.classList.contains("on")); } };
+    this._setMcp=set;
+  },
+  toggleMcp(){ this._setMcp(!$("#mcp-sw").classList.contains("on")); },
+  bindShortcuts(){
+    const sc=$("#shortcuts");
+    addEventListener("keydown", e=>{
+      const typing = document.activeElement && document.activeElement.id==="ti";
+      if(e.ctrlKey && e.key.toLowerCase()==="t"){ e.preventDefault(); this.cycleTopology(); }
+      else if(e.ctrlKey && e.key.toLowerCase()==="m"){ e.preventDefault(); this.toggleMcp(); }
+      else if(e.ctrlKey && e.key.toLowerCase()==="k"){ e.preventDefault(); this.openPop("pop-cfg"); }
+      else if(e.ctrlKey && e.key.toLowerCase()==="h"){ e.preventDefault(); this.openPop("pop-hist"); }
+      else if(e.key==="Tab" && !typing){ e.preventDefault(); this.cycleAgent(e.shiftKey?-1:1); }
+      else if(e.key==="Escape"){ this.closePops(); }
+      else if(e.key==="?" && !typing){ sc.style.display = sc.style.display==="block"?"none":"block"; }
+    });
+  },
+  cycleAgent(dir){
+    const sel=$("#as"); const opts=[...sel.options]; let i=opts.findIndex(o=>o.value===sel.value);
+    i=(i+dir+opts.length)%opts.length; sel.value=opts[i].value;
+    if(sel.value!=="__broadcast__") this.scene.focusNode(sel.value);
+  },
+  bindPopovers(){
+    document.querySelectorAll("[data-close]").forEach(b=>b.onclick=()=>this.closePops());
+    $("#scrim").onclick=()=>this.closePops();
+    $("#rp-clear").onclick=()=>{ $("#rl").textContent=""; };
+    // config sliders
+    const c=$("#cf-conc"), cv=$("#cf-conc-v"), t=$("#cf-tok"), tv=$("#cf-tok-v"), d=$("#cf-drift"), dv=$("#cf-drift-v");
+    c.value=cfg.get("conc",3); cv.textContent=c.value;
+    t.value=cfg.get("maxTokens",1000); tv.textContent=t.value;
+    d.value=cfg.get("drift",60); dv.textContent=d.value;
+    c.oninput=()=>{ cv.textContent=c.value; cfg.set("conc",+c.value); };
+    t.oninput=()=>{ tv.textContent=t.value; cfg.set("maxTokens",+t.value); };
+    d.oninput=()=>{ dv.textContent=d.value; cfg.set("drift",+d.value); };
+  },
+  openPop(id){ this._lastFocus=document.activeElement; this.closePops(true); const p=$("#"+id); p.classList.add("open"); $("#scrim").classList.add("open"); if(id==="pop-hist") this.renderHistory(); const f=p.querySelector("input,button,[tabindex]"); (f||p).focus(); },
+  closePops(silent){ document.querySelectorAll(".pop").forEach(p=>p.classList.remove("open")); $("#scrim").classList.remove("open"); if(!silent && this._lastFocus && this._lastFocus.focus){ this._lastFocus.focus(); this._lastFocus=null; } },
+  renderHistory(){
+    const body=$("#hist-body"); body.textContent="";
+    if(!logger.buf.length){ const e=el("div"); e.style.cssText="font-size:10px;color:var(--tx3)"; e.textContent="No events yet. Dispatch a task."; body.appendChild(e); return; }
+    [...logger.buf].reverse().forEach(e=>{
+      const line=el("div","hist-line");
+      const ts=el("span","ts"); ts.textContent=new Date(e.t).toLocaleTimeString()+" ";
+      line.appendChild(ts); line.appendChild(document.createTextNode(e.msg));
+      if(e.level==="error") line.style.borderLeftColor="var(--red)";
+      else if(e.level==="warn") line.style.borderLeftColor="var(--amber)";
+      body.appendChild(line);
+    });
+  },
+  // result cards
+  card(taskId){ return document.getElementById("rc-"+taskId); },
+  addCard(task, agent){
+    const rl=$("#rl"); const c=el("div","rc running"); c.id="rc-"+task.id;
+    const h=el("div","rch"); const d=el("span","d"); d.style.background=catCss(agent.cat);
+    const an=el("span","an"); an.textContent=agent.name;
+    const st=el("span","st"); st.textContent="running"; st.className="st";
+    const lat=el("span","lat"); lat.textContent="";
+    h.append(d,an,st,lat);
+    const body=el("div","body"); body.classList.add("pulsing");
+    c.append(h,body); rl.insertBefore(c, rl.firstChild);
+  },
+  updateCard(task, status, text, ms){
+    const c=this.card(task.id); if(!c) return;
+    c.classList.remove("running","done","err"); c.classList.add(status==="error"?"err":status);
+    c.querySelector(".st").textContent=status;
+    if(ms!=null) c.querySelector(".lat").textContent=ms+"ms";
+    const body=c.querySelector(".body"); body.classList.remove("pulsing");
+    if(text!=null) body.textContent=text;   // textContent => no XSS
+  },
+  announce(msg){ const s=$("#sr-status"); if(s) s.textContent=msg; },
+  bindBus(){
+    bus.on("task:queued", (task,agent)=>{ this.scene.setStatus(agent.id,"queued"); this.refreshStats(); });
+    bus.on("task:start", (task,agent)=>{ this.scene.setStatus(agent.id,"running"); this.scene.pulseTo(agent.id); this.addCard(task,agent); this.refreshStats(); this.announce(`${agent.name} dispatched.`); });
+    bus.on("task:done", (task,agent,text,ms)=>{ this.scene.setStatus(agent.id,"done"); this.updateCard(task,"done",text,ms); this.refreshStats(); this.announce(`${agent.name} responded in ${ms} milliseconds.`); setTimeout(()=>this.scene.setStatus(agent.id,"idle"),1400); });
+    bus.on("task:error", (task,agent,msg,ms)=>{ this.scene.setStatus(agent.id,"error"); this.updateCard(task,"error",msg,ms); this.refreshStats(); this.announce(`${agent.name} failed: ${msg}`); setTimeout(()=>this.scene.setStatus(agent.id,"idle"),1800); });
+    bus.on("queue:change", ()=>this.refreshStats());
+    bus.on("stats:change", ()=>this.refreshStats());
+    bus.on("log:add", ()=>{ if($("#pop-hist").classList.contains("open")) this.renderHistory(); });
+    bus.on("node:hover", (id,xy)=>this.tooltip(id,xy));
+    bus.on("agent:focus", id=>{ $("#as").value=id; });
+  },
+  tooltip(id, xy){
+    const tt=$("#tt"); if(!id || !xy){ tt.style.display="none"; return; }
+    const a=agentById(id); if(!a){ tt.style.display="none"; return; }
+    tt.querySelector(".tn").textContent=a.name+(a.live?"  · live":"  · slot");
+    tt.querySelector(".tc").textContent=(CAT_COLORS[a.cat]?.label||a.cat)+(a.live?" — real inference":" — inactive provider slot");
+    tt.style.left=Math.min(xy.x+14, innerWidth-230)+"px"; tt.style.top=(xy.y+14)+"px"; tt.style.display="block";
+  }
+};
+
+/* ---------- Boot ---------- */
+(function boot(){
+  try {
+    if(typeof THREE === "undefined") throw new Error("Three.js failed to load (offline or CDN blocked).");
+    const scene=new SceneManager($("#cv"));
+    HUD.init(scene);
+    logger.info("Zero-G Orchestrator v4.1 online — "+liveAgents().length+" live agents, "+MCP_NODES.length+" MCP connectors.");
+  } catch(err){
+    console.error(err);
+    const b=document.body; const w=el("div");
+    w.style.cssText="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;padding:24px;text-align:center;color:#f7768e;font-family:ui-monospace,monospace;font-size:13px;line-height:1.6";
+    w.textContent="Could not start the orchestrator: "+((err&&err.message)||"unknown error")+". Reload, or open this file in a browser with network access (Three.js loads from a CDN).";
+    b.appendChild(w);
+  }
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,36 @@
+---
+name: root-cause-analysis
+description: Investigate AI failures and create post-mortems. Use when investigate ai failures and create post-mortems. Triggers on: root, cause, analysis, support & sla management.
+version: 1.0.0
+allowed-tools: Read, Write
+license: MIT
+---
+
+# Root Cause Analysis
+
+## Purpose
+Investigate AI failures and create post-mortems.
+
+## When to Use
+- Support & SLA Management requiring root cause analysis
+- Enterprise B2B deployments at scale
+- Production systems with SLA requirements
+
+## Core Workflow
+1. **Assess** - Understand requirements and current state
+2. **Plan** - Design approach and timeline
+3. **Execute** - Implement solution
+4. **Validate** - Test and verify results
+5. **Document** - Create runbooks and handoff materials
+
+## Key Deliverables
+- Implementation guides
+- Runbooks and SOPs
+- Training materials
+- Success metrics and dashboards
+
+## Dependencies
+Foundational skill (no IntInc dependencies).
+
+## License
+MIT License - See LICENSE.txt
