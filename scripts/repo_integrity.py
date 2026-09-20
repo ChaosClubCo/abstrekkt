@@ -76,9 +76,12 @@ def parse_name_status_z(output: bytes) -> list[tuple[str, list[str]]]:
     return entries
 
 
-def ls_tree_blobs(revision: str) -> dict[str, str]:
+def ls_tree_blobs(revision: str, paths: list[str] | None = None) -> dict[str, str]:
     entries: dict[str, str] = {}
-    for record in git_bytes("ls-tree", "-r", "-z", revision).split(b"\x00"):
+    args = ["ls-tree", "-r", "-z", revision]
+    if paths:
+        args.extend(["--", *paths])
+    for record in git_bytes(*args).split(b"\x00"):
         if not record:
             continue
         metadata, path = record.split(b"\t", 1)
@@ -108,9 +111,13 @@ def exact_restorations(base: str | None, statuses: dict[str, str]) -> set[str]:
     if not added_paths:
         return set()
 
-    head_blobs = ls_tree_blobs("HEAD")
     restored: set[str] = set()
     for chunk in batched(added_paths, 512):
+        base_blobs = ls_tree_blobs(base, chunk)
+        candidate_paths = [path for path in chunk if path not in base_blobs]
+        if not candidate_paths:
+            continue
+        head_blobs = ls_tree_blobs("HEAD", candidate_paths)
         history = git(
             "log",
             "--format=",
@@ -120,7 +127,7 @@ def exact_restorations(base: str | None, statuses: dict[str, str]) -> set[str]:
             "--no-renames",
             base,
             "--",
-            *chunk,
+            *candidate_paths,
         )
         for line in history.splitlines():
             if "\t" not in line:
