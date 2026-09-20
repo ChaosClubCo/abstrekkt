@@ -1,5 +1,0 @@
-- Stripe Sessions 2025 updates: https://stripe.com/blog/top-product-updates-sessions-2025
-- Stripe Tour NYC (Sep 2025): https://stripe.com/blog/all-our-product-updates-from-stripe-tour-new-york
-- Slack agentic platform updates (Oct 2025): https://slack.com/blog/news/powering-agentic-collaboration
-- OpenTelemetry trends (2025): https://www.dynatrace.com/news/blog/opentelemetry-trends-2025/
-- Supabase Changelog (Sep 2025): https://supabase.com/changelog

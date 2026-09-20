@@ -1,2 +1,0 @@
-import { describe,expect,it } from 'vitest'; import { CommandResultSchema, createEmptyResult } from '../src/result/resultEnvelope.js';
-describe('result envelope',()=>{it('creates a schema-valid empty result',()=>{const result=createEmptyResult({runId:'run-1',command:'/audit',commandVersion:'1.0.0',environment:{repository:'/repo',scope:['repository']},provenance:{promptFragments:['global@1'],modelProfile:'repository-analysis',platformId:'test'}});expect(CommandResultSchema.parse(result).status).toBe('completed');});});
