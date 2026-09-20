@@ -1,5 +1,7 @@
 # Cloudflare Readiness Evidence
 
+The phased certification plan is [`AGENT-READINESS-ROADMAP.md`](AGENT-READINESS-ROADMAP.md).
+
 The canonical frozen resource/source classification is `CloudflareResourceSourceManifest.v1.json`.
 
 The manifest distinguishes **provenance classification** from **exact source-SHA binding**. A resource can be fully classified as API-created, dashboard-template, or repositoryless without pretending it came from a Git repository.
