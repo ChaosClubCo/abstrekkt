@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Why Your Agent Is Doing the Wrong Work — FlashFusion</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;1,9..144,300;1,9..144,400&family=Crimson+Pro:ital,wght@0,300;0,400;0,500;1,300;1,400&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--violet:#a855f7;--magenta:#ec4899;--cyan:#22d3ee;--surface:#0b0b14;--surface-2:#12121f;--surface-3:#1a1a2e;--border:rgba(168,85,247,.15);--text:#e2e8f0;--text-muted:#94a3b8;--text-subtle:#64748b;--font-display:'Fraunces',Georgia,serif;--font-body:'Crimson Pro',Georgia,serif;--font-ui:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
+body{font-family:var(--font-body);background:var(--surface);color:var(--text);line-height:1;-webkit-font-smoothing:antialiased}
+.site-header{background:var(--surface-2);border-bottom:1px solid var(--border);padding:1.25rem 2rem;display:flex;justify-content:space-between;align-items:center}
+.site-name{font-family:var(--font-display);font-size:1.1rem;font-weight:300;font-style:italic;color:var(--text)}
+.site-name span{color:var(--violet)}
+.site-tag{font-family:var(--font-ui);font-size:.65rem;font-weight:500;letter-spacing:.14em;text-transform:uppercase;color:var(--text-subtle)}
+.hero{background:linear-gradient(135deg,var(--surface-2) 0%,var(--surface-3) 100%);padding:4rem 2rem 3.5rem;border-bottom:2px solid var(--violet)}
+.hero-inner{max-width:720px;margin:0 auto}
+.hero-kicker{font-family:var(--font-ui);font-size:.68rem;font-weight:500;letter-spacing:.18em;text-transform:uppercase;color:var(--violet);margin-bottom:1.25rem;display:flex;align-items:center;gap:.75rem}
+.hero-kicker::after{content:'';display:block;width:2rem;height:1px;background:var(--violet);opacity:.5}
+.hero-title{font-family:var(--font-display);font-size:clamp(2.25rem,5vw,3.25rem);font-weight:300;color:var(--text);line-height:1.1;margin-bottom:1.25rem}
+.hero-title em{font-style:italic;color:var(--violet)}
+.hero-deck{font-size:1.2rem;font-style:italic;color:var(--text-muted);line-height:1.55;max-width:580px;margin-bottom:2rem}
+.hero-meta{display:flex;gap:1.5rem;flex-wrap:wrap}
+.meta-item{font-family:var(--font-ui);font-size:.7rem;color:var(--text-subtle);letter-spacing:.04em}
+.meta-item b{color:var(--text-muted);font-weight:500}
+.body-wrap{max-width:720px;margin:0 auto;padding:3.5rem 2rem 5rem}
+.body-wrap p{font-size:1.15rem;line-height:1.75;color:var(--text-muted);margin-bottom:1.4rem}
+.body-wrap p.lede{font-size:1.3rem;line-height:1.65;color:var(--text);font-style:italic;margin-bottom:1.75rem}
+.body-wrap h2{font-family:var(--font-display);font-size:1.5rem;font-weight:400;color:var(--text);line-height:1.25;margin:3rem 0 1rem;display:flex;align-items:center;gap:.75rem}
+.body-wrap h2::before{content:'';display:block;width:1.5rem;height:2px;background:var(--violet);flex-shrink:0}
+.code-block{background:rgba(0,0,0,.4);border-left:2px solid var(--cyan);padding:1.25rem 1.5rem;margin:2rem 0;font-family:'JetBrains Mono',monospace,monospace;font-size:.85rem;line-height:1.6;color:#a5f3fc;overflow-x:auto}
+.pullquote{border-left:3px solid var(--violet);padding:1.1rem 1.5rem;margin:2.5rem 0;background:var(--surface-3)}
+.pullquote p{font-family:var(--font-display);font-size:1.3rem;font-weight:300;font-style:italic;color:var(--text);line-height:1.45;margin:0}
+.body-wrap strong{color:var(--text);font-weight:500}
+.body-wrap ul{padding-left:0;list-style:none;margin:1.25rem 0 1.4rem;display:flex;flex-direction:column;gap:.6rem}
+.body-wrap ul li{padding-left:1.25rem;position:relative;font-size:1.1rem;line-height:1.65;color:var(--text-muted)}
+.body-wrap ul li::before{content:'—';position:absolute;left:0;color:var(--violet)}
+.section-rule{border:none;border-top:1px solid var(--border);margin:3rem 0}
+.pattern-card{background:var(--surface-3);border:1px solid var(--border);border-radius:4px;padding:1.25rem 1.5rem;margin:1.5rem 0}
+.pattern-title{font-family:var(--font-ui);font-size:.68rem;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--violet);margin-bottom:.65rem}
+.pattern-body{font-size:1rem;color:var(--text-muted);line-height:1.65}
+.closing{font-family:var(--font-display);font-size:1.2rem;font-weight:300;font-style:italic;color:var(--text);line-height:1.5;margin-top:3rem;padding-top:2rem;border-top:2px solid var(--violet)}
+.closing p+p{margin-top:1rem}
+.site-footer{background:var(--surface-2);border-top:1px solid var(--border);padding:2rem;text-align:center}
+.footer-name{font-family:var(--font-display);font-size:1rem;font-weight:300;font-style:italic;color:var(--text-muted)}
+.footer-name span{color:var(--violet)}
+.footer-sub{font-family:var(--font-ui);font-size:.65rem;letter-spacing:.12em;text-transform:uppercase;color:var(--text-subtle);margin-top:.4rem}
+@media print{body{background:#0b0b14 !important;-webkit-print-color-adjust:exact;print-color-adjust:exact}}
+</style>
+</head>
+<body>
+<header class="site-header">
+  <div class="site-name">Flash<span>Fusion</span></div>
+  <div class="site-tag">AI Enablement · AI Systems · AI Training</div>
+</header>
+<div class="hero">
+  <div class="hero-inner">
+    <div class="hero-kicker">Technical Post</div>
+    <h1 class="hero-title">Why Your Agent Is Doing <em>the Wrong Work</em></h1>
+    <p class="hero-deck">Most agent workflows fail at the architecture level, not the prompt level. Here's the pattern.</p>
+    <div class="hero-meta">
+      <span class="meta-item"><b>By</b> Kyle Rosebrook</span>
+      <span class="meta-item"><b>June 2026</b></span>
+      <span class="meta-item"><b>Topic</b> Agent Architecture</span>
+    </div>
+  </div>
+</div>
+<div class="body-wrap">
+  <p class="lede">Most agent workflows fail the same way. One agent, complex brief, and context contamination that compounds until the output is expensive garbage.</p>
+
+  <p>You give a general-purpose agent a multi-part task. It starts on part A. While working, it reads context for part B. Part B's context bleeds into part A. The output for A is now built on assumptions about B. You fix it, feed it back, and the cycle runs again.</p>
+
+  <p>This isn't a model failure. It's an architecture failure. You built a generalist when you needed specialists.</p>
+
+  <hr class="section-rule">
+
+  <h2>Sub-agents vs. agent teams</h2>
+
+  <p>The difference is the communication pattern.</p>
+
+  <p><strong>Sub-agents</strong> report back to a central coordinator. One hub, multiple workers. Tasks go out, results come back in. The coordinator's context holds everything.</p>
+
+  <p><strong>Agent teams</strong> communicate directly with each other. Specialists can interrogate each other's outputs before proceeding. No single context holds all the noise.</p>
+
+  <p>Both patterns are correct in different situations. Neither is universally better.</p>
+
+  <div class="pattern-card">
+    <div class="pattern-title">Use sub-agents when</div>
+    <div class="pattern-body">Tasks are sequential with clear handoff points. Each task produces a defined output the next one consumes. Context contamination between tasks is your primary risk.</div>
+  </div>
+
+  <div class="pattern-card">
+    <div class="pattern-title">Use agent teams when</div>
+    <div class="pattern-body">Tasks can run in parallel without step-sequencing. Specialists need to interrogate each other's work before acting. A reviewer needs to see the researcher's output before the builder proceeds.</div>
+  </div>
+
+  <hr class="section-rule">
+
+  <h2>The three-agent pattern in practice</h2>
+
+  <p>For most research-plus-build tasks, I use a three-agent setup.</p>
+
+  <ul>
+    <li><strong>Researcher</strong> — pulls external data through MCP connectors, deposits structured output. Sees nothing from the builder's context.</li>
+    <li><strong>Builder</strong> — acts on structured research output. Sees nothing of the raw research. Context stays focused on the build.</li>
+    <li><strong>Reviewer</strong> — reads output from both. Flags conflicts before anything gets committed. Produces nothing executable.</li>
+  </ul>
+
+  <p>The Researcher never sees the Builder's code. The Builder never sees the Researcher's raw notes. The Reviewer sees both but produces nothing autonomous. Each agent's context window stays focused on the thing it's actually responsible for.</p>
+
+  <div class="pullquote">
+    <p>This isn't sophisticated agent design. It's basic scope management applied to agents instead of functions.</p>
+  </div>
+
+  <div class="code-block"># settings.json — enable agent teams<br>{<br>  "experimental": {<br>    "agentTeams": true<br>  },<br>  "permissions": {<br>    "allow": ["read", "git", "test"],<br>    "deny": ["delete", "install", "**/.env"]<br>  }<br>}</div>
+
+  <hr class="section-rule">
+
+  <h2>Context rot in agentic workflows</h2>
+
+  <p>Long agent sessions degrade. At 85-90% context capacity, instruction primacy fades. The agent starts dropping constraints you set two hours ago. It hallucinates file paths. It becomes agreeably wrong.</p>
+
+  <p>In an agent team, this happens per-agent. A Researcher that's been running too long will start producing lower-quality output independently of what the Builder is doing. You manage context at the agent level, not just the session level.</p>
+
+  <ul>
+    <li>Set handoff states explicitly between agents rather than letting context accumulate</li>
+    <li>Use /compact on long-running agents before they hit capacity</li>
+    <li>Structure agent.md so each agent has clear scope boundaries — what it owns and what it passes</li>
+  </ul>
+
+  <hr class="section-rule">
+
+  <h2>On permissions — the part people skip</h2>
+
+  <p>An agent that doesn't need to delete files should not have permission to delete files.</p>
+
+  <p>That sentence is obvious. It's violated constantly in production builds because permission management feels like overhead when you're moving fast. It stops feeling like overhead when an agent deletes the wrong thing with high confidence at 2am.</p>
+
+  <p>Scope permissions to what each agent actually needs. The Researcher needs read and web access. The Builder needs read and write. The Reviewer needs read only. None of them need delete.</p>
+
+  <hr class="section-rule">
+
+  <h2>What this means for client builds</h2>
+
+  <p>When I'm scoping an AI implementation, the agent architecture conversation happens before the tooling conversation. What tasks genuinely benefit from parallelism? Where are the real handoff points? What context needs to persist across the session versus what gets cleared between agents?</p>
+
+  <p>The clients who treat these as engineering decisions end up with systems that work reliably at scale. The ones who treat it as a prompting exercise end up with demos that don't survive contact with real workloads.</p>
+
+  <div class="closing">
+    <p>The technology is available. The architecture decisions are what separate reliable agent workflows from expensive experiments.</p>
+    <p>Get the architecture right first. The prompts are the easy part.</p>
+  </div>
+</div>
+<footer class="site-footer">
+  <div class="footer-name"><span>Flash</span>Fusion</div>
+  <div class="footer-sub">AI Enablement · B2B AI Implementation · kyle@flashfusion.co</div>
+</footer>
+</body>
+</html>

@@ -1,0 +1,1041 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FlashFusion - Role Matrix Explorer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #0a0e27 0%, #1a1a2e 100%);
+            color: #ffffff;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 1800px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        /* Header */
+        header {
+            text-align: center;
+            margin-bottom: 60px;
+            padding-top: 40px;
+        }
+
+        h1 {
+            font-size: 3.5rem;
+            font-weight: 800;
+            margin-bottom: 16px;
+            line-height: 1.2;
+        }
+
+        .gradient-text {
+            background: linear-gradient(90deg, #4ade80 0%, #00d9ff 25%, #b24bf3 75%, #ff006e 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .subtitle {
+            font-size: 1.25rem;
+            color: #94a3b8;
+            max-width: 800px;
+            margin: 0 auto 40px;
+            line-height: 1.6;
+        }
+
+        /* Matrix Layout */
+        .matrix-layout {
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 32px;
+        }
+
+        /* Role List Sidebar */
+        .role-list {
+            background: rgba(26, 26, 46, 0.95);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 24px;
+            height: fit-content;
+            position: sticky;
+            top: 20px;
+        }
+
+        .role-list-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin-bottom: 20px;
+            color: #FF8C42;
+        }
+
+        .role-item {
+            padding: 16px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            margin-bottom: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .role-item:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(255, 140, 66, 0.5);
+            transform: translateX(4px);
+        }
+
+        .role-item.active {
+            background: rgba(255, 140, 66, 0.2);
+            border-color: #FF8C42;
+        }
+
+        .role-item-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #00d9ff 0%, #b24bf3 50%, #ff006e 100%);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            flex-shrink: 0;
+        }
+
+        .role-item-name {
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        /* Role Detail Panel */
+        .role-detail {
+            background: rgba(26, 26, 46, 0.95);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 40px;
+        }
+
+        .role-header {
+            display: flex;
+            align-items: center;
+            gap: 24px;
+            margin-bottom: 40px;
+            padding-bottom: 32px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .role-icon-large {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #00d9ff 0%, #b24bf3 50%, #ff006e 100%);
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5rem;
+        }
+
+        .role-header-info {
+            flex: 1;
+        }
+
+        .role-name {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .role-id {
+            font-size: 0.9rem;
+            color: #94a3b8;
+        }
+
+        .role-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .action-btn {
+            padding: 10px 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            color: #ffffff;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border: none;
+        }
+
+        .action-btn:hover {
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .action-btn.primary {
+            background: linear-gradient(135deg, #FF8C42 0%, #FF6B35 100%);
+        }
+
+        .action-btn.primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(255, 140, 66, 0.4);
+        }
+
+        .role-section {
+            margin-bottom: 40px;
+        }
+
+        .section-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #FF8C42;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .section-icon {
+            width: 32px;
+            height: 32px;
+            background: rgba(255, 140, 66, 0.2);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+        }
+
+        .contributions-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 16px;
+        }
+
+        .contribution-card {
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-left: 3px solid #00d9ff;
+            border-radius: 12px;
+            transition: all 0.2s ease;
+        }
+
+        .contribution-card:hover {
+            background: rgba(255, 255, 255, 0.08);
+            transform: translateX(4px);
+        }
+
+        .contribution-icon {
+            font-size: 1.5rem;
+            margin-bottom: 12px;
+        }
+
+        .contribution-text {
+            font-size: 0.95rem;
+            line-height: 1.6;
+            color: #cbd5e1;
+        }
+
+        .continuity-box {
+            padding: 24px;
+            background: rgba(178, 75, 243, 0.1);
+            border: 1px solid rgba(178, 75, 243, 0.3);
+            border-radius: 16px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .continuity-box::before {
+            content: '♾️';
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            font-size: 3rem;
+            opacity: 0.1;
+        }
+
+        .continuity-text {
+            font-size: 1rem;
+            line-height: 1.7;
+            color: #e0d9ff;
+            position: relative;
+            z-index: 1;
+        }
+
+        .key-deliverables {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .deliverable-item {
+            padding: 16px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .deliverable-check {
+            width: 24px;
+            height: 24px;
+            background: rgba(74, 222, 128, 0.2);
+            border: 2px solid #4ade80;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            color: #4ade80;
+            flex-shrink: 0;
+        }
+
+        .deliverable-text {
+            font-size: 0.95rem;
+            color: #cbd5e1;
+        }
+
+        /* Skills Tags */
+        .skills-section {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .skill-tag {
+            padding: 8px 16px;
+            background: rgba(0, 217, 255, 0.1);
+            border: 1px solid rgba(0, 217, 255, 0.3);
+            border-radius: 20px;
+            font-size: 0.85rem;
+            color: #00d9ff;
+            font-weight: 600;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+
+        .skill-tag:hover {
+            background: rgba(0, 217, 255, 0.2);
+            transform: translateY(-2px);
+        }
+
+        /* Collaboration Network */
+        .collaboration-network {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+        }
+
+        .collab-card {
+            padding: 16px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            text-align: center;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+
+        .collab-card:hover {
+            background: rgba(255, 255, 255, 0.08);
+            transform: scale(1.05);
+        }
+
+        .collab-icon {
+            font-size: 1.5rem;
+            margin-bottom: 8px;
+        }
+
+        .collab-name {
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .collab-type {
+            font-size: 0.75rem;
+            color: #94a3b8;
+        }
+
+        /* Stats Bar */
+        .stats-bar {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        .stat-box {
+            background: rgba(26, 26, 46, 0.95);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 24px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 800;
+            background: linear-gradient(90deg, #00d9ff 0%, #b24bf3 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 8px;
+        }
+
+        .stat-label {
+            font-size: 0.85rem;
+            color: #94a3b8;
+        }
+
+        /* Export Options */
+        .export-section {
+            margin-top: 40px;
+            padding: 24px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+        }
+
+        .export-title {
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: #94a3b8;
+            margin-bottom: 12px;
+        }
+
+        .export-buttons {
+            display: flex;
+            gap: 12px;
+        }
+
+        .export-btn {
+            padding: 10px 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            color: #ffffff;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .export-btn:hover {
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        /* Responsive */
+        @media (max-width: 1200px) {
+            .matrix-layout {
+                grid-template-columns: 1fr;
+            }
+
+            .role-list {
+                position: static;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Role Matrix <span class="gradient-text">Explorer</span></h1>
+            <p class="subtitle">
+                Deep dive into each of the 11 specialized roles in the Symphony of Roles framework.
+                Explore contributions, continuity, and collaboration patterns.
+            </p>
+        </header>
+
+        <!-- Stats Overview -->
+        <div class="stats-bar">
+            <div class="stat-box">
+                <div class="stat-value">11</div>
+                <div class="stat-label">Specialized Roles</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-value">6</div>
+                <div class="stat-label">Development Phases</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-value">100%</div>
+                <div class="stat-label">Coverage</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-value">∞</div>
+                <div class="stat-label">Continuity</div>
+            </div>
+        </div>
+
+        <!-- Matrix Layout -->
+        <div class="matrix-layout">
+            <!-- Role List Sidebar -->
+            <div class="role-list">
+                <div class="role-list-title">SELECT ROLE</div>
+                
+                <div class="role-item active" data-role="visionary">
+                    <div class="role-item-icon">🎯</div>
+                    <div class="role-item-name">Visionary / Product Strategist</div>
+                </div>
+
+                <div class="role-item" data-role="product-manager">
+                    <div class="role-item-icon">📦</div>
+                    <div class="role-item-name">Product Manager</div>
+                </div>
+
+                <div class="role-item" data-role="business-analyst">
+                    <div class="role-item-icon">📊</div>
+                    <div class="role-item-name">Business Analyst</div>
+                </div>
+
+                <div class="role-item" data-role="ux-designer">
+                    <div class="role-item-icon">🎨</div>
+                    <div class="role-item-name">UX Designer</div>
+                </div>
+
+                <div class="role-item" data-role="ui-designer">
+                    <div class="role-item-icon">🎭</div>
+                    <div class="role-item-name">UI Designer</div>
+                </div>
+
+                <div class="role-item" data-role="mobile-dev">
+                    <div class="role-item-icon">📱</div>
+                    <div class="role-item-name">Mobile App Developer</div>
+                </div>
+
+                <div class="role-item" data-role="backend-dev">
+                    <div class="role-item-icon">⚙️</div>
+                    <div class="role-item-name">Backend Developer</div>
+                </div>
+
+                <div class="role-item" data-role="qa-engineer">
+                    <div class="role-item-icon">🧪</div>
+                    <div class="role-item-name">QA Engineer / Tester</div>
+                </div>
+
+                <div class="role-item" data-role="devops">
+                    <div class="role-item-icon">🚀</div>
+                    <div class="role-item-name">DevOps / Release Engineer</div>
+                </div>
+
+                <div class="role-item" data-role="security">
+                    <div class="role-item-icon">🔒</div>
+                    <div class="role-item-name">Security Analyst</div>
+                </div>
+
+                <div class="role-item" data-role="marketing">
+                    <div class="role-item-icon">📈</div>
+                    <div class="role-item-name">Marketing & Growth</div>
+                </div>
+            </div>
+
+            <!-- Role Detail Panel -->
+            <div class="role-detail">
+                <div class="role-header">
+                    <div class="role-icon-large" id="roleIconLarge">🎯</div>
+                    <div class="role-header-info">
+                        <div class="role-name" id="roleName">Visionary / Product Strategist</div>
+                        <div class="role-id" id="roleId">Role ID: 1 • Discovery Phase</div>
+                    </div>
+                    <div class="role-actions">
+                        <button class="action-btn">📋 View Job Description</button>
+                        <button class="action-btn primary">💬 Configure Prompt</button>
+                    </div>
+                </div>
+
+                <!-- Contributions Section -->
+                <div class="role-section">
+                    <div class="section-title">
+                        <div class="section-icon">🎯</div>
+                        Key Contributions
+                    </div>
+                    <div class="contributions-grid" id="contributionsGrid">
+                        <!-- Dynamically populated -->
+                    </div>
+                </div>
+
+                <!-- Continuity Section -->
+                <div class="role-section">
+                    <div class="section-title">
+                        <div class="section-icon">♾️</div>
+                        Continuity & Long-Term Impact
+                    </div>
+                    <div class="continuity-box">
+                        <div class="continuity-text" id="continuityText">
+                            <!-- Dynamically populated -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Key Deliverables -->
+                <div class="role-section">
+                    <div class="section-title">
+                        <div class="section-icon">📦</div>
+                        Key Deliverables
+                    </div>
+                    <div class="key-deliverables" id="deliverablesContainer">
+                        <!-- Dynamically populated -->
+                    </div>
+                </div>
+
+                <!-- Required Skills -->
+                <div class="role-section">
+                    <div class="section-title">
+                        <div class="section-icon">⚡</div>
+                        Required Skills
+                    </div>
+                    <div class="skills-section" id="skillsContainer">
+                        <!-- Dynamically populated -->
+                    </div>
+                </div>
+
+                <!-- Collaboration Network -->
+                <div class="role-section">
+                    <div class="section-title">
+                        <div class="section-icon">🤝</div>
+                        Collaboration Network
+                    </div>
+                    <div class="collaboration-network" id="collabNetwork">
+                        <!-- Dynamically populated -->
+                    </div>
+                </div>
+
+                <!-- Export Options -->
+                <div class="export-section">
+                    <div class="export-title">Export Role Data</div>
+                    <div class="export-buttons">
+                        <button class="export-btn">📄 Export as JSON</button>
+                        <button class="export-btn">📊 Export as CSV</button>
+                        <button class="export-btn">📋 Copy to Clipboard</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const rolesData = {
+            'visionary': {
+                id: 1,
+                name: 'Visionary / Product Strategist',
+                icon: '🎯',
+                phase: 'Discovery',
+                contributions: [
+                    { icon: '🔍', text: 'Market research synthesis and competitive landscape analysis' },
+                    { icon: '👥', text: 'User persona definition with demographic and psychographic details' },
+                    { icon: '🎯', text: 'Competitive analysis to identify differentiation opportunities' },
+                    { icon: '🗺️', text: 'Core value proposition development and strategic roadmap creation' },
+                    { icon: '📊', text: 'Success metrics (KPIs) definition and tracking framework' }
+                ],
+                continuity: 'Keeps product aligned with market needs; adapts vision over time based on user feedback, market trends, and competitive shifts. Serves as the strategic north star throughout the product lifecycle.',
+                deliverables: [
+                    'Market opportunity assessment and competitive brief',
+                    'User persona documents with journey maps',
+                    'Product vision statement and value proposition',
+                    '6-12 month strategic roadmap with quarterly milestones',
+                    'KPI framework with baseline and target metrics'
+                ],
+                skills: ['Market Research', 'Strategic Planning', 'User Research', 'Data Analysis', 'Competitive Intelligence', 'Product Vision', 'Stakeholder Communication'],
+                collaborates: [
+                    { icon: '📦', name: 'Product Manager', type: 'Primary' },
+                    { icon: '📊', name: 'Business Analyst', type: 'Primary' },
+                    { icon: '🎨', name: 'UX Designer', type: 'Secondary' },
+                    { icon: '📈', name: 'Marketing', type: 'Secondary' }
+                ]
+            },
+            'product-manager': {
+                id: 2,
+                name: 'Product Manager / Product Owner',
+                icon: '📦',
+                phase: 'All Phases',
+                contributions: [
+                    { icon: '📝', text: 'User stories and detailed specifications with acceptance criteria' },
+                    { icon: '📋', text: 'Backlog prioritization using frameworks like RICE or MoSCoW' },
+                    { icon: '🏃', text: 'Sprint planning and coordination across cross-functional teams' },
+                    { icon: '💬', text: 'Stakeholder communication and progress reporting' },
+                    { icon: '✅', text: 'Feature validation against business objectives and user needs' }
+                ],
+                continuity: 'Manages consistent feature delivery and roadmap evolution. Acts as the central coordination point across all development phases, ensuring alignment between vision and execution.',
+                deliverables: [
+                    'Prioritized product backlog with user stories',
+                    'Sprint plans with capacity and velocity tracking',
+                    'Stakeholder reports and product demos',
+                    'Feature specifications and acceptance criteria',
+                    'Release notes and product documentation'
+                ],
+                skills: ['Agile/Scrum', 'Product Strategy', 'User Stories', 'Backlog Management', 'Stakeholder Management', 'Data-Driven Decision Making', 'Roadmapping'],
+                collaborates: [
+                    { icon: '🎯', name: 'Visionary', type: 'Primary' },
+                    { icon: '📱', name: 'Mobile Developer', type: 'Primary' },
+                    { icon: '⚙️', name: 'Backend Developer', type: 'Primary' },
+                    { icon: '🎨', name: 'UX Designer', type: 'Primary' },
+                    { icon: '🧪', name: 'QA Engineer', type: 'Secondary' }
+                ]
+            },
+            'business-analyst': {
+                id: 11,
+                name: 'Business Analyst',
+                icon: '📊',
+                phase: 'Discovery',
+                contributions: [
+                    { icon: '📋', text: 'Requirements gathering through stakeholder interviews and workshops' },
+                    { icon: '💼', text: 'Feasibility studies and business case development' },
+                    { icon: '🔄', text: 'Process modeling using BPMN and workflow diagrams' },
+                    { icon: '🤝', text: 'Stakeholder alignment and consensus building' },
+                    { icon: '📈', text: 'ROI analysis and business metrics tracking' }
+                ],
+                continuity: 'Ensures product evolves in line with business needs. Monitors ROI, tracks business metrics, and validates that technical delivery aligns with strategic business objectives.',
+                deliverables: [
+                    'Business requirements document (BRD)',
+                    'Feasibility study and business case',
+                    'Process models and workflow diagrams',
+                    'Stakeholder RACI matrix',
+                    'ROI projections and business metrics framework'
+                ],
+                skills: ['Requirements Analysis', 'Business Process Modeling', 'Stakeholder Management', 'Financial Analysis', 'Data Analysis', 'BPMN', 'Business Cases'],
+                collaborates: [
+                    { icon: '🎯', name: 'Visionary', type: 'Primary' },
+                    { icon: '📦', name: 'Product Manager', type: 'Primary' },
+                    { icon: '📈', name: 'Marketing', type: 'Secondary' }
+                ]
+            },
+            'ux-designer': {
+                id: 3,
+                name: 'UX Designer',
+                icon: '🎨',
+                phase: 'Design',
+                contributions: [
+                    { icon: '🔍', text: 'User research and insights synthesis from interviews and surveys' },
+                    { icon: '🗺️', text: 'Journey mapping to identify pain points and opportunities' },
+                    { icon: '📐', text: 'Wireframing and interactive prototyping for rapid iteration' },
+                    { icon: '🧪', text: 'Usability testing with real users and iteration based on feedback' },
+                    { icon: '🏗️', text: 'Information architecture and navigation design' }
+                ],
+                continuity: 'Identifies friction points; ensures evolving flows stay user-centric. Continuously validates design decisions through testing and adapts experiences based on user behavior data.',
+                deliverables: [
+                    'User research reports and persona updates',
+                    'User journey maps with pain point analysis',
+                    'Low-fidelity wireframes and prototypes',
+                    'Usability test reports with recommendations',
+                    'Information architecture diagrams'
+                ],
+                skills: ['User Research', 'Wireframing', 'Prototyping', 'Usability Testing', 'Journey Mapping', 'Information Architecture', 'Figma/Sketch', 'Accessibility (WCAG)'],
+                collaborates: [
+                    { icon: '🎭', name: 'UI Designer', type: 'Primary' },
+                    { icon: '📦', name: 'Product Manager', type: 'Primary' },
+                    { icon: '📱', name: 'Mobile Developer', type: 'Secondary' },
+                    { icon: '🧪', name: 'QA Engineer', type: 'Secondary' }
+                ]
+            },
+            'ui-designer': {
+                id: 4,
+                name: 'UI Designer',
+                icon: '🎭',
+                phase: 'Design',
+                contributions: [
+                    { icon: '🎨', text: 'Visual design system with comprehensive component libraries' },
+                    { icon: '🖼️', text: 'High-fidelity mockups maintaining brand consistency' },
+                    { icon: '🏷️', text: 'Brand identity and visual language across all touchpoints' },
+                    { icon: '✨', text: 'Asset creation including icons, illustrations, and splash screens' },
+                    { icon: '📱', text: 'Responsive design specifications for all device breakpoints' }
+                ],
+                continuity: 'Maintains brand integrity and visual cohesion over updates. Evolves design system as product grows while ensuring consistency across all platforms and touchpoints.',
+                deliverables: [
+                    'Complete design system with component library',
+                    'High-fidelity mockups for all key screens',
+                    'Brand guidelines and visual style guide',
+                    'Icon sets and custom illustrations',
+                    'Responsive design specifications'
+                ],
+                skills: ['Visual Design', 'Design Systems', 'Typography', 'Color Theory', 'Iconography', 'Figma/Sketch', 'Adobe Creative Suite', 'Animation/Motion Design'],
+                collaborates: [
+                    { icon: '🎨', name: 'UX Designer', type: 'Primary' },
+                    { icon: '📱', name: 'Mobile Developer', type: 'Primary' },
+                    { icon: '📦', name: 'Product Manager', type: 'Secondary' }
+                ]
+            },
+            'mobile-dev': {
+                id: 5,
+                name: 'Mobile App Developer (iOS/Android/Web)',
+                icon: '📱',
+                phase: 'Build',
+                contributions: [
+                    { icon: '💻', text: 'Code review of AI output and implementation quality assurance' },
+                    { icon: '📱', text: 'Platform guidelines adherence (iOS HIG, Material Design)' },
+                    { icon: '⚡', text: 'Performance tuning and optimization for smooth 60fps experiences' },
+                    { icon: '🔌', text: 'Device compatibility testing across OS versions and form factors' },
+                    { icon: '🔧', text: 'SDK integrations for analytics, push notifications, and third-party services' }
+                ],
+                continuity: 'Ensures app remains performant, secure, and up-to-date with latest platform features. Manages technical debt and implements platform-specific optimizations as OS evolves.',
+                deliverables: [
+                    'Production-ready mobile application code',
+                    'Platform-specific feature implementations',
+                    'Performance optimization reports',
+                    'SDK integration documentation',
+                    'App store submission materials'
+                ],
+                skills: ['React Native', 'Swift', 'Kotlin', 'iOS Development', 'Android Development', 'Mobile UI/UX', 'Performance Optimization', 'App Store Guidelines'],
+                collaborates: [
+                    { icon: '⚙️', name: 'Backend Developer', type: 'Primary' },
+                    { icon: '📦', name: 'Product Manager', type: 'Primary' },
+                    { icon: '🎭', name: 'UI Designer', type: 'Secondary' },
+                    { icon: '🧪', name: 'QA Engineer', type: 'Secondary' }
+                ]
+            },
+            'backend-dev': {
+                id: 6,
+                name: 'Backend Developer / Database Architect',
+                icon: '⚙️',
+                phase: 'Build',
+                contributions: [
+                    { icon: '🗄️', text: 'Database schema design with normalization and indexing strategies' },
+                    { icon: '🔌', text: 'API development (RESTful/GraphQL) with versioning' },
+                    { icon: '🔐', text: 'Authentication and authorization systems (OAuth, JWT)' },
+                    { icon: '⚡', text: 'Scalability and efficiency optimization for high-traffic scenarios' },
+                    { icon: '📊', text: 'Data integrity and security best practices implementation' }
+                ],
+                continuity: 'Keeps data layer robust and secure as usage grows. Monitors performance, implements caching strategies, and scales infrastructure to handle increased load.',
+                deliverables: [
+                    'Database schema and migration scripts',
+                    'RESTful/GraphQL API endpoints',
+                    'Authentication and authorization systems',
+                    'Serverless functions and cloud infrastructure',
+                    'API documentation and integration guides'
+                ],
+                skills: ['Node.js', 'Python', 'PostgreSQL', 'MongoDB', 'API Design', 'Database Architecture', 'Cloud Infrastructure', 'Microservices', 'Redis/Caching'],
+                collaborates: [
+                    { icon: '📱', name: 'Mobile Developer', type: 'Primary' },
+                    { icon: '🚀', name: 'DevOps', type: 'Primary' },
+                    { icon: '🔒', name: 'Security Analyst', type: 'Primary' },
+                    { icon: '📦', name: 'Product Manager', type: 'Secondary' }
+                ]
+            },
+            'qa-engineer': {
+                id: 7,
+                name: 'QA Engineer / Tester',
+                icon: '🧪',
+                phase: 'Release',
+                contributions: [
+                    { icon: '📋', text: 'Test plan and comprehensive test case development' },
+                    { icon: '🤖', text: 'Manual and automated testing (Selenium, Cypress, Jest)' },
+                    { icon: '⚡', text: 'Performance and load testing to validate scalability' },
+                    { icon: '🔒', text: 'Security testing and vulnerability scanning' },
+                    { icon: '🔄', text: 'Regression testing to prevent feature degradation' }
+                ],
+                continuity: 'Guards against regressions; assures high quality each release. Maintains comprehensive test suites and continuously expands coverage as product evolves.',
+                deliverables: [
+                    'Comprehensive test plans and test cases',
+                    'Automated test suites (unit, integration, e2e)',
+                    'Performance and load testing reports',
+                    'Bug reports and tracking',
+                    'Release quality sign-off documentation'
+                ],
+                skills: ['Test Automation', 'Selenium', 'Cypress', 'Jest', 'Manual Testing', 'Performance Testing', 'Security Testing', 'Bug Tracking', 'CI/CD Integration'],
+                collaborates: [
+                    { icon: '📱', name: 'Mobile Developer', type: 'Primary' },
+                    { icon: '⚙️', name: 'Backend Developer', type: 'Primary' },
+                    { icon: '🚀', name: 'DevOps', type: 'Primary' },
+                    { icon: '📦', name: 'Product Manager', type: 'Secondary' }
+                ]
+            },
+            'devops': {
+                id: 8,
+                name: 'DevOps / Release Engineer',
+                icon: '🚀',
+                phase: 'Release',
+                contributions: [
+                    { icon: '🔄', text: 'CI/CD pipeline setup with GitHub Actions, CircleCI, or Jenkins' },
+                    { icon: '🏗️', text: 'Infrastructure management using Terraform or CloudFormation' },
+                    { icon: '📊', text: 'Monitoring and alerting with Prometheus, Grafana, Datadog' },
+                    { icon: '🚀', text: 'Automated releases with zero-downtime deployments' },
+                    { icon: '🔧', text: 'Container orchestration with Docker and Kubernetes' }
+                ],
+                continuity: 'Enables rapid, reliable deployments and infrastructure health monitoring. Continuously optimizes deployment pipeline and implements site reliability engineering practices.',
+                deliverables: [
+                    'CI/CD pipeline configuration',
+                    'Infrastructure as code (Terraform/CloudFormation)',
+                    'Monitoring and alerting dashboards',
+                    'Deployment runbooks and rollback procedures',
+                    'Container orchestration manifests'
+                ],
+                skills: ['CI/CD', 'Docker', 'Kubernetes', 'Terraform', 'AWS/GCP/Azure', 'Monitoring', 'Site Reliability', 'Linux Administration', 'GitOps'],
+                collaborates: [
+                    { icon: '⚙️', name: 'Backend Developer', type: 'Primary' },
+                    { icon: '🧪', name: 'QA Engineer', type: 'Primary' },
+                    { icon: '🔒', name: 'Security Analyst', type: 'Primary' },
+                    { icon: '📦', name: 'Product Manager', type: 'Secondary' }
+                ]
+            },
+            'security': {
+                id: 9,
+                name: 'Security Analyst',
+                icon: '🔒',
+                phase: 'All Phases',
+                contributions: [
+                    { icon: '🔍', text: 'Security audits and comprehensive penetration testing' },
+                    { icon: '🛡️', text: 'Vulnerability mitigation following OWASP Top 10 guidelines' },
+                    { icon: '📜', text: 'Compliance management (GDPR, CCPA, SOC 2, HIPAA)' },
+                    { icon: '🎯', text: 'Threat modeling and risk assessment' },
+                    { icon: '🚨', text: 'Data protection best practices and incident response' }
+                ],
+                continuity: 'Proactively defends against evolving threats. Continuously monitors security landscape, implements zero-trust architecture, and adapts defenses to emerging attack vectors.',
+                deliverables: [
+                    'Security audit reports and vulnerability assessments',
+                    'Threat models and risk matrices',
+                    'Compliance documentation and audit trails',
+                    'Security policies and incident response plans',
+                    'Penetration testing reports'
+                ],
+                skills: ['Security Auditing', 'Penetration Testing', 'OWASP', 'Compliance (GDPR/CCPA/SOC 2)', 'Threat Modeling', 'Encryption', 'Identity Management', 'Incident Response'],
+                collaborates: [
+                    { icon: '⚙️', name: 'Backend Developer', type: 'Primary' },
+                    { icon: '🚀', name: 'DevOps', type: 'Primary' },
+                    { icon: '📦', name: 'Product Manager', type: 'Secondary' },
+                    { icon: '🎯', name: 'Visionary', type: 'Secondary' }
+                ]
+            },
+            'marketing': {
+                id: 10,
+                name: 'Marketing & Growth Strategist',
+                icon: '📈',
+                phase: 'Growth',
+                contributions: [
+                    { icon: '🚀', text: 'Pre-launch campaigns and go-to-market strategy' },
+                    { icon: '📱', text: 'ASO (App Store Optimization) and SEO best practices' },
+                    { icon: '💰', text: 'Paid acquisition strategy across Google Ads, Meta, LinkedIn' },
+                    { icon: '📊', text: 'Engagement and retention programs (email, push, in-app)' },
+                    { icon: '🔄', text: 'Growth loop design and viral coefficient optimization' }
+                ],
+                continuity: 'Drives user acquisition and ongoing engagement. Continuously optimizes conversion funnels, experiments with growth channels, and implements retention strategies.',
+                deliverables: [
+                    'Go-to-market strategy and launch plan',
+                    'ASO/SEO optimization with keyword research',
+                    'Paid acquisition campaign setup',
+                    'Email drip sequences and lifecycle marketing',
+                    'Referral program mechanics and analytics'
+                ],
+                skills: ['Growth Marketing', 'ASO/SEO', 'Paid Acquisition', 'Content Marketing', 'Email Marketing', 'A/B Testing', 'Analytics', 'Customer Lifecycle'],
+                collaborates: [
+                    { icon: '🎯', name: 'Visionary', type: 'Primary' },
+                    { icon: '📦', name: 'Product Manager', type: 'Primary' },
+                    { icon: '📊', name: 'Business Analyst', type: 'Secondary' },
+                    { icon: '🎨', name: 'UX Designer', type: 'Secondary' }
+                ]
+            }
+        };
+
+        // Current role
+        let currentRole = 'visionary';
+
+        // Role selection
+        const roleItems = document.querySelectorAll('.role-item');
+        roleItems.forEach(item => {
+            item.addEventListener('click', () => {
+                roleItems.forEach(i => i.classList.remove('active'));
+                item.classList.add('active');
+                
+                const roleId = item.dataset.role;
+                currentRole = roleId;
+                displayRoleDetails(roleId);
+            });
+        });
+
+        // Display role details
+        function displayRoleDetails(roleId) {
+            const role = rolesData[roleId];
+            
+            // Update header
+            document.getElementById('roleIconLarge').textContent = role.icon;
+            document.getElementById('roleName').textContent = role.name;
+            document.getElementById('roleId').textContent = `Role ID: ${role.id} • ${role.phase} Phase`;
+
+            // Update contributions
+            const contributionsGrid = document.getElementById('contributionsGrid');
+            contributionsGrid.innerHTML = role.contributions.map(c => `
+                <div class="contribution-card">
+                    <div class="contribution-icon">${c.icon}</div>
+                    <div class="contribution-text">${c.text}</div>
+                </div>
+            `).join('');
+
+            // Update continuity
+            document.getElementById('continuityText').textContent = role.continuity;
+
+            // Update deliverables
+            const deliverablesContainer = document.getElementById('deliverablesContainer');
+            deliverablesContainer.innerHTML = role.deliverables.map(d => `
+                <div class="deliverable-item">
+                    <div class="deliverable-check">✓</div>
+                    <div class="deliverable-text">${d}</div>
+                </div>
+            `).join('');
+
+            // Update skills
+            const skillsContainer = document.getElementById('skillsContainer');
+            skillsContainer.innerHTML = role.skills.map(s => `
+                <div class="skill-tag">${s}</div>
+            `).join('');
+
+            // Update collaboration network
+            const collabNetwork = document.getElementById('collabNetwork');
+            collabNetwork.innerHTML = role.collaborates.map(c => `
+                <div class="collab-card">
+                    <div class="collab-icon">${c.icon}</div>
+                    <div class="collab-name">${c.name}</div>
+                    <div class="collab-type">${c.type}</div>
+                </div>
+            `).join('');
+        }
+
+        // Initialize with first role
+        displayRoleDetails('visionary');
+
+        // Export functionality
+        const exportBtns = document.querySelectorAll('.export-btn');
+        exportBtns.forEach((btn, index) => {
+            btn.addEventListener('click', () => {
+                const role = rolesData[currentRole];
+                
+                if (index === 0) {
+                    // Export as JSON
+                    const dataStr = JSON.stringify(role, null, 2);
+                    const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+                    const exportFileDefaultName = `role-${currentRole}.json`;
+                    
+                    const linkElement = document.createElement('a');
+                    linkElement.setAttribute('href', dataUri);
+                    linkElement.setAttribute('download', exportFileDefaultName);
+                    linkElement.click();
+                } else if (index === 2) {
+                    // Copy to clipboard
+                    navigator.clipboard.writeText(JSON.stringify(role, null, 2));
+                    btn.textContent = '✓ Copied!';
+                    setTimeout(() => {
+                        btn.textContent = '📋 Copy to Clipboard';
+                    }, 2000);
+                }
+            });
+        });
+    </script>
+</body>
+</html>

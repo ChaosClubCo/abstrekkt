@@ -1,0 +1,1025 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BREATHE — Memoir Engine</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=JetBrains+Mono:wght@400;500&display=swap');
+
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#080a0d;--surface:#0f1218;--s2:#151a22;--s3:#1a2030;
+  --border:#1e2535;--b2:#28324a;--b3:#344060;
+  --text:#dde2f0;--muted:#5a6a90;--dim:#3a4570;
+  --accent:#ff4500;--cyan:#00d4ff;--purple:#9955ff;
+  --green:#00e87a;--amber:#ffaa00;--red:#ff3355;
+}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh}
+
+/* HEADER */
+.hdr{padding:14px 24px;border-bottom:1px solid var(--border);background:var(--surface);display:flex;align-items:center;justify-content:space-between}
+.logo{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:0.15em}
+.logo span{color:var(--accent)}
+.badge{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);border:1px solid var(--border);padding:2px 8px;border-radius:3px}
+
+/* LAYOUT */
+.layout{display:grid;grid-template-columns:280px 1fr;min-height:calc(100vh - 49px)}
+
+/* SIDEBAR */
+.sidebar{background:var(--surface);border-right:1px solid var(--border);padding:16px;overflow-y:auto}
+.sidebar-title{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:12px}
+.mode-btn{display:block;width:100%;text-align:left;padding:10px 12px;border:1px solid var(--border);border-radius:6px;background:none;color:var(--muted);font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer;margin-bottom:6px;transition:all 0.15s}
+.mode-btn:hover{border-color:var(--b2);color:var(--text);background:var(--s2)}
+.mode-btn.active{border-color:var(--accent);color:var(--text);background:rgba(255,69,0,0.08)}
+.mode-icon{margin-right:8px;font-size:14px}
+.mode-desc{font-size:11px;color:var(--dim);margin-top:3px;line-height:1.4}
+
+.divider{border:none;border-top:1px solid var(--border);margin:12px 0}
+.scene-list-title{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:8px}
+.saved-scene{padding:8px 10px;border:1px solid var(--border);border-radius:4px;margin-bottom:4px;cursor:pointer;font-size:12px;color:var(--muted);transition:all 0.1s}
+.saved-scene:hover{color:var(--text);border-color:var(--b2)}
+.saved-scene .sc-title{font-weight:500;color:var(--text);margin-bottom:2px}
+.saved-scene .sc-meta{font-size:10px;font-family:'JetBrains Mono',monospace}
+
+/* MAIN */
+.main{padding:24px;overflow-y:auto;max-height:calc(100vh - 49px)}
+
+/* PANELS */
+.panel{display:none}
+.panel.active{display:block}
+
+/* FORM */
+.form-section{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:20px;margin-bottom:16px}
+.form-section-title{font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:0.1em;color:var(--cyan);margin-bottom:14px}
+.field{margin-bottom:14px}
+.field label{display:block;font-size:12px;color:var(--muted);margin-bottom:5px;font-family:'JetBrains Mono',monospace;letter-spacing:0.05em}
+.field label span.req{color:var(--accent)}
+.field label span.opt{color:var(--dim)}
+input[type=text].fi,select.fi,textarea.fi{width:100%;background:var(--s2);border:1px solid var(--border);border-radius:4px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;padding:10px 12px;outline:none;transition:border 0.15s}
+textarea.fi{resize:vertical;min-height:80px;line-height:1.6}
+input[type=text].fi:focus,select.fi:focus,textarea.fi:focus{border-color:var(--cyan)}
+select.fi option{background:var(--s2)}
+.placeholder-hint{font-size:11px;color:var(--dim);margin-top:4px;font-style:italic}
+
+/* GAP TOGGLE */
+.gap-row{display:flex;align-items:center;gap:10px;padding:8px 10px;background:var(--s3);border-radius:4px;margin-bottom:8px}
+.gap-check{width:16px;height:16px;cursor:pointer;accent-color:var(--amber)}
+.gap-label{font-size:13px;flex:1}
+.gap-note{font-size:11px;color:var(--amber);font-style:italic}
+
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;gap:7px;padding:10px 18px;font-size:13px;font-weight:500;cursor:pointer;border-radius:4px;border:none;font-family:'DM Sans',sans-serif;transition:all 0.15s}
+.btn-fire{background:var(--accent);color:#fff}
+.btn-fire:hover{background:#ff6020}
+.btn-cyan{background:transparent;color:var(--cyan);border:1px solid var(--cyan)}
+.btn-cyan:hover{background:rgba(0,212,255,0.08)}
+.btn-purple{background:transparent;color:var(--purple);border:1px solid var(--purple)}
+.btn-purple:hover{background:rgba(153,85,255,0.08)}
+.btn-ghost{background:transparent;color:var(--text);border:1px solid var(--b2)}
+.btn-ghost:hover{border-color:var(--text)}
+.btn-green{background:transparent;color:var(--green);border:1px solid var(--green)}
+.btn-green:hover{background:rgba(0,232,122,0.08)}
+.btn-sm{padding:7px 13px;font-size:12px}
+.btn:disabled{opacity:0.4;cursor:not-allowed}
+
+/* OUTPUT */
+.output-area{background:var(--s2);border:1px solid var(--b2);border-left:3px solid var(--purple);border-radius:0 6px 6px 0;padding:20px;margin-top:16px;font-size:15px;line-height:1.8;color:var(--text);display:none;position:relative}
+.output-area.vis{display:block}
+.output-area p{margin-bottom:14px}
+.output-area p:last-child{margin-bottom:0}
+.output-actions{display:flex;gap:8px;margin-top:14px;padding-top:14px;border-top:1px solid var(--border);flex-wrap:wrap}
+.copy-flash{position:absolute;top:10px;right:10px;background:var(--green);color:var(--bg);padding:4px 10px;border-radius:3px;font-size:11px;font-family:'JetBrains Mono',monospace;display:none}
+
+/* LOADING */
+@keyframes pulse{0%,100%{opacity:0.4}50%{opacity:1}}
+.loading-bar{display:none;padding:16px;text-align:center}
+.loading-bar.vis{display:block}
+.loading-dots span{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--purple);margin:0 3px;animation:pulse 1.2s infinite}
+.loading-dots span:nth-child(2){animation-delay:0.2s}
+.loading-dots span:nth-child(3){animation-delay:0.4s}
+.loading-text{font-size:12px;color:var(--muted);margin-top:8px;font-family:'JetBrains Mono',monospace}
+
+/* VARIATION TABS */
+.var-tabs{display:flex;gap:6px;margin-top:12px}
+.var-tab{padding:6px 12px;font-size:12px;cursor:pointer;border:1px solid var(--border);border-radius:3px;background:none;color:var(--muted);font-family:'JetBrains Mono',monospace;transition:all 0.1s}
+.var-tab.active{border-color:var(--purple);color:var(--purple)}
+.variation-content{display:none}
+.variation-content.active{display:block}
+
+/* THREAD BADGE */
+.thread-badge{display:inline-block;font-size:10px;font-family:'JetBrains Mono',monospace;padding:2px 8px;border-radius:2px;margin-right:4px}
+.tb-before{background:rgba(255,69,0,0.15);color:var(--accent);border:1px solid rgba(255,69,0,0.3)}
+.tb-rupture{background:rgba(255,51,85,0.15);color:var(--red);border:1px solid rgba(255,51,85,0.3)}
+.tb-construct{background:rgba(0,212,255,0.1);color:var(--cyan);border:1px solid rgba(0,212,255,0.25)}
+.tb-emerge{background:rgba(0,232,122,0.1);color:var(--green);border:1px solid rgba(0,232,122,0.25)}
+.tb-parallel{background:rgba(153,85,255,0.1);color:var(--purple);border:1px solid rgba(153,85,255,0.25)}
+
+/* TAGS */
+.tag{display:inline-block;font-size:11px;font-family:'JetBrains Mono',monospace;padding:2px 8px;border-radius:3px;margin:2px}
+.t-orange{background:rgba(255,69,0,0.12);color:var(--accent);border:1px solid rgba(255,69,0,0.25)}
+.t-cyan{background:rgba(0,212,255,0.08);color:var(--cyan);border:1px solid rgba(0,212,255,0.2)}
+.t-amber{background:rgba(255,170,0,0.08);color:var(--amber);border:1px solid rgba(255,170,0,0.2)}
+
+/* CHAPTER MAP */
+.ch-map{display:grid;gap:10px}
+.ch-row{display:flex;align-items:flex-start;gap:12px;padding:12px;background:var(--s2);border:1px solid var(--border);border-radius:6px;cursor:pointer;transition:all 0.15s}
+.ch-row:hover{border-color:var(--b3)}
+.ch-num{font-family:'Bebas Neue',sans-serif;font-size:20px;color:var(--dim);width:32px;flex-shrink:0;line-height:1}
+.ch-info{flex:1}
+.ch-title{font-weight:500;font-size:14px;margin-bottom:3px}
+.ch-desc{font-size:12px;color:var(--muted);line-height:1.5}
+.ch-status{font-size:10px;font-family:'JetBrains Mono',monospace;margin-top:6px}
+.ch-status.empty{color:var(--red)}
+.ch-status.partial{color:var(--amber)}
+.ch-status.drafted{color:var(--green)}
+.ch-action{flex-shrink:0}
+
+/* WORD COUNT */
+.wc-bar{display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--s3);border-radius:4px;margin-bottom:16px;font-size:12px;color:var(--muted)}
+.wc-fill{flex:1;height:3px;background:var(--border);border-radius:2px;overflow:hidden}
+.wc-progress{height:100%;background:linear-gradient(to right,var(--accent),var(--cyan));border-radius:2px;transition:width 0.5s}
+
+/* QUOTE BLOCK */
+.pull-quote{border-left:3px solid var(--accent);padding:10px 16px;margin:12px 0;font-size:14px;font-style:italic;color:var(--text);line-height:1.7;background:rgba(255,69,0,0.04)}
+
+/* INFO BOX */
+.info-box{padding:10px 14px;border-radius:6px;font-size:13px;margin-bottom:14px;border-left:3px solid}
+.info-cyan{background:rgba(0,212,255,0.05);border-color:var(--cyan);color:var(--cyan)}
+.info-amber{background:rgba(255,170,0,0.05);border-color:var(--amber);color:var(--amber)}
+
+/* SCROLL */
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--b2);border-radius:2px}
+</style>
+</head>
+<body>
+<div class="hdr">
+  <div class="logo">BREATHE THROUGH THE <span>BULLSHIT</span> — MEMOIR ENGINE</div>
+  <div style="display:flex;gap:8px;align-items:center">
+    <span id="wc-display" class="badge">0 words drafted</span>
+    <span class="badge">AI-POWERED</span>
+  </div>
+</div>
+
+<div class="layout">
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sidebar-title">Build Mode</div>
+    <button class="mode-btn active" onclick="switchMode('scene')" id="mb-scene">
+      <span class="mode-icon">⚡</span>Scene Builder
+      <div class="mode-desc">Fill in blanks → AI drafts the scene</div>
+    </button>
+    <button class="mode-btn" onclick="switchMode('character')" id="mb-character">
+      <span class="mode-icon">◈</span>Person Sketcher
+      <div class="mode-desc">Describe someone → AI writes them in</div>
+    </button>
+    <button class="mode-btn" onclick="switchMode('gap')" id="mb-gap">
+      <span class="mode-icon">◌</span>Gap Writer
+      <div class="mode-desc">What you DON'T remember → prose</div>
+    </button>
+    <button class="mode-btn" onclick="switchMode('thread')" id="mb-thread">
+      <span class="mode-icon">◎</span>Thread Connector
+      <div class="mode-desc">Connect two moments across time</div>
+    </button>
+    <button class="mode-btn" onclick="switchMode('map')" id="mb-map">
+      <span class="mode-icon">▦</span>Chapter Map
+      <div class="mode-desc">See what's built vs. what's missing</div>
+    </button>
+    <button class="mode-btn" onclick="switchMode('voice')" id="mb-voice">
+      <span class="mode-icon">◧</span>Voice Fixer
+      <div class="mode-desc">Paste a passage → AI rewrites it in your voice</div>
+    </button>
+
+    <div class="divider"></div>
+    <div class="scene-list-title">Saved Scenes</div>
+    <div id="saved-list">
+      <div style="font-size:12px;color:var(--dim);font-style:italic">No scenes saved yet.</div>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main">
+
+    <!-- SCENE BUILDER -->
+    <div id="panel-scene" class="panel active">
+      <div class="wc-bar">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:11px">DRAFT PROGRESS</span>
+        <div class="wc-fill"><div class="wc-progress" id="wc-progress-bar" style="width:0%"></div></div>
+        <span id="wc-goal" style="font-family:'JetBrains Mono',monospace;font-size:11px">0 / 70,000 words</span>
+      </div>
+
+      <div class="info-box info-cyan">You don't write the scene. You answer the questions. The engine drafts it. You review and adjust.</div>
+
+      <div class="form-section">
+        <div class="form-section-title">1. LOCATE THE MOMENT</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div class="field">
+            <label>Which life thread? <span class="req">*</span></label>
+            <select class="fi" id="s-thread">
+              <option value="">Choose...</option>
+              <option value="before">Before the Break — O'Toole's / hospitality years</option>
+              <option value="rupture">The Rupture — TBI / substance use / breakdown</option>
+              <option value="construction">The Construction — building tools / external cognition</option>
+              <option value="emergence">Late-Life Emergence — self-teaching / engineering / Intinc</option>
+              <option value="parallel">Parallel Constructions — Kinsley / Chaos Club / memoir</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Approximate time period <span class="opt">(rough is fine)</span></label>
+            <input type="text" class="fi" id="s-time" placeholder="e.g. early 20s, 2017, around the time I...">
+          </div>
+        </div>
+        <div class="field">
+          <label>Where is this scene physically? <span class="req">*</span></label>
+          <input type="text" class="fi" id="s-where" placeholder="e.g. behind the bar at O'Toole's, the break room at the QC job, my apartment at 3am...">
+        </div>
+      </div>
+
+      <div class="form-section">
+        <div class="form-section-title">2. LOAD THE SENSORY DETAILS</div>
+        <div class="info-box info-amber">These are the most important questions. Specificity is everything. One real detail beats three abstractions.</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div class="field">
+            <label>What did it smell like? <span class="opt">(anything — even nothing)</span></label>
+            <input type="text" class="fi" id="s-smell" placeholder="beer and bleach, cigarettes, nothing, the cold...">
+          </div>
+          <div class="field">
+            <label>What did it sound like?</label>
+            <input type="text" class="fi" id="s-sound" placeholder="loud, the hum of the fridge, someone crying...">
+          </div>
+        </div>
+        <div class="field">
+          <label>What were you wearing / what did your body feel like?</label>
+          <input type="text" class="fi" id="s-body" placeholder="my work clothes, exhausted, couldn't stop shaking, weirdly calm...">
+        </div>
+        <div class="field">
+          <label>What's the ONE visual image from this moment? <span class="req">*</span></label>
+          <input type="text" class="fi" id="s-image" placeholder="the reflection in the dark screen, the guy at the end of the bar, the relief line at last call...">
+          <div class="placeholder-hint">The single image a camera would have caught. Not a feeling — what you'd see.</div>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <div class="form-section-title">3. THE ACTUAL THING THAT HAPPENED</div>
+        <div class="field">
+          <label>What happened in this scene? <span class="req">*</span></label>
+          <textarea class="fi" id="s-what" placeholder="Tell it like you're telling a friend. Messy is fine. Fragments are fine. Don't write it as prose — just tell me what happened..."></textarea>
+        </div>
+        <div class="field">
+          <label>What were you thinking or feeling during it?</label>
+          <textarea class="fi" id="s-feeling" placeholder="Not what you think now — what you thought THEN. Even if it was wrong. Even if it embarrasses you..." style="min-height:60px"></textarea>
+        </div>
+        <div class="field">
+          <label>Who else was there? <span class="opt">(names optional — describe them)</span></label>
+          <input type="text" class="fi" id="s-who" placeholder="e.g. regular I'll call M, my manager at the time, nobody">
+        </div>
+      </div>
+
+      <div class="form-section">
+        <div class="form-section-title">4. THE MEMORY GAPS</div>
+        <div class="info-box info-cyan">Gaps aren't problems. In this book they're evidence. Check any that apply to this scene.</div>
+        <div class="gap-row">
+          <input type="checkbox" class="gap-check" id="g-time">
+          <div class="gap-label">I'm not sure exactly when this happened</div>
+          <div class="gap-note">The uncertainty goes in the prose</div>
+        </div>
+        <div class="gap-row">
+          <input type="checkbox" class="gap-check" id="g-detail">
+          <div class="gap-label">I can feel it but can't describe the specific details</div>
+          <div class="gap-note">We write around the edges</div>
+        </div>
+        <div class="gap-row">
+          <input type="checkbox" class="gap-check" id="g-blank">
+          <div class="gap-label">There's a blank where part of this should be</div>
+          <div class="gap-note">The blank becomes a scene element</div>
+        </div>
+        <div class="gap-row">
+          <input type="checkbox" class="gap-check" id="g-recon">
+          <div class="gap-label">I might be partially reconstructing this from after-the-fact knowledge</div>
+          <div class="gap-note">Named explicitly in the prose</div>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <div class="form-section-title">5. WHAT THIS SCENE IS DOING IN THE BOOK</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div class="field">
+            <label>What argument does this scene make? <span class="opt">(rough is fine)</span></label>
+            <input type="text" class="fi" id="s-argument" placeholder="e.g. I could read rooms before I knew what engineers did, or this is the moment old strategies stopped working">
+          </div>
+          <div class="field">
+            <label>Tone for this scene</label>
+            <select class="fi" id="s-tone">
+              <option value="direct">Direct and declarative</option>
+              <option value="uncertain">Honest about uncertainty</option>
+              <option value="dark-humor">Dark humor that doesn't defuse</option>
+              <option value="technical">Technical precision about emotional states</option>
+              <option value="quiet">Quiet — let the image carry it</option>
+            </select>
+          </div>
+        </div>
+        <div class="field">
+          <label>Scene length target</label>
+          <select class="fi" id="s-length">
+            <option value="short">Short — 200-350 words (one moment)</option>
+            <option value="medium" selected>Medium — 400-600 words (full scene)</option>
+            <option value="long">Long — 700-1000 words (chapter section)</option>
+          </select>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button class="btn btn-fire" onclick="buildScene()">⚡ Generate scene draft</button>
+        <button class="btn btn-purple btn-sm" onclick="buildScene('variation')">Generate alternate version</button>
+        <button class="btn btn-ghost btn-sm" onclick="clearForm()">Clear form</button>
+      </div>
+
+      <div class="loading-bar" id="scene-loading">
+        <div class="loading-dots"><span></span><span></span><span></span></div>
+        <div class="loading-text" id="loading-text">Excavating the scene...</div>
+      </div>
+
+      <div class="output-area" id="scene-output">
+        <span class="copy-flash" id="copy-flash">COPIED</span>
+        <div id="scene-text"></div>
+        <div class="output-actions">
+          <button class="btn btn-green btn-sm" onclick="saveScene()">Save to library</button>
+          <button class="btn btn-cyan btn-sm" onclick="copyOutput()">Copy text</button>
+          <button class="btn btn-purple btn-sm" onclick="refineScene('tighten')">Tighten it</button>
+          <button class="btn btn-purple btn-sm" onclick="refineScene('sensory')">Add more sensory detail</button>
+          <button class="btn btn-purple btn-sm" onclick="refineScene('gap')">Lean into the gap</button>
+          <button class="btn btn-ghost btn-sm" onclick="refineScene('shorter')">Make it shorter</button>
+          <button class="btn btn-ghost btn-sm" onclick="refineScene('voice-check')">Voice check</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- PERSON SKETCHER -->
+    <div id="panel-character" class="panel">
+      <div class="info-box info-cyan">Describe someone from your life. Don't use their real name unless you want to. Describe how they moved, what they smelled like, what you felt in your chest when they walked in. The AI writes them into the book.</div>
+
+      <div class="form-section">
+        <div class="form-section-title">THE PERSON</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div class="field">
+            <label>What do you call them in the book?</label>
+            <input type="text" class="fi" id="p-name" placeholder="Their name, or 'the bartender I'll call M'...">
+          </div>
+          <div class="field">
+            <label>What was their role in your life at this time?</label>
+            <input type="text" class="fi" id="p-role" placeholder="my manager, a regular, the person who said 'you don't have to'">
+          </div>
+        </div>
+        <div class="field">
+          <label>Physical description — what do you remember?</label>
+          <textarea class="fi" id="p-physical" placeholder="How they moved, what they looked like, what they wore, how they stood..."></textarea>
+        </div>
+        <div class="field">
+          <label>What did they represent to you at the time?</label>
+          <textarea class="fi" id="p-meaning" placeholder="What they meant to you then — not what you understand now. What did 18/22/28-year-old Kyle think of this person?" style="min-height:60px"></textarea>
+        </div>
+        <div class="field">
+          <label>One thing they said or did that you still carry</label>
+          <textarea class="fi" id="p-moment" placeholder="The line. The gesture. The moment." style="min-height:60px"></textarea>
+        </div>
+      </div>
+
+      <button class="btn btn-fire" onclick="buildCharacter()">⚡ Generate character passage</button>
+      <div class="loading-bar" id="char-loading">
+        <div class="loading-dots"><span></span><span></span><span></span></div>
+        <div class="loading-text">Writing them in...</div>
+      </div>
+      <div class="output-area" id="char-output">
+        <div id="char-text"></div>
+        <div class="output-actions">
+          <button class="btn btn-green btn-sm" onclick="saveOutput('char')">Save to library</button>
+          <button class="btn btn-cyan btn-sm" onclick="copyOutputId('char-text')">Copy</button>
+          <button class="btn btn-purple btn-sm" onclick="refineOutput('char','more-specific')">More specific</button>
+          <button class="btn btn-purple btn-sm" onclick="refineOutput('char','darker')">Darker / more honest</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- GAP WRITER -->
+    <div id="panel-gap" class="panel">
+      <div class="pull-quote">"Memory doesn't fail gracefully. It doesn't give you an error code or a stack trace. There's just a blank where something should be."</div>
+      <div class="info-box info-amber">This tool is for the holes. The things you know happened but can't locate. The TBI took things. The gap is data — it goes in the book as text, not as an apology.</div>
+
+      <div class="form-section">
+        <div class="form-section-title">DEFINE THE GAP</div>
+        <div class="field">
+          <label>What do you know you can't access? <span class="req">*</span></label>
+          <textarea class="fi" id="gap-what" placeholder="e.g. I know I worked a QC job in this period but I can't locate a single specific memory from it. There's maybe 8 months I can't account for. I know something happened but not what."></textarea>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div class="field">
+            <label>What do you know happened BEFORE the gap?</label>
+            <input type="text" class="fi" id="gap-before" placeholder="What's the last thing you remember?">
+          </div>
+          <div class="field">
+            <label>What do you know happened AFTER?</label>
+            <input type="text" class="fi" id="gap-after" placeholder="What's the first thing you remember when it comes back?">
+          </div>
+        </div>
+        <div class="field">
+          <label>What's the emotional texture of the gap?</label>
+          <input type="text" class="fi" id="gap-feeling" placeholder="Do you feel the gap as loss, relief, static, nothing, fear...?">
+        </div>
+        <div class="field">
+          <label>What does the gap tell you about what was happening?</label>
+          <textarea class="fi" id="gap-inference" placeholder="Even if you can't remember it, what do you know about this period by inference, by what came after, by how you felt?" style="min-height:60px"></textarea>
+        </div>
+      </div>
+
+      <button class="btn btn-fire" onclick="buildGap()">⚡ Write the gap as prose</button>
+      <div class="loading-bar" id="gap-loading">
+        <div class="loading-dots"><span></span><span></span><span></span></div>
+        <div class="loading-text">Writing around the edges of what's missing...</div>
+      </div>
+      <div class="output-area" id="gap-output">
+        <div id="gap-text"></div>
+        <div class="output-actions">
+          <button class="btn btn-green btn-sm" onclick="saveOutput('gap')">Save to library</button>
+          <button class="btn btn-cyan btn-sm" onclick="copyOutputId('gap-text')">Copy</button>
+          <button class="btn btn-purple btn-sm" onclick="refineOutput('gap','more-honest')">More honest about not knowing</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- THREAD CONNECTOR -->
+    <div id="panel-thread" class="panel">
+      <div class="info-box info-cyan">The book's argument lives in the connections — when the bartender's skill shows up in the engineer. This tool takes two moments from different times and writes the bridge.</div>
+
+      <div class="form-section">
+        <div class="form-section-title">MOMENT A — THE ORIGIN</div>
+        <div class="field">
+          <label>Describe Moment A briefly</label>
+          <textarea class="fi" id="t-a" placeholder="e.g. Reading a table at O'Toole's — knowing the guy at the end was about to start trouble before he did anything..."></textarea>
+        </div>
+        <div class="field">
+          <label>What skill or instinct was operating in Moment A?</label>
+          <input type="text" class="fi" id="t-a-skill" placeholder="e.g. pattern recognition, reading emotional state, predicting behavior from small signals">
+        </div>
+      </div>
+
+      <div class="form-section">
+        <div class="form-section-title">MOMENT B — THE ECHO</div>
+        <div class="field">
+          <label>Describe Moment B briefly — the later moment where the same thing shows up</label>
+          <textarea class="fi" id="t-b" placeholder="e.g. Diagnosing why a system was failing before anyone else named the problem..."></textarea>
+        </div>
+        <div class="field">
+          <label>Same skill or instinct in Moment B?</label>
+          <input type="text" class="fi" id="t-b-skill" placeholder="e.g. reading the organizational system the way I used to read the room">
+        </div>
+        <div class="field">
+          <label>How far apart are these moments in time?</label>
+          <input type="text" class="fi" id="t-gap" placeholder="e.g. 10 years, 2 years, hard to say exactly">
+        </div>
+      </div>
+
+      <button class="btn btn-fire" onclick="buildThread()">⚡ Write the connection</button>
+      <div class="loading-bar" id="thread-loading">
+        <div class="loading-dots"><span></span><span></span><span></span></div>
+        <div class="loading-text">Connecting across time...</div>
+      </div>
+      <div class="output-area" id="thread-output">
+        <div id="thread-text"></div>
+        <div class="output-actions">
+          <button class="btn btn-green btn-sm" onclick="saveOutput('thread')">Save to library</button>
+          <button class="btn btn-cyan btn-sm" onclick="copyOutputId('thread-text')">Copy</button>
+          <button class="btn btn-purple btn-sm" onclick="refineOutput('thread','less-obvious')">Less obvious — let reader work</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- CHAPTER MAP -->
+    <div id="panel-map" class="panel">
+      <div class="info-box info-cyan">This is the book's skeleton. Each row is a scene or chapter that needs to exist. Clicking a row loads it into the Scene Builder with the right context pre-filled.</div>
+
+      <div class="ch-map">
+        <div class="ch-row" onclick="loadChapter('otools-diagnostic')">
+          <div class="ch-num">01</div>
+          <div class="ch-info">
+            <div class="ch-title"><span class="thread-badge tb-before">BEFORE</span>The Diagnostic Instinct</div>
+            <div class="ch-desc">O'Toole's. Reading the room before knowing what engineers were. The bartender's pattern recognition that survived everything that came after.</div>
+            <div class="ch-status empty">◌ NOT YET DRAFTED — click to build</div>
+          </div>
+        </div>
+        <div class="ch-row" onclick="loadChapter('age-oscillation')">
+          <div class="ch-num">02</div>
+          <div class="ch-info">
+            <div class="ch-title"><span class="thread-badge tb-rupture">RUPTURE</span>Age Oscillation — The Uncertain Start</div>
+            <div class="ch-desc">Three corrections to one fact. 19 or 21? The uncertainty IS the thesis. The opening device that demonstrates damaged memory in real time.</div>
+            <div class="ch-status empty">◌ NOT YET DRAFTED — click to build</div>
+          </div>
+        </div>
+        <div class="ch-row" onclick="loadChapter('relief')">
+          <div class="ch-num">03</div>
+          <div class="ch-info">
+            <div class="ch-title"><span class="thread-badge tb-rupture">RUPTURE</span>"Relief Is The Most Addictive Feeling"</div>
+            <div class="ch-desc">The strongest line in the material. Not chasing highs — chasing silence. The specific moment this was true needs to be found and written.</div>
+            <div class="ch-status empty">◌ NOT YET DRAFTED — click to build</div>
+          </div>
+        </div>
+        <div class="ch-row" onclick="loadChapter('qc-years')">
+          <div class="ch-num">04</div>
+          <div class="ch-info">
+            <div class="ch-title"><span class="thread-badge tb-rupture">RUPTURE</span>The Quality Control Years</div>
+            <div class="ch-desc">Held together with compensatory strategies invented out of desperation. Same diagnostic skill, different surface. Some of this is genuinely inaccessible.</div>
+            <div class="ch-status empty">◌ NOT YET DRAFTED — click to build</div>
+          </div>
+        </div>
+        <div class="ch-row" onclick="loadChapter('first-tool')">
+          <div class="ch-num">05</div>
+          <div class="ch-info">
+            <div class="ch-title"><span class="thread-badge tb-construct">CONSTRUCT</span>The First Tool</div>
+            <div class="ch-desc">Not the 240th. The first. The moment Kyle stopped relying on organic memory and built something external to replace it. When did this start?</div>
+            <div class="ch-status empty">◌ NOT YET DRAFTED — click to build</div>
+          </div>
+        </div>
+        <div class="ch-row" onclick="loadChapter('learning-to-code')">
+          <div class="ch-num">06</div>
+          <div class="ch-info">
+            <div class="ch-title"><span class="thread-badge tb-construct">CONSTRUCT</span>Learning to Code as Learning to Think</div>
+            <div class="ch-desc">Not a career move. A cognitive architecture project. Learning to program because the brain needed to work differently. What did this actually look like?</div>
+            <div class="ch-status empty">◌ NOT YET DRAFTED — click to build</div>
+          </div>
+        </div>
+        <div class="ch-row" onclick="loadChapter('kinsley')">
+          <div class="ch-num">07</div>
+          <div class="ch-info">
+            <div class="ch-title"><span class="thread-badge tb-parallel">PARALLEL</span>The Letter Frame — Kinsley</div>
+            <div class="ch-desc">Why this memoir is a letter. The constructed self as evidence of commitment. What does she see? What will she understand when she's older?</div>
+            <div class="ch-status partial">◐ PARTIAL — some material exists</div>
+          </div>
+        </div>
+        <div class="ch-row" onclick="loadChapter('chaos-club')">
+          <div class="ch-num">08</div>
+          <div class="ch-info">
+            <div class="ch-title"><span class="thread-badge tb-parallel">PARALLEL</span>Chaos Club Co. — Building for Others</div>
+            <div class="ch-desc">The platform and the memoir are the same project. Building tools for others navigating similar chaos. The book and the business illuminating each other.</div>
+            <div class="ch-status empty">◌ NOT YET DRAFTED — click to build</div>
+          </div>
+        </div>
+        <div class="ch-row" onclick="loadChapter('monitor-reflection')">
+          <div class="ch-num">09</div>
+          <div class="ch-info">
+            <div class="ch-title"><span class="thread-badge tb-emerge">EMERGE</span>Monitor Reflection — First Day</div>
+            <div class="ch-desc">Dark screen. Reflection. Screen boots. Reflection disappears. Already in draft material, demoted from prologue. Finds its place mid-book.</div>
+            <div class="ch-status partial">◐ IMAGE EXISTS — needs scene built around it</div>
+          </div>
+        </div>
+        <div class="ch-row" onclick="loadChapter('240-tools')">
+          <div class="ch-num">10</div>
+          <div class="ch-info">
+            <div class="ch-title"><span class="thread-badge tb-construct">CONSTRUCT</span>The 240 Tools — Not Productivity, Survival</div>
+            <div class="ch-desc">The archaeological evidence of reconstruction. Not a productivity flex. Each tool marked a moment when internal function couldn't be trusted. Map them.</div>
+            <div class="ch-status empty">◌ NOT YET DRAFTED — click to build</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- VOICE FIXER -->
+    <div id="panel-voice" class="panel">
+      <div class="pull-quote">The voice markers: Declarative. Technical precision for emotional states. No "I realized." No "looking back." Let the reader work. Specific over universal.</div>
+
+      <div class="form-section">
+        <div class="form-section-title">PASTE A PASSAGE</div>
+        <div class="field">
+          <label>Your draft text <span class="req">*</span></label>
+          <textarea class="fi" id="v-input" style="min-height:200px" placeholder="Paste anything you've written — from the existing Breathe book drafts, from notes, from voice memos transcribed, from anything..."></textarea>
+        </div>
+        <div class="field">
+          <label>What do you want done to it?</label>
+          <select class="fi" id="v-action">
+            <option value="rewrite-voice">Rewrite in Kyle's voice</option>
+            <option value="strip-selfhelp">Strip the self-help structure, keep the story</option>
+            <option value="make-declarative">Make it more declarative — remove the explaining</option>
+            <option value="add-specific">Replace abstractions with specific detail</option>
+            <option value="literary-memoir">Convert from self-help to literary memoir frame</option>
+            <option value="check">Just tell me what's working and what's not</option>
+          </select>
+        </div>
+      </div>
+
+      <button class="btn btn-fire" onclick="fixVoice()">⚡ Fix / rewrite</button>
+      <div class="loading-bar" id="voice-loading">
+        <div class="loading-dots"><span></span><span></span><span></span></div>
+        <div class="loading-text">Rewriting in your voice...</div>
+      </div>
+      <div class="output-area" id="voice-output">
+        <div id="voice-text"></div>
+        <div class="output-actions">
+          <button class="btn btn-green btn-sm" onclick="saveOutput('voice')">Save to library</button>
+          <button class="btn btn-cyan btn-sm" onclick="copyOutputId('voice-text')">Copy</button>
+          <button class="btn btn-purple btn-sm" onclick="refineOutput('voice','harder')">Push it harder</button>
+          <button class="btn btn-ghost btn-sm" onclick="refineOutput('voice','pull-back')">Pull it back</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ─── State ──────────────────────────────────────────────────────────────────
+const state = {
+  savedScenes: [],
+  wordCount: 0,
+  lastOutput: '',
+  lastOutputId: '',
+  lastMode: 'scene'
+};
+
+const SYSTEM = `You are the memoir engine for Kyle Rosebrook's literary memoir "Breathe Through the Bullshit."
+
+CRITICAL VOICE RULES — violations will make the output unusable:
+- NEVER use: "And that's when I realized," "Looking back," "It was then that everything changed," "I came to understand"
+- NEVER explain the emotion — demonstrate it through action, sensation, or physical detail
+- NEVER use therapeutic or self-help language (mindfulness, healing journey, trauma response, coping mechanism)
+- DO use: declarative sentences, technical precision applied to emotional states, strategic profanity where earned
+- DO leave room for the reader to work — state what happened, let them draw the conclusion
+- DO acknowledge memory gaps honestly and directly in the prose — they are features, not flaws
+
+BOOK CONTEXT:
+- Genre: Literary nonfiction memoir. NOT self-help. Think Noonday Demon + Brain on Fire
+- Central thesis: Construction, not recovery. The injury changed the hardware. This is about building a self from different materials than the original
+- The diagnostic instinct: Reading rooms at the bar = reading systems in engineering. This skill survived the cognitive disruption. It's the through-line
+- TBI + substance use (self-medication, not clinical addiction) = the breaks
+- 240+ external tools as prosthetics, not productivity
+- Letter frame: Written to his daughter Kinsley as evidence of reconstruction
+- Kyle literally cannot sustain a false narrative — structural impossibility due to TBI
+
+WHAT GOOD PROSE LOOKS LIKE FOR THIS BOOK:
+"The bar at last call is a diagnostic system. You read it or you get hurt."
+"Relief isn't happiness. Relief is silence. When everything quiets and for a moment the monitor isn't alerting."
+"I built 240 tools to replace a brain I couldn't trust. That's not productivity. That's infrastructure."
+
+Write in complete paragraphs. Publication-quality. End scenes early. Trust the reader. Never resolve cleanly.`;
+
+// ─── AI Call ─────────────────────────────────────────────────────────────────
+async function callAI(prompt, outputId, textId, loadingId) {
+  const loading = document.getElementById(loadingId);
+  const output = document.getElementById(outputId);
+
+  loading.classList.add('vis');
+  output.classList.remove('vis');
+
+  const messages = [
+    { role: 'user', content: prompt }
+  ];
+
+  try {
+    const r = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1500,
+        system: SYSTEM,
+        messages
+      })
+    });
+    const data = await r.json();
+    const text = data.content?.map(c => c.text || '').join('') || 'No response.';
+    
+    const htmlText = text
+      .split('\n\n')
+      .filter(p => p.trim())
+      .map(p => `<p>${p.replace(/\n/g, '<br>')}</p>`)
+      .join('');
+
+    document.getElementById(textId).innerHTML = htmlText;
+    state.lastOutput = text;
+    state.lastOutputId = textId;
+    loading.classList.remove('vis');
+    output.classList.add('vis');
+
+    // Update word count
+    const newWords = text.split(/\s+/).length;
+    state.wordCount += newWords;
+    updateWordCount();
+    output.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  } catch(e) {
+    document.getElementById(textId).innerHTML = `<p style="color:var(--red)">Error: ${e.message}</p>`;
+    loading.classList.remove('vis');
+    output.classList.add('vis');
+  }
+}
+
+// ─── Build Scene ──────────────────────────────────────────────────────────────
+async function buildScene(mode) {
+  const thread = document.getElementById('s-thread').value;
+  const timeP = document.getElementById('s-time').value;
+  const where = document.getElementById('s-where').value;
+  const smell = document.getElementById('s-smell').value;
+  const sound = document.getElementById('s-sound').value;
+  const body = document.getElementById('s-body').value;
+  const image = document.getElementById('s-image').value;
+  const what = document.getElementById('s-what').value;
+  const feeling = document.getElementById('s-feeling').value;
+  const who = document.getElementById('s-who').value;
+  const argument = document.getElementById('s-argument').value;
+  const tone = document.getElementById('s-tone').value;
+  const length = document.getElementById('s-length').value;
+
+  if (!thread || !where || !image || !what) {
+    alert('Fill in the required fields: thread, location, one visual image, and what happened.');
+    return;
+  }
+
+  const gaps = [];
+  if(document.getElementById('g-time').checked) gaps.push('the timing is genuinely uncertain');
+  if(document.getElementById('g-detail').checked) gaps.push('specific details are inaccessible — write around the edges');
+  if(document.getElementById('g-blank').checked) gaps.push('there is a blank in this memory — acknowledge it in the prose');
+  if(document.getElementById('g-recon').checked) gaps.push('parts may be reconstructed after the fact — be honest about this');
+
+  const lengthGuide = {short:'200-350 words',medium:'400-600 words',long:'700-1000 words'}[length];
+  const toneGuide = {
+    direct:'Direct, declarative, no hedging',
+    uncertain:'Honest about uncertainty — the not-knowing is in the prose',
+    'dark-humor':'Dark humor that creates tension rather than releasing it',
+    technical:'Technical precision applied to emotional states',
+    quiet:'Quiet — let the single image carry maximum weight'
+  }[tone];
+
+  const altNote = mode === 'variation' ? 'Write a DIFFERENT structural approach to this same moment — different entry point, different emphasis, same factual content.' : '';
+
+  const prompt = `Write a scene from Kyle's memoir with this input:
+
+THREAD: ${thread} (${timeP || 'time uncertain'})
+LOCATION: ${where}
+SENSORY: smell: ${smell||'not noted'}, sound: ${sound||'not noted'}, body: ${body||'not noted'}
+KEY IMAGE: ${image}
+WHAT HAPPENED: ${what}
+FEELING AT THE TIME: ${feeling||'not specified'}
+OTHER PEOPLE: ${who||'none noted'}
+SCENE'S ARGUMENT: ${argument||'let it emerge'}
+TONE: ${toneGuide}
+LENGTH: ${lengthGuide}
+MEMORY GAPS: ${gaps.length ? gaps.join('; ') : 'none noted'}
+
+${altNote}
+
+Write the scene now. Publication-quality prose. No preamble, no explanation — start the scene directly.`;
+
+  const loadingTexts = [
+    'Excavating the scene...',
+    'Finding the right entry point...',
+    'Building the image...',
+    'Writing around the gap...'
+  ];
+  document.getElementById('loading-text').textContent = loadingTexts[Math.floor(Math.random() * loadingTexts.length)];
+
+  await callAI(prompt, 'scene-output', 'scene-text', 'scene-loading');
+}
+
+// ─── Refine Scene ─────────────────────────────────────────────────────────────
+async function refineScene(action) {
+  if (!state.lastOutput) return;
+  const prompts = {
+    tighten: `Tighten this passage. Remove everything that doesn't earn its place. Shorter sentences. Trust the reader more:\n\n${state.lastOutput}`,
+    sensory: `Add more specific sensory detail to this passage. Don't add generic detail — add specific, earned detail that fits the world of this scene:\n\n${state.lastOutput}`,
+    gap: `Lean harder into the memory gap in this passage. Be more explicit about what isn't there. The gap is a character:\n\n${state.lastOutput}`,
+    shorter: `Cut this passage by about a third. Keep the strongest image and the most declarative sentence. Remove the rest:\n\n${state.lastOutput}`,
+    'voice-check': `Audit this passage against Kyle's voice DNA and rewrite any lines that don't work. Flag what you changed and why:\n\n${state.lastOutput}`
+  };
+  await callAI(prompts[action], 'scene-output', 'scene-text', 'scene-loading');
+}
+
+// ─── Build Character ──────────────────────────────────────────────────────────
+async function buildCharacter() {
+  const name = document.getElementById('p-name').value;
+  const role = document.getElementById('p-role').value;
+  const physical = document.getElementById('p-physical').value;
+  const meaning = document.getElementById('p-meaning').value;
+  const moment = document.getElementById('p-moment').value;
+
+  if (!name || !moment) {
+    alert('Need at least a name/identifier and one thing they said or did.');
+    return;
+  }
+
+  const prompt = `Write a character introduction for someone in Kyle's memoir.
+
+WHO: ${name} — ${role || 'role not specified'}
+PHYSICAL: ${physical || 'not described'}
+WHAT THEY MEANT AT THE TIME: ${meaning || 'not specified'}
+THE MOMENT THAT DEFINES THEM IN THIS BOOK: ${moment}
+
+Write them into the book with 150-250 words of prose. Don't tell us what they symbolize. Show them through the moment. Let the reader feel what Kyle felt then — not what he understands now.`;
+
+  await callAI(prompt, 'char-output', 'char-text', 'char-loading');
+}
+
+// ─── Build Gap ────────────────────────────────────────────────────────────────
+async function buildGap() {
+  const what = document.getElementById('gap-what').value;
+  const before = document.getElementById('gap-before').value;
+  const after = document.getElementById('gap-after').value;
+  const feeling = document.getElementById('gap-feeling').value;
+  const inference = document.getElementById('gap-inference').value;
+
+  if (!what) {
+    alert('Describe what you know you cannot access.');
+    return;
+  }
+
+  const prompt = `Write a prose passage about a memory gap in Kyle's memoir.
+
+THE GAP: ${what}
+LAST THING BEFORE: ${before || 'not identified'}
+FIRST THING AFTER: ${after || 'not identified'}
+TEXTURE OF THE GAP: ${feeling || 'not specified'}
+WHAT THE GAP IMPLIES: ${inference || 'not specified'}
+
+Write 200-300 words of prose that turns this gap into a scene element. Don't apologize for it. Don't explain it as a symptom. Write the gap as exactly what it is: a blank in a narrative told by someone whose brain cannot always be trusted. The gap is honest. The gap is the thesis.`;
+
+  await callAI(prompt, 'gap-output', 'gap-text', 'gap-loading');
+}
+
+// ─── Build Thread ─────────────────────────────────────────────────────────────
+async function buildThread() {
+  const a = document.getElementById('t-a').value;
+  const aSkill = document.getElementById('t-a-skill').value;
+  const b = document.getElementById('t-b').value;
+  const bSkill = document.getElementById('t-b-skill').value;
+  const gap = document.getElementById('t-gap').value;
+
+  if (!a || !b) {
+    alert('Describe both moments.');
+    return;
+  }
+
+  const prompt = `Write a passage that connects two moments in Kyle's memoir across time.
+
+MOMENT A (earlier): ${a}
+SKILL IN A: ${aSkill || 'reading the room / diagnostic instinct'}
+MOMENT B (later, ${gap || 'years later'}): ${b}
+SKILL IN B: ${bSkill || 'same instinct, different context'}
+
+Write 200-350 words that makes this connection without explaining it. The reader should feel the echo, not be told about it. Do not write "just as he had learned to read the bar..." — that's too easy. Find the structural connection that lets them feel it without the author pointing at it.`;
+
+  await callAI(prompt, 'thread-output', 'thread-text', 'thread-loading');
+}
+
+// ─── Fix Voice ────────────────────────────────────────────────────────────────
+async function fixVoice() {
+  const input = document.getElementById('v-input').value;
+  const action = document.getElementById('v-action').value;
+
+  if (!input.trim()) {
+    alert('Paste something first.');
+    return;
+  }
+
+  const actionPrompts = {
+    'rewrite-voice': `Rewrite this passage completely in Kyle's voice. Keep all the facts. Change the architecture and register:\n\n${input}`,
+    'strip-selfhelp': `This passage is from a self-help book. Strip the self-help framework (techniques, bullet points, "why it works" explanations). Keep any genuine personal story or image that's in there. Convert what's left into literary memoir prose:\n\n${input}`,
+    'make-declarative': `Rewrite this passage to be more declarative. Remove the explaining. State what happened and trust the reader to draw conclusions:\n\n${input}`,
+    'add-specific': `Replace the abstractions in this passage with specific, earned detail. Don't add generic detail — add detail that could only come from this specific person and this specific moment:\n\n${input}`,
+    'literary-memoir': `This is currently written as self-help. Convert it to literary memoir. The "techniques" become scenes. The "why it works" explanations become the narrator observing. The anecdotes become real prose:\n\n${input}`,
+    check: `Audit this passage for Kyle's voice. What's working. What isn't. Which specific lines violate the voice rules. Be direct:\n\n${input}`
+  };
+
+  await callAI(actionPrompts[action], 'voice-output', 'voice-text', 'voice-loading');
+}
+
+// ─── Refine Generic ───────────────────────────────────────────────────────────
+async function refineOutput(mode, action) {
+  if (!state.lastOutput) return;
+  const map = {
+    'char': { 'more-specific': `Make this more specific. Replace generalizations with earned detail:`, 'darker': `Be more honest about the complexity of this person — less hagiography:` },
+    'gap': { 'more-honest': `Be more direct about not knowing. Make the uncertainty more central:` },
+    'thread': { 'less-obvious': `Make the connection between the two moments less explicit. Trust the reader to feel it:` },
+    'voice': { 'harder': `Push the voice harder — more declarative, more specific, more willing to leave the reader without a resolution:`, 'pull-back': `Pull back — quieter, more restraint:` }
+  };
+  const instruction = map[mode]?.[action] || 'Revise this passage:';
+  const outputIds = { char:'char-output', gap:'gap-output', thread:'thread-output', voice:'voice-output' };
+  const textIds = { char:'char-text', gap:'gap-text', thread:'thread-text', voice:'voice-text' };
+  const loadIds = { char:'char-loading', gap:'gap-loading', thread:'thread-loading', voice:'voice-loading' };
+
+  await callAI(`${instruction}\n\n${state.lastOutput}`, outputIds[mode], textIds[mode], loadIds[mode]);
+}
+
+// ─── Save Scene ───────────────────────────────────────────────────────────────
+function saveScene() {
+  const text = document.getElementById('scene-text').innerText;
+  if (!text) return;
+  const thread = document.getElementById('s-thread').value;
+  const image = document.getElementById('s-image').value;
+  const title = image.substring(0,40) || 'Untitled scene';
+  saveToLibrary(title, thread, text);
+}
+
+function saveOutput(mode) {
+  const textIds = { char:'char-text', gap:'gap-text', thread:'thread-text', voice:'voice-text' };
+  const text = document.getElementById(textIds[mode])?.innerText;
+  if (!text) return;
+  const titles = { char:'Character passage', gap:'Gap passage', thread:'Thread connection', voice:'Revised passage' };
+  saveToLibrary(titles[mode], mode, text);
+}
+
+function saveToLibrary(title, thread, text) {
+  const entry = { id: Date.now(), title, thread, text, words: text.split(/\s+/).length, date: new Date().toLocaleDateString() };
+  state.savedScenes.unshift(entry);
+  renderSavedList();
+  const flash = document.querySelector('.copy-flash');
+  if(flash){ flash.style.display='block'; flash.textContent='SAVED ✓'; setTimeout(()=>{ flash.style.display='none'; flash.textContent='COPIED'; }, 1500); }
+}
+
+function renderSavedList() {
+  const list = document.getElementById('saved-list');
+  if (!state.savedScenes.length) {
+    list.innerHTML = '<div style="font-size:12px;color:var(--dim);font-style:italic">No scenes saved yet.</div>';
+    return;
+  }
+  list.innerHTML = state.savedScenes.map(s => `
+    <div class="saved-scene" onclick="loadSavedScene(${s.id})">
+      <div class="sc-title">${s.title.substring(0,35)}...</div>
+      <div class="sc-meta">${s.words} words · ${s.date}</div>
+    </div>`).join('');
+}
+
+function loadSavedScene(id) {
+  const s = state.savedScenes.find(x => x.id === id);
+  if (!s) return;
+  document.getElementById('scene-text').innerHTML = s.text.split('\n\n').map(p=>`<p>${p}</p>`).join('');
+  document.getElementById('scene-output').classList.add('vis');
+  state.lastOutput = s.text;
+  switchMode('scene');
+  document.getElementById('scene-output').scrollIntoView({ behavior:'smooth' });
+}
+
+// ─── Load Chapter ─────────────────────────────────────────────────────────────
+function loadChapter(id) {
+  const presets = {
+    'otools-diagnostic': { thread:'before', where:"O'Toole's bar, behind the counter", s_argument:'I could read rooms before I knew what engineers were. The diagnostic instinct that survived everything.' },
+    'age-oscillation': { thread:'rupture', where:'Uncertain — this is the point', s_argument:'Three corrections to one fact. The uncertainty IS the thesis. Opening device.', s_image:'A blank where a date should be' },
+    'relief': { thread:'rupture', s_argument:'Relief is the most addictive feeling — not chasing highs, chasing silence' },
+    'qc-years': { thread:'rupture', s_argument:'Same diagnostic skill, different surface. Some of this is genuinely inaccessible.' },
+    'first-tool': { thread:'construction', s_argument:'The first moment I stopped trusting organic memory and built something external to replace it' },
+    'learning-to-code': { thread:'construction', s_argument:'Learning to code as learning to think in a new architecture — not career, cognitive' },
+    'kinsley': { thread:'parallel', s_argument:'Why this memoir is a letter. The constructed self as evidence.' },
+    'chaos-club': { thread:'parallel', s_argument:'Building tools for others navigating similar chaos. The platform and the memoir are the same project.' },
+    'monitor-reflection': { thread:'emergence', where:'Office, first day', s_image:'Dark screen shows reflection. Screen boots. Reflection disappears.' },
+    '240-tools': { thread:'construction', s_argument:'Not productivity. Archaeological evidence of reconstruction. Each tool marked a failure of organic function.' }
+  };
+  const p = presets[id];
+  if (!p) return;
+  switchMode('scene');
+  if (p.thread) document.getElementById('s-thread').value = p.thread;
+  if (p.where) document.getElementById('s-where').value = p.where;
+  if (p.s_argument) document.getElementById('s-argument').value = p.s_argument;
+  if (p.s_image) document.getElementById('s-image').value = p.s_image;
+  document.getElementById('s-where').scrollIntoView({ behavior:'smooth' });
+}
+
+// ─── Copy ─────────────────────────────────────────────────────────────────────
+function copyOutput() {
+  const text = document.getElementById('scene-text').innerText;
+  navigator.clipboard.writeText(text).then(() => {
+    const f = document.getElementById('copy-flash');
+    f.style.display = 'block';
+    setTimeout(() => f.style.display = 'none', 1500);
+  });
+}
+function copyOutputId(id) {
+  const text = document.getElementById(id).innerText;
+  navigator.clipboard.writeText(text);
+}
+
+// ─── Clear Form ───────────────────────────────────────────────────────────────
+function clearForm() {
+  ['s-thread','s-time','s-where','s-smell','s-sound','s-body','s-image','s-what','s-feeling','s-who','s-argument'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  ['g-time','g-detail','g-blank','g-recon'].forEach(id => {
+    document.getElementById(id).checked = false;
+  });
+}
+
+// ─── Switch Mode ──────────────────────────────────────────────────────────────
+function switchMode(id) {
+  document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('mb-' + id).classList.add('active');
+  document.getElementById('panel-' + id).classList.add('active');
+  state.lastMode = id;
+}
+
+// ─── Word Count ───────────────────────────────────────────────────────────────
+function updateWordCount() {
+  const target = 70000;
+  const pct = Math.min(100, (state.wordCount / target) * 100).toFixed(1);
+  document.getElementById('wc-display').textContent = `${state.wordCount.toLocaleString()} words drafted`;
+  document.getElementById('wc-goal').textContent = `${state.wordCount.toLocaleString()} / ${target.toLocaleString()} words`;
+  const bar = document.getElementById('wc-progress-bar');
+  if (bar) bar.style.width = pct + '%';
+}
+</script>
+</body>
+</html>

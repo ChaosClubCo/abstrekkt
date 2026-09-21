@@ -1,0 +1,98 @@
+{
+  "name": "05b — INT KB Article Research (Completion Handler)",
+  "flow": [
+    {
+      "id": 1,
+      "module": "gateway:CustomWebHook",
+      "version": 2,
+      "parameters": {
+        "hook": "{{WEBHOOK_05_COMPLETION_HOOK_ID}}",
+        "maxResults": 1
+      },
+      "mapper": {},
+      "metadata": {
+        "designer": { "x": 0, "y": 0 },
+        "notes": "This webhook URL goes into the WEBHOOK_05_COMPLETION_URL variable used in blueprint 05. Parallel fires this when the Research task completes. Payload contains the research result + original topic + slug."
+      }
+    },
+    {
+      "id": 2,
+      "module": "http:ActionSendData",
+      "version": 3,
+      "parameters": { "handleErrors": true },
+      "mapper": {
+        "url": "https://api.parallel.ai/v1/extract",
+        "serializeUrl": false,
+        "method": "post",
+        "headers": [
+          { "name": "Authorization", "value": "Bearer {{PARALLEL_API_KEY}}" },
+          { "name": "Content-Type", "value": "application/json" }
+        ],
+        "body": "{\"url\": \"{{1.body.research.references[0].url}}\", \"format\": \"markdown\"}",
+        "parseBody": true,
+        "timeout": 20
+      },
+      "metadata": {
+        "designer": { "x": 200, "y": 0 },
+        "notes": "Extract top source URL from research references. Adjust array index for [1] and [2] in duplicate modules to pull 2-3 sources total. Verify endpoint at docs.parallel.ai."
+      }
+    },
+    {
+      "id": 3,
+      "module": "http:ActionSendData",
+      "version": 3,
+      "parameters": { "handleErrors": true },
+      "mapper": {
+        "url": "https://api.anthropic.com/v1/messages",
+        "serializeUrl": false,
+        "method": "post",
+        "headers": [
+          { "name": "x-api-key", "value": "{{ANTHROPIC_API_KEY}}" },
+          { "name": "anthropic-version", "value": "2023-06-01" },
+          { "name": "Content-Type", "value": "application/json" }
+        ],
+        "body": "{\"model\": \"claude-sonnet-4-6\", \"max_tokens\": 3000, \"system\": \"You are writing an INT Knowledge Base article for L1 service desk technicians at a managed IT firm. Format output as markdown with these exact sections: ## [Title]\\n**Issue:** [one sentence]\\n**Applies to:** [systems]\\n### Overview\\n[2-3 sentences]\\n### Steps\\n1. [exact step with commands]\\n[continue]\\n### Verification\\n[how to confirm it worked]\\n### Notes\\n- [edge cases, escalation path]\\n---\\n**Sources:** [list with [SOURCED] tag]\\n**[GENERATED] claims:** [list]. Voice: clear, direct, no marketing language.\", \"messages\": [{\"role\": \"user\", \"content\": \"Topic: {{1.body.original_topic}}\\nAudience: {{1.body.original_audience}}\\n\\nResearch:\\n{{1.body.research.content}}\\n\\nExtracted source 1:\\n{{2.body.markdown}}\\n\\nWrite the INT KB article.\"}]}",
+        "parseBody": true,
+        "timeout": 60
+      },
+      "metadata": {
+        "designer": { "x": 400, "y": 0 },
+        "notes": "Claude formats research into INT KB article. System prompt enforces INT style: step-numbered, commands included, [SOURCED]/[GENERATED] tagging. max_tokens 3000 covers most articles."
+      }
+    },
+    {
+      "id": 4,
+      "module": "notion:CreateADatabaseItem",
+      "version": 1,
+      "parameters": {
+        "database_id": "{{NOTION_DB_KB_ID}}"
+      },
+      "mapper": {
+        "title": "{{1.body.original_topic}} — DRAFT",
+        "properties": {
+          "Status": "draft",
+          "Lane": "INT",
+          "Audience": "{{1.body.original_audience}}",
+          "Slug": "{{1.body.original_slug}}",
+          "Reviewed": false
+        },
+        "content": "⚠ Review all [GENERATED] claims before publishing to Copilot Studio.\n\n{{3.body.content[0].text}}"
+      },
+      "metadata": {
+        "designer": { "x": 600, "y": 0 },
+        "notes": "Creates Notion KB draft page. Prepends review warning to body. Adjust property names to match your actual Notion INT KB database schema. Set NOTION_DB_KB_ID in Make Variables."
+      }
+    }
+  ],
+  "metadata": {
+    "instant": true,
+    "version": 1,
+    "scenario": {
+      "roundtrips": 1,
+      "maxErrors": 3,
+      "autoCommit": true,
+      "sequential": true
+    },
+    "_notes": "SETUP: PARALLEL_API_KEY, ANTHROPIC_API_KEY, NOTION_DB_KB_ID, WEBHOOK_05_COMPLETION_HOOK_ID. This scenario is triggered by the completion webhook from blueprint 05. Wire them together: 05's WEBHOOK_05_COMPLETION_URL = this scenario's webhook URL. Parallel passes original_topic and original_slug through if you include them in the task metadata field."
+  }
+}

@@ -1,0 +1,162 @@
+# Memoir Excavation Capture — The January 5th Post & The Rupture
+## Session date: June 10, 2026
+## Status: First-pass capture. Raw material. Not drafted prose. Kyle confirms/corrects.
+
+> **Provenance key:** `[SOURCED-DIRECT]` = Kyle's exact words this session. `[SHAPED]` = reordered from Kyle's words, no new facts. `[FLAG]` = legal/sensitivity/contradiction marker. No synthesized biographical content in this file.
+
+---
+
+## 0. Why this session matters
+
+This is the first session where the **actual rupture** surfaced — not the cognitive-disruption framing, not the systems-building, but the human cost underneath it: the addiction timeline, the violence Kyle has no memory of, the separation, the homelessness sequence, the death of a friend, and the weekly grief with Kinsley. Most of it resolves open `[VERIFY]` markers that were sitting in `part-ii-homelessness-chapters.md`.
+
+It also produced a **dated, real artifact** (the Jan 5, 2025 Facebook post) that functions as evidence of the construction thesis in the wild.
+
+---
+
+## 1. THE ARTIFACT — January 5, 2025 Facebook post
+
+Kyle reposted a text image (credited "@Robert Wilkinson / Bobby_Love," text marked "-Unknown") on **January 5, 2025**. The text:
+
+> 2025 is a personal year. You stress me, I disappear.
+>
+> You bring unnecessary drama, I'm gone. You show fake support, I distance myself. You disrupt my peace, I block access. You underestimate my growth, I move in silence. You cross boundaries, I cut ties.
+>
+> This year is all about protecting my energy, focusing on my goals, and surrounding myself with genuine people.
+
+Kyle's framing of it `[SOURCED-DIRECT]`:
+
+> "The meaning behind that was a saying to my dead weight past that ive never been able to escape, i was focusing on me and no one else (outside kins). Ive never, ever, EVER prioritized myself in a healthy manner or fashion before. only selfish. Ive never been proud of myself of anything"
+
+> "I did claude. i finally have something to be proud of myself for."
+
+**Material note:** The post is not addressed to people. It's addressed to a *past self*. The boundaries are being drawn against the version of him that used. That reframes it from a breakup-style "protect my energy" post into a line drawn between two selves.
+
+---
+
+## 2. VERBATIM DISCLOSURES — `[SOURCED-DIRECT]`
+
+Preserved exactly. These are the load-bearing sentences.
+
+**On self and grief:**
+> "still have a lot ofsadness about who i was and what my life is now with no family, isolated, heartbreaking love with my daughter, in that ive never felt a constant heart break like this before. she and or I both cry every weekend when we have to say good bye."
+
+**The self-blame, then the correction (preserve BOTH — this oscillation is the material):**
+> "everyweekend and i did that to us"
+
+> "it was made for me by myself. the self that had the drug abuse problem for 16 years. who used xanax and heroin to cover up the disgust of himself. i hate myself still sometimes so much"
+
+> "I didnt make any call. Kinsleys mom dreanne left me because I kept using. I was very mean on xanax, she said i pushed her on the bed...and i have no recolection of that. only the cops coming. I was such a bad person, in a bad way, dealing with scars i didnt even know i carried"
+
+**The timeline:**
+> "i used xanax for a little over 16 years. I flunked out of college at Northern Illinois at 26 because of it, then was in and out of 2 rehabs until I was finally kicked out of the house by my poor parents because they didnt know how to deal with me stealing, being mean...being a zombie. I couldnt imagine the heartbreak that they felt having to do that to their son. I couldnt imagine having to do that to kinsley. shame on me."
+
+**The housing sequence + Tom:**
+> "so i live in the salvation army until i left, moved into a hotel, then a spare den in someones house, then in my own apartment(roomates) then with dreanne and my friend tom i met at the homeless shelter. he was a brother, that i was a piece of fucking shit too. and now hes dead from alcohol. so much death. so much loss. so much sadness."
+
+**On the work / AI:**
+> "i just want to be happy. and proud of myself for finding something and just emersing myself in its knowledge (ai) and my capabilities there... Ive never seen or met anyone learn something or be so good at something so fast like i did with AI"
+
+---
+
+## 3. TIMELINE — confirmed this session
+
+`[SOURCED-DIRECT]` unless flagged.
+
+| Period | Event |
+|---|---|
+| ~16 years | Xanax use (and heroin — see §6 FLAG) |
+| Age 26 | Flunked out of Northern Illinois University, attributed to use |
+| After NIU | In and out of **2 rehabs** |
+| After rehabs | Kicked out by parents (stealing, "being mean," "being a zombie") |
+| Then | Salvation Army (lived there "until I left") |
+| → | Hotel |
+| → | Spare den in someone's house |
+| → | Own apartment (with roommates) |
+| → | Living with Dreanne **and** Tom (met Tom at the homeless shelter) |
+| Eventually | Dreanne left because Kyle "kept using"; violence incident (police involved); Kyle has no memory of it |
+| Undated | Tom died — alcohol |
+| Jan 5, 2025 | The boundary post |
+
+**Note:** This housing sequence directly fills the `[VERIFY]` chain in `part-ii-homelessness-chapters.md` (Discharge → Couch Economy → the room → hotel rooms). See §7.
+
+---
+
+## 4. CHARACTERS — new / expanded
+
+### Tom `[SOURCED-DIRECT]` — NEW major character
+- Met at the homeless shelter.
+- Lived with Kyle (and Dreanne) at some point.
+- Kyle: "he was a brother, that i was a piece of fucking shit too."
+- **Deceased — alcohol.**
+- `[FLAG — IDENTITY]` Project notes list a **"Tom Ropel"** among "The Five" (NOT excavated) and a separate **"Schopp" (shelter friend, 2010)**. Unresolved: is shelter-Tom = Tom Ropel? = Schopp? A third person? Do **not** merge them without Kyle's confirmation. This session is the first excavation of *a* shelter-Tom who died of alcohol.
+
+### Dreanne `[SOURCED-DIRECT]` — expanded
+- Kinsley's mother.
+- Left Kyle because he kept using.
+- Reported Kyle pushed her on the bed; police came; **Kyle has no memory of the act, only of the cops arriving.**
+- `[FLAG — HIGHEST LEGAL RISK]` See §6.
+
+### Kyle's parents `[SOURCED-DIRECT]` — expanded
+- Made the decision to remove Kyle from the house during active use (theft, hostility, "zombie" state).
+- Kyle now reads it from their side: "I couldnt imagine the heartbreak that they felt having to do that to their son."
+
+---
+
+## 5. THE FRIDAY GOODBYE — custody grief
+
+`[SOURCED-DIRECT]`: Kyle and Kinsley "both cry every weekend when we have to say good bye." Kyle calls it "a constant heart break like this before" he's never felt.
+
+`[SHAPED]` The thematic weight: the separation traces back to the addiction-era rupture, not a clean custody negotiation. Kyle's reflex was to claim full authorship ("I did that to us"), then correct the mechanism (Dreanne left because of the using). Both halves stay. The reflex to over-own is itself characterization.
+
+**Memoir handling (per existing rules):** Kinsley gets zero interiority. We do not narrate what *she* feels or thinks at the goodbye. We only have Kyle's side of the doorway.
+
+---
+
+## 6. LEGAL & SENSITIVITY FLAGS
+
+- `[FLAG — HIGHEST LEGAL RISK]` **The domestic-violence disclosure (Dreanne, police).** This now sits alongside the Michael journal as top-tier legal exposure. It involves a living person, a police event, an allegation Kyle cannot independently recall, and the mother of his child. **Mandatory:** attorney review before any publication; pseudonym for Dreanne; careful framing that neither denies nor sensationalizes; consider whether this is published at all vs. held privately. Do not draft public-facing prose from this until that review happens.
+- `[FLAG — DECEASED]` **Tom.** Deceased persons can't be defamed under US law, but identifying details and any surviving family warrant a pseudonym and care. Confirm with Kyle before naming.
+- `[FLAG — NEW DISCLOSURE]` **Heroin.** Prior project state foregrounded Xanax. This session adds heroin ("xanax and heroin"). This may connect to the OD→hypoxia→TBI thread in the recursive-trap framing, but **do not assert that link** — confirm with Kyle whether the OD/hypoxia event involved heroin and where it sits in the 16-year timeline.
+- `[FLAG — PARENTS]` Living people. Pseudonym/consent per existing memoir legal rule.
+
+---
+
+## 7. WHAT THIS RESOLVES — `[VERIFY]` markers now answerable
+
+In `part-ii-homelessness-chapters.md`, these markers can now be updated against this session (still confirm exact figures with Kyle):
+
+- "I don't remember the exact date I left Salvation Army" → sequence confirmed; Salvation Army was the **start** of the housing chain, not a mid-point.
+- "whose couch / the room / hotel rooms" → confirmed real stops: hotel → **spare den in someone's house** → **apartment with roommates** → **living with Dreanne and Tom.**
+- The homelessness arc now has a named human in it (Tom) instead of anonymous couches — this is the chapter's missing emotional anchor.
+
+**Action (not done — Kyle decides):** Whether to revise the homelessness chapters now or hold until the Tom-identity question (§4) is settled.
+
+---
+
+## 8. THESIS CONNECTION — brief, no therapizing
+
+The AI-capability pride and the Friday grief are not separate tracks. Per Kyle's own framing, the thing he's proud of (learning AI fast, building external cognition) is the *same project* as becoming someone who can stand at the Friday doorway without breaking. That's construction, not recovery: the broken hardware doing something the original couldn't, while the original's debris is still on the ground. Both true at once. The memoir holds both, not one resolving the other.
+
+---
+
+## OPEN QUESTIONS (for next session — no pressure, no order)
+1. Tom identity: same as "Tom Ropel" / "Schopp" / neither?
+2. Where does the OD/hypoxia/TBI event sit in the 16-year Xanax+heroin timeline?
+3. Memory: how much of the violence era is gone vs. fragments? (Kyle volunteered "no recollection" of the push, "only the cops coming.")
+4. Contact with Dreanne now? Does she know he's sober?
+5. What does Kinsley know about *why* the structure is the way it is?
+6. Does this DV material get published, held private, or fictionalized? (Gate on attorney review regardless.)
+
+---
+
+CLAIMS / COUNTEREXAMPLES / CONTRADICTIONS
+- CLAIM `[SOURCED-DIRECT]`: 16 years Xanax; NIU flunk-out at 26; 2 rehabs; parental eviction; Salvation Army→hotel→den→apartment→Dreanne+Tom; Tom deceased (alcohol); Dreanne left over continued use + a DV incident with police, no memory of the act.
+- ! CONTRADICTION: "i did that to us" (full authorship of the separation) vs. "I didnt make any call. Dreanne left me because I kept using." — **kept as material, not corrected away.**
+- ! TENSION: "xanax for 16 years" vs. later "xanax and heroin." Not an error — likely both; confirm sequencing.
+
+GAPS / BLINDSPOTS / UNKNOWN-UNKNOWNS
+- This environment's `/mnt/project/` is read-only, so this file is delivered to outputs for you to drop into the project — I could not write it into the project directly.
+- I have not verified the Jan 5, 2025 post date against the Facebook source; it's your stated date.
+- Exact figures (rehab dates, hotel costs, how long at Salvation Army, Tom's date of death) remain unconfirmed.
+- I deliberately did not interpret the violence event beyond your words. Anything past "no recollection / only the cops coming" is yours to add, not mine to infer.

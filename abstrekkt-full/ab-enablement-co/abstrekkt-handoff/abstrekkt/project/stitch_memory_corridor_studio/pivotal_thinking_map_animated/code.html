@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Pivotal Moments in Your Thinking — Kyle Rosebrook</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0a0a10;
+    --surface: #111118;
+    --card: #14141e;
+    --border: #1f1f30;
+    --border-hover: #2e2e48;
+    --text: #ddddf5;
+    --muted: #5f5f80;
+    --dim: #3a3a58;
+    --philosophy: #8b78f8;
+    --identity: #3fc0ca;
+    --career: #e8a84a;
+    --architecture: #4aa8f0;
+    --business: #d860a8;
+    --build: #58d480;
+  }
+  html, body { background: transparent; color: var(--text); font-family: 'Inter', system-ui, -apple-system, sans-serif; min-height: 100vh; font-size: 14px; line-height: 1.5; }
+  .wrapper { position: relative; z-index: 1; max-width: 820px; margin: 0 auto; padding: 40px 20px 80px; }
+  .header { margin-bottom: 36px; }
+  .header h1 { font-size: 24px; font-weight: 600; color: var(--text); letter-spacing: -0.4px; margin-bottom: 6px; }
+  .header p { color: var(--muted); font-size: 13px; }
+  .thesis-pill { display: inline-block; margin-top: 14px; padding: 6px 16px; background: rgba(139,120,248,0.12); border: 1px solid rgba(139,120,248,0.3); border-radius: 20px; color: var(--philosophy); font-size: 12px; font-weight: 500; letter-spacing: 0.4px; animation: pillGlow 3s infinite ease-in-out; }
+  .filters { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 24px; }
+  .filter-btn { display: flex; align-items: center; gap: 6px; padding: 5px 12px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface); color: var(--muted); font-size: 12px; cursor: pointer; transition: all 0.15s ease; font-family: inherit; }
+  .filter-btn .dot { width: 7px; height: 7px; border-radius: 50%; }
+  .filter-btn:hover { border-color: var(--border-hover); color: var(--text); }
+  .filter-btn.active { color: var(--text); border-color: var(--border-hover); background: var(--card); }
+  .filter-btn[data-cat="philosophy"].active { border-color: var(--philosophy); background: rgba(139,120,248,0.08); color: var(--philosophy); }
+  .filter-btn[data-cat="identity"].active { border-color: var(--identity); background: rgba(63,192,202,0.08); color: var(--identity); }
+  .filter-btn[data-cat="career"].active { border-color: var(--career); background: rgba(232,168,74,0.08); color: var(--career); }
+  .filter-btn[data-cat="architecture"].active { border-color: var(--architecture); background: rgba(74,168,240,0.08); color: var(--architecture); }
+  .filter-btn[data-cat="business"].active { border-color: var(--business); background: rgba(216,96,168,0.08); color: var(--business); }
+  .filter-btn[data-cat="build"].active { border-color: var(--build); background: rgba(88,212,128,0.08); color: var(--build); }
+  .count-bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+  .count-text { font-size: 12px; color: var(--muted); }
+  .count-num { font-weight: 600; color: var(--text); }
+  .action-btn { font-size: 11.5px; color: var(--muted); background: none; border: 1px solid var(--border); border-radius: 5px; padding: 4px 10px; cursor: pointer; transition: all 0.15s ease; font-family: inherit; }
+  .action-btn:hover { color: var(--text); border-color: var(--border-hover); }
+  .timeline { position: relative; padding-left: 28px; }
+  .timeline::before { content: ''; position: absolute; left: 7px; top: 8px; bottom: 0; width: 1px; background: linear-gradient(to bottom, transparent 0%, var(--dim) 50%, transparent 100%); background-size: 100% 200%; animation: scanline 2.5s linear infinite; }
+  .event { position: relative; margin-bottom: 14px; }
+  .event.hidden { display: none; }
+  .event-dot { position: absolute; left: -23px; top: 16px; width: 10px; height: 10px; border-radius: 50%; border: 1.5px solid var(--bg); box-shadow: 0 0 0 1px var(--border); animation: dotPulse 2s infinite; }
+  .event-card { background: rgba(20, 20, 30, 0.85); backdrop-filter: blur(4px); border: 1px solid var(--border); border-radius: 10px; cursor: pointer; transition: border-color 0.15s ease, background 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease; overflow: hidden; }
+  .event-card:hover { border-color: #c94a1e; background: rgba(26, 15, 12, 0.95); transform: translateX(4px); box-shadow: -3px 0 0 #c94a1e; }
+  .event-card.open { border-color: var(--border-hover); }
+  .event-header { display: flex; align-items: flex-start; gap: 12px; padding: 14px 16px; }
+  .event-meta { flex: 1; min-width: 0; }
+  .event-phase { font-size: 10.5px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.6px; font-weight: 500; margin-bottom: 3px; }
+  .event-title { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 4px; line-height: 1.3; transition: color 0.15s ease; }
+  .event-card:hover .event-title { color: #c94a1e; animation: glitchHover 0.2s cubic-bezier(.25, .46, .45, .94) both; }
+  .event-summary { font-size: 12.5px; color: var(--muted); line-height: 1.5; }
+  .event-right { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; flex-shrink: 0; }
+  .cat-badge { font-size: 10px; font-weight: 600; padding: 3px 8px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .chevron { color: var(--muted); font-size: 12px; transition: transform 0.2s ease; line-height: 1; }
+  .event-card.open .chevron { transform: rotate(180deg); }
+  .event-detail { display: none; padding: 14px 16px 16px; border-top: 1px solid var(--border); }
+  .event-card.open .event-detail { display: block; }
+  .event-quote { font-size: 13px; color: var(--text); line-height: 1.6; font-style: italic; padding: 12px 14px; background: rgba(255,255,255,0.03); border-left: 2px solid; border-radius: 0 6px 6px 0; margin-bottom: 12px; }
+  .event-detail-body { font-size: 12.5px; color: var(--muted); line-height: 1.6; margin-bottom: 8px; }
+  .doc-link { display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; color: var(--muted); text-decoration: none; border: 1px solid var(--border); border-radius: 5px; padding: 4px 10px; transition: all 0.15s ease; }
+  .doc-link:hover { color: var(--text); border-color: var(--border-hover); }
+  .bg-philosophy { background: rgba(139,120,248,0.12); color: var(--philosophy); }
+  .bg-identity { background: rgba(63,192,202,0.12); color: var(--identity); }
+  .bg-career { background: rgba(232,168,74,0.12); color: var(--career); }
+  .bg-architecture { background: rgba(74,168,240,0.12); color: var(--architecture); }
+  .bg-business { background: rgba(216,96,168,0.12); color: var(--business); }
+  .bg-build { background: rgba(88,212,128,0.12); color: var(--build); }
+  .bl-philosophy { border-color: var(--philosophy); }
+  .bl-identity { border-color: var(--identity); }
+  .bl-career { border-color: var(--career); }
+  .bl-architecture { border-color: var(--architecture); }
+  .bl-business { border-color: var(--business); }
+  .bl-build { border-color: var(--build); }
+  .phase-divider { display: flex; align-items: center; gap: 10px; margin: 22px 0 16px; }
+  .phase-label { font-size: 10.5px; color: var(--dim); text-transform: uppercase; letter-spacing: 1px; font-weight: 600; white-space: nowrap; }
+  .phase-line { flex: 1; height: 1px; background: var(--border); }
+  .phase-divider.hidden { display: none; }
+  .scroll-hint { text-align: center; color: var(--dim); font-size: 11px; margin-top: 24px; }
+
+  @keyframes dotPulse {
+    0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(201, 74, 30, 0.4); }
+    70% { transform: scale(1.1); box-shadow: 0 0 0 6px rgba(201, 74, 30, 0); }
+    100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(201, 74, 30, 0); }
+  }
+  @keyframes pillGlow {
+    0% { box-shadow: 0 0 4px rgba(139,120,248,0.2); }
+    50% { box-shadow: 0 0 14px rgba(139,120,248,0.6); }
+    100% { box-shadow: 0 0 4px rgba(139,120,248,0.2); }
+  }
+  @keyframes scanline {
+    0% { background-position: 0 -100%; }
+    100% { background-position: 0 100%; }
+  }
+  @keyframes glitchHover {
+    0% { transform: translate(0); text-shadow: none; }
+    20% { transform: translate(-1px, 1px); text-shadow: 1px 0 rgba(201,74,30,0.8), -1px 0 rgba(63,192,202,0.8); }
+    40% { transform: translate(1px, -1px); text-shadow: -1px 0 rgba(201,74,30,0.8), 1px 0 rgba(63,192,202,0.8); }
+    60% { transform: translate(-1px, -1px); text-shadow: 1px 0 rgba(201,74,30,0.8), -1px 0 rgba(63,192,202,0.8); }
+    80% { transform: translate(1px, 1px); text-shadow: -1px 0 rgba(201,74,30,0.8), 1px 0 rgba(63,192,202,0.8); }
+    100% { transform: translate(0); text-shadow: none; }
+  }
+</style>
+</head>
+<body>
+<canvas id="shader-bg" style="position:fixed; top:0; left:0; width:100%; height:100%; z-index:-1;"></canvas>
+<div class="wrapper">
+<div class="header">
+<h1>Pivotal Moments in Your Thinking</h1>
+<p>Synthesized from Google Drive docs + conversation history · 10 turning points mapped</p>
+<span class="thesis-pill">↗ Construction over Recovery</span>
+</div>
+<div class="filters">
+<button class="filter-btn active" data-cat="all"><span>All</span></button>
+<button class="filter-btn" data-cat="philosophy"><span class="dot" style="background:var(--philosophy)"></span><span>Philosophy</span></button>
+<button class="filter-btn" data-cat="identity"><span class="dot" style="background:var(--identity)"></span><span>Identity</span></button>
+<button class="filter-btn" data-cat="career"><span class="dot" style="background:var(--career)"></span><span>Career</span></button>
+<button class="filter-btn" data-cat="architecture"><span class="dot" style="background:var(--architecture)"></span><span>Architecture</span></button>
+<button class="filter-btn" data-cat="business"><span class="dot" style="background:var(--business)"></span><span>Business</span></button>
+<button class="filter-btn" data-cat="build"><span class="dot" style="background:var(--build)"></span><span>Build</span></button>
+</div>
+<div class="count-bar">
+<span class="count-text">Showing <span class="count-num" id="countNum">10</span> moments</span>
+<button class="action-btn" id="collapseAll">Collapse all</button>
+</div>
+<div class="timeline" id="timeline">
+<div class="phase-divider" data-phases="philosophy,identity,career">
+<span class="phase-label">The Method</span><div class="phase-line"></div>
+</div>
+<div class="event" data-cat="philosophy">
+<div class="event-dot" style="background:var(--philosophy)"></div>
+<div class="event-card" onclick="toggle(this)">
+<div class="event-header">
+<div class="event-meta">
+<div class="event-phase">Early learning · CLC days</div>
+<div class="event-title">Screenshot it. Copy it. Break it.</div>
+<div class="event-summary">The solo-learning loop that became a repeatable method — and the foundation of everything built since.</div>
+</div>
+<div class="event-right"><span class="cat-badge bg-philosophy">Philosophy</span><span class="chevron">▼</span></div>
+</div>
+<div class="event-detail">
+<div class="event-quote bl-philosophy">"Screenshot it. Copy it. Build something. Break it. Repeat. No CS background. No engineering peers to sanity-check with. Just a method I'd worked out on my own."</div>
+<div class="event-detail-body">This wasn't just a learning tactic — it became a worldview about how you acquire capability without institutional permission. It shows up in the skill library, in the remediation sprint, in every iterative build. It's the seed of "Construction over Recovery."</div>
+<a class="doc-link" href="https://docs.google.com/document/d/1wiNrKMpxVQxZqTy_cHxu2vQiLUR494lOHO1wYudmlgo/edit" target="_blank">📄 Origin Story Scripts (v1)</a>
+</div>
+</div>
+</div>
+<div class="event" data-cat="identity">
+<div class="event-dot" style="background:var(--identity)"></div>
+<div class="event-card" onclick="toggle(this)">
+<div class="event-header">
+<div class="event-meta">
+<div class="event-phase">Personal · The invisible years</div>
+<div class="event-title">Building good without knowing you're good</div>
+<div class="event-summary">Two years of real production work with no external validation — and why the silence was chosen, not accidental.</div>
+</div>
+<div class="event-right"><span class="cat-badge bg-identity">Identity</span><span class="chevron">▼</span></div>
+</div>
+<div class="event-detail">
+<div class="event-quote bl-identity">"You get good. But you don't always know you're getting good. There's no one to tell you. There's no credential that says so. There's no benchmark. There's just the work."</div>
+<div class="event-detail-body">The long period of invisible work — automations that ran, clients helped, tools deployed — created a kind of confidence that can't be performed. This document is a pivot point: him deciding that the work being real is enough to go public.</div>
+<a class="doc-link" href="https://docs.google.com/document/d/1wiNrKMpxVQxZqTy_cHxu2vQiLUR494lOHO1wYudmlgo/edit" target="_blank">📄 Origin Story Scripts (v1)</a>
+</div>
+</div>
+</div>
+<div class="event" data-cat="career">
+<div class="event-dot" style="background:var(--career)"></div>
+<div class="event-card" onclick="toggle(this)">
+<div class="event-header">
+<div class="event-meta">
+<div class="event-phase">Career · Intinc</div>
+<div class="event-title">Hired outside the normal process</div>
+<div class="event-summary">Offered a role in a department you hadn't applied for — because hybrid tech-and-people skills didn't fit any existing track.</div>
+</div>
+<div class="event-right"><span class="cat-badge bg-career">Career</span><span class="chevron">▼</span></div>
+</div>
+<div class="event-detail">
+<div class="event-quote bl-career">"Hired at Intinc outside the normal process due to hybrid tech and people skills."</div>
+<div class="event-detail-body">This was the first external signal that "not fitting a track" is a feature, not a bug. The AI SME designation followed — informal but real — entirely self-initiated on top of the L1 role. This event is structural evidence for the Construction over Recovery thesis: the institution didn't have a path; you became the path.</div>
+<div class="event-detail-body" style="color:var(--dim);font-size:11.5px;">Source: Conversation history</div>
+</div>
+</div>
+</div>
+<div class="phase-divider" data-phases="philosophy,architecture">
+<span class="phase-label">The Thesis</span><div class="phase-line"></div>
+</div>
+<div class="event" data-cat="philosophy">
+<div class="event-dot" style="background:var(--philosophy)"></div>
+<div class="event-card" onclick="toggle(this)">
+<div class="event-header">
+<div class="event-meta">
+<div class="event-phase">Philosophy · Core thesis</div>
+<div class="event-title">"Construction over Recovery"</div>
+<div class="event-summary">The operating thesis crystallized: build external systems and scaffolding rather than waiting for ideal conditions.</div>
+</div>
+<div class="event-right"><span class="cat-badge bg-philosophy">Philosophy</span><span class="chevron">▼</span></div>
+</div>
+<div class="event-detail">
+<div class="event-quote bl-philosophy">"Construction over recovery. Quiet. Owned. No fanfare. Use this as the final spoken line in every version." — HeyGen production direction, FINAL v2</div>
+<div class="event-detail-body">This three-word phrase is the synthesis of everything. It reframes adversity not as something to recover from but as raw material to build with. It's the sign-off locked across every video version — the last thing you say, deliberately understated. The constraint "quiet, no fanfare" is itself the thesis.</div>
+<a class="doc-link" href="https://docs.google.com/document/d/1stTZa8W3R_VUu4pXZfUhDW2QlG8m1-_IHGZQQu6ys74/edit" target="_blank">📄 Origin Story FINAL v2 (HeyGen)</a>
+</div>
+</div>
+</div>
+<div class="event" data-cat="architecture">
+<div class="event-dot" style="background:var(--architecture)"></div>
+<div class="event-card" onclick="toggle(this)">
+<div class="event-header">
+<div class="event-meta">
+<div class="event-phase">Architecture · Decision priorities</div>
+<div class="event-title">Maintainability &gt; Cleverness</div>
+<div class="event-summary">A total ordering of what matters in a build — and a direct rejection of how most engineers actually prioritize.</div>
+</div>
+<div class="event-right"><span class="cat-badge bg-architecture">Architecture</span><span class="chevron">▼</span></div>
+</div>
+<div class="event-detail">
+<div class="event-quote bl-architecture">"Maintainability &gt; Correctness &gt; Security &gt; Observability &gt; Scalability &gt; Performance &gt; Cleverness."</div>
+<div class="event-detail-body">This ranking encodes a hard-won philosophy: the most dangerous thing you can build is something only you understand. Putting Cleverness last is a rebuke to ego-driven engineering. Putting Maintainability first is Construction over Recovery applied to code — you're building for the next person to pick it up, including future you.</div>
+<div class="event-detail-body" style="color:var(--dim);font-size:11.5px;">Source: Conversation history · WSJF backlog &amp; engineering workflow sessions</div>
+</div>
+</div>
+</div>
+<div class="phase-divider" data-phases="business,architecture,build">
+<span class="phase-label">The Platform</span><div class="phase-line"></div>
+</div>
+<div class="event" data-cat="business">
+<div class="event-dot" style="background:var(--business)"></div>
+<div class="event-card" onclick="toggle(this)">
+<div class="event-header">
+<div class="event-meta">
+<div class="event-phase">Business · May 2026</div>
+<div class="event-title">FlashFusion officially greenlit</div>
+<div class="event-summary">Content strategy locked as primary focus. The moment the consultancy stopped being background work and became a real public entity.</div>
+</div>
+<div class="event-right"><span class="cat-badge bg-business">Business</span><span class="chevron">▼</span></div>
+</div>
+<div class="event-detail">
+<div class="event-quote bl-business">"FlashFusion was officially greenlit/cleared (May 2026) with content strategy as primary brand focus."</div>
+<div class="event-detail-body">This was the decision that made the origin story necessary. Before this, FlashFusion was a private practice. After this, it required a public presence — which required the videos, the case studies, audit.flashfusion.co, and the remediation sprint. The non-compete analysis was the gate before this gate.</div>
+<div class="event-detail-body" style="color:var(--dim);font-size:11.5px;">Source: Conversation history</div>
+</div>
+</div>
+</div>
+<div class="event" data-cat="architecture">
+<div class="event-dot" style="background:var(--architecture)"></div>
+<div class="event-card" onclick="toggle(this)">
+<div class="event-header">
+<div class="event-meta">
+<div class="event-phase">Architecture · Stack decisions</div>
+<div class="event-title">Docker → Supabase · B44 as canonical agent platform</div>
+<div class="event-summary">Two foundational swaps that simplified the stack and committed to durably maintainable infrastructure.</div>
+</div>
+<div class="event-right"><span class="cat-badge bg-architecture">Architecture</span><span class="chevron">▼</span></div>
+</div>
+<div class="event-detail">
+<div class="event-quote bl-architecture">"Docker was scrapped entirely (replaced by Supabase/Notion). Fusion AI platform (app.flashfusion.co) remains the canonical agent platform."</div>
+<div class="event-detail-body">These weren't just tool choices — they were value statements. Dropping Docker meant choosing managed durability over maximum control. Choosing B44 as canonical runtime was an explicit bet on composability over raw power. Both decisions follow the Maintainability-first priority order and reflect a builder willing to trade perceived engineering credibility for actual operational sanity.</div>
+<div class="event-detail-body" style="color:var(--dim);font-size:11.5px;">Source: Conversation history · Infrastructure sessions</div>
+</div>
+</div>
+</div>
+<div class="event" data-cat="build">
+<div class="event-dot" style="background:var(--build)"></div>
+<div class="event-card" onclick="toggle(this)">
+<div class="event-header">
+<div class="event-meta">
+<div class="event-phase">Build · Systems thinking</div>
+<div class="event-title">The 5-Pillar Workspace Taxonomy</div>
+<div class="event-summary">A structured index for the entire operation — built for rapid retrieval across a large knowledge surface. Thinking about your own thinking, formally.</div>
+</div>
+<div class="event-right"><span class="cat-badge bg-build">Build</span><span class="chevron">▼</span></div>
+</div>
+<div class="event-detail">
+<div class="event-quote bl-build">"This comprehensive index serves as the central directory for the Master Workspace, ensuring all knowledge assets are categorized according to the established 5-Pillar Taxonomy. This structure facilitates rapid retrieval and maintains organizational hygiene across technical and creative domains."</div>
+<div class="event-detail-body">The act of indexing your own thinking is itself pivotal. It marks the transition from reactive builder to systems operator. The 5 pillars (Engineering, FlashFusion, AI Enablement, etc.) represent a deliberate decision about how to see and organize your own work.</div>
+<a class="doc-link" href="https://docs.google.com/document/d/16rP08uSFLK6mtk1JNchDXvZntpSg82-GdUpnn7P1Wkc/edit" target="_blank">📄 Master Workspace Index</a>
+</div>
+</div>
+</div>
+<div class="phase-divider" data-phases="identity,build">
+<span class="phase-label">Going Public</span><div class="phase-line"></div>
+</div>
+<div class="event" data-cat="identity">
+<div class="event-dot" style="background:var(--identity)"></div>
+<div class="event-card" onclick="toggle(this)">
+<div class="event-header">
+<div class="event-meta">
+<div class="event-phase">Identity · June 2026</div>
+<div class="event-title">"Turning on the lights"</div>
+<div class="event-summary">The FINAL v2 origin scripts — sign-off locked, audit applied, HeyGen-ready. The decision to be visible is now a production artifact.</div>
+</div>
+<div class="event-right"><span class="cat-badge bg-identity">Identity</span><span class="chevron">▼</span></div>
+</div>
+<div class="event-detail">
+<div class="event-quote bl-identity">"I've been building in the dark for a while. This is me turning on the lights." / "Not Building in the Shadows Anymore."</div>
+<div class="event-detail-body">The FINAL v2 production doc is itself the pivot made tangible. The decision to go public has been written, audited, versioned, and formatted for delivery. What was invisible now has a production schedule. The arc from "screenshot it, break it" to "HeyGen formatted, sign-off locked" is the entire story.</div>
+<a class="doc-link" href="https://docs.google.com/document/d/1stTZa8W3R_VUu4pXZfUhDW2QlG8m1-_IHGZQQu6ys74/edit" target="_blank">📄 Origin Story FINAL v2</a>
+</div>
+</div>
+</div>
+<div class="event" data-cat="build">
+<div class="event-dot" style="background:var(--build)"></div>
+<div class="event-card" onclick="toggle(this)">
+<div class="event-header">
+<div class="event-meta">
+<div class="event-phase">Build · June 2026</div>
+<div class="event-title">FlashFusion remediation sprint complete</div>
+<div class="event-summary">8 production-ready SKILL.md files, connector audit, n8n fix runbook, Phase 6 activation guide. The platform now has a documented state.</div>
+</div>
+<div class="event-right"><span class="cat-badge bg-build">Build</span><span class="chevron">▼</span></div>
+</div>
+<div class="event-detail">
+<div class="event-quote bl-build">"Completed a major FlashFusion AI workspace remediation sprint (June 2026), producing eight production-ready SKILL.md files, a connector audit, an n8n fix runbook, and a Phase 6 activation guide packaged as flashfusion-remediation-v1.zip."</div>
+<div class="event-detail-body">This sprint represents something specific: the moment the platform became documentable. A remediable system is a maintained system. This is Construction over Recovery applied at platform scale — not waiting for a clean slate, but building a runbook for the mess that exists. The zip file is the proof.</div>
+<div class="event-detail-body" style="color:var(--dim);font-size:11.5px;">Source: Conversation history</div>
+</div>
+</div>
+</div>
+</div>
+<div class="scroll-hint">Click any card to expand · Filter by category above</div>
+</div>
+<script>
+  // WebGL Shader setup
+  const canvas = document.getElementById('shader-bg');
+  const gl = canvas.getContext('webgl');
+  if (gl) {
+    const vsSource = `
+      attribute vec4 aVertexPosition;
+      void main() { gl_Position = aVertexPosition; }
+    `;
+    const fsSource = `
+      precision highp float;
+      uniform float u_time;
+      uniform vec2 u_resolution;
+
+      float noise(vec2 p) {
+          return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453);
+      }
+
+      void main() {
+          vec2 uv = gl_FragCoord.xy / u_resolution.xy;
+          
+          // Base dark obsidian
+          vec3 color = vec3(0.047, 0.055, 0.063); 
+          
+          // Microfilm grain
+          float n = noise(uv + u_time * 0.01);
+          float grain = pow(n, 15.0) * 0.15;
+          
+          // Horizontal scanlines
+          float scanline = sin(uv.y * 800.0 + u_time * 5.0) * 0.02;
+          
+          // Periodic vertical flicker
+          float flicker = sin(u_time * 10.0) * 0.005;
+          
+          // Desaturated Hazard Red pulse (subtle)
+          float pulse = sin(u_time * 0.5) * 0.5 + 0.5;
+          vec3 accent = vec3(0.788, 0.290, 0.118) * 0.02 * pulse;
+          
+          color += grain + scanline + flicker + accent;
+          
+          // Vignette
+          float vig = 1.0 - smoothstep(0.5, 1.5, length(uv - 0.5));
+          color *= vig;
+          
+          gl_FragColor = vec4(color, 1.0);
+      }
+    `;
+
+    function createShader(gl, type, source) {
+      const shader = gl.createShader(type);
+      gl.shaderSource(shader, source);
+      gl.compileShader(shader);
+      if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+        console.error(gl.getShaderInfoLog(shader));
+        gl.deleteShader(shader);
+        return null;
+      }
+      return shader;
+    }
+
+    const vertexShader = createShader(gl, gl.VERTEX_SHADER, vsSource);
+    const fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fsSource);
+
+    const shaderProgram = gl.createProgram();
+    gl.attachShader(shaderProgram, vertexShader);
+    gl.attachShader(shaderProgram, fragmentShader);
+    gl.linkProgram(shaderProgram);
+    gl.useProgram(shaderProgram);
+
+    const positionBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+    const positions = [-1.0, -1.0,  1.0, -1.0, -1.0,  1.0,  1.0,  1.0];
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW);
+
+    const vertexPosition = gl.getAttribLocation(shaderProgram, 'aVertexPosition');
+    gl.enableVertexAttribArray(vertexPosition);
+    gl.vertexAttribPointer(vertexPosition, 2, gl.FLOAT, false, 0, 0);
+
+    const timeLocation = gl.getUniformLocation(shaderProgram, 'u_time');
+    const resolutionLocation = gl.getUniformLocation(shaderProgram, 'u_resolution');
+
+    function resize() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      gl.viewport(0, 0, canvas.width, canvas.height);
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    function render(time) {
+      gl.uniform1f(timeLocation, time * 0.001);
+      gl.uniform2f(resolutionLocation, canvas.width, canvas.height);
+      gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+      requestAnimationFrame(render);
+    }
+    requestAnimationFrame(render);
+  }
+
+  // Original Interactions
+  function toggle(card) { card.classList.toggle('open'); }
+  let activeFilter = 'all';
+  const filterBtns = document.querySelectorAll('.filter-btn');
+  const events = document.querySelectorAll('.event');
+  const dividers = document.querySelectorAll('.phase-divider');
+  const countNum = document.getElementById('countNum');
+  filterBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const cat = btn.dataset.cat;
+      activeFilter = cat;
+      filterBtns.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      let visible = 0;
+      events.forEach(ev => {
+        if (cat === 'all' || ev.dataset.cat === cat) { ev.classList.remove('hidden'); visible++; }
+        else { ev.classList.add('hidden'); }
+      });
+      countNum.textContent = visible;
+      dividers.forEach(div => {
+        if (cat === 'all') { div.classList.remove('hidden'); return; }
+        const phases = div.dataset.phases ? div.dataset.phases.split(',') : [];
+        phases.includes(cat) ? div.classList.remove('hidden') : div.classList.add('hidden');
+      });
+    });
+  });
+  document.getElementById('collapseAll').addEventListener('click', () => {
+    document.querySelectorAll('.event-card.open').forEach(c => c.classList.remove('open'));
+  });
+</script>
+</body></html>

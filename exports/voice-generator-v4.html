@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Voice Generator — Kyle Rosebrook</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#14110F; --ink-raised:#1B1714; --ink-2:#221D19; --ink-3:#2A241F;
+    --line:#342D26; --line-soft:#2B251F;
+    --text:#F3EEE7; --text-2:#B6ADA2; --text-3:#827A6F;
+    --brass:#C8A86A; --build:#7C8CF8; --danger:#E0897A; --ok:#7FB58C;
+    --r:12px; --r-sm:8px; --r-xs:6px;
+    --mono:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+    --serif:'Fraunces',Georgia,'Times New Roman',serif;
+    --sans:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--ink); color:var(--text); font-family:var(--sans);
+    font-size:15px; line-height:1.5; -webkit-font-smoothing:antialiased;
+    background-image:radial-gradient(900px 500px at 80% -8%, rgba(124,140,248,0.05), transparent 60%);
+  }
+  #root{max-width:880px; margin:0 auto; padding:38px 22px 90px;}
+  h1,h2,h3{font-family:var(--serif); font-weight:500; letter-spacing:-0.01em; margin:0;}
+  textarea,input,button{font-family:inherit;}
+  textarea{font-family:var(--sans);}
+  textarea::placeholder{color:var(--text-3);}
+  textarea:focus,input:focus{outline:none; border-color:rgba(200,168,106,0.5);}
+  button{cursor:pointer;}
+  button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--brass); outline-offset:2px; border-radius:4px;}
+  a{color:var(--brass);}
+  .mono{font-family:var(--mono); text-transform:uppercase; letter-spacing:0.08em;}
+  .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);border:0;}
+  .scroll::-webkit-scrollbar{width:4px;height:4px;}
+  .scroll::-webkit-scrollbar-thumb{background:var(--line); border-radius:3px;}
+  .scroll::-webkit-scrollbar-track{background:transparent;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  .spin{display:inline-block; animation:spin 0.8s linear infinite;}
+  @keyframes fadein{from{opacity:0; transform:translateY(2px);}to{opacity:1; transform:none;}}
+  .fade{animation:fadein 0.18s ease;}
+  @media (prefers-reduced-motion:reduce){
+    *{animation-duration:0.001ms !important; transition-duration:0.001ms !important;}
+  }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js" crossorigin></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js" crossorigin></script>
+<script>
+const { useState, useRef, createElement: h, Fragment } = React;
+const { createRoot } = ReactDOM;
+
+/* ============================================================
+   CONFIG
+   To self-host this file (Vercel / Cloudflare / abstrekkt.com),
+   point API_ENDPOINT at your own serverless proxy that holds the
+   Anthropic key server-side and forwards the body to
+   https://api.anthropic.com/v1/messages.
+   Never put an API key in this file — it ships to the browser.
+   ============================================================ */
+const API_ENDPOINT = "https://api.anthropic.com/v1/messages";
+const MODEL = "claude-sonnet-4-6";
+const MAX_TOKENS = { blog:3000, letter:3000, linkedin:1300, short:750, newsletter:700, essay:2400, readingroom:3000, arc:3000, parse:1000 };
+const HISTORY_CAP = 6;
+
+/* ============================================================
+   VOICE PROMPT — built from the interview + dad-voice patterns,
+   with a hard content-integrity rule.
+   ============================================================ */
+const VP = `You write in Kyle Rosebrook's voice. Not a version of it.
+
+WHO KYLE IS:
+Around 40, north of Chicago, Illinois. Single dad to my daughter — currently has roughly 2.5 days a week, heading into a custody/placement court fight he may lose, with the possibility of reduced time or a challenge to his daughter carrying his last name. History: was homeless, was an addict for 16 years, got clean, rebuilt. Managed bars and restaurants 10+ years — managed the operation, not just bartended. Pivoted to self-taught IT, hired at an MSP outside the standard process for hybrid tech and people skills. Service desk tech who also runs an AI-enablement consultancy and Abstrekkt LLC (parent company, registered June 2026, Illinois). Operating philosophy: "Construction over Recovery" — building what never existed rather than restoring what was lost. TBI history; brain-scan data: 99th percentile processing speed, 12th percentile recall. Writing a literary memoir called Tax the Damage, framed as a letter to my daughter to read when she's grown.
+
+CONTENT INTEGRITY — non-negotiable:
+- NEVER introduce specific facts that aren't in the input fields: no invented numbers, dollar amounts, dates, names, places, metrics, tool counts, or events.
+- If a specific detail would strengthen the piece but isn't in the input, stay general or leave it out. Do not fabricate plausible-sounding specifics.
+- You are shaping the material he gives you into his voice. You are not adding facts to it.
+
+VOICE PATTERNS (from interview) — enforce these:
+- He doesn't separate work from personal from builds. A phone-call complaint flows into a legal battle flows into building at midnight. Don't clean up the lanes. Let them bleed together.
+- He self-corrects mid-sentence on himself. "She fucked up, I fucked up" in the same breath. Don't let him stay comfortable in a grievance.
+- Heavy things get dropped quietly in small phrases then moved past. "And poor her." Don't expand it. Don't give it a paragraph.
+- He closes doors with short phrases: "Short, thank you." "And here we are." Done. Moving.
+- Interior states are precise and physical — organic or mechanical failure. "My insides are decaying from this." Never the emotional category word.
+- Specific nouns every time. O'Tool's, not "a bar." Jack and Coke, not "a drink." The detail nobody asked for.
+- He shows up somewhere to decompress, it doesn't work, he leaves — and doesn't narrate it as failure. The gap belongs to the reader.
+- He builds while things are on fire. Through the chaos, not despite it. The building is the response to the hard thing.
+
+DAD-VOICE & PAST-MATERIAL PATTERNS (human-side series only):
+- Defensive comedy as armor. He beats the world to the punch: "oh life's fucking great as a single dad, the world really looks kindly on a 40-year-old ex-homeless druggie." That sneer is a real register; use it where it fits.
+- Apology and fury coexist. Sorry AND furious that sorry isn't enough. Never resolve one into the other. Hold both at once.
+- The unbearable specific detail, stated flat: my daughter sobbing at drop-off. Don't dramatize. State it and let it sit.
+- He absorbs the world's judgment and voices it for them, then keeps standing. Self-deprecation is real but it is not surrender.
+- Showing up IS the construction. Going to court instead of disappearing — that's the thesis applied to fatherhood. Never redemption. Building.
+- Past material (homelessness, addiction, getting clean): field reports, not a redemption arc. Written for the reader standing inside the exact thing right now who needs proof survival is possible while still inside it.
+- Tenderness is allowed here in a way it is not in the technical series. The letters to my daughter can be slow, can be soft. Still specific. Still no clichés. Grief is precise, not generic.
+
+HARD VOICE RULES:
+- First person. Specific nouns.
+- Construction over Recovery: NEVER use recovery, healing, return to baseline, transformation, breakthrough, redemption. Build forward.
+- No epiphanies. No "and that's when I realized." Incremental recalibrations only.
+- NEVER: "looking back," "in retrospect," "transformative," "journey," "healing," "brave," "it hit me," "game-changer," "level up," "it changed everything," "rock bottom became," "my why," "blessed," "grateful for the struggle"
+- Short sentences to land. Long sentences to build complexity. Short to close.
+- Building in public = say the actual thing, the actual number, the actual embarrassing version.
+- Zero LinkedIn inspiration energy. Zero thought-leader cadence. If a sentence could be screenshotted by a hustle account, rewrite it.
+- If something cost something — say what. Don't editorialize it.
+
+FORMAT RULES:
+- Blog Post: Open with a specific scene, moment, or action. Not a question. Not a thesis. Build outward. Close with one sentence. No summary. No "what I learned."
+- LinkedIn Thread: Line 1 is a specific fact or situation that stops the scroll — never inspiration, always fact. Number each item. One concrete thing per item. Last item is what you'd normally cut.
+- Short Form: One thing. 200–300 words. No wind-up. Strong open, hard close. Present tense preferred.
+- Letter: Addressed to my daughter, second person ("you"). Slow is allowed. Tender is allowed. Still specific, still no clichés, still no epiphanies. Open on something concrete. Close on something true, not something resolved.
+
+Write only the content. No preamble, no "here's your post," no meta-commentary.`;
+
+const FMT_INSTR = {
+  blog:"Write a blog post of 1000–1400 words. Open with a specific scene or moment — not a question, not a thesis. Build outward. Close with one sentence. No summary. No 'what I learned.'",
+  linkedin:"Write a LinkedIn thread of 6–9 numbered items. Line 1: specific fact or situation that stops the scroll — never inspiration, always fact. One concrete thing per item. Last item is what you'd normally cut.",
+  short:"200–300 words. One thing. No wind-up. Strong open, hard close. Present tense preferred.",
+  letter:"Write a letter addressed to my daughter, in second person ('you'). Slow is allowed. Tender is allowed. Still specific, still no clichés, still no epiphanies. Open on something concrete. Close on something true, not something resolved.",
+  newsletter:"Write a Load-Bearing newsletter section, 150–250 words. Open with what the tool or pattern actually does — never hype. If there's a failure case, name it. End on one declarative takeaway. No headers, no bullets, no CTA.",
+  essay:"Write a Foundation Series essay, roughly 800–1000 words, on an AI tool or pattern tested in real use. Open by reframing the obvious question. Build the argument from first-hand experience — never something that could run in any AI newsletter. Name what breaks. Close on a declarative reframe, not a summary.",
+  readingroom:"Write a Reading Room essay, 600–1200 words. Construction not recovery — no clean arc, no epiphany. Drop into the middle of a moment. Turn on what the dominant framing misses. Land on a paradox or declarative that feels inevitable. Don't pad.",
+  arc:"Write a memoir-arc essay — literary nonfiction, a single scene or thread toward the manuscript. First person, specific, sensory. Preserve contradiction; do not resolve it. No lesson, no clean landing. Write it like a chapter, not a takeaway."
+};
+
+/* ============================================================
+   FIELDS
+   ============================================================ */
+const CAREER_FIELDS = [
+  {key:"event",label:"The raw event",ph:"What actually happened? Name the place, person, number. Skip the setup.",rows:3},
+  {key:"built",label:"What you built or tried to",ph:"The actual work — skip the framing, get to the build.",rows:3},
+  {key:"detail",label:"The detail that sticks",ph:"One specific thing — sensory, technical, embarrassing. What you actually remember.",rows:2},
+  {key:"under",label:"What you're not saying",ph:"Optional. Subtext — informs tone, you don't have to publish it.",rows:2,opt:true}
+];
+const HUMAN_FIELDS = [
+  {key:"event",label:"The moment",ph:"The specific scene. Where you were, what happened, who was there. Flat, not dramatized.",rows:3},
+  {key:"cost",label:"What it cost",ph:"What it took from you, or is taking. Time, sleep, money, a piece of yourself. The real ledger.",rows:3},
+  {key:"need",label:"What you need her / them to know",ph:"For letters: what you need my daughter to know. For past posts: what the reader inside it right now needs to hear.",rows:3},
+  {key:"under",label:"The part you'd normally keep",ph:"Optional. The rage, the fear, the apology underneath. Informs tone — may or may not get published.",rows:2,opt:true}
+];
+const EDITORIAL_FIELDS = [
+  {key:"subject",label:"The subject",ph:"The tool, pattern, moment, or system. Name it specifically — the actual thing, not the category.",rows:2},
+  {key:"lived",label:"What you actually did with it",ph:"The first-hand part. What you used, tested, ran in real work. Load-Bearing's whole moat is that this is real, not demo conditions.",rows:3},
+  {key:"tension",label:"Where it breaks / what the framing misses",ph:"The counter-pattern, the failure case, or what the hype gets wrong. The thing that only shows up under real load.",rows:3},
+  {key:"angle",label:"The construction-lens angle",ph:"Optional. How the diagnostic instinct maps onto this, or the thing only you'd notice. Informs framing.",rows:2,opt:true}
+];
+
+/* ============================================================
+   SERIES
+   ============================================================ */
+const SERIES = [
+  {id:0,color:"#7C8CF8",group:"career",title:"Behind the counter to behind the keyboard",sub:"10 years hospitality → self-taught IT → hired outside the process",posts:[
+    {title:"Why I quit after 10 years",angle:"The actual last straw — not the polished career pivot story"},
+    {title:"The first time I broke something and fixed it",angle:"First real IT win — specific device, specific error, what failed first"},
+    {title:"What hospitality actually taught me about IT",angle:"Not the soft skills speech — the operational wiring that transferred"},
+    {title:"Getting hired outside the process",angle:"What 'outside the standard process' actually means day-to-day"},
+    {title:"The day I became the unofficial AI person",angle:"Nobody asked, nobody assigned it — the actual sequence of events"},
+    {title:"What proving yourself actually costs",angle:"The real ledger — hours, energy, what you skipped. Not a complaint."},
+    {title:"The thing nobody tells you about career pivots",angle:"One specific thing you didn't expect. Concrete, not 'it was hard.'"},
+    {title:"What I'd tell the version of me still pouring drinks",angle:"Operational intel, not encouragement — what data would have mattered"}
+  ]},
+  {id:1,color:"#1FA882",group:"career",title:"I taught myself and nobody asked me to",sub:"Self-initiated AI/automation on top of a full-time role",posts:[
+    {title:"Building AI tools at a job that never asked",angle:"First tool built for work — what it was, what it replaced, who noticed"},
+    {title:"The first automation that actually ran without you",angle:"Not the first build — the first one that worked while you weren't watching"},
+    {title:"When the side stack and the day job connect",angle:"The moment your personal builds started touching real work"},
+    {title:"Self-teaching at 40 hours a week: the real schedule",angle:"Not the aspirational version — what time, what got cut, how long before usable"},
+    {title:"The difference between learning and building",angle:"The moment you stopped consuming and started shipping — what changed"},
+    {title:"Why I keep going with no official ladder",angle:"Not a motivation post. The actual reason, stated directly."}
+  ]},
+  {id:2,color:"#C9608A",group:"career",title:"Construction over recovery: the operating system",sub:"Building what never existed — specific, not inspirational",posts:[
+    {title:"What 'construction over recovery' actually means",angle:"The non-inspirational version — what it costs, what it rules out"},
+    {title:"The brain scan numbers and why I show them",angle:"99th percentile processing, 12th recall — what that means for work"},
+    {title:"Building agency when the baseline was never functional",angle:"What you built instead of what you tried to recover"},
+    {title:"What TBI actually does to work: the operational specifics",angle:"Name the function, the workaround, the tool. Be clinical."},
+    {title:"The tools I built to compensate for a brain that won't",angle:"Personal cognitive infrastructure — what each tool is actually compensating for"},
+    {title:"Why I document everything",angle:"Not productivity advice — the neurological reason. What breaks when you don't."},
+    {title:"The cost of building forward instead of waiting",angle:"What you gave up — financial, relational, time. The real accounting."},
+    {title:"What I mean when I say I'm not in recovery",angle:"The distinction that matters and why the framing is load-bearing"},
+    {title:"Building a self from non-standard materials",angle:"The core thesis grounded in one specific system or moment"}
+  ]},
+  {id:3,color:"#5B9BE0",group:"career",title:"Building a consulting business in public",sub:"Zero to first paid clients — the actual ledger",posts:[
+    {title:"Why the consultancy exists while I still have a day job",angle:"The practical reason, not the vision statement"},
+    {title:"The first paid client: what actually happened",angle:"How they found you, what they bought, what it cost to deliver"},
+    {title:"The pricing ladder and why it's built that way",angle:"Scorecard → audit → retainer — the architecture decision"},
+    {title:"Pricing your brain when you're still proving it",angle:"What you were afraid to charge, what you charged, what happened"},
+    {title:"The pipeline is real but the revenue isn't yet",angle:"Honest numbers — funnel, closed, the gap"},
+    {title:"What I built vs. what clients actually need",angle:"The delta between product assumption and what's getting bought"},
+    {title:"Month [X]: where the business actually stands",angle:"Real snapshot — the good version and the honest version, side by side"}
+  ]},
+  {id:4,color:"#46A56B",group:"career",title:"The honest stack",sub:"What I actually use vs. what the internet says you should",posts:[
+    {title:"What I actually use, not what I've catalogued",angle:"Your real hands-on stack — for each tool, one sentence on why it survived"},
+    {title:"The tools I dropped and what they cost before I did",angle:"Specific tools, specific reasons, specific costs"},
+    {title:"The migration nobody sees: moving workflows between platforms",angle:"What the real rebuild looked like — the unglamorous version"},
+    {title:"The real cost of stack discipline",angle:"What maintaining a lean stack takes vs. what sprawl would have cost"},
+    {title:"What I'd rebuild from scratch tomorrow",angle:"If you lost everything — what rebuilds first, what gets left out"}
+  ]},
+  {id:5,color:"#D8743A",group:"career",title:"Abstrekkt: starting an LLC when you don't know what it's for",sub:"Registered June 2026 in Illinois — figuring out the rest in public",posts:[
+    {title:"Why I registered before I knew what it was for",angle:"The actual trigger for June 2026 — what pushed the decision"},
+    {title:"The first time someone called it a real company",angle:"The moment the LLC felt like something. Who said it, what context."},
+    {title:"The administrative reality nobody warns you about",angle:"What it actually took to get the domain, the email, the billing running"},
+    {title:"What Abstrekkt is actually supposed to be",angle:"Parent company of what, exactly? Working this out in public."},
+    {title:"Building a parent company with no employees",angle:"What it owns, what it protects, what it makes possible before revenue exists"},
+    {title:"The version of myself this company is for",angle:"Two years out. Specific. Not inspirational — operational."},
+    {title:"The money question: what does it need to make to matter?",angle:"The financial threshold that makes this real vs. a holding shell"}
+  ]},
+  {id:6,color:"#6FB6D8",group:"career",title:"The AI SME nobody hired",sub:"Being ahead of your title at an MSP — politics, work, and the position",posts:[
+    {title:"How I became the AI person without being asked",angle:"The actual sequence — first AI thing, first attention, first friction"},
+    {title:"What building AI tools from the service desk actually looks like",angle:"Your actual job vs. what you're actually doing. The gap, day to day."},
+    {title:"The politics of being ahead of your title",angle:"Not a complaint — a map. What it costs, who owns the work."},
+    {title:"When a colleague asks you how to use AI",angle:"One specific conversation — what they asked, what happened next"},
+    {title:"The thing I built that nobody requested",angle:"What it was, why you built it, did anyone use it"},
+    {title:"What 'hybrid tech and people skills' means on the ground",angle:"One situation where the combination mattered. What pure tech would have missed."},
+    {title:"The ceiling nobody talks about",angle:"The real structural limit of your position. Not personal — systemic."},
+    {title:"What I'm building while I'm still here",angle:"The dual track: day job + the company. What 'while I'm still here' means."}
+  ]},
+  {id:7,color:"#C8A86A",group:"human",title:"The dad I'm becoming, in real time",sub:"Documenting fatherhood with the outcome genuinely unknown",posts:[
+    {title:"2.5 days a week",angle:"What the current schedule actually is, and what it's like inside it. Flat, not dramatized."},
+    {title:"The drop-off",angle:"The specific scene at handoff. What you do with your face. State it, don't editorialize."},
+    {title:"Going to court instead of disappearing",angle:"Showing up IS the construction. What it costs to fight instead of vanish. Not redemption — building."},
+    {title:"The things I'm scared I'll miss",angle:"Specific, named things — not 'her childhood' but the actual moments. The real fear, stated."},
+    {title:"What I'm building for her that doesn't exist yet",angle:"The version of a father she'll have that you never had. Built from nonstandard materials."},
+    {title:"The day I almost lost it and didn't",angle:"A specific moment of near-collapse and what held. No epiphany — what mechanically kept you upright."},
+    {title:"What 'fit parent' means when the world already decided",angle:"The judgment you carry into the room and what you do with it. The sneer and the standing-anyway."},
+    {title:"The father I had vs. the father I'm building",angle:"Specific contrast. What transferred, what you're inventing, what you refuse to pass down."}
+  ]},
+  {id:8,color:"#A86BC0",group:"human",cooldown:true,title:"Letters I'm not sending yet",sub:"Written to my daughter, for her to read at 20 — cooldown protected",posts:[
+    {title:"I'm sorry it took this long",angle:"The apology. Specific about what was missed. Apology and the fury that sorry isn't enough — both at once."},
+    {title:"What I was doing when I wasn't there",angle:"Honest about the absence. Not excusing it. Naming what the years actually held."},
+    {title:"The night I decided to fight for you",angle:"The specific moment the decision became non-negotiable. What it cost to commit."},
+    {title:"Things I want you to know about your dad",angle:"Who you actually are, in your own words, for her to have. Specific, not flattering."},
+    {title:"What I hope you never have to learn the way I did",angle:"The hard-won knowledge you'd hand her to skip the cost. Field-report, not lecture."},
+    {title:"If you're reading this and you're angry at me",angle:"Written for the version of her who hasn't forgiven you. Holding that without defending."},
+    {title:"The name",angle:"What your last name means and why it matters. The history in the name."},
+    {title:"I cannot imagine a life without you in it",angle:"The plainest one. What she is to you. No clichés — grief and love, precise."}
+  ]},
+  {id:9,color:"#8A8580",group:"human",cooldown:true,title:"The stuff I don't usually say out loud",sub:"The record, the homelessness, getting clean — field reports, not a redemption arc",posts:[
+    {title:"Where I slept",angle:"The specific reality of being homeless. Where, how long, what a day was. Reported flat from the other side."},
+    {title:"The version of me the world wrote off",angle:"Who you were at the bottom and how people treated that person. The judgment, named, not softened."},
+    {title:"Getting clean isn't the story people want",angle:"The unglamorous mechanical reality. Not the before/after — the during, the part nobody posts."},
+    {title:"What I'd say to someone standing in it right now",angle:"Direct address to the reader inside addiction or homelessness today. Proof, not inspiration."},
+    {title:"The day someone gave a fuck",angle:"One specific person who didn't write you off. What they did. What it cost them to bother."},
+    {title:"What the record costs, still",angle:"The ongoing tax of a past — jobs, housing, custody, how the world keeps charging you. The real ledger."},
+    {title:"Why I show the worst of it",angle:"Why you don't hide the homeless-druggie part. What hiding it would cost the people who need to see it."},
+    {title:"Construction over recovery, from the bottom up",angle:"The thesis where it was forged — building a self when there was nothing to recover."}
+  ]},
+  {id:10,color:"#D99A4E",group:"editorial",defaultFormat:"newsletter",voiceNote:"Load-Bearing register: AI tools tested under load. No hype, no sales pitch, no jargon. Open with what it does, not why it's exciting. If it broke, name where. End on one declarative takeaway, no CTA. The moat is that you used it in real work past the point its weaknesses showed.",title:"Load-Bearing — the weekly",sub:"AI tools, tested under load · no hype, just what holds",posts:[
+    {title:"Tool spotlight: what actually held",angle:"A tool you ran in real work. What survived contact, what you'd warn someone about. Not a review — a load test."},
+    {title:"The counter-pattern",angle:"Something the marketing doesn't tell you, learned from consulting or your own stack. The thing that only shows up under real conditions."},
+    {title:"Stack reality vs stack marketing",angle:"The gap between what's sold and what runs. Name the specific tool and the specific gap."},
+    {title:"Workflow observation",angle:"A pattern you noticed running AI in real conditions. One move, stated plainly, with the failure mode named."},
+    {title:"What broke this week",angle:"The failure case, reported flat and useful. What you expected, what happened, what you'd do differently."}
+  ]},
+  {id:11,color:"#5BA8A0",group:"editorial",defaultFormat:"essay",voiceNote:"Foundation Series register: the Load-Bearing voice at essay length. Reframe the obvious question in the first lines. Build the argument from first-hand experience — never something that could run in any AI newsletter. Name what breaks. Close on a declarative reframe, not a summary.",title:"Foundation Series",sub:"The 8-essay AI-tooling arc · tested in real use",posts:[
+    {title:"The agent doesn't know your files are a mess",angle:"System hygiene before agents. What your setup needs to look like before you hand it to one. Already drafted — refine or rebuild."},
+    {title:"Fifty skills, what held",angle:"Skills-library lessons at scale. Which patterns survived, which collapsed, the fix-before-expand rule. Already drafted."},
+    {title:"Skills as the human layer",angle:"What skills actually encode — the judgment a model doesn't have. From your own library, not theory."},
+    {title:"Negative vs positive skill instructions",angle:"What works when you tell a model what NOT to do vs what to do. Tested, not assumed."},
+    {title:"The adoption math",angle:"Why AI adoption stalls where it does. The real numbers from getting people to actually use the tools."},
+    {title:"The one-API-call backend",angle:"How far one model call gets you before you need real infrastructure. The honest ceiling."},
+    {title:"The assembly problem",angle:"Why stitching AI tools together is the hard part nobody scopes. What breaks at the seams."},
+    {title:"The closer — what the series was really about",angle:"The throughline across all eight. The thesis the individual essays were circling."}
+  ]},
+  {id:12,color:"#A8714F",group:"editorial",defaultFormat:"readingroom",voiceNote:"Reading Room register: personal long-form, Construction not recovery. No clean arc, no epiphany, no 'and that's when everything changed.' Drop into the middle. Turn on what the dominant framing misses. The diagnostic-instinct lens is available — reading rooms (O'Tool's) to reading processes (QC) to reading systems (engineering), same skill, different substrate. Land on a paradox or declarative that feels inevitable. Register: Solomon, Maté, Cahalan — specificity without self-pity.",title:"Reading Room",sub:"Personal long-form · construction lens · flashfusion.co byline",posts:[
+    {title:"Why recovery is the wrong word",angle:"The distinction the whole thesis rides on. Recovery assumes something to go back to. There wasn't. So you built."},
+    {title:"The diagnostic instinct, across four jobs",angle:"Reading the room at the bar, reading defects in QC, reading systems in engineering. The same skill the injury didn't take."},
+    {title:"Building external memory for a brain that won't hold",angle:"99th-percentile processing, 12th-percentile recall. The tools as prosthetic cognition. What each one is actually compensating for."},
+    {title:"What the tools are actually compensating for",angle:"The honest version of why you build so much. Not productivity — the neurological reason. What breaks without the scaffolding."},
+    {title:"Reading the room, reading the system",angle:"The bar and the codebase, the same pattern-recognition. The instinct that predates the injury and survived it."},
+    {title:"The construction nobody can see",angle:"The work is invisible to everyone except the builder. What it costs to build a self from non-standard materials in public."}
+  ]},
+  {id:13,color:"#9B7BB8",group:"editorial",cooldown:true,defaultFormat:"arc",voiceNote:"Memoir-arc register: literary nonfiction toward the manuscript. A single scene or thread per essay. First person, specific, sensory. Preserve contradiction; do not resolve it. No lesson, no clean landing. This is Tax the Damage material, not a post — write it like a chapter, not a takeaway. Titles are placeholders; the truth in each slot is the work.",title:"The Memoir Arc",sub:"12-essay serialized manuscript · book material · cooldown protected",posts:[
+    {title:"The last shift",angle:"O'Tool's, the end of the bar years. The diagnostic instinct reading rooms from a damaged brain. A scene, not a summary."},
+    {title:"The first useful sentence",angle:"The first time the construction worked — code, a tool, a thing that held. Written as a moment, not a milestone."},
+    {title:"Unsettled",angle:"The instability underneath the building. The contradiction you don't resolve."},
+    {title:"The room that sat empty",angle:"The crib, the apartment you couldn't keep, the daughter you weren't allowed to have there. Stated flat."},
+    {title:"Among the living dead",angle:"Residential treatment, model resident. 'Among the living dead, I was king.' The scene as it was."},
+    {title:"The pajama bottoms",angle:"September 2021. The hospital, the pajamas you still own, parents who wouldn't look at you. The artifact."},
+    {title:"Where I slept",angle:"Salvation Army, hotels without enough for the next night. The specific reality, reported from the other side."},
+    {title:"The card table",angle:"Building from nothing on a card table. The construction in its rawest physical form."},
+    {title:"The screen lit up",angle:"The monitor as mirror — the gap between who you saw and who you were becoming. Mid-book, not the opening."},
+    {title:"Reading the brain scan",angle:"Years later, reading your own cognitive scores for the first time. What the numbers meant and what they didn't."},
+    {title:"The Friday hello, the Sunday goodbye",angle:"The custody rhythm. Routines that build and decompile weekly. The percentage of a childhood you're not in the room for."},
+    {title:"What I built instead",angle:"The closing thread. Not redemption — construction. What exists now that didn't before, and who it's for."}
+  ]},
+  {id:14,color:"#6E8FB8",group:"editorial",defaultFormat:"essay",voiceNote:"Construction Essay register: thesis-driven pieces bridging the AI-tooling work and the memoir thesis. Declarative. Systems-as-prosthetics framing. Construction not recovery. No hype, no self-pity. The piece a reader hits when they want the principle, not the story.",title:"Construction Essays",sub:"Thesis-driven · systems as prosthetics · the bridge pieces",posts:[
+    {title:"Construction, not recovery — the operating principle",angle:"The thesis stated directly. What it rules out, what it costs, why the framing is load-bearing."},
+    {title:"Systems as prosthetics",angle:"The tools as replacement cognition, not productivity hacks. The bridge between the brain scan and the stack."},
+    {title:"Building what never existed",angle:"Why you build forward instead of trying to restore. The core move, grounded in one specific system."},
+    {title:"The public surface and the hidden engine",angle:"What you present externally vs what runs underneath. The pattern, named, applied to your own work."},
+    {title:"Why I document everything",angle:"Not a productivity post. The neurological necessity. What documentation actually is when recall is 12th percentile."}
+  ]}
+];
+
+const FORMATS_CAREER = [
+  {id:"blog",label:"Blog post",desc:"1000–1400w"},
+  {id:"linkedin",label:"LinkedIn thread",desc:"6–9 hooks"},
+  {id:"short",label:"Short form",desc:"200–300w"}
+];
+const FORMATS_HUMAN = [
+  {id:"blog",label:"Blog post",desc:"1000–1400w"},
+  {id:"letter",label:"Letter",desc:"to my daughter"},
+  {id:"short",label:"Short form",desc:"200–300w"},
+  {id:"linkedin",label:"LinkedIn thread",desc:"6–9 hooks"}
+];
+const FORMATS_EDITORIAL = [
+  {id:"newsletter",label:"Load-Bearing",desc:"150–250w"},
+  {id:"essay",label:"Foundation essay",desc:"~900w"},
+  {id:"readingroom",label:"Reading Room",desc:"600–1200w"},
+  {id:"arc",label:"Memoir arc",desc:"literary"}
+];
+
+/* ============================================================
+   API
+   ============================================================ */
+const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+function friendlyStatus(status){
+  if(status===401||status===403) return "Can't reach the model from here. If you've self-hosted this file, point API_ENDPOINT at your proxy (server-side key).";
+  if(status===429) return "Rate limited — wait a few seconds and try again.";
+  if(status>=500) return "The model service hiccuped. Give it a moment and try again.";
+  return `Request failed (${status}).`;
+}
+async function callAnthropic(system, content, maxTokens){
+  const body = JSON.stringify({ model:MODEL, max_tokens:maxTokens, system, messages:[{role:"user",content}] });
+  const retryable = new Set([429,500,502,503,529]);
+  const delays = [1000, 2500];
+  let lastErr;
+  for(let attempt=0; attempt<=delays.length; attempt++){
+    try{
+      const res = await fetch(API_ENDPOINT,{ method:"POST", headers:{"Content-Type":"application/json"}, body });
+      if(!res.ok){
+        if(retryable.has(res.status) && attempt<delays.length){ await sleep(delays[attempt]); continue; }
+        throw new Error(friendlyStatus(res.status));
+      }
+      const data = await res.json();
+      const text = (data.content||[]).filter(b=>b.type==="text").map(b=>b.text).join("\n").trim();
+      if(!text) throw new Error("The model returned an empty response. Try again.");
+      return { text, truncated: data.stop_reason==="max_tokens" };
+    }catch(e){
+      lastErr = e;
+      if(attempt<delays.length && e.name==="TypeError"){ await sleep(delays[attempt]); continue; } // network blip
+      throw lastErr;
+    }
+  }
+  throw lastErr;
+}
+
+async function parseAndRoute(raw, group){
+  const shape = group==="human"
+    ? `{
+  "event": "the specific scene or moment — where, what, who, flat not dramatized, first person",
+  "cost": "what it took or is taking — time, sleep, money, a piece of self, first person",
+  "need": "what he needs his daughter or the reader to know, first person",
+  "under": "the part he'd normally keep — rage, fear, apology underneath, first person"
+}`
+    : group==="editorial"
+    ? `{
+  "subject": "the tool, pattern, moment, or system — named specifically, first person",
+  "lived": "what he actually did or saw with it — the first-hand, real-work part, first person",
+  "tension": "where it breaks, the counter-pattern, or what the hype gets wrong, first person",
+  "angle": "the construction-lens angle or the thing only he'd notice, first person"
+}`
+    : `{
+  "event": "the specific scene or thing that happened — names, places, numbers, first person",
+  "built": "what was built, tried, fixed, or worked on, first person",
+  "detail": "one specific sensory, technical, or embarrassing detail, first person",
+  "under": "the subtext — what's not being said directly, first person"
+}`;
+  const { text } = await callAnthropic(
+    "You route raw writing material into structured fields. Return only valid JSON. No markdown fences. No explanation.",
+    `Route this raw content into writing material fields. Return ONLY a JSON object — no markdown, no explanation.\n\nRaw content:\n${raw}\n\nReturn exactly this shape:\n${shape}\n\nRules: first person throughout, preserve raw voice and specific details, empty string "" if a category has no content. Never invent content not present in the raw input. JSON only.`,
+    MAX_TOKENS.parse
+  );
+  const cleaned = text.replace(/^```json\s*/i,"").replace(/^```\s*/,"").replace(/```$/,"").trim();
+  return JSON.parse(cleaned);
+}
+
+async function generate(post, seriesTitle, f, fmt, group, voiceNote){
+  const careerFields = `${f.event?`RAW EVENT:\n${f.event}\n`:""}${f.built?`\nWHAT THEY BUILT:\n${f.built}\n`:""}${f.detail?`\nTHE DETAIL THAT STICKS:\n${f.detail}\n`:""}${f.under?`\nSUBTEXT (tone only, don't quote directly):\n${f.under}\n`:""}`;
+  const humanFields = `${f.event?`THE MOMENT:\n${f.event}\n`:""}${f.cost?`\nWHAT IT COST:\n${f.cost}\n`:""}${f.need?`\nWHAT HE NEEDS THEM TO KNOW:\n${f.need}\n`:""}${f.under?`\nTHE PART HE'D NORMALLY KEEP (tone only, handle with care, don't sensationalize):\n${f.under}\n`:""}`;
+  const editorialFields = `${f.subject?`SUBJECT:\n${f.subject}\n`:""}${f.lived?`\nFIRST-HAND / WHAT HE ACTUALLY DID:\n${f.lived}\n`:""}${f.tension?`\nWHERE IT BREAKS / THE COUNTER-PATTERN:\n${f.tension}\n`:""}${f.angle?`\nCONSTRUCTION-LENS ANGLE:\n${f.angle}\n`:""}`;
+  const fields = group==="human" ? humanFields : group==="editorial" ? editorialFields : careerFields;
+  const voiceBlock = voiceNote ? `VOICE FOR THIS SERIES (layer on top of the base voice, do not override the hard rules):\n${voiceNote}\n\n` : "";
+  const content = `${voiceBlock}Series: "${seriesTitle}"\nPost: "${post.title}"\nAngle: ${post.angle}\n\n${fields}\nFORMAT: ${FMT_INSTR[fmt]}\n\nWrite it now. No preamble.`;
+  return callAnthropic(VP, content, MAX_TOKENS[fmt]||1500);
+}
+
+/* ============================================================
+   UI HELPERS
+   ============================================================ */
+function Icon({d, sz=14, style={}}){
+  // minimal inline SVG icon set (no external icon font dependency)
+  const paths = {
+    chevron:"M6 9l6 6 6-6",
+    chevronUp:"M18 15l-6-6-6 6",
+    check:"M20 6L9 17l-5-5",
+    copy:"M9 9h10v10H9zM5 15H4V5h10v1",
+    arrow:"M5 12h14M13 6l6 6-6 6",
+    refresh:"M21 12a9 9 0 11-3-6.7L21 8M21 3v5h-5",
+    spinner:"M21 12a9 9 0 11-6.2-8.5",
+    alert:"M12 9v4M12 17h.01M10.3 3.9L2 18a2 2 0 001.7 3h16.6a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z",
+    shield:"M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z",
+    lock:"M5 11h14v10H5zM8 11V7a4 4 0 018 0v4",
+    mic:"M12 2a3 3 0 00-3 3v6a3 3 0 006 0V5a3 3 0 00-3-3zM5 10a7 7 0 0014 0M12 19v3",
+    save:"M19 21H5V3h11l3 3zM7 3v6h8M7 13h10v8H7z",
+    upload:"M12 16V4M7 9l5-5 5 5M5 20h14",
+    dot:"M12 12m-3 0a3 3 0 106 0a3 3 0 10-6 0"
+  };
+  return h("svg",{width:sz,height:sz,viewBox:"0 0 24 24",fill:"none",stroke:"currentColor",strokeWidth:2,strokeLinecap:"round",strokeLinejoin:"round","aria-hidden":"true",style},
+    h("path",{d:paths[d]||""}));
+}
+
+/* ============================================================
+   APP
+   ============================================================ */
+function App(){
+  const [tab,setTab] = useState("career");
+  const [openS,setOpenS] = useState(null);
+  const [openP,setOpenP] = useState(null);
+  const [forms,setForms] = useState({});
+  const [outputs,setOutputs] = useState({});     // pKey -> [{text, fmt, truncated, ts}]
+  const [shown,setShown] = useState({});         // pKey -> index into outputs[pKey]
+  const [loads,setLoads] = useState({});
+  const [errs,setErrs] = useState({});
+  const [pLoads,setPLoads] = useState({});
+  const [pErrs,setPErrs] = useState({});
+  const [copied,setCopied] = useState(null);
+  const [showVoice,setShowVoice] = useState(false);
+  const [ack,setAck] = useState({});
+  const [status,setStatus] = useState("");
+  const fileRef = useRef(null);
+
+  const accent = tab==="human" ? "var(--brass)" : "var(--build)";
+  const pk = (s,p)=>`${s}~${p}`;
+  const fm = (s,p)=>forms[pk(s,p)]||{};
+  const upd = (s,p,k,v)=>setForms(f=>({...f,[pk(s,p)]:{...(f[pk(s,p)]||{}),[k]:v}}));
+  const updMany = (s,p,obj)=>setForms(f=>({...f,[pk(s,p)]:{...(f[pk(s,p)]||{}),...obj}}));
+
+  const doParse = async (series,pi)=>{
+    const k=pk(series.id,pi), f=fm(series.id,pi), raw=f.rawPaste?.trim();
+    if(!raw){ setPErrs(e=>({...e,[k]:"Paste something first."})); return; }
+    setPErrs(e=>({...e,[k]:null})); setPLoads(l=>({...l,[k]:true})); setStatus("Routing your raw material…");
+    try{
+      const routed = await parseAndRoute(raw, series.group);
+      const merge = series.group==="human"
+        ? {event:routed.event||f.event||"",cost:routed.cost||f.cost||"",need:routed.need||f.need||"",under:routed.under||f.under||"",mode:"fields"}
+        : {event:routed.event||f.event||"",built:routed.built||f.built||"",detail:routed.detail||f.detail||"",under:routed.under||f.under||"",mode:"fields"};
+      updMany(series.id,pi,merge);
+      setStatus("Routed. Review the fields, then generate.");
+    }catch(e){ setPErrs(er=>({...er,[k]:`Couldn't route that: ${e.message}`})); setStatus("Routing failed."); }
+    finally{ setPLoads(l=>({...l,[k]:false})); }
+  };
+
+  const run = async (series,pi)=>{
+    const k=pk(series.id,pi), f=fm(series.id,pi), fmt=f.format||series.defaultFormat||"blog";
+    const any = f.event?.trim()||f.built?.trim()||f.cost?.trim()||f.need?.trim()||f.detail?.trim();
+    if(!any){ setErrs(e=>({...e,[k]:"Fill in at least one field, or paste raw material and route it first."})); return; }
+    setErrs(e=>({...e,[k]:null})); setLoads(l=>({...l,[k]:true})); setStatus("Generating in your voice…");
+    try{
+      const out = await generate(series.posts[pi], series.title, f, fmt, series.group, series.voiceNote);
+      setOutputs(o=>{
+        const prev = o[k]||[];
+        const next = [...prev, {text:out.text, fmt, truncated:out.truncated, ts:Date.now()}].slice(-HISTORY_CAP);
+        setShown(s=>({...s,[k]:next.length-1}));
+        return {...o,[k]:next};
+      });
+      setStatus(out.truncated ? "Done — but the response hit the length cap and may be cut off." : "Done.");
+    }catch(e){ setErrs(er=>({...er,[k]:e.message})); setStatus("Generation failed."); }
+    finally{ setLoads(l=>({...l,[k]:false})); }
+  };
+
+  const doCopy = (k,txt)=>{ navigator.clipboard?.writeText(txt).catch(()=>{}); setCopied(k); setStatus("Copied to clipboard."); setTimeout(()=>setCopied(null),2200); };
+
+  const exportState = ()=>{
+    try{
+      const blob = new Blob([JSON.stringify({version:4, savedAt:new Date().toISOString(), forms, outputs}, null, 2)],{type:"application/json"});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = `voice-generator-progress-${new Date().toISOString().slice(0,10)}.json`;
+      document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+      setStatus("Progress exported.");
+    }catch(e){ setStatus("Export failed: "+e.message); }
+  };
+  const onImportFile = (e)=>{
+    const file = e.target.files?.[0]; if(!file) return;
+    const reader = new FileReader();
+    reader.onload = ()=>{
+      try{
+        const data = JSON.parse(reader.result);
+        if(data.forms) setForms(data.forms);
+        if(data.outputs){
+          setOutputs(data.outputs);
+          const idx = {}; Object.keys(data.outputs).forEach(k=>{ idx[k]=Math.max(0,(data.outputs[k]?.length||1)-1); });
+          setShown(idx);
+        }
+        setStatus("Progress restored.");
+      }catch(err){ setStatus("That file didn't parse as saved progress."); }
+      finally{ if(fileRef.current) fileRef.current.value=""; }
+    };
+    reader.readAsText(file);
+  };
+
+  const visible = SERIES.filter(s=>s.group===tab);
+  const careerCount = SERIES.filter(s=>s.group==="career").reduce((a,s)=>a+s.posts.length,0);
+  const humanCount = SERIES.filter(s=>s.group==="human").reduce((a,s)=>a+s.posts.length,0);
+  const editorialCount = SERIES.filter(s=>s.group==="editorial").reduce((a,s)=>a+s.posts.length,0);
+
+  const tabBtn = (id,label,sub,col)=>h("button",{
+    onClick:()=>{ setTab(id); setOpenS(null); setOpenP(null); },
+    style:{flex:1,padding:"11px 14px",textAlign:"left",borderRadius:"var(--r-sm)",cursor:"pointer",
+      border:`1px solid ${tab===id?col:"var(--line)"}`,
+      background:tab===id?(col==="var(--brass)"?"rgba(200,168,106,0.08)":col==="var(--build)"?"rgba(124,140,248,0.08)":"rgba(91,168,160,0.10)"):"transparent",
+      transition:"border-color .15s, background .15s"}
+  },
+    h("span",{style:{display:"block",fontFamily:"var(--serif)",fontSize:16,fontWeight:500,color:tab===id?col:"var(--text)"}},label),
+    h("span",{className:"mono",style:{display:"block",fontSize:9.5,color:"var(--text-3)",marginTop:3}},sub)
+  );
+
+  const fmtTab = (active,label,onClick,col)=>h("button",{onClick,
+    style:{padding:"4px 9px",fontSize:11,borderRadius:"var(--r-xs)",cursor:"pointer",
+      border:`1px solid ${active?col:"var(--line)"}`,
+      background:active?(col==="var(--brass)"?"rgba(200,168,106,0.1)":"rgba(124,140,248,0.1)"):"transparent",
+      color:active?col:"var(--text-2)",fontWeight:active?500:400}},label);
+
+  const modeTab = (active,label,onClick,col)=>h("button",{onClick,
+    style:{padding:"4px 11px",fontSize:12,borderRadius:"var(--r-xs)",cursor:"pointer",
+      border:`1px solid ${active?col:"var(--line)"}`,
+      background:active?(col==="var(--brass)"?"rgba(200,168,106,0.1)":"rgba(124,140,248,0.1)"):"transparent",
+      color:active?col:"var(--text-2)",fontWeight:active?500:400}},label);
+
+  return h(Fragment,null,
+    h("div",{"aria-live":"polite",className:"sr-only"},status),
+
+    // Header
+    h("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:14,marginBottom:6}},
+      h("div",null,
+        h("h1",{style:{fontSize:27,fontWeight:600,letterSpacing:"-0.02em"}},"Voice Generator"),
+        h("p",{style:{margin:"5px 0 0",color:"var(--text-2)",fontSize:14}},"Raw material in. Posts in your voice out. Three worlds, ",careerCount+humanCount+editorialCount," prompts.")
+      ),
+      h("button",{onClick:()=>setShowVoice(v=>!v),
+        style:{fontSize:12,padding:"6px 11px",whiteSpace:"nowrap",borderRadius:"var(--r-xs)",border:"1px solid var(--line)",background:"var(--ink-raised)",color:"var(--text-2)"}},
+        h(Icon,{d:"mic",sz:13,style:{marginRight:5,verticalAlign:"-2px"}}),
+        showVoice?"Hide voice rules":"Voice rules"
+      )
+    ),
+
+    // Persistence bar
+    h("div",{style:{display:"flex",alignItems:"center",gap:8,margin:"14px 0 18px",flexWrap:"wrap"}},
+      h("span",{className:"mono",style:{fontSize:10,color:"var(--text-3)"}},"Work lives in this tab only —"),
+      h("button",{onClick:exportState,
+        style:{fontSize:12,padding:"5px 10px",borderRadius:"var(--r-xs)",border:"1px solid var(--line)",background:"var(--ink-raised)",color:"var(--text-2)"}},
+        h(Icon,{d:"save",sz:12,style:{marginRight:5,verticalAlign:"-2px"}}),"Export progress"),
+      h("button",{onClick:()=>fileRef.current?.click(),
+        style:{fontSize:12,padding:"5px 10px",borderRadius:"var(--r-xs)",border:"1px solid var(--line)",background:"var(--ink-raised)",color:"var(--text-2)"}},
+        h(Icon,{d:"upload",sz:12,style:{marginRight:5,verticalAlign:"-2px"}}),"Restore"),
+      h("input",{ref:fileRef,type:"file",accept:"application/json,.json",onChange:onImportFile,style:{display:"none"}})
+    ),
+
+    // Voice rules
+    showVoice&&h("div",{className:"fade",style:{marginBottom:18,background:"var(--ink-raised)",border:"1px solid var(--line)",borderRadius:"var(--r)",padding:"15px 17px"}},
+      h("p",{className:"mono",style:{margin:"0 0 11px",fontSize:10.5,color:"var(--text-3)"}},"What the generator enforces"),
+      h("ul",{style:{margin:0,paddingLeft:18,fontSize:13.5,lineHeight:1.85,color:"var(--text-2)"}},
+        ["First person. Specific nouns — O'Tool's, not 'a bar.'",
+         "Construction over Recovery: build forward. Never recovery, healing, redemption.",
+         "No epiphanies. No 'and that's when I realized.' Incremental recalibrations only.",
+         "Interior states physical and precise: 'my insides are decaying,' not 'I'm stressed.'",
+         "Lanes bleed together — work, personal, builds. Don't clean them up.",
+         "Heavy things dropped quietly mid-sentence, then moved past. Not expanded.",
+         "Human side: apology and fury coexist. Defensive comedy as armor. Tenderness allowed.",
+         "Content integrity: never invents numbers, names, or events not in your input.",
+         "Zero LinkedIn inspiration energy. If a hustle account could screenshot it, it's rewritten."
+        ].map((r,i)=>h("li",{key:i},r))
+      )
+    ),
+
+    // World tabs
+    h("div",{style:{display:"flex",gap:8,marginBottom:18}},
+      tabBtn("career","The build","7 series · career, tools, business","var(--build)"),
+      tabBtn("human","The human side","3 series · dad, letters, the past","var(--brass)"),
+      tabBtn("editorial","Publishing","5 series · Load-Bearing, essays, the arc","#5BA8A0")
+    ),
+
+    // Cooldown notice (human only)
+    tab==="human"&&h("div",{style:{marginBottom:14,background:"rgba(200,168,106,0.05)",border:"1px solid rgba(200,168,106,0.22)",borderRadius:"var(--r)",padding:"12px 14px"}},
+      h("p",{style:{margin:0,fontSize:12.5,color:"var(--text-2)",lineHeight:1.6}},
+        h(Icon,{d:"shield",sz:14,style:{marginRight:7,verticalAlign:"-2px",color:"var(--brass)"}}),
+        "This material is heavier. The two shielded series ask you to confirm you'll read drafts cold the next day — not publish the night before court. Raw is good for the page. Raw straight to publish is how you write something you can't take back."
+      )
+    ),
+
+    // Series list
+    h("div",{style:{display:"flex",flexDirection:"column",gap:7}},
+      visible.map(s=>{
+        const openSeries = openS===s.id;
+        const done = s.posts.filter((_,pi)=>(outputs[pk(s.id,pi)]||[]).length).length;
+        const FORMATS = s.group==="human"?FORMATS_HUMAN:s.group==="editorial"?FORMATS_EDITORIAL:FORMATS_CAREER;
+        const FIELDS = s.group==="human"?HUMAN_FIELDS:s.group==="editorial"?EDITORIAL_FIELDS:CAREER_FIELDS;
+        return h("div",{key:s.id,style:{background:"var(--ink-raised)",border:`1px solid ${openSeries?s.color+"66":"var(--line)"}`,borderRadius:"var(--r)",overflow:"hidden",transition:"border-color .15s"}},
+          h("button",{onClick:()=>{ setOpenS(id=>id===s.id?null:s.id); setOpenP(null); },"aria-expanded":openSeries,
+            style:{width:"100%",padding:"14px 16px",background:"transparent",border:"none",display:"flex",alignItems:"center",gap:11,textAlign:"left"}},
+            h("span",{style:{width:9,height:9,borderRadius:"50%",background:s.color,flexShrink:0}}),
+            h("span",{style:{flex:1,minWidth:0}},
+              h("span",{style:{display:"flex",alignItems:"center",gap:7}},
+                h("span",{style:{fontFamily:"var(--serif)",fontSize:16,fontWeight:500,color:"var(--text)"}},s.title),
+                s.cooldown&&h("span",{title:"cooldown protected",style:{color:"var(--brass)",display:"inline-flex"}},h(Icon,{d:"shield",sz:12}))
+              ),
+              h("span",{className:"mono",style:{display:"block",fontSize:10,color:"var(--text-3)",marginTop:3}},s.sub)
+            ),
+            h("span",{className:"mono",style:{fontSize:10,color:"var(--text-3)",background:"var(--ink-2)",padding:"3px 8px",borderRadius:20,flexShrink:0}},
+              done>0?`${done}/${s.posts.length}`:`${s.posts.length}`),
+            h(Icon,{d:openSeries?"chevronUp":"chevron",sz:15,style:{color:"var(--text-3)",flexShrink:0}})
+          ),
+          openSeries&&h("div",{style:{borderTop:"1px solid var(--line)"}},
+            s.posts.map((post,pi)=>{
+              const k=pk(s.id,pi), open=openP===k, f=fm(s.id,pi);
+              const hist=outputs[k]||[], idx=shown[k]??(hist.length-1), out=hist[idx];
+              const isLoad=loads[k], err=errs[k], fmt=f.format||s.defaultFormat||"blog", mode=f.mode||"fields";
+              const isParse=pLoads[k], pErr=pErrs[k];
+              const filled=f.event?.trim()||f.built?.trim()||f.cost?.trim()||f.need?.trim()||f.detail?.trim();
+              const needAck=s.cooldown&&!ack[k];
+              return h("div",{key:pi,style:{borderBottom:pi<s.posts.length-1?"1px solid var(--line-soft)":"none"}},
+                h("button",{onClick:()=>setOpenP(p=>p===k?null:k),"aria-expanded":open,
+                  style:{width:"100%",padding:"10px 16px 10px 30px",background:open?s.color+"0E":"transparent",border:"none",display:"flex",alignItems:"center",gap:11,textAlign:"left"}},
+                  h("span",{style:{width:19,height:19,borderRadius:5,flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",fontSize:9.5,fontWeight:500,
+                    border:`1px solid ${hist.length?s.color+"99":"var(--line)"}`,background:hist.length?s.color+"1A":"transparent",color:hist.length?s.color:"var(--text-3)"}},
+                    hist.length?h(Icon,{d:"check",sz:11}):pi+1),
+                  h("span",{style:{flex:1,minWidth:0}},
+                    h("span",{style:{display:"block",fontSize:13.5,color:open?"var(--text)":"var(--text-2)"}},post.title),
+                    h("span",{style:{display:"block",fontSize:11,color:"var(--text-3)",marginTop:1}},post.angle)
+                  ),
+                  filled&&!hist.length&&h("span",{className:"mono",style:{fontSize:9,color:s.color,background:s.color+"14",padding:"2px 6px",borderRadius:10,flexShrink:0}},"filled"),
+                  hist.length>1&&h("span",{className:"mono",style:{fontSize:9,color:"var(--text-3)",flexShrink:0}},`${hist.length} versions`),
+                  h(Icon,{d:open?"chevronUp":"chevron",sz:13,style:{color:"var(--text-3)",flexShrink:0}})
+                ),
+                open&&h("div",{style:{padding:"8px 16px 18px 30px"}},
+
+                  // mode + format row
+                  h("div",{style:{display:"flex",alignItems:"center",justifyContent:"space-between",gap:8,marginBottom:13,flexWrap:"wrap"}},
+                    h("div",{style:{display:"flex",gap:5}},
+                      modeTab(mode==="fields","Fields",()=>upd(s.id,pi,"mode","fields"),s.color),
+                      modeTab(mode==="paste","Smart paste",()=>upd(s.id,pi,"mode","paste"),s.color)
+                    ),
+                    h("div",{style:{display:"flex",gap:5,flexWrap:"wrap"}},
+                      FORMATS.map(fo=>h("span",{key:fo.id,title:fo.desc},fmtTab(fmt===fo.id,fo.label,()=>upd(s.id,pi,"format",fo.id),s.color)))
+                    )
+                  ),
+
+                  // smart paste
+                  mode==="paste"&&h("div",null,
+                    h("label",{style:{display:"block",fontSize:12.5,color:"var(--text-2)",marginBottom:4,fontWeight:500}},"Paste anything"),
+                    h("p",{style:{margin:"0 0 8px",fontSize:12,color:"var(--text-3)",lineHeight:1.5}},
+                      s.group==="human"
+                        ? "A voice memo, a journal entry, a 2am rant, something you wrote to nobody. Don't organize it — it routes into the moment / what it cost / what you need them to know."
+                        : s.group==="editorial"
+                        ? "Raw notes on a tool, a session transcript, a Slack rant about what broke, a half-formed observation. Don't organize it — it routes into subject / what you did / where it breaks."
+                        : "Voice memo transcript, brain dump, chat logs, raw notes. Don't organize it — it routes into the fields."),
+                    h("textarea",{value:f.rawPaste||"",onChange:e=>upd(s.id,pi,"rawPaste",e.target.value),placeholder:"Paste raw material here…",rows:6,className:"scroll",
+                      style:{width:"100%",background:"var(--ink-2)",border:"1px solid var(--line)",borderRadius:"var(--r-sm)",padding:"9px 11px",color:"var(--text)",fontSize:13.5,lineHeight:1.6,resize:"vertical",marginBottom:8}}),
+                    pErr&&h("p",{style:{margin:"0 0 8px",fontSize:12,color:"var(--danger)"}},h(Icon,{d:"alert",sz:13,style:{marginRight:4,verticalAlign:"-2px"}}),pErr),
+                    h("button",{onClick:()=>doParse(s,pi),disabled:isParse,
+                      style:{padding:"8px 16px",borderRadius:"var(--r-sm)",border:"1px solid transparent",fontSize:13,fontWeight:500,
+                        background:isParse?"var(--ink-2)":s.color,color:isParse?"var(--text-3)":"#1a1410",cursor:isParse?"default":"pointer"}},
+                      isParse?h(Fragment,null,h("span",{className:"spin",style:{display:"inline-flex",marginRight:6,verticalAlign:"-2px"}},h(Icon,{d:"spinner",sz:13})),"Routing…")
+                            :h(Fragment,null,"Parse & route ",h(Icon,{d:"arrow",sz:13,style:{marginLeft:4,verticalAlign:"-2px"}}))),
+                    filled&&h("p",{style:{margin:"8px 0 0",fontSize:11,color:s.color}},h(Icon,{d:"check",sz:12,style:{marginRight:4,verticalAlign:"-2px"}}),"Fields populated — switch to Fields to review before generating.")
+                  ),
+
+                  // fields
+                  mode==="fields"&&h("div",null,
+                    FIELDS.map(fl=>h("div",{key:fl.key,style:{marginBottom:11}},
+                      h("label",{style:{display:"block",fontSize:12.5,color:"var(--text-2)",marginBottom:4,fontWeight:500}},
+                        fl.label,fl.opt&&h("span",{style:{fontWeight:400,color:"var(--text-3)",marginLeft:4}},"— optional")),
+                      h("textarea",{value:f[fl.key]||"",onChange:e=>upd(s.id,pi,fl.key,e.target.value),placeholder:fl.ph,rows:fl.rows,className:"scroll",
+                        style:{width:"100%",background:"var(--ink-2)",border:`1px solid ${f[fl.key]?.trim()?"var(--line)":"var(--line-soft)"}`,borderRadius:"var(--r-sm)",padding:"9px 11px",color:"var(--text)",fontSize:13.5,lineHeight:1.6,resize:"vertical"}})
+                    ))
+                  ),
+
+                  // cooldown gate
+                  needAck&&h("div",{style:{marginTop:8,background:"rgba(200,168,106,0.05)",border:"1px solid rgba(200,168,106,0.22)",borderRadius:"var(--r-sm)",padding:"11px 13px"}},
+                    h("p",{style:{margin:"0 0 8px",fontSize:12.5,color:"var(--text-2)",lineHeight:1.55}},
+                      h(Icon,{d:"shield",sz:13,style:{marginRight:6,verticalAlign:"-2px",color:"var(--brass)"}}),
+                      "Cooldown rule for this series: generate freely, but don't publish today. Read it cold tomorrow, not in the middle of a court week."),
+                    h("button",{onClick:()=>setAck(a=>({...a,[k]:true})),
+                      style:{padding:"6px 12px",fontSize:12,borderRadius:"var(--r-xs)",border:"1px solid rgba(200,168,106,0.4)",background:"transparent",color:"var(--brass)",fontWeight:500}},
+                      "I'll hold it for a day — unlock generate")
+                  ),
+
+                  err&&h("p",{style:{margin:"10px 0 0",fontSize:12,color:"var(--danger)"}},h(Icon,{d:"alert",sz:13,style:{marginRight:4,verticalAlign:"-2px"}}),err),
+
+                  // generate
+                  h("div",{style:{marginTop:12}},
+                    h("button",{onClick:()=>run(s,pi),disabled:isLoad||needAck,
+                      style:{padding:"8px 16px",borderRadius:"var(--r-sm)",fontSize:13,fontWeight:500,
+                        border:`1px solid ${(isLoad||needAck)?"var(--line)":"transparent"}`,
+                        background:(isLoad||needAck)?"var(--ink-2)":s.color,color:(isLoad||needAck)?"var(--text-3)":"#1a1410",
+                        cursor:(isLoad||needAck)?"default":"pointer"}},
+                      isLoad?h(Fragment,null,h("span",{className:"spin",style:{display:"inline-flex",marginRight:6,verticalAlign:"-2px"}},h(Icon,{d:"spinner",sz:13})),"Generating…")
+                      :needAck?h(Fragment,null,h(Icon,{d:"lock",sz:13,style:{marginRight:6,verticalAlign:"-2px"}}),"Acknowledge cooldown above")
+                      :hist.length?h(Fragment,null,h(Icon,{d:"refresh",sz:13,style:{marginRight:6,verticalAlign:"-2px"}}),"Generate another")
+                      :h(Fragment,null,"Generate ",h(Icon,{d:"arrow",sz:13,style:{marginLeft:4,verticalAlign:"-2px"}}))
+                    )
+                  ),
+
+                  // output
+                  out&&h("div",{className:"fade",style:{marginTop:14,border:"1px solid var(--line)",borderRadius:"var(--r)",overflow:"hidden"}},
+                    h("div",{style:{padding:"8px 12px",borderBottom:"1px solid var(--line)",display:"flex",justifyContent:"space-between",alignItems:"center",background:"var(--ink-2)",gap:8,flexWrap:"wrap"}},
+                      h("div",{style:{display:"flex",alignItems:"center",gap:8}},
+                        h("span",{className:"mono",style:{fontSize:10,color:"var(--text-3)"}},(FORMATS.find(fo=>fo.id===out.fmt)||{}).label||out.fmt),
+                        hist.length>1&&h("span",{style:{display:"inline-flex",alignItems:"center",gap:4}},
+                          h("button",{onClick:()=>setShown(sm=>({...sm,[k]:Math.max(0,idx-1)})),disabled:idx<=0,
+                            style:{padding:"1px 6px",fontSize:11,borderRadius:4,border:"1px solid var(--line)",background:"transparent",color:idx<=0?"var(--text-3)":"var(--text-2)",cursor:idx<=0?"default":"pointer"}},"‹"),
+                          h("span",{className:"mono",style:{fontSize:10,color:"var(--text-3)"}},`${idx+1}/${hist.length}`),
+                          h("button",{onClick:()=>setShown(sm=>({...sm,[k]:Math.min(hist.length-1,idx+1)})),disabled:idx>=hist.length-1,
+                            style:{padding:"1px 6px",fontSize:11,borderRadius:4,border:"1px solid var(--line)",background:"transparent",color:idx>=hist.length-1?"var(--text-3)":"var(--text-2)",cursor:idx>=hist.length-1?"default":"pointer"}},"›")
+                        )
+                      ),
+                      h("button",{onClick:()=>doCopy(k,out.text),
+                        style:{padding:"4px 9px",fontSize:11,borderRadius:"var(--r-xs)",border:`1px solid ${copied===k?s.color+"99":"var(--line)"}`,background:"transparent",color:copied===k?s.color:"var(--text-2)"}},
+                        copied===k?h(Fragment,null,h(Icon,{d:"check",sz:12,style:{marginRight:4,verticalAlign:"-2px"}}),"Copied")
+                                 :h(Fragment,null,h(Icon,{d:"copy",sz:12,style:{marginRight:4,verticalAlign:"-2px"}}),"Copy"))
+                    ),
+                    out.truncated&&h("div",{style:{padding:"7px 12px",borderBottom:"1px solid var(--line)",background:"rgba(224,137,122,0.07)",fontSize:11.5,color:"var(--danger)"}},
+                      h(Icon,{d:"alert",sz:12,style:{marginRight:5,verticalAlign:"-2px"}}),"This hit the length cap and may be cut off mid-thought. Generate another, or shorten the format."),
+                    h("div",{className:"post-scroll scroll",style:{padding:"15px",color:"var(--text)",fontSize:14,lineHeight:1.85,whiteSpace:"pre-wrap",maxHeight:460,overflowY:"auto"}},out.text)
+                  )
+                )
+              );
+            })
+          )
+        );
+      })
+    ),
+
+    h("p",{className:"mono",style:{marginTop:26,textAlign:"center",color:"var(--text-3)",fontSize:10}},
+      `${careerCount+humanCount+editorialCount} prompts across ${SERIES.length} series · showing ${tab==="career"?"the build":tab==="human"?"the human side":"publishing"}`)
+  );
+}
+
+createRoot(document.getElementById("root")).render(h(App));
+</script>
+</body>
+</html>

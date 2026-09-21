@@ -1,0 +1,186 @@
+{
+  "name": "Performance Analytics Dashboard (Executive AI Insights)",
+  "description": "Weekly executive dashboard with AI-generated insights, trends, and recommendations",
+  "trigger": {
+    "type": "schedule",
+    "config": {
+      "frequency": "weekly",
+      "day": "Monday",
+      "time": "07:00 CT",
+      "timezone": "America/Chicago"
+    }
+  },
+  "steps": [
+    {
+      "step": 1,
+      "action": "Aggregate Weekly Metrics",
+      "app": "Supabase",
+      "config": {
+        "operation": "rpc",
+        "function_name": "get_weekly_metrics",
+        "params": {
+          "start_date": "{{7_days_ago}}",
+          "end_date": "{{today}}"
+        }
+      }
+    },
+    {
+      "step": 2,
+      "action": "Calculate KPIs",
+      "app": "Code by Zapier",
+      "code": "const metrics = inputData;\nconst prevMetrics = inputData.previous_week || {};\n\n// Calculate week-over-week changes\nconst calculateChange = (current, previous) => {\n  if (!previous || previous === 0) return { value: current, change: 0, trend: 'new' };\n  const change = ((current - previous) / previous) * 100;\n  const trend = change > 0 ? 'up' : (change < 0 ? 'down' : 'flat');\n  return { value: current, change: change.toFixed(1), trend };\n};\n\nconst kpis = {\n  sales: {\n    new_deals: calculateChange(metrics.deals_closed, prevMetrics.deals_closed),\n    pipeline_value: calculateChange(metrics.pipeline_value, prevMetrics.pipeline_value),\n    avg_deal_size: calculateChange(metrics.avg_deal_size, prevMetrics.avg_deal_size),\n    win_rate: calculateChange(metrics.win_rate, prevMetrics.win_rate)\n  },\n  customer_success: {\n    active_clients: calculateChange(metrics.active_clients, prevMetrics.active_clients),\n    avg_health_score: calculateChange(metrics.avg_health_score, prevMetrics.avg_health_score),\n    tickets_resolved: calculateChange(metrics.tickets_resolved, prevMetrics.tickets_resolved),\n    avg_resolution_hours: calculateChange(metrics.avg_resolution_hours, prevMetrics.avg_resolution_hours)\n  },\n  operations: {\n    automation_runs: calculateChange(metrics.automation_runs, prevMetrics.automation_runs),\n    automation_success_rate: calculateChange(metrics.automation_success_rate, prevMetrics.automation_success_rate),\n    api_costs: calculateChange(metrics.api_costs, prevMetrics.api_costs),\n    infra_costs: calculateChange(metrics.infra_costs, prevMetrics.infra_costs)\n  },\n  product: {\n    active_users: calculateChange(metrics.active_users, prevMetrics.active_users),\n    feature_adoption: calculateChange(metrics.feature_adoption, prevMetrics.feature_adoption),\n    bugs_reported: calculateChange(metrics.bugs_reported, prevMetrics.bugs_reported),\n    deployment_frequency: calculateChange(metrics.deployments, prevMetrics.deployments)\n  }\n};\n\nreturn {\n  kpis,\n  week_start: metrics.week_start,\n  week_end: metrics.week_end,\n  highlights: [\n    kpis.sales.new_deals.trend === 'up' ? `Sales up ${kpis.sales.new_deals.change}%` : null,\n    kpis.customer_success.avg_health_score.trend === 'down' ? `Health score declining ${kpis.customer_success.avg_health_score.change}%` : null,\n    kpis.operations.automation_success_rate.value > 95 ? 'Automation excellence: 95%+ success' : null\n  ].filter(Boolean)\n};"
+    },
+    {
+      "step": 3,
+      "action": "Generate Executive Insights",
+      "app": "Anthropic Claude",
+      "config": {
+        "model": "claude-sonnet-4-5-20250929",
+        "max_tokens": 2500,
+        "temperature": 0.4,
+        "system_prompt": "You are an executive business analyst for INTINC.com. Generate concise, actionable insights from performance data.",
+        "messages": [
+          {
+            "role": "user",
+            "content": "Generate weekly executive insights for INTINC.com:\n\n**Sales Performance:**\n- New Deals Closed: {{step_2.kpis.sales.new_deals.value}} ({{step_2.kpis.sales.new_deals.change}}%)\n- Pipeline Value: ${{step_2.kpis.sales.pipeline_value.value}} ({{step_2.kpis.sales.pipeline_value.change}}%)\n- Avg Deal Size: ${{step_2.kpis.sales.avg_deal_size.value}} ({{step_2.kpis.sales.avg_deal_size.change}}%)\n- Win Rate: {{step_2.kpis.sales.win_rate.value}}% ({{step_2.kpis.sales.win_rate.change}}%)\n\n**Customer Success:**\n- Active Clients: {{step_2.kpis.customer_success.active_clients.value}} ({{step_2.kpis.customer_success.active_clients.change}}%)\n- Avg Health Score: {{step_2.kpis.customer_success.avg_health_score.value}}/100 ({{step_2.kpis.customer_success.avg_health_score.change}}%)\n- Tickets Resolved: {{step_2.kpis.customer_success.tickets_resolved.value}} ({{step_2.kpis.customer_success.tickets_resolved.change}}%)\n- Avg Resolution Time: {{step_2.kpis.customer_success.avg_resolution_hours.value}}h ({{step_2.kpis.customer_success.avg_resolution_hours.change}}%)\n\n**Operations:**\n- Automation Runs: {{step_2.kpis.operations.automation_runs.value}} ({{step_2.kpis.operations.automation_runs.change}}%)\n- Success Rate: {{step_2.kpis.operations.automation_success_rate.value}}% ({{step_2.kpis.operations.automation_success_rate.change}}%)\n- API Costs: ${{step_2.kpis.operations.api_costs.value}} ({{step_2.kpis.operations.api_costs.change}}%)\n- Infra Costs: ${{step_2.kpis.operations.infra_costs.value}} ({{step_2.kpis.operations.infra_costs.change}}%)\n\n**Product:**\n- Active Users: {{step_2.kpis.product.active_users.value}} ({{step_2.kpis.product.active_users.change}}%)\n- Feature Adoption: {{step_2.kpis.product.feature_adoption.value}}% ({{step_2.kpis.product.feature_adoption.change}}%)\n- Bugs Reported: {{step_2.kpis.product.bugs_reported.value}} ({{step_2.kpis.product.bugs_reported.change}}%)\n- Deployments: {{step_2.kpis.product.deployment_frequency.value}} ({{step_2.kpis.product.deployment_frequency.change}}%)\n\nProvide:\n1. **Executive Summary** (3 sentences: week's performance, key wins, urgent issues)\n2. **Top 3 Wins** (bullet points with metrics)\n3. **Top 3 Concerns** (bullet points with impact analysis)\n4. **Strategic Recommendations** (3-5 actionable items for leadership)\n5. **Week-over-Week Trend Analysis** (what's improving/declining and why)\n6. **Resource Allocation Suggestions** (where to invest/optimize)"
+          }
+        ]
+      }
+    },
+    {
+      "step": 4,
+      "action": "Generate Visualizations",
+      "app": "Code by Zapier",
+      "code": "const kpis = inputData.kpis;\n\n// Generate Mermaid chart for trends\nconst mermaidChart = `graph LR\n  A[Sales] -->|${kpis.sales.new_deals.trend}| B[${kpis.sales.new_deals.change}%]\n  C[CS] -->|${kpis.customer_success.avg_health_score.trend}| D[${kpis.customer_success.avg_health_score.change}%]\n  E[Ops] -->|${kpis.operations.automation_success_rate.trend}| F[${kpis.operations.automation_success_rate.value}%]\n  G[Product] -->|${kpis.product.active_users.trend}| H[${kpis.product.active_users.change}%]`;\n\n// Generate ASCII chart for quick view\nconst asciiChart = `\nWeekly KPI Trends:\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\nSales Pipeline:     $${kpis.sales.pipeline_value.value.toLocaleString()} ${kpis.sales.pipeline_value.trend === 'up' ? '↗' : '↘'}\nActive Clients:     ${kpis.customer_success.active_clients.value} ${kpis.customer_success.active_clients.trend === 'up' ? '↗' : '↘'}\nHealth Score:       ${kpis.customer_success.avg_health_score.value}/100 ${kpis.customer_success.avg_health_score.trend === 'up' ? '↗' : '↘'}\nAutomation Success: ${kpis.operations.automation_success_rate.value}% ${kpis.operations.automation_success_rate.trend === 'up' ? '↗' : '↘'}\nActive Users:       ${kpis.product.active_users.value} ${kpis.product.active_users.trend === 'up' ? '↗' : '↘'}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;\n\nreturn {\n  mermaid_chart: mermaidChart,\n  ascii_chart: asciiChart\n};"
+    },
+    {
+      "step": 5,
+      "action": "Store Dashboard Data",
+      "app": "Supabase",
+      "config": {
+        "operation": "insert",
+        "table": "weekly_dashboards",
+        "record": {
+          "week_start": "{{step_2.week_start}}",
+          "week_end": "{{step_2.week_end}}",
+          "kpis": "{{step_2.kpis}}",
+          "ai_insights": "{{step_3.response}}",
+          "visualizations": "{{step_4}}",
+          "highlights": "{{step_2.highlights}}",
+          "generated_at": "{{zap.meta.timestamp}}"
+        }
+      }
+    },
+    {
+      "step": 6,
+      "action": "Email Executive Team",
+      "app": "Gmail",
+      "config": {
+        "action": "send_email",
+        "to": "executives@intinc.com",
+        "cc": "kyle@intinc.com",
+        "subject": "📊 Weekly Performance Dashboard - Week of {{format_date(step_2.week_start)}}",
+        "body_html": "<h1>INTINC.com Weekly Performance Dashboard</h1>\n<p><strong>Week:</strong> {{format_date(step_2.week_start)}} - {{format_date(step_2.week_end)}}</p>\n\n<h2>Executive Insights (AI-Generated)</h2>\n<pre style='background:#f5f5f5;padding:20px;border-left:4px solid #0066cc;'>{{step_3.response}}</pre>\n\n<h2>KPI Summary</h2>\n<pre style='font-family:monospace;'>{{step_4.ascii_chart}}</pre>\n\n<h2>Key Highlights</h2>\n<ul>\n{{step_2.highlights}}\n</ul>\n\n<p><a href='https://intinc.com/dashboard/weekly/{{step_5.id}}' style='background:#0066cc;color:white;padding:12px 24px;text-decoration:none;display:inline-block;margin-top:20px;'>View Full Dashboard</a></p>"
+      }
+    },
+    {
+      "step": 7,
+      "action": "Post to Slack #exec-updates",
+      "app": "Slack",
+      "config": {
+        "channel": "#exec-updates",
+        "blocks": [
+          {
+            "type": "header",
+            "text": {
+              "type": "plain_text",
+              "text": "📊 Weekly Performance Dashboard"
+            }
+          },
+          {
+            "type": "section",
+            "text": {
+              "type": "mrkdwn",
+              "text": "*Week of {{format_date(step_2.week_start)}}*"
+            }
+          },
+          {
+            "type": "section",
+            "text": {
+              "type": "mrkdwn",
+              "text": "*Executive Summary:*\n{{truncate(step_3.response, 500)}}..."
+            }
+          },
+          {
+            "type": "section",
+            "text": {
+              "type": "mrkdwn",
+              "text": "```{{step_4.ascii_chart}}```"
+            }
+          },
+          {
+            "type": "actions",
+            "elements": [
+              {
+                "type": "button",
+                "text": {"type": "plain_text", "text": "View Full Report"},
+                "url": "https://intinc.com/dashboard/weekly/{{step_5.id}}",
+                "style": "primary"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "step": 8,
+      "action": "Update Notion Dashboard",
+      "app": "Notion",
+      "config": {
+        "operation": "create_page",
+        "parent_database_id": "{{NOTION_DASHBOARD_DB_ID}}",
+        "properties": {
+          "Name": {"title": [{"text": {"content": "Week {{format_date(step_2.week_start)}}"}}]},
+          "Week Start": {"date": {"start": "{{step_2.week_start}}"}},
+          "Week End": {"date": {"start": "{{step_2.week_end}}"}},
+          "Pipeline Value": {"number": "{{step_2.kpis.sales.pipeline_value.value}}"},
+          "Active Clients": {"number": "{{step_2.kpis.customer_success.active_clients.value}}"},
+          "Avg Health Score": {"number": "{{step_2.kpis.customer_success.avg_health_score.value}}"}
+        },
+        "children": [
+          {
+            "type": "heading_2",
+            "heading_2": {
+              "rich_text": [{"type": "text", "text": {"content": "AI Insights"}}]
+            }
+          },
+          {
+            "type": "paragraph",
+            "paragraph": {
+              "rich_text": [{"type": "text", "text": {"content": "{{step_3.response}}"}}]
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "cost_estimate": {
+    "per_weekly_report": {
+      "supabase_aggregations": 0.005,
+      "claude_insights": 0.015,
+      "slack": 0.01,
+      "notion": 0.015,
+      "zapier_tasks": 0.24,
+      "total": 0.285
+    },
+    "monthly_estimate_4_weeks": 1.14,
+    "annual_estimate_52_weeks": 14.82
+  },
+  "testing": {
+    "test_data": {
+      "sales_up": "All sales metrics trending positive",
+      "mixed_performance": "Sales up, CS concerns, ops stable",
+      "critical_issues": "Multiple red flags across departments"
+    }
+  }
+}

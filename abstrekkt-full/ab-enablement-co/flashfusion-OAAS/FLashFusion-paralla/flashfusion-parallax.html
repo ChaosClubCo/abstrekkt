@@ -1,0 +1,836 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>FlashFusion — Ignite the Signal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet" />
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --void: #03000a;
+    --deep: #070010;
+    --purple-900: #1a003d;
+    --purple-800: #2d0070;
+    --purple-600: #7b00ff;
+    --purple-400: #a855f7;
+    --purple-300: #c084fc;
+    --neon: #bf00ff;
+    --flash: #e040fb;
+    --ice: #e8d5ff;
+    --white: #f8f0ff;
+    --glow-sm: 0 0 12px rgba(191,0,255,0.6);
+    --glow-md: 0 0 32px rgba(191,0,255,0.5), 0 0 80px rgba(191,0,255,0.2);
+    --glow-lg: 0 0 60px rgba(191,0,255,0.7), 0 0 120px rgba(191,0,255,0.3), 0 0 200px rgba(191,0,255,0.1);
+    --mx: 0;
+    --my: 0;
+  }
+
+  html, body {
+    height: 100%;
+    overflow-x: hidden;
+    background: var(--void);
+    color: var(--white);
+    font-family: 'Syne', sans-serif;
+    cursor: none;
+  }
+
+  /* ─── Custom Cursor ─── */
+  #cursor {
+    position: fixed;
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: var(--neon);
+    box-shadow: var(--glow-md);
+    pointer-events: none;
+    z-index: 9999;
+    transform: translate(-50%, -50%);
+    transition: transform 0.05s, width 0.2s, height 0.2s;
+  }
+  #cursor-ring {
+    position: fixed;
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    border: 1px solid rgba(191,0,255,0.5);
+    pointer-events: none;
+    z-index: 9998;
+    transform: translate(-50%, -50%);
+    transition: transform 0.12s ease-out, width 0.2s, height 0.2s, border-color 0.2s;
+  }
+
+  /* ─── Scene / Canvas ─── */
+  #scene {
+    position: fixed;
+    inset: 0;
+    perspective: 900px;
+    overflow: hidden;
+    z-index: 0;
+  }
+
+  /* ─── Grid overlay ─── */
+  #grid {
+    position: absolute;
+    inset: -20%;
+    width: 140%; height: 140%;
+    background-image:
+      linear-gradient(rgba(123,0,255,0.06) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(123,0,255,0.06) 1px, transparent 1px);
+    background-size: 60px 60px;
+    transform-origin: center center;
+    will-change: transform;
+  }
+
+  /* ─── Layers ─── */
+  .layer {
+    position: absolute;
+    inset: 0;
+    will-change: transform;
+    transform-style: preserve-3d;
+  }
+
+  /* ─── Ambient orbs ─── */
+  .orb {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(80px);
+    will-change: transform;
+    opacity: 0.55;
+  }
+  #orb-a {
+    width: 600px; height: 600px;
+    background: radial-gradient(circle, #7b00ff 0%, transparent 70%);
+    top: -10%; left: -15%;
+  }
+  #orb-b {
+    width: 500px; height: 500px;
+    background: radial-gradient(circle, #bf00ff 0%, transparent 70%);
+    bottom: -5%; right: -10%;
+    opacity: 0.4;
+  }
+  #orb-c {
+    width: 300px; height: 300px;
+    background: radial-gradient(circle, #e040fb 0%, transparent 70%);
+    top: 45%; left: 50%;
+    transform: translate(-50%, -50%);
+    opacity: 0.25;
+    filter: blur(60px);
+  }
+
+  /* ─── Floating shards ─── */
+  .shard {
+    position: absolute;
+    border: 1px solid rgba(191,0,255,0.3);
+    background: rgba(123,0,255,0.05);
+    backdrop-filter: blur(4px);
+    will-change: transform;
+  }
+
+  /* ─── Scan line ─── */
+  #scanline {
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 3px,
+      rgba(191,0,255,0.018) 3px,
+      rgba(191,0,255,0.018) 4px
+    );
+    pointer-events: none;
+    z-index: 5;
+  }
+
+  /* ─── Vignette ─── */
+  #vignette {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse 70% 70% at 50% 50%, transparent 40%, rgba(3,0,10,0.85) 100%);
+    pointer-events: none;
+    z-index: 6;
+  }
+
+  /* ─── Lightning lines ─── */
+  .bolt {
+    position: absolute;
+    width: 1px;
+    background: linear-gradient(180deg, transparent, var(--neon), transparent);
+    opacity: 0;
+    animation: bolt-flash 4s ease-in-out infinite;
+  }
+
+  @keyframes bolt-flash {
+    0%, 90%, 100% { opacity: 0; }
+    91% { opacity: 0.8; }
+    93% { opacity: 0; }
+    94% { opacity: 0.6; }
+    96% { opacity: 0; }
+  }
+
+  /* ─── Particles ─── */
+  .particle {
+    position: absolute;
+    width: 2px; height: 2px;
+    background: var(--neon);
+    border-radius: 50%;
+    box-shadow: 0 0 6px var(--neon);
+    animation: float-particle linear infinite;
+    opacity: 0;
+  }
+  @keyframes float-particle {
+    0% { opacity: 0; transform: translateY(0) scale(0); }
+    10% { opacity: 1; transform: translateY(-20px) scale(1); }
+    90% { opacity: 0.6; }
+    100% { opacity: 0; transform: translateY(-120px) scale(0.5); }
+  }
+
+  /* ─── Content (scrollable overlay) ─── */
+  #content {
+    position: relative;
+    z-index: 10;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* ─── Hero ─── */
+  #hero {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 2rem;
+    position: relative;
+  }
+
+  .eyebrow {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.35em;
+    text-transform: uppercase;
+    color: var(--neon);
+    text-shadow: var(--glow-sm);
+    margin-bottom: 1.8rem;
+    animation: fade-up 1s 0.3s both;
+  }
+
+  h1 {
+    font-family: 'Syncopate', sans-serif;
+    font-weight: 700;
+    font-size: clamp(3.5rem, 12vw, 9rem);
+    line-height: 0.9;
+    letter-spacing: -0.02em;
+    text-transform: uppercase;
+    color: var(--white);
+    position: relative;
+    animation: fade-up 1s 0.5s both;
+  }
+
+  h1 .flash-word {
+    display: block;
+    color: transparent;
+    -webkit-text-stroke: 1.5px var(--neon);
+    text-shadow: none;
+    position: relative;
+  }
+  h1 .flash-word::after {
+    content: attr(data-text);
+    position: absolute;
+    inset: 0;
+    color: var(--neon);
+    filter: blur(20px);
+    opacity: 0.5;
+    -webkit-text-stroke: 0;
+  }
+
+  h1 .fusion-word {
+    display: block;
+    background: linear-gradient(135deg, #bf00ff 0%, #e040fb 50%, #7b00ff 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    text-shadow: none;
+  }
+
+  .tagline {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(0.9rem, 2vw, 1.1rem);
+    font-weight: 400;
+    color: rgba(232,213,255,0.6);
+    margin-top: 2rem;
+    letter-spacing: 0.05em;
+    max-width: 420px;
+    animation: fade-up 1s 0.8s both;
+  }
+
+  .cta-group {
+    display: flex;
+    gap: 1rem;
+    margin-top: 3rem;
+    animation: fade-up 1s 1.1s both;
+  }
+
+  .btn-primary {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    padding: 0.9rem 2.2rem;
+    background: var(--neon);
+    color: var(--void);
+    border: none;
+    cursor: none;
+    position: relative;
+    clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px));
+    transition: box-shadow 0.2s, transform 0.15s;
+    font-weight: 700;
+  }
+  .btn-primary:hover {
+    box-shadow: var(--glow-lg);
+    transform: translateY(-2px);
+  }
+
+  .btn-ghost {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    padding: 0.9rem 2.2rem;
+    background: transparent;
+    color: var(--neon);
+    border: 1px solid rgba(191,0,255,0.5);
+    cursor: none;
+    transition: border-color 0.2s, box-shadow 0.2s, transform 0.15s;
+  }
+  .btn-ghost:hover {
+    border-color: var(--neon);
+    box-shadow: var(--glow-sm), inset 0 0 20px rgba(191,0,255,0.1);
+    transform: translateY(-2px);
+  }
+
+  /* ─── Permission prompt ─── */
+  #gyro-prompt {
+    position: fixed;
+    bottom: 2rem;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 20;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: rgba(191,0,255,0.7);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    animation: pulse-gyro 2s ease-in-out infinite;
+    cursor: none;
+  }
+  #gyro-prompt .dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--neon);
+    box-shadow: var(--glow-sm);
+    animation: blink 1.2s ease-in-out infinite;
+  }
+  @keyframes pulse-gyro {
+    0%, 100% { opacity: 0.6; }
+    50% { opacity: 1; }
+  }
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.2; }
+  }
+
+  /* ─── Scroll indicator ─── */
+  #scroll-hint {
+    position: fixed;
+    bottom: 2rem;
+    right: 2rem;
+    z-index: 20;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.4rem;
+    animation: fade-up 1s 2s both;
+  }
+  #scroll-hint span {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.55rem;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: rgba(191,0,255,0.5);
+    writing-mode: vertical-rl;
+  }
+  .scroll-line {
+    width: 1px;
+    height: 60px;
+    background: linear-gradient(180deg, var(--neon), transparent);
+    animation: scroll-extend 2s ease-in-out infinite;
+    box-shadow: var(--glow-sm);
+  }
+  @keyframes scroll-extend {
+    0% { transform: scaleY(0); transform-origin: top; opacity: 1; }
+    50% { transform: scaleY(1); transform-origin: top; opacity: 1; }
+    51% { transform: scaleY(1); transform-origin: bottom; }
+    100% { transform: scaleY(0); transform-origin: bottom; opacity: 0; }
+  }
+
+  /* ─── Stats strip ─── */
+  #stats {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6rem 2rem;
+  }
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 2px;
+    max-width: 900px;
+    width: 100%;
+  }
+  .stat-card {
+    padding: 2.5rem 2rem;
+    border: 1px solid rgba(123,0,255,0.25);
+    background: rgba(123,0,255,0.04);
+    backdrop-filter: blur(12px);
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.3s, background 0.3s;
+  }
+  .stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--neon), transparent);
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  .stat-card:hover { border-color: rgba(191,0,255,0.5); background: rgba(123,0,255,0.08); }
+  .stat-card:hover::before { opacity: 1; }
+  .stat-number {
+    font-family: 'Syncopate', sans-serif;
+    font-size: 3rem;
+    font-weight: 700;
+    color: var(--neon);
+    text-shadow: var(--glow-md);
+    line-height: 1;
+    margin-bottom: 0.5rem;
+  }
+  .stat-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: rgba(232,213,255,0.5);
+  }
+
+  /* ─── Feature row ─── */
+  #features {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    padding: 6rem 2rem;
+  }
+  .features-inner {
+    max-width: 1000px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4rem;
+    align-items: center;
+  }
+  @media (max-width: 700px) {
+    .features-inner { grid-template-columns: 1fr; }
+  }
+  .feature-heading {
+    font-family: 'Syncopate', sans-serif;
+    font-size: clamp(1.8rem, 5vw, 3rem);
+    font-weight: 700;
+    text-transform: uppercase;
+    line-height: 1.05;
+    margin-bottom: 1.5rem;
+  }
+  .feature-heading em {
+    font-style: normal;
+    color: var(--neon);
+    text-shadow: var(--glow-sm);
+  }
+  .feature-body {
+    color: rgba(232,213,255,0.55);
+    font-size: 0.95rem;
+    line-height: 1.8;
+    margin-bottom: 2rem;
+  }
+  .feature-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+  .feature-list li {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.75rem;
+    letter-spacing: 0.05em;
+    color: rgba(232,213,255,0.7);
+  }
+  .feature-list li::before {
+    content: '//';
+    color: var(--neon);
+    text-shadow: var(--glow-sm);
+    flex-shrink: 0;
+    margin-top: 0.05em;
+  }
+
+  .glass-panel {
+    border: 1px solid rgba(123,0,255,0.3);
+    background: rgba(26,0,61,0.4);
+    backdrop-filter: blur(20px);
+    padding: 2.5rem;
+    position: relative;
+    clip-path: polygon(0 0, calc(100% - 20px) 0, 100% 20px, 100% 100%, 0 100%);
+  }
+  .glass-panel::after {
+    content: '';
+    position: absolute;
+    top: 0; right: 0;
+    width: 0; height: 0;
+    border-style: solid;
+    border-width: 0 20px 20px 0;
+    border-color: transparent var(--neon) transparent transparent;
+    filter: drop-shadow(-2px 2px 6px var(--neon));
+  }
+  .panel-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--neon);
+    margin-bottom: 1.5rem;
+    text-shadow: var(--glow-sm);
+  }
+  .panel-code {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.78rem;
+    line-height: 1.9;
+    color: rgba(232,213,255,0.8);
+  }
+  .panel-code .kw { color: var(--flash); }
+  .panel-code .fn { color: #c084fc; }
+  .panel-code .str { color: #a3e635; }
+  .panel-code .cm { color: rgba(232,213,255,0.3); font-style: italic; }
+
+  /* ─── Animations ─── */
+  @keyframes fade-up {
+    from { opacity: 0; transform: translateY(30px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ─── Noise ─── */
+  #noise {
+    position: fixed;
+    inset: 0;
+    z-index: 7;
+    pointer-events: none;
+    opacity: 0.025;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-size: 200px 200px;
+    animation: noise-shift 0.15s steps(1) infinite;
+  }
+  @keyframes noise-shift {
+    0%   { background-position: 0 0; }
+    25%  { background-position: -50px 30px; }
+    50%  { background-position: 20px -40px; }
+    75%  { background-position: -30px 20px; }
+    100% { background-position: 10px -10px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Custom cursor -->
+<div id="cursor"></div>
+<div id="cursor-ring"></div>
+
+<!-- Scene -->
+<div id="scene">
+  <!-- Grid -->
+  <div id="grid" class="layer" data-depth="0.12"></div>
+
+  <!-- Orbs -->
+  <div class="layer" data-depth="0.08">
+    <div class="orb" id="orb-a"></div>
+    <div class="orb" id="orb-b"></div>
+    <div class="orb" id="orb-c"></div>
+  </div>
+
+  <!-- Shards layer 1 (close) -->
+  <div class="layer" id="shards-near" data-depth="0.28"></div>
+
+  <!-- Shards layer 2 (mid) -->
+  <div class="layer" id="shards-mid" data-depth="0.16"></div>
+
+  <!-- Shards layer 3 (far) -->
+  <div class="layer" id="shards-far" data-depth="0.06"></div>
+
+  <!-- Bolts -->
+  <div class="layer" id="bolts-layer" data-depth="0.05"></div>
+
+  <!-- Particles -->
+  <div class="layer" id="particles-layer" data-depth="0.22"></div>
+
+  <!-- Scan + vignette -->
+  <div id="scanline"></div>
+  <div id="vignette"></div>
+  <div id="noise"></div>
+</div>
+
+<!-- Content -->
+<div id="content">
+  <section id="hero">
+    <p class="eyebrow">// Ignite the Signal · v2.0 · Active</p>
+    <h1>
+      <span class="flash-word" data-text="Flash">Flash</span>
+      <span class="fusion-word">Fusion</span>
+    </h1>
+    <p class="tagline">Route every prompt to its perfect model. Natively. Instantly. Intelligently.</p>
+    <div class="cta-group">
+      <button class="btn-primary">Get Early Access</button>
+      <button class="btn-ghost">View Docs</button>
+    </div>
+  </section>
+
+  <section id="stats">
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-number">12ms</div>
+        <div class="stat-label">Avg routing latency</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number">99.97%</div>
+        <div class="stat-label">Uptime SLA</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number">18+</div>
+        <div class="stat-label">Model endpoints</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number">60%</div>
+        <div class="stat-label">Cost reduction avg</div>
+      </div>
+    </div>
+  </section>
+
+  <section id="features">
+    <div class="features-inner">
+      <div>
+        <div class="eyebrow">// Core Intelligence</div>
+        <h2 class="feature-heading">Route with <em>precision.</em> Scale without compromise.</h2>
+        <p class="feature-body">FlashFusion's intelligent router analyzes prompt complexity, cost constraints, and latency requirements in real time — then fires to the optimal model endpoint, every time.</p>
+        <ul class="feature-list">
+          <li>Semantic routing via embedding similarity</li>
+          <li>Cost-aware model selection with budget caps</li>
+          <li>Fallback chains with zero cold-start penalty</li>
+          <li>Unified API — one key, every provider</li>
+          <li>Full observability with PostHog + structured logs</li>
+        </ul>
+      </div>
+      <div class="glass-panel">
+        <div class="panel-label">// router.ts — live</div>
+        <div class="panel-code">
+<span class="kw">const</span> result = <span class="kw">await</span> <span class="fn">flash</span>.<span class="fn">route</span>({<br/>
+&nbsp;&nbsp;prompt: userInput,<br/>
+&nbsp;&nbsp;strategy: <span class="str">"cost_optimized"</span>,<br/>
+&nbsp;&nbsp;budget: <span class="str">"$0.002"</span>,<br/>
+&nbsp;&nbsp;fallback: [<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="str">"claude-sonnet-4"</span>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="str">"gemini-pro"</span>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="str">"gpt-4o-mini"</span><br/>
+&nbsp;&nbsp;]<br/>
+});<br/><br/>
+<span class="cm">// → routed to claude-haiku-4</span><br/>
+<span class="cm">// → latency: 11ms · cost: $0.0004</span>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- Gyro prompt (mobile) -->
+<div id="gyro-prompt" style="display:none;">
+  <div class="dot"></div>
+  <span>Tilt to explore depth</span>
+</div>
+
+<!-- Scroll hint -->
+<div id="scroll-hint">
+  <div class="scroll-line"></div>
+  <span>Scroll</span>
+</div>
+
+<script>
+// ─── Cursor ───────────────────────────────────────────────
+const cursor = document.getElementById('cursor');
+const ring = document.getElementById('cursor-ring');
+let cx = 0, cy = 0, rx = 0, ry = 0;
+
+document.addEventListener('mousemove', e => {
+  cx = e.clientX; cy = e.clientY;
+  cursor.style.left = cx + 'px';
+  cursor.style.top  = cy + 'px';
+});
+(function animRing() {
+  rx += (cx - rx) * 0.12;
+  ry += (cy - ry) * 0.12;
+  ring.style.left = rx + 'px';
+  ring.style.top  = ry + 'px';
+  requestAnimationFrame(animRing);
+})();
+
+// ─── Shard generation ─────────────────────────────────────
+function spawnShards(containerId, count) {
+  const container = document.getElementById(containerId);
+  for (let i = 0; i < count; i++) {
+    const s = document.createElement('div');
+    s.className = 'shard';
+    const size = Math.random() * 80 + 20;
+    const aspect = Math.random() * 2 + 0.5;
+    s.style.cssText = `
+      width:${size}px;
+      height:${size * aspect}px;
+      left:${Math.random() * 110 - 5}%;
+      top:${Math.random() * 110 - 5}%;
+      transform:rotate(${Math.random() * 360}deg);
+      opacity:${Math.random() * 0.4 + 0.05};
+      border-color:rgba(${123 + Math.random()*70|0},${Math.random()*50|0},${200 + Math.random()*55|0},${Math.random() * 0.4 + 0.1});
+    `;
+    container.appendChild(s);
+  }
+}
+spawnShards('shards-near', 5);
+spawnShards('shards-mid', 9);
+spawnShards('shards-far', 14);
+
+// ─── Lightning bolts ──────────────────────────────────────
+const boltsLayer = document.getElementById('bolts-layer');
+for (let i = 0; i < 6; i++) {
+  const b = document.createElement('div');
+  b.className = 'bolt';
+  const h = Math.random() * 200 + 80;
+  b.style.cssText = `
+    left:${Math.random() * 100}%;
+    top:${Math.random() * 60}%;
+    height:${h}px;
+    animation-delay:${Math.random() * 6}s;
+    animation-duration:${Math.random() * 4 + 3}s;
+    opacity:0;
+    box-shadow:0 0 8px var(--neon);
+  `;
+  boltsLayer.appendChild(b);
+}
+
+// ─── Particles ────────────────────────────────────────────
+const pLayer = document.getElementById('particles-layer');
+for (let i = 0; i < 30; i++) {
+  const p = document.createElement('div');
+  p.className = 'particle';
+  const dur = Math.random() * 6 + 4;
+  p.style.cssText = `
+    left:${Math.random() * 100}%;
+    top:${Math.random() * 100}%;
+    animation-duration:${dur}s;
+    animation-delay:${Math.random() * 6}s;
+    width:${Math.random() > 0.7 ? 3 : 2}px;
+    height:${Math.random() > 0.7 ? 3 : 2}px;
+  `;
+  pLayer.appendChild(p);
+}
+
+// ─── Parallax engine ──────────────────────────────────────
+const layers = document.querySelectorAll('.layer[data-depth]');
+let targetX = 0, targetY = 0, currentX = 0, currentY = 0;
+
+// Mouse parallax
+document.addEventListener('mousemove', e => {
+  targetX = (e.clientX / window.innerWidth  - 0.5) * 2;
+  targetY = (e.clientY / window.innerHeight - 0.5) * 2;
+});
+
+// Gyro parallax (mobile)
+let gyroEnabled = false;
+function enableGyro() {
+  if (typeof DeviceOrientationEvent !== 'undefined' &&
+      typeof DeviceOrientationEvent.requestPermission === 'function') {
+    DeviceOrientationEvent.requestPermission()
+      .then(p => { if (p === 'granted') attachGyro(); })
+      .catch(() => {});
+  } else {
+    attachGyro();
+  }
+}
+function attachGyro() {
+  gyroEnabled = true;
+  document.getElementById('gyro-prompt').style.display = 'none';
+  window.addEventListener('deviceorientation', e => {
+    targetX = Math.max(-1, Math.min(1, (e.gamma || 0) / 30));
+    targetY = Math.max(-1, Math.min(1, (e.beta  || 0) / 40));
+  });
+}
+
+// Check if mobile
+if ('ontouchstart' in window) {
+  document.getElementById('gyro-prompt').style.display = 'flex';
+  document.addEventListener('touchstart', enableGyro, { once: true });
+}
+
+// Animate layers
+(function animLayers() {
+  currentX += (targetX - currentX) * 0.05;
+  currentY += (targetY - currentY) * 0.05;
+  layers.forEach(layer => {
+    const d = parseFloat(layer.dataset.depth);
+    const tx = currentX * d * 120;
+    const ty = currentY * d * 80;
+    layer.style.transform = `translate3d(${tx}px, ${ty}px, 0)`;
+  });
+  requestAnimationFrame(animLayers);
+})();
+
+// ─── Hover glow on buttons ────────────────────────────────
+document.querySelectorAll('.btn-primary, .btn-ghost, .stat-card').forEach(el => {
+  el.addEventListener('mouseenter', () => {
+    cursor.style.width = '18px';
+    cursor.style.height = '18px';
+    ring.style.width = '56px';
+    ring.style.height = '56px';
+    ring.style.borderColor = 'rgba(191,0,255,0.9)';
+  });
+  el.addEventListener('mouseleave', () => {
+    cursor.style.width = '10px';
+    cursor.style.height = '10px';
+    ring.style.width = '36px';
+    ring.style.height = '36px';
+    ring.style.borderColor = 'rgba(191,0,255,0.5)';
+  });
+});
+
+// ─── Scroll parallax shift on orbs ───────────────────────
+window.addEventListener('scroll', () => {
+  const sy = window.scrollY;
+  document.getElementById('orb-a').style.transform = `translateY(${sy * 0.3}px)`;
+  document.getElementById('orb-b').style.transform = `translateY(${-sy * 0.2}px)`;
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,1448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard Generator — AI Studio Setup</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap');
+
+:root {
+  --ff-surface-1:   #0B0B14;
+  --ff-surface-2:   #13131F;
+  --ff-surface-3:   #1C1C2E;
+  --ff-border:      rgba(168,85,247,0.12);
+  --ff-border-hover:rgba(168,85,247,0.35);
+  --ff-violet:      #A855F7;
+  --ff-magenta:     #EC4899;
+  --ff-cyan:        #22D3EE;
+  --ff-text-1:      #FFFFFF;
+  --ff-text-2:      #C7C7D1;
+  --ff-text-3:      #8A8A96;
+  --ff-success:     #10b981;
+  --ff-warning:     #f59e0b;
+  --ff-danger:      #ef4444;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: 'Geist', -apple-system, sans-serif;
+  background: var(--ff-surface-1);
+  color: var(--ff-text-1);
+  line-height: 1.6;
+  min-height: 100vh;
+}
+
+/* Layout */
+.layout {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 2rem;
+  gap: 2rem;
+  min-height: 100vh;
+}
+
+/* Sidebar */
+.sidebar {
+  position: sticky;
+  top: 2rem;
+  height: fit-content;
+  background: var(--ff-surface-2);
+  border: 1px solid var(--ff-border);
+  border-radius: 12px;
+  padding: 1.5rem;
+}
+
+.sidebar-brand {
+  font-size: 0.75rem;
+  font-family: 'Geist Mono', monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--ff-violet);
+  margin-bottom: 1.5rem;
+}
+
+.nav-section {
+  margin-bottom: 1.5rem;
+}
+
+.nav-section-label {
+  font-size: 0.7rem;
+  font-family: 'Geist Mono', monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--ff-text-3);
+  margin-bottom: 0.5rem;
+  padding-left: 0.5rem;
+}
+
+.nav-link {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.45rem 0.75rem;
+  color: var(--ff-text-2);
+  text-decoration: none;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  transition: all 0.15s;
+  cursor: pointer;
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
+}
+
+.nav-link:hover { background: rgba(168,85,247,0.08); color: var(--ff-text-1); }
+.nav-link.active { background: rgba(168,85,247,0.15); color: var(--ff-violet); }
+
+.nav-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--ff-border-hover);
+  flex-shrink: 0;
+}
+.nav-link.active .nav-dot { background: var(--ff-violet); }
+
+/* Main */
+.main { min-width: 0; }
+
+/* Header */
+.page-header {
+  margin-bottom: 2.5rem;
+  padding-bottom: 2rem;
+  border-bottom: 1px solid var(--ff-border);
+}
+
+.header-tag {
+  display: inline-block;
+  font-family: 'Geist Mono', monospace;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--ff-violet);
+  background: rgba(168,85,247,0.1);
+  border: 1px solid rgba(168,85,247,0.2);
+  padding: 0.25rem 0.75rem;
+  border-radius: 100px;
+  margin-bottom: 1rem;
+}
+
+.page-title {
+  font-size: 2.25rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  margin-bottom: 0.5rem;
+  background: linear-gradient(135deg, #A855F7, #EC4899, #22D3EE);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.page-subtitle { color: var(--ff-text-3); font-size: 1rem; }
+
+/* Sections */
+.section { margin-bottom: 3rem; scroll-margin-top: 2rem; }
+
+.section-title {
+  font-size: 1.35rem;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+  color: var(--ff-text-1);
+}
+
+.section-meta {
+  font-size: 0.8rem;
+  font-family: 'Geist Mono', monospace;
+  color: var(--ff-text-3);
+  margin-bottom: 1.25rem;
+}
+
+/* Callouts */
+.callout {
+  padding: 1rem 1.25rem;
+  border-radius: 8px;
+  border-left: 3px solid;
+  margin: 1rem 0;
+  font-size: 0.9rem;
+}
+.callout-info    { background: rgba(34,211,238,0.05); border-color: var(--ff-cyan); }
+.callout-warn    { background: rgba(245,158,11,0.05); border-color: var(--ff-warning); }
+.callout-danger  { background: rgba(239,68,68,0.05); border-color: var(--ff-danger); }
+.callout-violet  { background: rgba(168,85,247,0.05); border-color: var(--ff-violet); }
+.callout strong  { display: block; margin-bottom: 0.25rem; }
+.callout p       { color: var(--ff-text-2); margin: 0; }
+
+/* Code blocks */
+.code-block {
+  background: var(--ff-surface-1);
+  border: 1px solid var(--ff-border);
+  border-radius: 8px;
+  overflow: hidden;
+  margin: 1rem 0;
+}
+
+.code-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.6rem 1rem;
+  background: var(--ff-surface-3);
+  border-bottom: 1px solid var(--ff-border);
+}
+
+.code-label {
+  font-family: 'Geist Mono', monospace;
+  font-size: 0.75rem;
+  color: var(--ff-violet);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.copy-btn {
+  font-family: 'Geist Mono', monospace;
+  font-size: 0.75rem;
+  background: rgba(168,85,247,0.15);
+  color: var(--ff-violet);
+  border: 1px solid rgba(168,85,247,0.3);
+  padding: 0.3rem 0.85rem;
+  border-radius: 100px;
+  cursor: pointer;
+  transition: all 0.15s;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.copy-btn:hover { background: rgba(168,85,247,0.25); }
+.copy-btn.copied { background: rgba(16,185,129,0.15); color: var(--ff-success); border-color: rgba(16,185,129,0.3); }
+
+.code-body {
+  padding: 1.25rem;
+  overflow-x: auto;
+}
+
+.code-body pre {
+  font-family: 'Geist Mono', monospace;
+  font-size: 0.85rem;
+  line-height: 1.6;
+  color: var(--ff-text-2);
+  white-space: pre;
+  margin: 0;
+}
+
+/* Parameter grid */
+.param-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+  margin: 1rem 0;
+}
+
+.param-card {
+  background: var(--ff-surface-2);
+  border: 1px solid var(--ff-border);
+  border-radius: 8px;
+  padding: 1rem;
+}
+
+.param-name {
+  font-family: 'Geist Mono', monospace;
+  font-size: 0.75rem;
+  color: var(--ff-text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 0.25rem;
+}
+
+.param-value {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--ff-violet);
+  margin-bottom: 0.25rem;
+}
+
+.param-desc { font-size: 0.8rem; color: var(--ff-text-3); }
+
+/* Step list */
+.step-list { list-style: none; padding: 0; margin: 1rem 0; }
+.step-list li {
+  display: flex;
+  gap: 1rem;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--ff-border);
+  align-items: flex-start;
+  font-size: 0.9rem;
+  color: var(--ff-text-2);
+}
+.step-list li:last-child { border-bottom: none; }
+
+.step-num {
+  font-family: 'Geist Mono', monospace;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--ff-violet);
+  background: rgba(168,85,247,0.1);
+  border: 1px solid rgba(168,85,247,0.2);
+  width: 24px; height: 24px;
+  border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+/* Layer cards */
+.layer-stack { display: flex; flex-direction: column; gap: 0.5rem; margin: 1rem 0; }
+
+.layer-card {
+  background: var(--ff-surface-2);
+  border: 1px solid var(--ff-border);
+  border-radius: 8px;
+  padding: 0.875rem 1.125rem;
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  gap: 1rem;
+  align-items: start;
+}
+
+.layer-tag {
+  font-family: 'Geist Mono', monospace;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--ff-text-3);
+  padding-top: 0.1rem;
+}
+
+.layer-content strong {
+  display: block;
+  color: var(--ff-text-1);
+  font-size: 0.875rem;
+  margin-bottom: 0.2rem;
+}
+
+.layer-content p {
+  font-size: 0.8rem;
+  color: var(--ff-text-3);
+  margin: 0;
+}
+
+/* Constraint table */
+.constraint-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1rem 0;
+  font-size: 0.875rem;
+}
+
+.constraint-table th {
+  font-family: 'Geist Mono', monospace;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ff-text-3);
+  padding: 0.6rem 0.75rem;
+  text-align: left;
+  background: var(--ff-surface-3);
+  border-bottom: 1px solid var(--ff-border);
+}
+
+.constraint-table td {
+  padding: 0.65rem 0.75rem;
+  border-bottom: 1px solid var(--ff-border);
+  color: var(--ff-text-2);
+  vertical-align: top;
+}
+
+.constraint-table tr:last-child td { border-bottom: none; }
+.constraint-table tr:hover td { background: rgba(168,85,247,0.03); }
+
+.pill {
+  display: inline-block;
+  font-family: 'Geist Mono', monospace;
+  font-size: 0.7rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 100px;
+  border: 1px solid;
+}
+.pill-green  { color: var(--ff-success); border-color: rgba(16,185,129,0.3); background: rgba(16,185,129,0.08); }
+.pill-yellow { color: var(--ff-warning); border-color: rgba(245,158,11,0.3); background: rgba(245,158,11,0.08); }
+.pill-red    { color: var(--ff-danger);  border-color: rgba(239,68,68,0.3);  background: rgba(239,68,68,0.08); }
+
+/* Divider */
+.section-divider {
+  border: none;
+  border-top: 1px solid var(--ff-border);
+  margin: 2rem 0;
+}
+
+@media (max-width: 900px) {
+  .layout { grid-template-columns: 1fr; }
+  .sidebar { position: static; }
+  .layer-card { grid-template-columns: 1fr; }
+}
+
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--ff-surface-2); }
+::-webkit-scrollbar-thumb { background: var(--ff-border-hover); border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<div class="layout">
+
+<!-- ── SIDEBAR ─────────────────────────────────── -->
+<aside class="sidebar">
+  <div class="sidebar-brand">AI Studio Setup</div>
+
+  <div class="nav-section">
+    <div class="nav-section-label">Context</div>
+    <button class="nav-link active" onclick="scroll('how-ai-studio-works')">
+      <span class="nav-dot"></span> How AI Studio Works
+    </button>
+    <button class="nav-link" onclick="scroll('constraints')">
+      <span class="nav-dot"></span> Constraints Map
+    </button>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-section-label">Configuration</div>
+    <button class="nav-link" onclick="scroll('parameters')">
+      <span class="nav-dot"></span> Parameter Settings
+    </button>
+    <button class="nav-link" onclick="scroll('system-instructions')">
+      <span class="nav-dot"></span> System Instructions
+    </button>
+    <button class="nav-link" onclick="scroll('json-schema')">
+      <span class="nav-dot"></span> Output Schema
+    </button>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-section-label">Prompting</div>
+    <button class="nav-link" onclick="scroll('prompt-template')">
+      <span class="nav-dot"></span> User Prompt Template
+    </button>
+    <button class="nav-link" onclick="scroll('few-shot')">
+      <span class="nav-dot"></span> Few-Shot Examples
+    </button>
+    <button class="nav-link" onclick="scroll('spec-upload')">
+      <span class="nav-dot"></span> Spec Upload Flow
+    </button>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-section-label">Upgrade Pack</div>
+    <button class="nav-link" onclick="scroll('pro-moves')">
+      <span class="nav-dot"></span> AI Studio Pro Moves
+    </button>
+    <button class="nav-link" onclick="scroll('dashboard-ux')">
+      <span class="nav-dot"></span> Dashboard UX Patterns
+    </button>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-section-label">Reference</div>
+    <button class="nav-link" onclick="scroll('setup-checklist')">
+      <span class="nav-dot"></span> Setup Checklist
+    </button>
+  </div>
+</aside>
+
+<!-- ── MAIN ────────────────────────────────────── -->
+<main class="main">
+
+  <header class="page-header">
+    <div class="header-tag">Google AI Studio · Gemini API</div>
+    <h1 class="page-title">Dashboard Generator</h1>
+    <p class="page-subtitle">Context-engineered prompt setup for AI Studio — system instructions, output schema, few-shot examples, and spec-upload flow.</p>
+  </header>
+
+  <!-- ── HOW AI STUDIO WORKS ──────────────────── -->
+  <section id="how-ai-studio-works" class="section">
+    <h2 class="section-title">How AI Studio Works</h2>
+    <p class="section-meta">WHY THE STRUCTURE MATTERS BEFORE YOU PASTE ANYTHING</p>
+
+    <div class="callout callout-violet">
+      <strong>The key distinction</strong>
+      <p>System Instructions are laws. Chat prompts are suggestions. AI Studio processes the system instruction block before every turn — treat it as immutable context, not a one-time message. Put your role, constraints, and output format there. Put your API spec and task there.</p>
+    </div>
+
+    <p style="color:var(--ff-text-2); font-size:0.9rem; margin-bottom:1rem;">
+      AI Studio is built around a <strong style="color:var(--ff-text-1)">five-layer prompt structure</strong>. Gemini reads them in order and weights them accordingly:
+    </p>
+
+    <div class="layer-stack">
+      <div class="layer-card">
+        <div class="layer-tag">Layer 1 · LAWS</div>
+        <div class="layer-content">
+          <strong>System Instructions</strong>
+          <p>Role, constraints, output format rules. Persistent across the entire session. Paste into the clipboard icon field, not the chat box. This is where your dashboard generator identity lives.</p>
+        </div>
+      </div>
+      <div class="layer-card">
+        <div class="layer-tag">Layer 2 · DATA</div>
+        <div class="layer-content">
+          <strong>User Context / Uploaded Spec</strong>
+          <p>The API spec, OpenAPI JSON, or integration config the user provides per request. Uploaded via the paperclip or Files API. Gemini's 1M token window can hold entire specs — don't summarize, upload the raw file.</p>
+        </div>
+      </div>
+      <div class="layer-card">
+        <div class="layer-tag">Layer 3 · PATTERN</div>
+        <div class="layer-content">
+          <strong>Few-Shot Examples</strong>
+          <p>2–3 input/output pairs showing exact connector output format. Gemini consistently follows examples more reliably than pure text instructions — these are your most powerful formatting lever.</p>
+        </div>
+      </div>
+      <div class="layer-card">
+        <div class="layer-tag">Layer 4 · TASK</div>
+        <div class="layer-content">
+          <strong>Task Instruction</strong>
+          <p>The direct command per request: "generate connector for this spec," "build dashboard from these two connectors." Short. Specific. References the uploaded file by name.</p>
+        </div>
+      </div>
+      <div class="layer-card">
+        <div class="layer-tag">Layer 5 · FORMAT</div>
+        <div class="layer-content">
+          <strong>Output Specification</strong>
+          <p>Enforced via AI Studio's Structured Output toggle + response schema. More reliable than prose instructions. Set response_mime_type to application/json and supply the schema below.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <hr class="section-divider">
+
+  <!-- ── CONSTRAINTS MAP ──────────────────────── -->
+  <section id="constraints" class="section">
+    <h2 class="section-title">Constraints Map</h2>
+    <p class="section-meta">WHAT AI STUDIO CAN AND CANNOT DO — KNOW BEFORE YOU BUILD</p>
+
+    <table class="constraint-table">
+      <thead>
+        <tr>
+          <th>Area</th>
+          <th>Reality</th>
+          <th>Impact on This Tool</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Build Mode Runtime</strong></td>
+          <td>Web container only. Renders React/HTML in browser. No Node.js execution, no server-side fetch.</td>
+          <td>Generated connectors can't call external APIs directly from the preview. Output is code to deploy, not live data.</td>
+          <td><span class="pill pill-yellow">KNOWN LIMIT</span></td>
+        </tr>
+        <tr>
+          <td><strong>Context Window</strong></td>
+          <td>~1M tokens (Gemini 2.5/3.x). 2M on some SKUs.</td>
+          <td>Entire OpenAPI spec fits. Don't chunk — upload the full file and let Gemini read it whole.</td>
+          <td><span class="pill pill-green">ADVANTAGE</span></td>
+        </tr>
+        <tr>
+          <td><strong>File Upload</strong></td>
+          <td>2 GB/file, 20 GB/project, <strong>48-hour retention</strong>.</td>
+          <td>Uploaded specs expire. Re-upload each session. Never rely on a file being there from yesterday.</td>
+          <td><span class="pill pill-yellow">EPHEMERAL</span></td>
+        </tr>
+        <tr>
+          <td><strong>Structured Output</strong></td>
+          <td>Native JSON mode with schema validation. More reliable than prose formatting instructions.</td>
+          <td>Always use the Structured Output toggle + schema. Never rely on "return JSON" in the prompt alone.</td>
+          <td><span class="pill pill-green">USE IT</span></td>
+        </tr>
+        <tr>
+          <td><strong>Free Tier Rate Limits</strong></td>
+          <td>5–15 RPM, 100–250 RPD depending on model. Preview models hit 250 RPD cap.</td>
+          <td>Don't burn RPD on bad prompts. Prototype with Gemini Flash, switch to Pro for final output.</td>
+          <td><span class="pill pill-yellow">WATCH IT</span></td>
+        </tr>
+        <tr>
+          <td><strong>Data Privacy</strong></td>
+          <td>Free tier: Google may train on your inputs. Paid tier: better guarantees. Temporary Chat = no save.</td>
+          <td>If the uploaded spec contains client API keys or PII, use paid tier + Temporary Chat. Never paste live keys.</td>
+          <td><span class="pill pill-red">RISK</span></td>
+        </tr>
+        <tr>
+          <td><strong>Google Search Grounding</strong></td>
+          <td>Connects model to live web. Adds latency and noise on simple tasks.</td>
+          <td>Don't enable for connector generation. Enable only if you want the model to look up current API docs.</td>
+          <td><span class="pill pill-yellow">OPTIONAL</span></td>
+        </tr>
+        <tr>
+          <td><strong>Function Calling</strong></td>
+          <td>Model returns JSON {name, args}. You wire the execution.</td>
+          <td>Useful for the integration-picker UI — model selects which connector to build, you trigger the generation.</td>
+          <td><span class="pill pill-green">USEFUL</span></td>
+        </tr>
+        <tr>
+          <td><strong>Rate Limits in Generated Code</strong></td>
+          <td>Providers don't publish stable per-plan limits. They change without notice.</td>
+          <td>Generated connectors must read X-RateLimit-Remaining / Retry-After headers at runtime. Never hardcode limits.</td>
+          <td><span class="pill pill-red">NEVER HARDCODE</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr class="section-divider">
+
+  <!-- ── PARAMETER SETTINGS ───────────────────── -->
+  <section id="parameters" class="section">
+    <h2 class="section-title">Parameter Settings</h2>
+    <p class="section-meta">SET THESE IN THE RIGHT-HAND PANEL BEFORE RUNNING ANYTHING</p>
+
+    <div class="param-grid">
+      <div class="param-card">
+        <div class="param-name">Temperature</div>
+        <div class="param-value">0.2</div>
+        <div class="param-desc">Code generation. Low variation, high schema compliance. Use 0.0 if JSON is breaking.</div>
+      </div>
+      <div class="param-card">
+        <div class="param-name">Top-P</div>
+        <div class="param-value">0.9</div>
+        <div class="param-desc">Standard for production code. Keeps output sensible without capping vocabulary.</div>
+      </div>
+      <div class="param-card">
+        <div class="param-name">Output Tokens</div>
+        <div class="param-value">8192</div>
+        <div class="param-desc">Enough for a full connector + dashboard component. Raise to 16K for multi-connector output.</div>
+      </div>
+      <div class="param-card">
+        <div class="param-name">Model</div>
+        <div class="param-value" style="font-size:1rem;">Flash → Pro</div>
+        <div class="param-desc">Prototype with Flash (faster, cheaper RPD spend). Final output with Pro.</div>
+      </div>
+      <div class="param-card">
+        <div class="param-name">Structured Output</div>
+        <div class="param-value" style="font-size:1rem; color:var(--ff-success);">ON</div>
+        <div class="param-desc">Always enabled. Use schema below. More reliable than "return JSON" in prose.</div>
+      </div>
+      <div class="param-card">
+        <div class="param-name">Search Grounding</div>
+        <div class="param-value" style="font-size:1rem; color:var(--ff-danger);">OFF</div>
+        <div class="param-desc">Off by default. Turn on only if you want Gemini to fetch live API docs.</div>
+      </div>
+    </div>
+
+    <div class="callout callout-warn">
+      <strong>RPD Burn Warning</strong>
+      <p>Preview models cap at 250 requests/day on Tier 1 — same as the free tier. Use Gemini Flash for iteration; switch to Pro only for final connector generation. One bad system instruction can waste 10–20 RPD before you notice.</p>
+    </div>
+  </section>
+
+  <hr class="section-divider">
+
+  <!-- ── SYSTEM INSTRUCTIONS ──────────────────── -->
+  <section id="system-instructions" class="section">
+    <h2 class="section-title">System Instructions</h2>
+    <p class="section-meta">PASTE INTO THE CLIPBOARD ICON FIELD — NOT THE CHAT BOX</p>
+
+    <div class="callout callout-info">
+      <strong>How to apply</strong>
+      <p>In AI Studio Chat mode: click the clipboard icon in the right panel → paste the block below. This sets the model's identity and constraints for the entire session. Do not put this in the regular message field.</p>
+    </div>
+
+    <div class="code-block">
+      <div class="code-header">
+        <span class="code-label">System Instructions · Paste Verbatim</span>
+        <button class="copy-btn" onclick="copyBlock(this)">Copy</button>
+      </div>
+      <div class="code-body">
+<pre id="sys-instructions">You are a Staff Platform Engineer specializing in API integration architecture.
+Your job is to generate production-ready TypeScript connector code and dashboard
+components from API specifications provided by the user.
+
+## YOUR ROLE
+- Read any API spec the user uploads (OpenAPI/Swagger JSON or YAML, Postman
+  collections, or plain endpoint descriptions).
+- Derive auth method, rate-limit headers, pagination pattern, and error shape
+  DIRECTLY from the spec — never invent or assume these.
+- Generate a typed TypeScript connector class and a React dashboard component.
+
+## MANDATORY BEHAVIORS
+1. Auth: read from spec's securitySchemes. Supported: apiKey, oauth2, http basic.
+   Never hardcode credentials. Use: process.env.{SERVICE}_API_KEY pattern.
+2. Rate limits: read X-RateLimit-Remaining / Retry-After headers at runtime.
+   Never hardcode numeric limits. Implement exponential backoff (1s, 2s, 4s, 8s max).
+3. Pagination: detect from spec (cursor / offset / Link header). Auto-paginate
+   up to 10 pages then stop with a hasMore flag.
+4. Error handling: every catch block must have: cause (what), fix (how), retryable (bool).
+5. Timeouts: AbortSignal.timeout(10000) on all fetch calls. 30000 for AI APIs.
+6. Types: all TypeScript, no 'any'. Zod schema for every API response.
+7. PII: mask emails (e***@domain.com) and phones ((***) ***-XXXX) before rendering.
+8. Connectors run server-side only. Never generate code that calls external APIs
+   from the browser/client bundle.
+
+## DASHBOARD UI REQUIREMENTS (enforce on every component)
+- Skeleton shimmer loading state per card (not a global spinner).
+  Use CSS animation: shimmer gradient, 1.5s linear infinite.
+- Per-integration error state with cause + fix + retryable button.
+  Never show a single error that kills the whole dashboard.
+- Source tag on every metric card showing which integration it came from.
+- Last-refreshed timestamp per card (ISO string, human-readable).
+- 5–7 metrics maximum above the fold. Drill-down for the rest.
+- Visual hierarchy: status/KPIs row → trend charts row → detail tables.
+- Empty state with demo data preloaded on first render (not a blank screen).
+- Confidence/source badge on AI-generated metrics:
+  green border = sourced from live API, amber = cached, red = stale/failed.
+
+## WHAT YOU NEVER DO
+- Hardcode rate limit numbers, pricing, or API version strings.
+- Generate auth logic (OAuth flows handled by Supabase Auth externally).
+- Generate deployment config (Vercel/Cloud Run handled externally).
+- Output placeholders, TODOs, or unimplemented stubs in finished code.
+- Use the 'any' type.
+- Trust client-provided user IDs (always use server-side auth.uid()).
+- Use a global spinner that hides the whole dashboard during load.
+- Render an empty screen — always preload demo data as fallback.
+
+## OUTPUT FORMAT
+Always return structured JSON matching the schema provided.
+Respond only with the JSON object — no preamble, no markdown fences, no commentary.</pre>
+      </div>
+    </div>
+  </section>
+
+  <hr class="section-divider">
+
+  <!-- ── JSON OUTPUT SCHEMA ───────────────────── -->
+  <section id="json-schema" class="section">
+    <h2 class="section-title">Output Schema</h2>
+    <p class="section-meta">PASTE INTO STRUCTURED OUTPUT → EDIT SCHEMA IN AI STUDIO</p>
+
+    <div class="callout callout-violet">
+      <strong>How to apply</strong>
+      <p>In the right panel → Tools → Structured Output (toggle ON) → Edit → paste the schema below. This enforces the JSON shape on every generation. More reliable than asking for JSON in prose.</p>
+    </div>
+
+    <div class="code-block">
+      <div class="code-header">
+        <span class="code-label">Response Schema · JSON</span>
+        <button class="copy-btn" onclick="copyBlock(this)">Copy</button>
+      </div>
+      <div class="code-body">
+<pre>{
+  "type": "object",
+  "required": ["connector", "dashboard", "envVars", "smokeTest"],
+  "properties": {
+    "connector": {
+      "type": "object",
+      "required": ["serviceName", "authType", "filePath", "code"],
+      "properties": {
+        "serviceName":  { "type": "string" },
+        "authType":     { "type": "string", "enum": ["apiKey","oauth2","basic","custom"] },
+        "filePath":     { "type": "string" },
+        "code":         { "type": "string" },
+        "rateStrategy": {
+          "type": "object",
+          "properties": {
+            "headerUsed":     { "type": "string" },
+            "backoffSeconds": { "type": "array", "items": { "type": "number" } }
+          }
+        },
+        "paginationPattern": {
+          "type": "string",
+          "enum": ["cursor","offset","link-header","none","unknown"]
+        },
+        "knownLimits": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "field": { "type": "string" },
+              "value": { "type": "string" },
+              "source": {
+                "type": "string",
+                "enum": ["spec","header-runtime","assumed-default"]
+              }
+            }
+          }
+        }
+      }
+    },
+    "dashboard": {
+      "type": "object",
+      "required": ["filePath", "code", "uxPatterns"],
+      "properties": {
+        "filePath":    { "type": "string" },
+        "code":        { "type": "string" },
+        "refreshMs":   { "type": "number" },
+        "uxPatterns": {
+          "type": "object",
+          "properties": {
+            "skeletonLoader":   { "type": "boolean" },
+            "perCardError":     { "type": "boolean" },
+            "sourceTag":        { "type": "boolean" },
+            "lastRefreshed":    { "type": "boolean" },
+            "demoDataFallback": { "type": "boolean" },
+            "confidenceBadge":  { "type": "boolean" },
+            "metricCount":      { "type": "number" }
+          }
+        },
+        "metricsShown": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "label":  { "type": "string" },
+              "source": { "type": "string" },
+              "unit":   { "type": "string",
+                          "enum": ["count","currency","percentage","duration","text"] }
+            }
+          }
+        }
+      }
+    },
+    "envVars": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "key":         { "type": "string" },
+          "description": { "type": "string" },
+          "required":    { "type": "boolean" }
+        }
+      }
+    },
+    "smokeTest": {
+      "type": "object",
+      "properties": {
+        "command":       { "type": "string" },
+        "expectedShape": { "type": "string" },
+        "passCriteria":  { "type": "string" }
+      }
+    },
+    "warnings": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  }
+}</pre>
+      </div>
+    </div>
+
+    <div class="callout callout-info">
+      <strong>knownLimits.source matters</strong>
+      <p>Every rate limit or constraint in the output must declare its source: <code style="font-family:'Geist Mono',monospace; font-size:0.85em;">"spec"</code> (found in the OpenAPI file), <code style="font-family:'Geist Mono',monospace; font-size:0.85em;">"header-runtime"</code> (read from response headers at runtime), or <code style="font-family:'Geist Mono',monospace; font-size:0.85em;">"assumed-default"</code> (conservative fallback). This enforces the no-invented-precision rule at schema level.</p>
+    </div>
+  </section>
+
+  <hr class="section-divider">
+
+  <!-- ── PROMPT TEMPLATE ──────────────────────── -->
+  <section id="prompt-template" class="section">
+    <h2 class="section-title">User Prompt Template</h2>
+    <p class="section-meta">TYPE THIS IN THE CHAT BOX — ONE REQUEST PER SPEC UPLOAD</p>
+
+    <div class="callout callout-warn">
+      <strong>Upload the spec first, then send this message.</strong>
+      <p>Click the paperclip → upload your OpenAPI JSON or YAML → then paste the prompt below and fill in the brackets. The file reference tells Gemini which uploaded file to read.</p>
+    </div>
+
+    <div class="code-block">
+      <div class="code-header">
+        <span class="code-label">Single Integration · Prompt</span>
+        <button class="copy-btn" onclick="copyBlock(this)">Copy</button>
+      </div>
+      <div class="code-body">
+<pre>I've uploaded the OpenAPI spec for [SERVICE NAME] as [FILENAME.json].
+
+Read the spec to derive:
+- Auth method and header/param names
+- Available endpoints (I want to surface: [LIST 2-4 ENDPOINTS])
+- Pagination pattern
+- Rate limit headers if documented
+
+Generate:
+1. A TypeScript connector class at lib/integrations/[service-name].ts
+2. A React dashboard component at components/[ServiceName]Dashboard.tsx
+   showing these metrics: [LIST WHAT YOU WANT TO DISPLAY]
+3. Env var list (.env.example format)
+4. One smoke test command
+
+Refresh cadence: [real-time / 5min / hourly]
+User role accessing this: [admin / analyst / viewer]
+
+Flag anything in the spec that's ambiguous or undocumented as a warning.</pre>
+      </div>
+    </div>
+
+    <div class="code-block">
+      <div class="code-header">
+        <span class="code-label">Multi-Integration · Prompt</span>
+        <button class="copy-btn" onclick="copyBlock(this)">Copy</button>
+      </div>
+      <div class="code-body">
+<pre>I've uploaded two specs:
+- [SERVICE-A].json — [SERVICE-A NAME]
+- [SERVICE-B].json — [SERVICE-B NAME]
+
+Generate connectors for both, then generate one unified dashboard
+component that shows metrics from each side by side.
+
+The dashboard must:
+- Degrade gracefully if one service fails (show per-card error state)
+- Refresh every [5 / 15 / 60] minutes
+- Show these combined metrics:
+  [SERVICE-A]: [metric 1], [metric 2]
+  [SERVICE-B]: [metric 3], [metric 4]
+
+Flag any auth conflicts or rate-limit mismatch between the two services.</pre>
+      </div>
+    </div>
+
+    <div class="code-block">
+      <div class="code-header">
+        <span class="code-label">No Spec Available · Prompt (Form-Based Fallback)</span>
+        <button class="copy-btn" onclick="copyBlock(this)">Copy</button>
+      </div>
+      <div class="code-body">
+<pre>No spec available. Here's what I know about the API:
+
+Service name:   [NAME]
+Base URL:       [https://api.example.com]
+Auth type:      [API key / OAuth2 / Basic]
+Auth header:    [e.g., Authorization: Bearer {token}]
+
+Endpoints I need:
+  GET [/v1/endpoint]   → returns [describe shape]
+  GET [/v1/endpoint2]  → returns [describe shape]
+
+Pagination:     [cursor / page param / Link header / unknown]
+Known limits:   [anything you know, or "unknown — assume conservative"]
+
+Mark all constraints as "assumed-default" source in the output.
+Flag anything you had to guess as a warning.</pre>
+      </div>
+    </div>
+  </section>
+
+  <hr class="section-divider">
+
+  <!-- ── FEW-SHOT EXAMPLES ─────────────────────── -->
+  <section id="few-shot" class="section">
+    <h2 class="section-title">Few-Shot Examples</h2>
+    <p class="section-meta">ADD THESE IN AI STUDIO UNDER "ADD EXAMPLE" BEFORE YOUR FIRST REAL REQUEST</p>
+
+    <div class="callout callout-violet">
+      <strong>Why these matter more than your system instructions</strong>
+      <p>Per Google's own Gemini API guidance: few-shot examples outperform pure text instructions for consistency and format adherence. These two examples teach Gemini exactly what a "good" connector output looks like — and what a "flagged warning" looks like — before any real request runs.</p>
+    </div>
+
+    <h3 style="color:var(--ff-text-1); font-size:1.05rem; margin: 1.25rem 0 0.75rem;">Example 1 — Good Spec (cursor pagination, API key auth)</h3>
+
+    <div class="code-block">
+      <div class="code-header">
+        <span class="code-label">Example 1 · USER INPUT</span>
+        <button class="copy-btn" onclick="copyBlock(this)">Copy</button>
+      </div>
+      <div class="code-body">
+<pre>I've uploaded example-crm.json. Read it and generate a connector for the
+/v1/deals endpoint. Show metrics: deal count, total pipeline value.
+Refresh: 5min. Role: analyst.</pre>
+      </div>
+    </div>
+
+    <div class="code-block">
+      <div class="code-header">
+        <span class="code-label">Example 1 · MODEL OUTPUT (teach this shape)</span>
+        <button class="copy-btn" onclick="copyBlock(this)">Copy</button>
+      </div>
+      <div class="code-body">
+<pre>{
+  "connector": {
+    "serviceName": "ExampleCRM",
+    "authType": "apiKey",
+    "filePath": "lib/integrations/example-crm.ts",
+    "code": "import { z } from 'zod';\n\nconst DealSchema = z.object({\n  id: z.string(),\n  amount: z.number(),\n  status: z.string(),\n  created_at: z.string()\n});\n\nexport class ExampleCRMConnector {\n  private baseUrl = 'https://api.example-crm.com';\n\n  async fetchDeals(): Promise<z.infer<typeof DealSchema>[]> {\n    const res = await fetch(`${this.baseUrl}/v1/deals`, {\n      headers: { 'X-API-Key': process.env.EXAMPLE_CRM_API_KEY! },\n      signal: AbortSignal.timeout(10000),\n    });\n\n    const remaining = res.headers.get('X-RateLimit-Remaining');\n    if (remaining && parseInt(remaining) < 10) {\n      console.warn('ExampleCRM rate limit low:', remaining);\n    }\n\n    if (!res.ok) throw { cause: `HTTP ${res.status}`, fix: 'Check API key', retryable: res.status >= 500 };\n    return z.array(DealSchema).parse((await res.json()).data);\n  }\n}",
+    "rateStrategy": {
+      "headerUsed": "X-RateLimit-Remaining",
+      "backoffSeconds": [1, 2, 4, 8]
+    },
+    "paginationPattern": "cursor",
+    "knownLimits": [
+      { "field": "auth-header", "value": "X-API-Key", "source": "spec" },
+      { "field": "rate-limit-header", "value": "X-RateLimit-Remaining", "source": "spec" }
+    ]
+  },
+  "dashboard": {
+    "filePath": "components/ExampleCRMDashboard.tsx",
+    "code": "import useSWR from 'swr';\n\nexport function ExampleCRMDashboard() {\n  const { data, error } = useSWR('/api/integrations/example-crm/deals', fetch, { refreshInterval: 300000 });\n\n  if (error) return <MetricError source=\"ExampleCRM\" cause={error.cause} fix={error.fix} retryable={error.retryable} />;\n  if (!data) return <MetricSkeleton />;\n\n  const total = data.reduce((s, d) => s + d.amount, 0);\n\n  return (\n    <section aria-label=\"ExampleCRM metrics\">\n      <MetricCard label=\"Open Deals\" value={data.length} unit=\"count\" />\n      <MetricCard label=\"Pipeline Value\" value={total} unit=\"currency\" />\n    </section>\n  );\n}",
+    "refreshMs": 300000,
+    "metricsShown": [
+      { "label": "Open Deals", "source": "ExampleCRM", "unit": "count" },
+      { "label": "Pipeline Value", "source": "ExampleCRM", "unit": "currency" }
+    ]
+  },
+  "envVars": [
+    { "key": "EXAMPLE_CRM_API_KEY", "description": "API key from ExampleCRM settings page", "required": true }
+  ],
+  "smokeTest": {
+    "command": "curl -H 'X-API-Key: $EXAMPLE_CRM_API_KEY' https://api.example-crm.com/v1/deals",
+    "expectedShape": "{ data: [ { id, amount, status, created_at } ] }",
+    "passCriteria": "HTTP 200, data array present, X-RateLimit-Remaining header visible"
+  },
+  "warnings": []
+}</pre>
+      </div>
+    </div>
+
+    <h3 style="color:var(--ff-text-1); font-size:1.05rem; margin: 1.25rem 0 0.75rem;">Example 2 — Ambiguous Spec (teach warning behavior)</h3>
+
+    <div class="code-block">
+      <div class="code-header">
+        <span class="code-label">Example 2 · USER INPUT</span>
+        <button class="copy-btn" onclick="copyBlock(this)">Copy</button>
+      </div>
+      <div class="code-body">
+<pre>No spec. Base URL: https://api.acme.io. Auth: unknown. Endpoint: GET /tickets.
+Returns ticket list. Pagination: unknown. Show: ticket count.</pre>
+      </div>
+    </div>
+
+    <div class="code-block">
+      <div class="code-header">
+        <span class="code-label">Example 2 · MODEL OUTPUT (teach flagging behavior)</span>
+        <button class="copy-btn" onclick="copyBlock(this)">Copy</button>
+      </div>
+      <div class="code-body">
+<pre>{
+  "connector": {
+    "serviceName": "Acme",
+    "authType": "custom",
+    "filePath": "lib/integrations/acme.ts",
+    "code": "// TODO: replace ASSUMED_AUTH_HEADER with real header name from Acme docs\nexport class AcmeConnector {\n  private baseUrl = 'https://api.acme.io';\n\n  async fetchTickets() {\n    const res = await fetch(`${this.baseUrl}/tickets`, {\n      headers: { 'Authorization': `Bearer ${process.env.ACME_API_KEY}` },\n      signal: AbortSignal.timeout(10000),\n    });\n    if (!res.ok) throw { cause: `HTTP ${res.status}`, fix: 'Verify auth header with Acme docs', retryable: res.status >= 500 };\n    return await res.json();\n  }\n}",
+    "rateStrategy": {
+      "headerUsed": "Retry-After",
+      "backoffSeconds": [1, 2, 4, 8]
+    },
+    "paginationPattern": "unknown",
+    "knownLimits": [
+      { "field": "auth-header", "value": "Authorization: Bearer", "source": "assumed-default" },
+      { "field": "rate-limit", "value": "conservative: 1 req/sec", "source": "assumed-default" }
+    ]
+  },
+  "dashboard": {
+    "filePath": "components/AcmeDashboard.tsx",
+    "code": "// Minimal — verify response shape before expanding\nexport function AcmeDashboard() {\n  const { data, error } = useSWR('/api/integrations/acme/tickets', fetch, { refreshInterval: 300000 });\n  if (error) return <MetricError source=\"Acme\" cause={error.cause} fix={error.fix} retryable={error.retryable} />;\n  return <MetricCard label=\"Tickets\" value={Array.isArray(data) ? data.length : '?'} unit=\"count\" />;\n}",
+    "refreshMs": 300000,
+    "metricsShown": [
+      { "label": "Tickets", "source": "Acme", "unit": "count" }
+    ]
+  },
+  "envVars": [
+    { "key": "ACME_API_KEY", "description": "Auth token — verify header name with Acme documentation", "required": true }
+  ],
+  "smokeTest": {
+    "command": "curl -H 'Authorization: Bearer $ACME_API_KEY' https://api.acme.io/tickets",
+    "expectedShape": "unknown — inspect raw response and update connector schema",
+    "passCriteria": "HTTP 200 with non-empty body"
+  },
+  "warnings": [
+    "Auth header name not confirmed — assumed 'Authorization: Bearer'. Verify with Acme docs before deploy.",
+    "Pagination pattern unknown — connector fetches page 1 only. Add cursor/offset once confirmed.",
+    "Response shape unknown — Zod schema not added. Add after smoke test confirms structure.",
+    "Rate limits unknown — defaulting to 1 req/sec conservative. Update once real limits known."
+  ]
+}</pre>
+      </div>
+    </div>
+  </section>
+
+  <hr class="section-divider">
+
+  <!-- ── SPEC UPLOAD FLOW ──────────────────────── -->
+  <section id="spec-upload" class="section">
+    <h2 class="section-title">Spec Upload Flow</h2>
+    <p class="section-meta">HOW TO GET AN API SPEC INTO AI STUDIO CORRECTLY</p>
+
+    <div class="callout callout-warn">
+      <strong>48-hour file expiry</strong>
+      <p>Files uploaded to AI Studio via the Files API expire after 48 hours. Re-upload every session. Don't reference a file by name assuming it's still there — it probably isn't.</p>
+    </div>
+
+    <ol class="step-list">
+      <li>
+        <span class="step-num">1</span>
+        <div>
+          <strong style="color:var(--ff-text-1); display:block; margin-bottom:0.2rem;">Get the spec</strong>
+          Most APIs publish an OpenAPI spec. Common locations: <code style="font-family:'Geist Mono',monospace; font-size:0.85em;">/openapi.json</code>, <code style="font-family:'Geist Mono',monospace; font-size:0.85em;">/swagger.json</code>, <code style="font-family:'Geist Mono',monospace; font-size:0.85em;">/api-docs</code>, or linked from the developer portal. HubSpot, GitHub, Notion, n8n all publish one. Freshdesk: use their Postman collection instead.
+        </div>
+      </li>
+      <li>
+        <span class="step-num">2</span>
+        <div>
+          <strong style="color:var(--ff-text-1); display:block; margin-bottom:0.2rem;">Scrub before uploading</strong>
+          Search the spec for real API keys, tokens, or credentials someone accidentally committed. Remove them. Replace with <code style="font-family:'Geist Mono',monospace; font-size:0.85em;">REDACTED</code>. Free tier = Google may train on your input. Don't upload live secrets.
+        </div>
+      </li>
+      <li>
+        <span class="step-num">3</span>
+        <div>
+          <strong style="color:var(--ff-text-1); display:block; margin-bottom:0.2rem;">Upload via paperclip</strong>
+          In AI Studio Chat: click the paperclip icon next to the input field → select your file. Supported: JSON, YAML, PDF, plain text. Max 2 GB/file. The file appears as a reference in your message context.
+        </div>
+      </li>
+      <li>
+        <span class="step-num">4</span>
+        <div>
+          <strong style="color:var(--ff-text-1); display:block; margin-bottom:0.2rem;">Reference it by filename in the prompt</strong>
+          Say: <em>"I've uploaded [filename.json] — read it and generate a connector."</em> Gemini reads the entire file. Don't summarize or chunk it — the 1M context window handles full specs.
+        </div>
+      </li>
+      <li>
+        <span class="step-num">5</span>
+        <div>
+          <strong style="color:var(--ff-text-1); display:block; margin-bottom:0.2rem;">No spec? Use the form-based fallback prompt</strong>
+          If no spec exists, use the "No Spec Available" prompt template above. The model will flag all assumptions as <code style="font-family:'Geist Mono',monospace; font-size:0.85em;">"source": "assumed-default"</code> so you know what needs verification.
+        </div>
+      </li>
+      <li>
+        <span class="step-num">6</span>
+        <div>
+          <strong style="color:var(--ff-text-1); display:block; margin-bottom:0.2rem;">Verify the warnings array before deploying</strong>
+          Every generated output includes a <code style="font-family:'Geist Mono',monospace; font-size:0.85em;">warnings</code> array. Non-empty = do not deploy without reviewing. Common flags: unconfirmed auth header, unknown pagination, assumed rate limits.
+        </div>
+      </li>
+    </ol>
+  </section>
+
+  <hr class="section-divider">
+
+  <!-- ── AI STUDIO PRO MOVES ──────────────────── -->
+  <section id="pro-moves" class="section">
+    <h2 class="section-title">AI Studio Pro Moves</h2>
+    <p class="section-meta">HIDDEN GEMS AND DIFFERENTIATORS MOST GUIDES DON'T COVER</p>
+
+    <div class="callout callout-violet">
+      <strong>The gap most people miss</strong>
+      <p>Unlike the consumer Gemini app, AI Studio gives you the "raw" model — you control temperature, system instructions, and features like JSON mode and grounding that aren't available in a standard chat window. These pro moves get you further into that raw access.</p>
+    </div>
+
+    <h3 style="color:var(--ff-text-1);font-size:1.05rem;margin:1.25rem 0 0.5rem;">1. "Get Code" — Zero-Rewrite Export</h3>
+    <p style="color:var(--ff-text-2);font-size:0.875rem;margin-bottom:0.75rem;">Once satisfied, click "Get Code" to export the prompt into Python, curl, or Node.js, or send it to Google Colab or Vertex AI for further development or deployment. This means every connector you generate in AI Studio becomes a production API call in one click. Always use this instead of manually copying code — the exported snippet includes your system instructions, schema, and parameters exactly as configured.</p>
+
+    <h3 style="color:var(--ff-text-1);font-size:1.05rem;margin:1.25rem 0 0.5rem;">2. Gemini 3 Prompting Is Different — Be Concise</h3>
+    <div class="callout callout-warn">
+      <strong>Gemini 3 is a reasoning model</strong>
+      <p>Gemini 3 responds best to direct, clear instructions. It may over-analyze verbose or overly complex prompt engineering techniques used for older models. By default, Gemini 3 is less verbose and prefers providing direct, efficient answers. Cut your prompt length by 30–40% when switching from Gemini 2.x to 3.x. Less scaffolding, more signal.</p>
+    </div>
+
+    <h3 style="color:var(--ff-text-1);font-size:1.05rem;margin:1.25rem 0 0.5rem;">3. JSON + Temp 0 = Parse-Safe Output</h3>
+    <div class="code-block">
+      <div class="code-header">
+        <span class="code-label">Power Combo</span>
+        <button class="copy-btn" onclick="copyBlock(this)">Copy</button>
+      </div>
+      <div class="code-body">
+<pre>Settings: Temperature = 0.0 + Structured Output (Schema: ON)
+
+This guarantees the model won't add conversational sentences
+like "Here is your JSON:" which breaks downstream parsers.
+Use this combo any time the output feeds code, not a human.
+
+Temp 0.2 = code generation (some creativity for implementation)
+Temp 0.0 = strict schema compliance (zero variation)</pre>
+      </div>
+    </div>
+
+    <h3 style="color:var(--ff-text-1);font-size:1.05rem;margin:1.25rem 0 0.5rem;">4. OpenAI Compatibility Layer</h3>
+    <p style="color:var(--ff-text-2);font-size:0.875rem;margin-bottom:0.75rem;">For users utilizing the OpenAI compatibility layer, standard parameters (OpenAI's reasoning_effort) are automatically mapped to Gemini (thinking_level) equivalents. This means if you already have OpenAI-formatted prompts or API calls, they can be pointed at Gemini with minimal changes. Useful if you want to A/B test Claude vs Gemini output for the same connector spec.</p>
+
+    <h3 style="color:var(--ff-text-1);font-size:1.05rem;margin:1.25rem 0 0.5rem;">5. Combine Function Calling + Structured Output</h3>
+    <div class="callout callout-info">
+      <strong>Supported on Gemini 3</strong>
+      <p>Combining built-in tools with function calling is now supported for Gemini 3 models. For the dashboard generator this unlocks an integration picker flow: define a function <code style="font-family:'Geist Mono',monospace;font-size:0.85em">selectIntegration(name, authType, baseUrl)</code>, let the model call it with values derived from the uploaded spec, then pass the result to your structured output schema. One call, two outputs: the model picks the integration AND generates the connector.</p>
+    </div>
+
+    <h3 style="color:var(--ff-text-1);font-size:1.05rem;margin:1.25rem 0 0.5rem;">6. Code Execution Tool — In-Session Processing</h3>
+    <p style="color:var(--ff-text-2);font-size:0.875rem;margin-bottom:0.75rem;">Enable "Code execution" in the Tools panel and Gemini can write and run Python in-session to process the uploaded spec before generating connector code. Useful for large OpenAPI files: ask Gemini to first summarize the spec's endpoints and auth patterns into a compact JSON, then generate the connector from that. Halves context consumption on complex specs.</p>
+
+    <h3 style="color:var(--ff-text-1);font-size:1.05rem;margin:1.25rem 0 0.5rem;">7. Privacy Moves Before Uploading Client Specs</h3>
+    <ol class="step-list">
+      <li>
+        <span class="step-num">a</span>
+        <div>In Settings, there's a "Help improve our products" toggle. Turn it off if you don't want your conversations used for model improvement.</div>
+      </li>
+      <li>
+        <span class="step-num">b</span>
+        <div>Temporary Chat mode (toggle in the top bar) means your conversations won't be saved at all. Files you upload still go to Google Drive, but the chat itself disappears.</div>
+      </li>
+      <li>
+        <span class="step-num">c</span>
+        <div>Use Temporary Chat for any session where the spec contains internal API endpoints, internal domain names, or any PII. Turn it back off for normal iteration sessions to preserve your prompt history.</div>
+      </li>
+    </ol>
+
+    <h3 style="color:var(--ff-text-1);font-size:1.05rem;margin:1.25rem 0 0.5rem;">8. Flash → Pro Handoff Pattern</h3>
+    <div class="code-block">
+      <div class="code-header">
+        <span class="code-label">Model Routing Strategy</span>
+      </div>
+      <div class="code-body">
+<pre>Gemini Flash  →  Iteration (15 RPM, 1,500 RPD)
+  Use for: schema validation, prompt tweaking,
+           example debugging, multi-try refinement
+
+Gemini Pro    →  Final output (2 RPM, 50 RPD)
+  Use for: production-ready connector + dashboard generation
+           after Flash confirms prompt works correctly
+
+Rule: never spend Pro RPD on a prompt you haven't
+      already validated with Flash.</pre>
+      </div>
+    </div>
+
+    <h3 style="color:var(--ff-text-1);font-size:1.05rem;margin:1.25rem 0 0.5rem;">9. Save as Prompt — Your Reusable Session</h3>
+    <p style="color:var(--ff-text-2);font-size:0.875rem;margin-bottom:0.75rem;">Found a great prompt? Use "Get Code" to save it. Tomorrow you'll forget the exact wording. Your exported code remembers. Beyond "Get Code" — also use File → Save as Prompt to persist the entire session configuration: system instructions, few-shot examples, schema, temperature, and model selection. Saved prompts survive browser sessions. Uploaded files don't (48hr expiry). Save the session; re-upload the spec.</p>
+
+    <h3 style="color:var(--ff-text-1);font-size:1.05rem;margin:1.25rem 0 0.5rem;">10. Prompt vs System Instruction — The Hard Rule</h3>
+    <div class="callout callout-danger">
+      <strong>Most common setup mistake</strong>
+      <p>Placing rules in the chat box instead of the System Instructions field. Chat prompts are suggestions; System Instructions are laws. If you put "always use Zod schemas" in the chat message, the model treats it as a polite request. In the system instructions field, it's a constraint that persists every turn and survives context window scrolling.</p>
+    </div>
+  </section>
+
+  <hr class="section-divider">
+
+  <!-- ── DASHBOARD UX PATTERNS ─────────────────── -->
+  <section id="dashboard-ux" class="section">
+    <h2 class="section-title">Dashboard UX Upgrade Pack</h2>
+    <p class="section-meta">PATTERNS TO BAKE INTO SYSTEM INSTRUCTIONS — SEPARATES GENERATED SLOP FROM REAL PRODUCT</p>
+
+    <div class="callout callout-violet">
+      <strong>The 2026 bar</strong>
+      <p>Users now benchmark every product against the best experience they have ever had — not the best experience in your category. These patterns are what makes generated dashboard output feel authored rather than AI-slop. They're already encoded in the updated system instructions above.</p>
+    </div>
+
+    <h3 style="color:var(--ff-text-1);font-size:1.05rem;margin:1.25rem 0 0.5rem;">Skeleton Shimmer — Not Spinners</h3>
+    <div class="callout callout-info">
+      <strong>40% perceived load time reduction</strong>
+      <p>The shimmer animation communicates "active processing" rather than "passive waiting" — the moving gradient implies something is happening, not that the app is stuck. Skeleton screens reduce perceived load time by 40% compared to blank panels with spinners, and near-eliminate the "is this broken?" user action (closing the app or refreshing) during AI inference.</p>
+    </div>
+    <div class="code-block">
+      <div class="code-header">
+        <span class="code-label">Skeleton CSS — Add to Generated Dashboard</span>
+        <button class="copy-btn" onclick="copyBlock(this)">Copy</button>
+      </div>
+      <div class="code-body">
+<pre>/* Paste into generated Dashboard.tsx global styles */
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position:  200% 0; }
+}
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    rgba(168,85,247,0.05) 25%,
+    rgba(168,85,247,0.12) 50%,
+    rgba(168,85,247,0.05) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s linear infinite;
+  border-radius: 6px;
+}
+
+/* Usage: */
+{isLoading
+  ? &lt;div className="skeleton" style={{height:'4rem', width:'8rem'}} /&gt;
+  : &lt;p className="metric-value"&gt;{value}&lt;/p&gt;
+}</pre>
+      </div>
+    </div>
+
+    <h3 style="color:var(--ff-text-1);font-size:1.05rem;margin:1.25rem 0 0.5rem;">Confidence / Source Badge</h3>
+    <p style="color:var(--ff-text-2);font-size:0.875rem;margin-bottom:0.75rem;">One of the most significant new design patterns of 2026 is the visual confidence indicator — a UI element that communicates how certain the AI is about its output, or what the source of the information is. A small percentage badge works for classification outputs; a source citation link works for factual retrieval; a subtle colour-coded border (green for high confidence, amber for medium) works for generated recommendations.</p>
+    <div class="code-block">
+      <div class="code-header">
+        <span class="code-label">Source Badge Component</span>
+        <button class="copy-btn" onclick="copyBlock(this)">Copy</button>
+      </div>
+      <div class="code-body">
+<pre>type DataState = 'live' | 'cached' | 'stale' | 'failed';
+
+const borderColor: Record&lt;DataState, string&gt; = {
+  live:   '1px solid rgba(16,185,129,0.4)',   // green
+  cached: '1px solid rgba(245,158,11,0.4)',   // amber
+  stale:  '1px solid rgba(239,68,68,0.35)',   // red
+  failed: '1px solid rgba(239,68,68,0.6)',    // red bold
+};
+
+function MetricCard({ label, value, source, dataState, lastRefreshed }) {
+  return (
+    &lt;article
+      style={{ border: borderColor[dataState] }}
+      aria-label={`${label} from ${source}`}
+    &gt;
+      &lt;header&gt;
+        &lt;span className="metric-label"&gt;{label}&lt;/span&gt;
+        &lt;span className="source-badge" aria-label={`Source: ${source}`}&gt;
+          {source}
+        &lt;/span&gt;
+      &lt;/header&gt;
+      &lt;p className="metric-value"&gt;{value}&lt;/p&gt;
+      &lt;footer className="last-refreshed"&gt;
+        {new Date(lastRefreshed).toLocaleTimeString()}
+      &lt;/footer&gt;
+    &lt;/article&gt;
+  );
+}</pre>
+      </div>
+    </div>
+
+    <h3 style="color:var(--ff-text-1);font-size:1.05rem;margin:1.25rem 0 0.5rem;">Visual Hierarchy — The 3-Row Rule</h3>
+    <p style="color:var(--ff-text-2);font-size:0.875rem;margin-bottom:0.75rem;">Above the fold: status and key KPIs (are we okay, or not?). The middle: trends and comparisons (what's changing, and where?). The bottom / drill-down: details, breakdowns, and filters (why is this happening?). If a user has to hunt to figure out whether things are on track, your dashboard design isn't doing its job. Enforce this in the user prompt template by specifying which metrics go in which row.</p>
+    <div class="code-block">
+      <div class="code-header">
+        <span class="code-label">Hierarchy Prompt Add-On</span>
+        <button class="copy-btn" onclick="copyBlock(this)">Copy</button>
+      </div>
+      <div class="code-body">
+<pre>/* Add to your user prompt to enforce hierarchy */
+
+Row 1 (status KPIs — 3-4 cards, always visible):
+  [list your 3-4 most critical metrics here]
+
+Row 2 (trend charts — 1-2 line/bar charts):
+  [list what you want to show over time]
+
+Row 3 (detail table — collapsible, below fold):
+  [raw records, full lists, filterable data]
+
+Max 7 metrics above the fold total.
+Drill-down via expandable section, not separate page.</pre>
+      </div>
+    </div>
+
+    <h3 style="color:var(--ff-text-1);font-size:1.05rem;margin:1.25rem 0 0.5rem;">Empty States — Demo Data, Not Blank Screens</h3>
+    <p style="color:var(--ff-text-2);font-size:0.875rem;margin-bottom:0.75rem;">Some products now preload sample data on first load to avoid empty states entirely. Ideally 5-7 core KPIs. Users should understand value within seconds. For generated dashboards: include a <code style="font-family:'Geist Mono',monospace;font-size:0.85em">DEMO_DATA</code> constant that mirrors the real API shape and is displayed when no live connection exists. Users see a working dashboard immediately — they connect credentials after.</p>
+
+    <h3 style="color:var(--ff-text-1);font-size:1.05rem;margin:1.25rem 0 0.5rem;">Per-Integration Error State — Not a Page Crash</h3>
+    <p style="color:var(--ff-text-2);font-size:0.875rem;margin-bottom:0.75rem;">Implement skeleton loaders. Use role-based dashboards. Each integration card must fail independently. One 429 from HubSpot should not blank out the Freshdesk card. The error card pattern (already in the schema's <code style="font-family:'Geist Mono',monospace;font-size:0.85em">cause/fix/retryable</code> structure) is the right implementation — just make sure the generated layout isolates them in separate React error boundaries, not a top-level catch.</p>
+
+    <h3 style="color:var(--ff-text-1);font-size:1.05rem;margin:1.25rem 0 0.5rem;">Chart Type Decision Matrix</h3>
+    <table class="constraint-table">
+      <thead>
+        <tr><th>Data Type</th><th>Use</th><th>Avoid</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Trend over time</td>
+          <td><span class="pill pill-green">Line chart</span></td>
+          <td>Pie chart, bar</td>
+        </tr>
+        <tr>
+          <td>Comparison (categories)</td>
+          <td><span class="pill pill-green">Bar chart</span></td>
+          <td>Line chart, pie</td>
+        </tr>
+        <tr>
+          <td>Single KPI vs target</td>
+          <td><span class="pill pill-green">Stat card + delta</span></td>
+          <td>Gauge, donut</td>
+        </tr>
+        <tr>
+          <td>Proportions (&lt;5 slices)</td>
+          <td><span class="pill pill-yellow">Pie (sparingly)</span></td>
+          <td>Pie with 8+ slices</td>
+        </tr>
+        <tr>
+          <td>Granular records</td>
+          <td><span class="pill pill-green">Table</span></td>
+          <td>Chart</td>
+        </tr>
+        <tr>
+          <td>Status / health</td>
+          <td><span class="pill pill-green">Color-coded badge</span></td>
+          <td>Numeric only</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="callout callout-warn" style="margin-top:1.5rem;">
+      <strong>The 2026 differentiator: predictive surfacing</strong>
+      <p>In 2026, the best dashboards don't just show data — they predict, prioritise, and recommend. Design decision: surfacing enrollment trend anomalies proactively rather than requiring users to pull manual reports changed how the operations team structured its daily workflow. That design decision mattered more than any visual choice made on the project. For your dashboard generator: add a <code style="font-family:'Geist Mono',monospace;font-size:0.85em">warnings</code> row at the top that surfaces anomalies (metric delta &gt; 20% from prior period, rate limit &gt; 80% spent, integration stale &gt; 30min) before the user asks.</p>
+    </div>
+  </section>
+
+  <hr class="section-divider">
+
+  <!-- ── SETUP CHECKLIST ───────────────────────── -->
+  <section id="setup-checklist" class="section">
+    <h2 class="section-title">Setup Checklist</h2>
+    <p class="section-meta">RUN THIS ONCE BEFORE YOUR FIRST REAL GENERATION</p>
+
+    <table class="constraint-table">
+      <thead>
+        <tr><th>Step</th><th>Action</th><th>Done?</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>1</td><td>Open AI Studio → New Chat session</td><td><span class="pill pill-yellow">TODO</span></td></tr>
+        <tr><td>2</td><td>Click clipboard icon → paste System Instructions block</td><td><span class="pill pill-yellow">TODO</span></td></tr>
+        <tr><td>3</td><td>Right panel: set Temperature = 0.2</td><td><span class="pill pill-yellow">TODO</span></td></tr>
+        <tr><td>4</td><td>Right panel: set Max Output Tokens = 8192</td><td><span class="pill pill-yellow">TODO</span></td></tr>
+        <tr><td>5</td><td>Right panel: Structured Output → ON → paste JSON schema</td><td><span class="pill pill-yellow">TODO</span></td></tr>
+        <tr><td>6</td><td>Right panel: Search Grounding → OFF</td><td><span class="pill pill-yellow">TODO</span></td></tr>
+        <tr><td>7</td><td>Add Example 1 (good spec) under "Add Example"</td><td><span class="pill pill-yellow">TODO</span></td></tr>
+        <tr><td>8</td><td>Add Example 2 (ambiguous spec) under "Add Example"</td><td><span class="pill pill-yellow">TODO</span></td></tr>
+        <tr><td>9</td><td>Test with a known API spec (GitHub or Notion) using Flash model</td><td><span class="pill pill-yellow">TODO</span></td></tr>
+        <tr><td>10</td><td>Verify output JSON parses against schema, warnings array is present</td><td><span class="pill pill-yellow">TODO</span></td></tr>
+        <tr><td>11</td><td>Switch to Pro model for final generation</td><td><span class="pill pill-yellow">TODO</span></td></tr>
+        <tr><td>12</td><td>Check generated code: no 'any' types, no hardcoded limits, no empty catch blocks</td><td><span class="pill pill-yellow">TODO</span></td></tr>
+        <tr><td>13</td><td>Verify skeleton shimmer present — no global spinner</td><td><span class="pill pill-yellow">TODO</span></td></tr>
+        <tr><td>14</td><td>Verify per-card error state — one integration fail ≠ page crash</td><td><span class="pill pill-yellow">TODO</span></td></tr>
+        <tr><td>15</td><td>Verify source badge + last-refreshed timestamp per card</td><td><span class="pill pill-yellow">TODO</span></td></tr>
+        <tr><td>16</td><td>Verify demo data preloaded — no blank screen on first render</td><td><span class="pill pill-yellow">TODO</span></td></tr>
+        <tr><td>17</td><td>Verify visual hierarchy: KPIs → trends → details (3-row rule)</td><td><span class="pill pill-yellow">TODO</span></td></tr>
+        <tr><td>18</td><td>Verify uxPatterns object in output JSON has all booleans = true</td><td><span class="pill pill-yellow">TODO</span></td></tr>
+      </tbody>
+    </table>
+
+    <div class="callout callout-info" style="margin-top:1.5rem;">
+      <strong>Save the session as a Prompt in AI Studio</strong>
+      <p>Once setup is verified: File → Save as Prompt. Give it a name ("Dashboard Generator v1"). This preserves your system instructions, examples, schema, and parameter settings so you don't reconfigure from scratch each time. Saved prompts persist — uploaded files don't (48hr expiry).</p>
+    </div>
+  </section>
+
+</main>
+</div>
+
+<script>
+function scroll(id) {
+  const el = document.getElementById(id);
+  if (el) {
+    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+    event.currentTarget.classList.add('active');
+  }
+}
+
+function copyBlock(btn) {
+  const pre = btn.closest('.code-block').querySelector('pre');
+  navigator.clipboard.writeText(pre.textContent).then(() => {
+    btn.textContent = 'Copied!';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+
+// Intersection observer → update active nav
+const sections = document.querySelectorAll('section[id]');
+const links = document.querySelectorAll('.nav-link');
+const obs = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      links.forEach(l => l.classList.remove('active'));
+      const match = [...links].find(l => l.getAttribute('onclick')?.includes(e.target.id));
+      if (match) match.classList.add('active');
+    }
+  });
+}, { threshold: 0.25 });
+sections.forEach(s => obs.observe(s));
+</script>
+</body>
+</html>

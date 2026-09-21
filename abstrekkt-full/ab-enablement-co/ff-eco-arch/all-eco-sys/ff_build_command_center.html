@@ -1,0 +1,269 @@
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font-sans);color:var(--color-text-primary)}
+.metric{background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:12px 14px}
+.metric .lbl{font-size:12px;color:var(--color-text-secondary);margin-bottom:4px}
+.metric .val{font-size:24px;font-weight:500}
+.tab{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-tertiary);background:transparent;color:var(--color-text-secondary);cursor:pointer;font-size:13px;font-family:var(--font-sans)}
+.tab.on{border:2px solid var(--color-border-info);background:var(--color-background-info);color:var(--color-text-info);font-weight:500}
+.badge{font-size:11px;background:var(--color-background-secondary);color:var(--color-text-secondary);border-radius:99px;padding:1px 6px}
+.filt{padding:3px 10px;border-radius:99px;font-size:12px;cursor:pointer;border:0.5px solid var(--color-border-tertiary);background:transparent;color:var(--color-text-secondary);font-family:var(--font-sans)}
+.row{display:grid;grid-template-columns:24px 1fr auto;gap:10px;align-items:start;padding:10px 14px;background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md)}
+.pill{font-size:11px;padding:2px 8px;border-radius:99px;white-space:nowrap}
+.num{font-size:12px;color:var(--color-text-tertiary);padding-top:3px;font-variant-numeric:tabular-nums}
+.rname{font-size:14px;font-weight:500;margin-bottom:2px}
+.rnote{font-size:12px;color:var(--color-text-secondary);line-height:1.5}
+.meta{display:flex;flex-direction:column;align-items:flex-end;gap:5px;min-width:88px}
+.footer{margin-top:16px;padding:12px 16px;background:var(--color-background-secondary);border-radius:var(--border-radius-md);font-size:13px;color:var(--color-text-secondary)}
+</style>
+
+<h2 style="font-size:22px;font-weight:500;margin:0 0 4px">FlashFusion Build Command Center</h2>
+<p id="subtitle" style="font-size:14px;color:var(--color-text-secondary);margin:0 0 20px"></p>
+
+<div id="metrics" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:20px"></div>
+
+<div id="tabs" style="display:flex;gap:6px;flex-wrap:wrap;border-bottom:0.5px solid var(--color-border-tertiary);padding-bottom:12px;margin-bottom:0"></div>
+
+<div style="display:flex;gap:8px;align-items:center;padding:10px 0 8px">
+  <span id="catdesc" style="font-size:13px;color:var(--color-text-secondary)"></span>
+  <div id="filters" style="margin-left:auto;display:flex;gap:6px"></div>
+</div>
+
+<div id="list" style="display:flex;flex-direction:column;gap:6px"></div>
+
+<div class="footer">
+  <span style="color:var(--color-text-primary);font-weight:500">Next build order:</span>
+  P1 needs-build first — Pricing Sheet, SOW Template, Skills Catalog, ROI Calculator, Discovery Scorecard, 8 core prompts, Lead Enrichment Agent, Audit Processor Agent.
+</div>
+
+<script>
+var S={exists:{label:"exists",bg:"#EAF3DE",color:"#3B6D11",border:"#639922"},progress:{label:"in progress",bg:"#FAEEDA",color:"#854F0B",border:"#EF9F27"},build:{label:"needs build",bg:"#FCEBEB",color:"#A32D2D",border:"#E24B4A"}};
+var P={p1:{label:"P1",color:"#E24B4A"},p2:{label:"P2",color:"#EF9F27"},p3:{label:"P3",color:"#639922"}};
+var CATS=[
+{id:"docs",label:"Documents",icon:"📄",desc:"Sales, delivery, legal, ops",items:[
+{n:"One-Pager",s:"exists",p:"p1",note:"Enterprise AI agent platform framing."},
+{n:"Proposal Template",s:"exists",p:"p1",note:"POC proposal with placeholder fills."},
+{n:"Discovery Call Guide",s:"exists",p:"p1",note:"Structured call framework."},
+{n:"Objection Handling Guide",s:"exists",p:"p1",note:"48-template objection guide."},
+{n:"Outreach Email Templates",s:"exists",p:"p1",note:"Cold/warm outreach variants."},
+{n:"AI Setup Audit Scorecard",s:"exists",p:"p1",note:"Live at audit.flashfusion.co."},
+{n:"LLC Formation Kit",s:"exists",p:"p1",note:"IP assignment, moonlighting audit."},
+{n:"Pricing & Packaging Sheet",s:"build",p:"p1",note:"Audits $4.5K / Sprints $5K / Retainer $2K/mo. Single clean PDF."},
+{n:"Statement of Work Template",s:"build",p:"p1",note:"Scope, deliverables, timeline, payment, acceptance criteria."},
+{n:"Skills Library Catalog",s:"build",p:"p1",note:"50 skills with descriptions, use cases, pricing. Client-facing."},
+{n:"Client Onboarding Checklist",s:"build",p:"p2",note:"Post-contract kickoff sequence."},
+{n:"Case Study Template",s:"build",p:"p2",note:"Chris Butler is the first subject. Before/after format."},
+{n:"ROI Calculator Template",s:"build",p:"p2",note:"Time saved × hourly rate × volume. For presales."},
+{n:"Competitor Battle Card",s:"build",p:"p2",note:"FF vs Copilot vs LangChain vs doing nothing."},
+{n:"vCAIO Service Description",s:"build",p:"p2",note:"Month 12+ advisory tier. Scope, cadence, deliverables."},
+{n:"Managed Retainer Agreement",s:"build",p:"p2",note:"$2K/mo scope definition, SLA, out-of-scope handling."},
+{n:"Partnership Pitch (Anthropic)",s:"build",p:"p2",note:"Target: Anthropic Partner Network."},
+{n:"Service Delivery Playbook",s:"build",p:"p2",note:"How an Enablement Sprint runs week-by-week."},
+{n:"NDA Template",s:"build",p:"p2",note:"Mutual NDA. Illinois governing law."},
+{n:"Invoice Template",s:"build",p:"p3",note:"Net-30 language, milestone-based variants."},
+{n:"Client Intake Form",s:"build",p:"p3",note:"Pre-audit info gather. Stack, team size, use case."},
+{n:"QBR Report Template",s:"build",p:"p3",note:"Quarterly business review for retainer clients."},
+{n:"Skills Library User Guide",s:"build",p:"p3",note:"How to install, use, and customize skill packs."},
+{n:"FlashFusion Brand Guide",s:"build",p:"p3",note:"Colors, typography, voice, usage rules."},
+{n:"Press Kit / Bio",s:"build",p:"p3",note:"For media, speaking, partnership inquiries."},
+]},
+{id:"artifacts",label:"Artifacts",icon:"🖥️",desc:"Claude artifacts, Base44 apps, interactive tools",items:[
+{n:"AI Setup Audit Scorecard (Base44)",s:"exists",p:"p1",note:"Live at audit.flashfusion.co."},
+{n:"Fusion AI App (Base44)",s:"exists",p:"p1",note:"Closed beta. id: 68dd8e79ca073475565c8e16."},
+{n:"Portfolio Command Center",s:"exists",p:"p1",note:"n8n workflow JPSVa3cLtQPi8NKF + HTML version."},
+{n:"Kanban Board v2",s:"exists",p:"p1",note:"Sprint board with health scores. kanban-v2.jsx."},
+{n:"Memoir Engine",s:"exists",p:"p2",note:"memoir_engine.html."},
+{n:"Evidence Board",s:"exists",p:"p2",note:"the-evidence-board.html."},
+{n:"Publishing Command Center v2",s:"exists",p:"p2",note:"publishing_command_center_v2.html."},
+{n:"Chaos Club Co. Landing",s:"exists",p:"p2",note:"chaos_club_co_landing.html."},
+{n:"Knowledge OS",s:"exists",p:"p2",note:"Drive cluster map + signal board."},
+{n:"ROI Calculator (interactive)",s:"build",p:"p1",note:"Client-facing. Time saved × rate × volume. Shareable."},
+{n:"Discovery Call Scorecard",s:"build",p:"p1",note:"Live scoring: ICP fit, urgency, budget, timeline."},
+{n:"Skills Browser",s:"build",p:"p1",note:"Client-facing: 50 skills by category + use case filter."},
+{n:"Enablement Sprint Tracker",s:"build",p:"p1",note:"Client-shared: milestones, deliverables, status."},
+{n:"Proposal Builder",s:"build",p:"p2",note:"Dynamic from discovery inputs."},
+{n:"Audit Report Generator",s:"build",p:"p2",note:"Scorecard data → formatted audit report."},
+{n:"Pipeline Dashboard",s:"build",p:"p2",note:"Prospects, stage, value, close probability."},
+{n:"Client Dashboard",s:"build",p:"p2",note:"Per-client: sprint status, deliverables, next steps."},
+{n:"Revenue Tracker",s:"build",p:"p2",note:"MRR, ARR, pipeline. $222K Y1 target."},
+{n:"Battle Card Browser",s:"build",p:"p2",note:"Interactive competitor comparison for calls."},
+{n:"Outreach Tracker",s:"build",p:"p2",note:"Prospect status: Ryan A., Mark H., pipeline."},
+{n:"Newsletter Generator (Claude-in-Claude)",s:"build",p:"p3",note:"AI-powered newsletter drafting artifact."},
+{n:"Agent Builder UI",s:"build",p:"p3",note:"Visual interface for composing agent workflows."},
+{n:"Skills Gap Detector",s:"build",p:"p3",note:"Client answers → skill pack recommendation."},
+{n:"Onboarding Hub",s:"build",p:"p3",note:"New client self-serve portal."},
+{n:"Chaos Club Daily Dispatch App",s:"build",p:"p3",note:"Base44 app for daily content delivery."},
+]},
+{id:"skills",label:"Skills",icon:"🧩",desc:"Claude skill packs — delivery & internal",items:[
+{n:"generating-social-posts",s:"exists",p:"p1",note:"LinkedIn/X/Threads/Blog/Audio. Kyle's voice."},
+{n:"drafting-multi-format-content",s:"exists",p:"p1",note:"48 templates: scripts, threads, carousels, client comms."},
+{n:"roi-calculator-building",s:"exists",p:"p1",note:"B2B AI ROI models for enterprise presales."},
+{n:"ai-solution-architecture",s:"exists",p:"p1",note:"Pre-sales technical architectures."},
+{n:"workflow-automation",s:"exists",p:"p1",note:"n8n, Zapier, Make. SaaS integration."},
+{n:"orchestrating-ai-agents",s:"exists",p:"p1",note:"MCP, LangChain, CrewAI, multi-agent."},
+{n:"generating-kb-articles",s:"exists",p:"p1",note:"Formatted .docx KB articles."},
+{n:"applying-adversarial-review",s:"exists",p:"p1",note:"Claims/counterexamples, sourced/generated labeling."},
+{n:"code-auditor",s:"exists",p:"p1",note:"Architecture, security, performance analysis."},
+{n:"frontend-design",s:"exists",p:"p1",note:"Production-grade frontend with design brief gate."},
+{n:"managing-design-briefs",s:"exists",p:"p2",note:"Anti-slop gates, locked tokens, FF + INT profiles."},
+{n:"elite-ui-design",s:"exists",p:"p2",note:"Experience thesis → component architecture."},
+{n:"producing-ai-newsletter",s:"exists",p:"p2",note:"Multi-config newsletter system."},
+{n:"task-decomposition",s:"exists",p:"p2",note:"Complex requests → parallel workstreams."},
+{n:"applying-sparc-methodology",s:"exists",p:"p2",note:"Spec, Pseudocode, Architecture, Refinement, Completion."},
+{n:"engineering-staff-workflows",s:"exists",p:"p2",note:"Security-first staff engineer for production systems."},
+{n:"writing-shell-scripts",s:"exists",p:"p2",note:"MSP-grade Bash/PS1 with adversarial audit gate."},
+{n:"debug-like-expert",s:"exists",p:"p2",note:"Deep debugging with hypothesis testing."},
+{n:"developing-skills",s:"exists",p:"p2",note:"Creating and managing Claude skills."},
+{n:"packaging-skills",s:"exists",p:"p2",note:"Production zip files, March 2026 spec compliance."},
+{n:"ai-audit-delivery",s:"build",p:"p1",note:"Run FF AI Setup Audits end-to-end."},
+{n:"enablement-sprint-planning",s:"build",p:"p1",note:"5-week sprint structure, milestone definition."},
+{n:"client-communication",s:"build",p:"p2",note:"Lifecycle comms: intake, weekly update, milestone, QBR."},
+{n:"competitive-intelligence",s:"build",p:"p2",note:"Battle card maintenance, objection prep."},
+{n:"retainer-management",s:"build",p:"p3",note:"Monthly ops: reporting, scope, renewal triggers."},
+]},
+{id:"plugins",label:"Plugins/MCPs",icon:"🔌",desc:"Connected MCP servers and integrations",items:[
+{n:"Notion MCP",s:"exists",p:"p1",note:"Workspace docs, databases, meeting notes."},
+{n:"Google Drive MCP",s:"exists",p:"p1",note:"File search, read, create, share."},
+{n:"Gmail MCP",s:"exists",p:"p1",note:"Search threads, draft, send."},
+{n:"Google Calendar MCP",s:"exists",p:"p1",note:"Events, scheduling, availability."},
+{n:"n8n MCP",s:"exists",p:"p1",note:"krosebrook.app.n8n.cloud. Read + execute."},
+{n:"Vercel MCP",s:"exists",p:"p1",note:"Deployments, logs, projects."},
+{n:"Base44 MCP",s:"exists",p:"p1",note:"Create + query entities."},
+{n:"Linear MCP",s:"exists",p:"p1",note:"Issue tracking, project management."},
+{n:"Slack MCP",s:"exists",p:"p1",note:"Messaging, channel management."},
+{n:"HubSpot MCP",s:"exists",p:"p1",note:"CRM, contacts, deals, emails."},
+{n:"GitHub (via composio)",s:"exists",p:"p1",note:"Repos, issues, PRs. 630+ repos."},
+{n:"Airtable MCP",s:"exists",p:"p2",note:"Structured data, client tracking."},
+{n:"ClickUp MCP",s:"exists",p:"p2",note:"Tasks, docs, dashboards."},
+{n:"Cloudinary MCP",s:"exists",p:"p2",note:"Media library, transforms, uploads."},
+{n:"Figma MCP",s:"exists",p:"p2",note:"Team 152971. FlashFusion design files."},
+{n:"WordPress MCP",s:"exists",p:"p2",note:"kylerosebrook.com site ID 253504189."},
+{n:"PostHog MCP",s:"exists",p:"p2",note:"Product analytics, session replay."},
+{n:"Sentry MCP",s:"exists",p:"p2",note:"Error monitoring, performance."},
+{n:"Stripe MCP",s:"exists",p:"p2",note:"Payments, invoices, subscriptions."},
+{n:"DocuSign MCP",s:"exists",p:"p2",note:"Contract signing, template management."},
+{n:"Apollo.io MCP",s:"exists",p:"p2",note:"Lead enrichment, outreach sequences."},
+{n:"Calendly MCP",s:"exists",p:"p2",note:"Booking links, availability, scheduling."},
+{n:"Supabase MCP",s:"progress",p:"p1",note:"Connected but financial hold. Unblock after bill resolved."},
+{n:"FlashFusion Custom MCP",s:"build",p:"p1",note:"Exposes FF audit + skills APIs to Claude."},
+{n:"Chaos Club MCP",s:"build",p:"p3",note:"Content delivery and user management."},
+]},
+{id:"prompts",label:"Prompts",icon:"⌨️",desc:"System prompts for FlashFusion delivery",items:[
+{n:"Discovery Call Prep",s:"build",p:"p1",note:"Company + contact → call brief, ICP score, question stack."},
+{n:"AI Setup Audit Analyzer",s:"build",p:"p1",note:"Scorecard responses → gap analysis, sprint recommendation."},
+{n:"Proposal Drafter",s:"build",p:"p1",note:"Discovery notes → draft proposal."},
+{n:"Objection Handler",s:"build",p:"p1",note:"Objection → 3 reframe options + close move."},
+{n:"Skills Gap Analyzer",s:"build",p:"p1",note:"Client use case + stack → skill pack recommendation."},
+{n:"Enablement Sprint Planner",s:"build",p:"p1",note:"Audit output → week-by-week sprint plan."},
+{n:"ROI Narrative Builder",s:"build",p:"p1",note:"Time saved, team size, rate → executive narrative."},
+{n:"Case Study Extractor",s:"build",p:"p1",note:"Project notes + outcomes → before/after case study."},
+{n:"Client Onboarding Brief",s:"build",p:"p2",note:"Signed SOW → onboarding packet."},
+{n:"vCAIO Advisory Memo",s:"build",p:"p2",note:"Monthly advisory format for retainer clients."},
+{n:"SOW Generator",s:"build",p:"p2",note:"Accepted proposal → full SOW draft."},
+{n:"Competitive Intel Monitor",s:"build",p:"p2",note:"Competitor name → updated battle card."},
+{n:"Lead Qualification",s:"build",p:"p2",note:"Prospect info → ICP score, entry product, angle."},
+{n:"LinkedIn Content Generator",s:"build",p:"p2",note:"Insight → 3 post variants in Kyle's voice."},
+{n:"Technical Architecture Review",s:"build",p:"p2",note:"Client AI stack → gap analysis, integration map."},
+{n:"Agent Design Prompt",s:"build",p:"p2",note:"Workflow → agent spec with tools, triggers, guardrails."},
+{n:"Newsletter Edition Builder",s:"build",p:"p2",note:"Week signals → formatted newsletter draft."},
+{n:"Client Email Drafter",s:"build",p:"p2",note:"Situation + intent → 2 email variants."},
+{n:"Stakeholder Update",s:"build",p:"p3",note:"Sprint status → executive update, 3 sentences/section."},
+{n:"QBR Summary Generator",s:"build",p:"p3",note:"Quarter's work → QBR narrative with metrics."},
+{n:"Workflow Documentation",s:"build",p:"p3",note:"Workflow description → SOP with steps, owners, edge cases."},
+{n:"Training Material Generator",s:"build",p:"p3",note:"Skill or process → user guide + quick-ref card."},
+{n:"Risk Assessment",s:"build",p:"p3",note:"Proposed integration → risk matrix."},
+{n:"Integration Mapping",s:"build",p:"p3",note:"Two systems → options, data flow, implementation path."},
+{n:"Battle Card Updater",s:"build",p:"p3",note:"Competitor news → updated battle card section."},
+]},
+{id:"agents",label:"Agents",icon:"🤖",desc:"n8n workflows and autonomous agents",items:[
+{n:"Portfolio Command Center",s:"exists",p:"p1",note:"n8n JPSVa3cLtQPi8NKF. Cross-project signal aggregation."},
+{n:"Drive Automation Chain 1+2",s:"exists",p:"p1",note:"Classification + routing pipeline. Supabase audit trail."},
+{n:"Skills Deployment Pipeline",s:"exists",p:"p1",note:"50 skills. Pipeline tooling scripts complete."},
+{n:"LastPass → Bitwarden Migration",s:"progress",p:"p1",note:"KB built. Copilot Studio Teams embed pending."},
+{n:"Discovery Call Brief Agent",s:"build",p:"p1",note:"Prospect name → brief in Notion 30min before call."},
+{n:"Lead Enrichment Agent",s:"build",p:"p1",note:"Apollo.io → enriched record → HubSpot update."},
+{n:"Audit Scorecard Processor",s:"build",p:"p1",note:"Submission → gap analysis → draft proposal → notify."},
+{n:"Proposal Generator Agent",s:"build",p:"p1",note:"Discovery notes → proposal draft → Slack notify."},
+{n:"Outreach Sequencer",s:"build",p:"p1",note:"ICP-fit prospect → personalized sequence → Gmail → HubSpot."},
+{n:"Content Publisher Agent",s:"build",p:"p1",note:"Draft approved → schedule → publish LinkedIn + X + Threads."},
+{n:"Client Onboarding Agent",s:"build",p:"p2",note:"SOW signed → Notion + Drive + calendar + welcome email."},
+{n:"Newsletter Research Agent",s:"build",p:"p2",note:"Weekly: web search → curate AI signals → draft The Prompt."},
+{n:"GitHub Repo Audit Agent",s:"build",p:"p2",note:"Weekly: scan repos → classify → Notion update."},
+{n:"Calendar Intelligence Agent",s:"build",p:"p2",note:"Upcoming calls → auto-prep briefs → Notion 1hr before."},
+{n:"CRM Hygiene Agent",s:"build",p:"p2",note:"Weekly: HubSpot stale deals → flag → Slack reminder."},
+{n:"Sprint Status Agent",s:"build",p:"p2",note:"Weekly: client tasks → status update → email client."},
+{n:"Invoice Generator Agent",s:"build",p:"p2",note:"Milestone hit → Stripe invoice → send → log in Drive."},
+{n:"Skills Gap Detector Agent",s:"build",p:"p2",note:"Audit data → Claude analysis → skill pack recommendation."},
+{n:"Competitive Intel Monitor",s:"build",p:"p2",note:"Daily: monitor competitors → Notion battle card update."},
+{n:"Email Triage Agent",s:"build",p:"p2",note:"Gmail → classify → Notion action item if needed."},
+{n:"QBR Report Generator",s:"build",p:"p3",note:"Quarter-end: sprint data → QBR doc → Drive + email."},
+{n:"Document Archive Agent",s:"build",p:"p3",note:"New deliverable → auto-file → Drive index update."},
+{n:"Social Monitoring Agent",s:"build",p:"p3",note:"Monitor FlashFusion + Kyle mentions → Slack daily digest."},
+{n:"Chaos Club Daily Dispatch",s:"build",p:"p3",note:"Daily: generate peer support content → publish."},
+{n:"Skill Pack Installer Agent",s:"build",p:"p3",note:"Client request → package skill bundle → deliver with guide."},
+]}
+];
+
+var activeCat="docs";
+var activeFilter="all";
+
+var totalExists=CATS.reduce(function(a,c){return a+c.items.filter(function(i){return i.s==="exists"}).length},0);
+var totalProgress=CATS.reduce(function(a,c){return a+c.items.filter(function(i){return i.s==="progress"}).length},0);
+var totalBuild=CATS.reduce(function(a,c){return a+c.items.filter(function(i){return i.s==="build"}).length},0);
+var TOTAL=CATS.reduce(function(a,c){return a+c.items.length},0);
+
+document.getElementById("subtitle").textContent=TOTAL+" items \u00b7 "+totalExists+" exist \u00b7 "+totalProgress+" in progress \u00b7 "+totalBuild+" need build";
+
+var metrics=document.getElementById("metrics");
+[{l:"Total",v:TOTAL,c:"var(--color-text-primary)"},{l:"Exists",v:totalExists,c:"#3B6D11"},{l:"In progress",v:totalProgress,c:"#854F0B"},{l:"Needs build",v:totalBuild,c:"#A32D2D"}].forEach(function(m){
+  var d=document.createElement("div");d.className="metric";
+  d.innerHTML='<div class="lbl">'+m.l+'</div><div class="val" style="color:'+m.c+'">'+m.v+'</div>';
+  metrics.appendChild(d);
+});
+
+function render(){
+  var cat=CATS.find(function(c){return c.id===activeCat});
+  var items=activeFilter==="all"?cat.items:cat.items.filter(function(i){return i.s===activeFilter});
+  
+  document.getElementById("catdesc").textContent=cat.desc;
+  
+  var tabs=document.getElementById("tabs");
+  tabs.innerHTML="";
+  CATS.forEach(function(c){
+    var btn=document.createElement("button");
+    btn.className="tab"+(c.id===activeCat?" on":"");
+    btn.innerHTML=c.icon+" "+c.label+' <span class="badge">'+c.items.length+'</span>';
+    btn.onclick=function(){activeCat=c.id;activeFilter="all";render()};
+    tabs.appendChild(btn);
+  });
+  
+  var filts=document.getElementById("filters");
+  filts.innerHTML="";
+  [["all","all ("+cat.items.length+")"],["exists","exists ("+cat.items.filter(function(i){return i.s==="exists"}).length+")"],["progress","in progress ("+cat.items.filter(function(i){return i.s==="progress"}).length+")"],["build","needs build ("+cat.items.filter(function(i){return i.s==="build"}).length+")"]].forEach(function(f){
+    var btn=document.createElement("button");
+    btn.className="filt";
+    btn.textContent=f[1];
+    if(f[0]===activeFilter){
+      var sv=f[0]==="all"?null:S[f[0]];
+      btn.style.border="0.5px solid "+(sv?sv.border:"var(--color-border-secondary)");
+      btn.style.background=sv?sv.bg:"var(--color-background-secondary)";
+      btn.style.color=sv?sv.color:"var(--color-text-primary)";
+    }
+    btn.onclick=function(){activeFilter=f[0];render()};
+    filts.appendChild(btn);
+  });
+  
+  var list=document.getElementById("list");
+  list.innerHTML="";
+  items.forEach(function(item,idx){
+    var sv=S[item.s];var pv=P[item.p];
+    var num=cat.items.indexOf(item)+1;
+    var row=document.createElement("div");row.className="row";
+    row.innerHTML='<div class="num">'+String(num).padStart(2,"0")+'</div><div><div class="rname">'+item.n+'</div><div class="rnote">'+item.note+'</div></div><div class="meta"><span class="pill" style="background:'+sv.bg+';color:'+sv.color+';border:0.5px solid '+sv.border+'">'+sv.label+'</span><span style="font-size:11px;color:'+pv.color+';font-weight:500">'+pv.label+'</span></div>';
+    list.appendChild(row);
+  });
+}
+
+render();
+</script>

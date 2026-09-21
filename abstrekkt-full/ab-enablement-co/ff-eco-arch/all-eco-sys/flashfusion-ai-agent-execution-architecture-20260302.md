@@ -1,0 +1,82 @@
+# FlashFusion AI Agent Execution Architecture
+
+- FlashFusion AI Agent Execution Architecture
+  - Agent Action & Status Definitions
+    - AgentActionType (LLM Decision)
+      - LLM_CALL (Recurse/Reasoning Step)
+      - TOOL_CALL (External Function)
+      - FINAL_ANSWER (Terminal Response)
+    - AgentActionSchema (LLM Structured Output)
+      - actionType (Required Enum)
+      - nextPrompt (Optional for LLM_CALL)
+      - toolName (Optional for TOOL_CALL)
+      - toolArguments (JSON object for tool)
+      - Custom Refinement (Validation based on actionType)
+    - AgentStatus (Execution State)
+      - Final States
+        - COMPLETE
+        - ERROR
+        - POLICY_VIOLATION
+      - Intermediate States
+        - NEXT_STEP (Needs Recurse)
+        - TOOL_DISPATCHED (Awaiting Result)
+        - PARALLEL_PENDING (Long-running task)
+  - Execution Core (Phase 4)
+    - Recursive Agent Runner
+      - Handles Multi-Step Execution (Chain-of-Thought)
+      - Propagates contextSummary to next job
+      - Checks maxRecursionDepth (Policy)
+      - Uses ResilientLLMClient (generateWithRetry)
+    - Tool Executor (Dispatch)
+      - Routes LLM-decided actions (Tool Call)
+      - Handles: workflow_orchestrator
+      - Handles: google_search (RAG/Grounding)
+      - Handles: code_executor (Secure Sandbox)
+      - Manages Transient vs. Permanent Errors
+    - Resilience & Error Handling
+      - ResilientLLMClient (Exponential Backoff)
+      - MAX_RETRIES (3 attempts)
+      - TransientError (Triggers Retry)
+      - PermanentError (Maps to FATAL_ERROR)
+      - ExternalServiceGateway (Uniform error handling)
+  - Policy & Idempotency (Phase 1 & 3)
+    - Idempotency Handler (Caching)
+      - Generates Intent Signature (SHA256 hash)
+      - Excludes volatile parameters (correlationId, currentDepth)
+      - checkAndReturnCachedResult (CACHE_HIT/MISS)
+      - Handles CACHE_SCHEMA_DRIFT (Invalidates old cache)
+    - Context Window Validator
+      - Prevents out-of-budget API calls
+      - Throws POLICY_VIOLATION error
+      - Uses token approximation (1 token ≈ 4 chars)
+    - AuthManager (Enforces Tier Policy)
+  - Observability & Serialization (Phase 5)
+    - AuditLogger (Traceability)
+      - Persists critical events (fire-and-forget pattern)
+      - Logs events (e.g., TOKEN_ESTIMATE, TOOL_EXECUTION_START)
+      - Used for DCD (Dynamic Context Debugger)
+    - ResponseSerializer (API Contract)
+      - Wraps final AguiResponse for client
+      - Returns status: 'SUCCESS'
+      - Includes correlationId/auditLogId (Traceability)
+      - Provides traceSummary (Last 3 steps)
+    - Cost Attributor
+      - Calculates final monetary cost (LLM + Tools)
+      - Logs FINAL_BILLING_REPORT
+      - Logs EXECUTION_FINALIZED (Cost/Time)
+  - Tool Registry & Capabilities
+    - Core Tools (AvailableToolNames)
+      - google_search (Real-time facts/RAG)
+      - workflow_orchestrator (Complex logic/Pipelines)
+      - execute_code (Secure sandbox execution)
+      - submit_parallel_job (Concurrency control)
+      - check_job_status (Concurrency control)
+      - retrieve_context (Internal KB/RAG)
+    - RAG Implementation
+      - Google Search Grounding (External Search API)
+      - RAGClient (Internal Vector Store Retrieval)
+      - MAX_CHUNKS (Limit of 5 chunks)
+    - Parallel Job Handling
+      - ParallelJobRunner (Submits job to queue)
+      - ParallelJobRetriever (Fetches final AguiResponse)
+      - ParallelJobStateSchema (Zod Validation)

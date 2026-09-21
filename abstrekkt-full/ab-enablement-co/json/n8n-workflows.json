@@ -1,0 +1,476 @@
+{
+  "workflows": [
+    {
+      "name": "INT-Security-Alert-Notifier",
+      "description": "Routes security alerts to Slack and updates dashboard",
+      "active": true,
+      "nodes": [
+        {
+          "parameters": {
+            "httpMethod": "POST",
+            "path": "security-alerts",
+            "responseMode": "responseNode",
+            "options": {}
+          },
+          "id": "webhook-1",
+          "name": "Security Alert Webhook",
+          "type": "n8n-nodes-base.webhook",
+          "typeVersion": 2,
+          "position": [240, 300]
+        },
+        {
+          "parameters": {
+            "conditions": {
+              "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+              "conditions": [
+                {
+                  "id": "condition-critical",
+                  "leftValue": "={{ $json.severity }}",
+                  "rightValue": "critical",
+                  "operator": { "type": "string", "operation": "equals" }
+                }
+              ],
+              "combinator": "and"
+            },
+            "options": {}
+          },
+          "id": "if-1",
+          "name": "Is Critical?",
+          "type": "n8n-nodes-base.if",
+          "typeVersion": 2,
+          "position": [460, 300]
+        },
+        {
+          "parameters": {
+            "channel": "#security-critical",
+            "text": "🚨 *CRITICAL SECURITY ALERT*\n\n*Title:* {{ $json.title }}\n*Source:* {{ $json.source }}\n*Severity:* {{ $json.severity }}\n*CVE:* {{ $json.cve || 'N/A' }}\n*Affected:* {{ $json.affected_component }}\n\n<{{ $json.url }}|View Details>",
+            "otherOptions": { "includeLinkToWorkflow": false }
+          },
+          "id": "slack-critical",
+          "name": "Slack Critical Alert",
+          "type": "n8n-nodes-base.slack",
+          "typeVersion": 2.2,
+          "position": [680, 200]
+        },
+        {
+          "parameters": {
+            "channel": "#security-alerts",
+            "text": "⚠️ *Security Alert*\n\n*Title:* {{ $json.title }}\n*Severity:* {{ $json.severity }}\n*Source:* {{ $json.source }}",
+            "otherOptions": {}
+          },
+          "id": "slack-normal",
+          "name": "Slack Normal Alert",
+          "type": "n8n-nodes-base.slack",
+          "typeVersion": 2.2,
+          "position": [680, 400]
+        },
+        {
+          "parameters": {
+            "method": "POST",
+            "url": "={{ $env.DASHBOARD_URL }}/api/webhooks/security",
+            "sendBody": true,
+            "bodyParameters": {
+              "parameters": [
+                { "name": "id", "value": "={{ $json.id || $now.format('yyyyMMddHHmmss') }}" },
+                { "name": "title", "value": "={{ $json.title }}" },
+                { "name": "severity", "value": "={{ $json.severity }}" },
+                { "name": "source", "value": "={{ $json.source }}" },
+                { "name": "timestamp", "value": "={{ $now.toISO() }}" },
+                { "name": "status", "value": "open" }
+              ]
+            },
+            "options": {}
+          },
+          "id": "http-dashboard",
+          "name": "Update Dashboard",
+          "type": "n8n-nodes-base.httpRequest",
+          "typeVersion": 4.2,
+          "position": [900, 300]
+        },
+        {
+          "parameters": {
+            "respondWith": "json",
+            "responseBody": "={ \"success\": true, \"processed\": \"{{ $json.id }}\" }",
+            "options": {}
+          },
+          "id": "respond-1",
+          "name": "Respond Success",
+          "type": "n8n-nodes-base.respondToWebhook",
+          "typeVersion": 1.1,
+          "position": [1120, 300]
+        }
+      ],
+      "connections": {
+        "Security Alert Webhook": { "main": [[{ "node": "Is Critical?", "type": "main", "index": 0 }]] },
+        "Is Critical?": {
+          "main": [
+            [{ "node": "Slack Critical Alert", "type": "main", "index": 0 }],
+            [{ "node": "Slack Normal Alert", "type": "main", "index": 0 }]
+          ]
+        },
+        "Slack Critical Alert": { "main": [[{ "node": "Update Dashboard", "type": "main", "index": 0 }]] },
+        "Slack Normal Alert": { "main": [[{ "node": "Update Dashboard", "type": "main", "index": 0 }]] },
+        "Update Dashboard": { "main": [[{ "node": "Respond Success", "type": "main", "index": 0 }]] }
+      }
+    },
+    {
+      "name": "INT-Daily-Vulnerability-Scan",
+      "description": "Runs daily at 6 AM, triggers Snyk scan, updates dashboard",
+      "active": true,
+      "nodes": [
+        {
+          "parameters": {
+            "rule": { "interval": [{ "field": "hours", "triggerAtHour": 6 }] }
+          },
+          "id": "schedule-1",
+          "name": "Daily 6 AM",
+          "type": "n8n-nodes-base.scheduleTrigger",
+          "typeVersion": 1.2,
+          "position": [240, 300]
+        },
+        {
+          "parameters": {
+            "method": "POST",
+            "url": "https://api.snyk.io/v1/org/{{ $env.SNYK_ORG_ID }}/project/{{ $env.SNYK_PROJECT_ID }}/test",
+            "authentication": "genericCredentialType",
+            "genericAuthType": "httpHeaderAuth",
+            "options": {}
+          },
+          "id": "snyk-scan",
+          "name": "Trigger Snyk Scan",
+          "type": "n8n-nodes-base.httpRequest",
+          "typeVersion": 4.2,
+          "position": [460, 300]
+        },
+        {
+          "parameters": {
+            "jsCode": "const results = $input.all()[0].json;\n\nconst vulnerabilities = {\n  critical: results.issues?.vulnerabilities?.filter(v => v.severity === 'critical').length || 0,\n  high: results.issues?.vulnerabilities?.filter(v => v.severity === 'high').length || 0,\n  medium: results.issues?.vulnerabilities?.filter(v => v.severity === 'medium').length || 0,\n  low: results.issues?.vulnerabilities?.filter(v => v.severity === 'low').length || 0\n};\n\nreturn {\n  scan_date: new Date().toISOString(),\n  project: results.projectName || 'intinc-platform',\n  vulnerabilities,\n  total: Object.values(vulnerabilities).reduce((a, b) => a + b, 0),\n  ok: results.ok\n};"
+          },
+          "id": "code-process",
+          "name": "Process Results",
+          "type": "n8n-nodes-base.code",
+          "typeVersion": 2,
+          "position": [680, 300]
+        },
+        {
+          "parameters": {
+            "method": "POST",
+            "url": "={{ $env.DASHBOARD_URL }}/api/webhooks/vulnerabilities",
+            "sendBody": true,
+            "specifyBody": "json",
+            "jsonBody": "={{ JSON.stringify($json) }}",
+            "options": {}
+          },
+          "id": "http-vuln",
+          "name": "Update Dashboard Vulns",
+          "type": "n8n-nodes-base.httpRequest",
+          "typeVersion": 4.2,
+          "position": [900, 300]
+        },
+        {
+          "parameters": {
+            "conditions": {
+              "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+              "conditions": [
+                {
+                  "leftValue": "={{ $json.vulnerabilities.critical }}",
+                  "rightValue": 0,
+                  "operator": { "type": "number", "operation": "gt" }
+                }
+              ]
+            }
+          },
+          "id": "if-critical",
+          "name": "Has Critical?",
+          "type": "n8n-nodes-base.if",
+          "typeVersion": 2,
+          "position": [1120, 300]
+        },
+        {
+          "parameters": {
+            "channel": "#security-critical",
+            "text": "🔴 *Daily Scan Found Critical Vulnerabilities*\n\n*Critical:* {{ $json.vulnerabilities.critical }}\n*High:* {{ $json.vulnerabilities.high }}\n*Project:* {{ $json.project }}\n\nImmediate action required!",
+            "otherOptions": {}
+          },
+          "id": "slack-critical-vuln",
+          "name": "Alert Critical Vulns",
+          "type": "n8n-nodes-base.slack",
+          "typeVersion": 2.2,
+          "position": [1340, 200]
+        }
+      ],
+      "connections": {
+        "Daily 6 AM": { "main": [[{ "node": "Trigger Snyk Scan", "type": "main", "index": 0 }]] },
+        "Trigger Snyk Scan": { "main": [[{ "node": "Process Results", "type": "main", "index": 0 }]] },
+        "Process Results": { "main": [[{ "node": "Update Dashboard Vulns", "type": "main", "index": 0 }]] },
+        "Update Dashboard Vulns": { "main": [[{ "node": "Has Critical?", "type": "main", "index": 0 }]] },
+        "Has Critical?": { "main": [[{ "node": "Alert Critical Vulns", "type": "main", "index": 0 }], []] }
+      }
+    },
+    {
+      "name": "INT-PR-Review-Assignment",
+      "description": "Auto-assigns reviewers based on file changes and security context",
+      "active": true,
+      "nodes": [
+        {
+          "parameters": {
+            "httpMethod": "POST",
+            "path": "github-pr",
+            "options": {}
+          },
+          "id": "webhook-pr",
+          "name": "GitHub PR Webhook",
+          "type": "n8n-nodes-base.webhook",
+          "typeVersion": 2,
+          "position": [240, 300]
+        },
+        {
+          "parameters": {
+            "jsCode": "const pr = $input.all()[0].json;\n\n// Security-related keywords\nconst securityKeywords = ['auth', 'security', 'password', 'token', 'secret', 'cve', 'vulnerability', 'encrypt'];\nconst isSecurityPR = securityKeywords.some(kw => \n  pr.title?.toLowerCase().includes(kw) || \n  pr.body?.toLowerCase().includes(kw)\n);\n\n// Team rotation\nconst reviewers = ['kyle', 'sarah', 'marcus', 'elena', 'dev'];\nconst securityReviewers = ['kyle', 'marcus'];\n\nlet assignedReviewer;\nlet reason;\n\nif (isSecurityPR) {\n  assignedReviewer = securityReviewers[pr.number % securityReviewers.length];\n  reason = 'Security-related PR - assigned to security team';\n} else {\n  assignedReviewer = reviewers[pr.number % reviewers.length];\n  reason = 'Round-robin assignment';\n}\n\nreturn {\n  pr_number: pr.number,\n  pr_title: pr.title,\n  repo: pr.base?.repo?.full_name || pr.repository?.full_name,\n  author: pr.user?.login,\n  reviewer: assignedReviewer,\n  reason,\n  is_security: isSecurityPR\n};"
+          },
+          "id": "code-assign",
+          "name": "Determine Reviewer",
+          "type": "n8n-nodes-base.code",
+          "typeVersion": 2,
+          "position": [460, 300]
+        },
+        {
+          "parameters": {
+            "resource": "review",
+            "operation": "create",
+            "owner": "={{ $json.repo.split('/')[0] }}",
+            "repository": "={{ $json.repo.split('/')[1] }}",
+            "pullRequestNumber": "={{ $json.pr_number }}"
+          },
+          "id": "github-review",
+          "name": "Request Review",
+          "type": "n8n-nodes-base.github",
+          "typeVersion": 1,
+          "position": [680, 300]
+        },
+        {
+          "parameters": {
+            "channel": "#code-reviews",
+            "text": "👀 *Review Requested*\n\n*PR:* <{{ $json.html_url }}|#{{ $json.pr_number }} - {{ $json.pr_title }}>\n*Author:* {{ $json.author }}\n*Reviewer:* @{{ $json.reviewer }}\n*Reason:* {{ $json.reason }}\n{{ $json.is_security ? '🔐 Security Review Required' : '' }}",
+            "otherOptions": {}
+          },
+          "id": "slack-notify",
+          "name": "Notify Slack",
+          "type": "n8n-nodes-base.slack",
+          "typeVersion": 2.2,
+          "position": [900, 300]
+        }
+      ],
+      "connections": {
+        "GitHub PR Webhook": { "main": [[{ "node": "Determine Reviewer", "type": "main", "index": 0 }]] },
+        "Determine Reviewer": { "main": [[{ "node": "Request Review", "type": "main", "index": 0 }]] },
+        "Request Review": { "main": [[{ "node": "Notify Slack", "type": "main", "index": 0 }]] }
+      }
+    },
+    {
+      "name": "INT-Incident-Response",
+      "description": "Creates incident channel, Linear issue, and pages on-call",
+      "active": true,
+      "nodes": [
+        {
+          "parameters": {
+            "httpMethod": "POST",
+            "path": "incidents",
+            "options": {}
+          },
+          "id": "webhook-incident",
+          "name": "Incident Webhook",
+          "type": "n8n-nodes-base.webhook",
+          "typeVersion": 2,
+          "position": [240, 300]
+        },
+        {
+          "parameters": {
+            "jsCode": "const incident = $input.all()[0].json;\n\nconst id = incident.id || `INC-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 1000)).padStart(3, '0')}`;\nconst channelName = `inc-${id.toLowerCase().replace(/[^a-z0-9]/g, '-')}`;\n\nreturn {\n  ...incident,\n  id,\n  channel_name: channelName,\n  timestamp: new Date().toISOString(),\n  priority: incident.severity === 'critical' ? 1 : incident.severity === 'high' ? 2 : 3\n};"
+          },
+          "id": "code-incident",
+          "name": "Process Incident",
+          "type": "n8n-nodes-base.code",
+          "typeVersion": 2,
+          "position": [460, 300]
+        },
+        {
+          "parameters": {
+            "resource": "channel",
+            "operation": "create",
+            "channelId": "={{ $json.channel_name }}",
+            "additionalFields": { "isPrivate": false }
+          },
+          "id": "slack-channel",
+          "name": "Create Incident Channel",
+          "type": "n8n-nodes-base.slack",
+          "typeVersion": 2.2,
+          "position": [680, 200]
+        },
+        {
+          "parameters": {
+            "method": "POST",
+            "url": "https://api.linear.app/graphql",
+            "sendHeaders": true,
+            "headerParameters": {
+              "parameters": [
+                { "name": "Authorization", "value": "={{ $env.LINEAR_API_KEY }}" },
+                { "name": "Content-Type", "value": "application/json" }
+              ]
+            },
+            "sendBody": true,
+            "specifyBody": "json",
+            "jsonBody": "{\n  \"query\": \"mutation { issueCreate(input: { title: \\\"[INC] {{ $json.title }}\\\", description: \\\"{{ $json.description || 'Incident created via automation' }}\\\", priority: {{ $json.priority }}, teamId: \\\"{{ $env.LINEAR_TEAM_ID }}\\\" }) { success issue { id identifier url } } }\"\n}",
+            "options": {}
+          },
+          "id": "linear-issue",
+          "name": "Create Linear Issue",
+          "type": "n8n-nodes-base.httpRequest",
+          "typeVersion": 4.2,
+          "position": [680, 400]
+        },
+        {
+          "parameters": {
+            "method": "POST",
+            "url": "={{ $env.DASHBOARD_URL }}/api/webhooks/incidents",
+            "sendBody": true,
+            "specifyBody": "json",
+            "jsonBody": "={{ JSON.stringify($json) }}",
+            "options": {}
+          },
+          "id": "http-incident",
+          "name": "Update Dashboard",
+          "type": "n8n-nodes-base.httpRequest",
+          "typeVersion": 4.2,
+          "position": [900, 300]
+        },
+        {
+          "parameters": {
+            "channel": "={{ $json.channel_name }}",
+            "text": "🚨 *Incident {{ $json.id }}*\n\n*Title:* {{ $json.title }}\n*Severity:* {{ $json.severity }}\n*Status:* Active\n\n*Linear Issue:* {{ $node['Create Linear Issue'].json.data?.issueCreate?.issue?.url || 'Creating...' }}\n\n---\n*Incident Commander:* @kyle\n*Next Steps:*\n1. Assess impact\n2. Begin investigation\n3. Update stakeholders",
+            "otherOptions": {}
+          },
+          "id": "slack-post",
+          "name": "Post to Incident Channel",
+          "type": "n8n-nodes-base.slack",
+          "typeVersion": 2.2,
+          "position": [1120, 300]
+        }
+      ],
+      "connections": {
+        "Incident Webhook": { "main": [[{ "node": "Process Incident", "type": "main", "index": 0 }]] },
+        "Process Incident": {
+          "main": [
+            [
+              { "node": "Create Incident Channel", "type": "main", "index": 0 },
+              { "node": "Create Linear Issue", "type": "main", "index": 0 }
+            ]
+          ]
+        },
+        "Create Incident Channel": { "main": [[{ "node": "Update Dashboard", "type": "main", "index": 0 }]] },
+        "Create Linear Issue": { "main": [[{ "node": "Update Dashboard", "type": "main", "index": 0 }]] },
+        "Update Dashboard": { "main": [[{ "node": "Post to Incident Channel", "type": "main", "index": 0 }]] }
+      }
+    },
+    {
+      "name": "INT-Deployment-Monitor",
+      "description": "Monitors Vercel deployments and updates dashboard",
+      "active": true,
+      "nodes": [
+        {
+          "parameters": {
+            "httpMethod": "POST",
+            "path": "vercel-deploy",
+            "options": {}
+          },
+          "id": "webhook-deploy",
+          "name": "Vercel Deploy Webhook",
+          "type": "n8n-nodes-base.webhook",
+          "typeVersion": 2,
+          "position": [240, 300]
+        },
+        {
+          "parameters": {
+            "jsCode": "const deploy = $input.all()[0].json;\n\nreturn {\n  id: deploy.id || deploy.deploymentId,\n  project: deploy.name || deploy.project?.name,\n  url: deploy.url,\n  status: deploy.state || deploy.readyState,\n  environment: deploy.target || 'preview',\n  branch: deploy.meta?.githubCommitRef || 'main',\n  commit: deploy.meta?.githubCommitSha?.substring(0, 7),\n  author: deploy.meta?.githubCommitAuthorName || 'unknown',\n  timestamp: new Date().toISOString()\n};"
+          },
+          "id": "code-deploy",
+          "name": "Process Deployment",
+          "type": "n8n-nodes-base.code",
+          "typeVersion": 2,
+          "position": [460, 300]
+        },
+        {
+          "parameters": {
+            "method": "POST",
+            "url": "={{ $env.DASHBOARD_URL }}/api/webhooks/deployments",
+            "sendBody": true,
+            "specifyBody": "json",
+            "jsonBody": "={{ JSON.stringify($json) }}",
+            "options": {}
+          },
+          "id": "http-deploy",
+          "name": "Update Dashboard",
+          "type": "n8n-nodes-base.httpRequest",
+          "typeVersion": 4.2,
+          "position": [680, 300]
+        },
+        {
+          "parameters": {
+            "conditions": {
+              "conditions": [
+                {
+                  "leftValue": "={{ $json.environment }}",
+                  "rightValue": "production",
+                  "operator": { "type": "string", "operation": "equals" }
+                }
+              ]
+            }
+          },
+          "id": "if-prod",
+          "name": "Is Production?",
+          "type": "n8n-nodes-base.if",
+          "typeVersion": 2,
+          "position": [900, 300]
+        },
+        {
+          "parameters": {
+            "channel": "#deployments",
+            "text": "🚀 *Production Deployment*\n\n*Project:* {{ $json.project }}\n*Status:* {{ $json.status }}\n*Branch:* {{ $json.branch }}\n*Commit:* `{{ $json.commit }}`\n*Author:* {{ $json.author }}\n\n<https://{{ $json.url }}|View Deployment>",
+            "otherOptions": {}
+          },
+          "id": "slack-deploy",
+          "name": "Notify Production Deploy",
+          "type": "n8n-nodes-base.slack",
+          "typeVersion": 2.2,
+          "position": [1120, 200]
+        }
+      ],
+      "connections": {
+        "Vercel Deploy Webhook": { "main": [[{ "node": "Process Deployment", "type": "main", "index": 0 }]] },
+        "Process Deployment": { "main": [[{ "node": "Update Dashboard", "type": "main", "index": 0 }]] },
+        "Update Dashboard": { "main": [[{ "node": "Is Production?", "type": "main", "index": 0 }]] },
+        "Is Production?": { "main": [[{ "node": "Notify Production Deploy", "type": "main", "index": 0 }], []] }
+      }
+    }
+  ],
+  "environment_variables": {
+    "DASHBOARD_URL": "https://intinc-dashboard.vercel.app",
+    "SNYK_ORG_ID": "your-snyk-org-id",
+    "SNYK_PROJECT_ID": "your-snyk-project-id",
+    "LINEAR_API_KEY": "lin_api_xxxxx",
+    "LINEAR_TEAM_ID": "your-linear-team-id"
+  },
+  "credentials_required": [
+    { "name": "Slack", "type": "slackApi" },
+    { "name": "GitHub", "type": "githubApi" },
+    { "name": "Snyk", "type": "httpHeaderAuth", "header": "Authorization", "value": "token YOUR_SNYK_TOKEN" }
+  ],
+  "import_instructions": [
+    "1. Go to n8n → Settings → Workflows",
+    "2. Click Import from File/JSON",
+    "3. Paste each workflow JSON individually",
+    "4. Configure credentials for Slack, GitHub",
+    "5. Set environment variables in n8n Settings",
+    "6. Activate workflows"
+  ]
+}

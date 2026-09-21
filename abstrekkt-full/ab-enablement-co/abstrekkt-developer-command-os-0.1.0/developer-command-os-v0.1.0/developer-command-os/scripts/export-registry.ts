@@ -1,0 +1,1 @@
+import { writeFile } from 'node:fs/promises'; import { allCommands, capabilityPrimitives, pipelineDefinitions } from '../src/registry/index.js'; await writeFile('docs/generated/registry.json',JSON.stringify({schemaVersion:'1.0.0',capabilityPrimitives,commands:allCommands,pipelines:pipelineDefinitions},null,2));

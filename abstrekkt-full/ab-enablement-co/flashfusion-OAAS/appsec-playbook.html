@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AppSec-First Vibe Coding — A Self-Taught Engineer's Playbook</title>
+<meta name="description" content="Four operating principles and an eleven-incident ledger for catching security gaps in AI-generated production code.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#FBFAF7;
+    --paper-raised:#FFFFFF;
+    --ink:#1A1A1A;
+    --ink-soft:#4A4742;
+    --ink-faint:#6E6A63;
+    --rule:#E3DFD6;
+    --rule-strong:#CDC7BA;
+    --danger:#A63D2F;
+    --danger-soft:#F2E6E2;
+    --measure:42rem;
+    --mono:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+    --sans:'IBM Plex Sans',-apple-system,BlinkMacSystemFont,sans-serif;
+    --display:'Fraunces',Georgia,serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:var(--sans);
+    font-size:18px;
+    line-height:1.7;
+    font-feature-settings:"kern" 1,"liga" 1;
+    -webkit-font-smoothing:antialiased;
+    text-rendering:optimizeLegibility;
+  }
+  .wrap{max-width:var(--measure);margin:0 auto;padding:0 1.5rem}
+  .bleed{max-width:64rem;margin:0 auto;padding:0 1.5rem}
+
+  /* ---- masthead ---- */
+  header.masthead{
+    border-bottom:2px solid var(--ink);
+    padding:5rem 0 2.25rem;
+    margin-bottom:3.5rem;
+  }
+  .eyebrow{
+    font-family:var(--mono);
+    font-size:.72rem;
+    letter-spacing:.22em;
+    text-transform:uppercase;
+    color:var(--danger);
+    margin-bottom:1.5rem;
+  }
+  h1{
+    font-family:var(--display);
+    font-weight:600;
+    font-size:clamp(2.4rem,6vw,4rem);
+    line-height:1.04;
+    letter-spacing:-.02em;
+    margin-bottom:1.25rem;
+    font-optical-sizing:auto;
+  }
+  h1 .sub{display:block;font-style:italic;font-weight:400;color:var(--ink-soft);font-size:.5em;margin-top:.55rem;letter-spacing:-.01em}
+  .byline{
+    font-family:var(--mono);
+    font-size:.82rem;
+    color:var(--ink-faint);
+    letter-spacing:.02em;
+  }
+  .byline strong{color:var(--ink);font-weight:600}
+
+  /* ---- lede ---- */
+  .lede{font-size:1.15rem;line-height:1.75;color:var(--ink-soft)}
+  .lede p+p{margin-top:1.35rem}
+  .lede .pull{
+    font-family:var(--display);
+    font-size:1.45rem;
+    line-height:1.4;
+    color:var(--ink);
+    font-weight:500;
+    margin:2.5rem 0;
+    padding-left:1.5rem;
+    border-left:3px solid var(--danger);
+  }
+
+  /* ---- section ---- */
+  section.tip{margin-top:5rem}
+  .tipnum{
+    font-family:var(--mono);
+    font-size:.74rem;
+    letter-spacing:.2em;
+    text-transform:uppercase;
+    color:var(--ink-faint);
+    margin-bottom:.85rem;
+  }
+  h2{
+    font-family:var(--display);
+    font-weight:600;
+    font-size:clamp(1.7rem,3.6vw,2.4rem);
+    line-height:1.12;
+    letter-spacing:-.015em;
+    margin-bottom:1.5rem;
+    padding-bottom:1.25rem;
+    border-bottom:1px solid var(--rule);
+  }
+  h3{
+    font-family:var(--sans);
+    font-weight:600;
+    font-size:1.08rem;
+    margin:2.5rem 0 .75rem;
+    color:var(--ink);
+  }
+  p{margin-bottom:1.25rem}
+  p:last-child{margin-bottom:0}
+  strong{font-weight:600}
+  em{font-style:italic}
+  code{
+    font-family:var(--mono);
+    font-size:.86em;
+    background:var(--danger-soft);
+    color:var(--danger);
+    padding:.12em .38em;
+    border-radius:3px;
+  }
+
+  blockquote{
+    font-family:var(--display);
+    font-style:italic;
+    font-size:1.22rem;
+    line-height:1.5;
+    color:var(--ink-soft);
+    margin:0 0 1.75rem;
+    padding:.25rem 0 .25rem 1.5rem;
+    border-left:3px solid var(--rule-strong);
+  }
+
+  pre{
+    background:#1A1A1A;
+    color:#EDEAE3;
+    font-family:var(--mono);
+    font-size:.8rem;
+    line-height:1.65;
+    padding:1.6rem 1.5rem;
+    border-radius:6px;
+    overflow-x:auto;
+    margin:1.75rem 0;
+    -webkit-overflow-scrolling:touch;
+  }
+  pre .c{color:#9A958A}
+
+  /* ---- callout ---- */
+  .callout{
+    background:var(--danger-soft);
+    border:1px solid #E4CFC8;
+    border-left:3px solid var(--danger);
+    border-radius:5px;
+    padding:1.4rem 1.5rem;
+    margin:1.75rem 0;
+    font-size:.98rem;
+    line-height:1.65;
+  }
+  .callout .lbl{
+    font-family:var(--mono);
+    font-size:.7rem;
+    letter-spacing:.16em;
+    text-transform:uppercase;
+    color:var(--danger);
+    display:block;
+    margin-bottom:.5rem;
+  }
+
+  /* ---- tables ---- */
+  .tablewrap{
+    margin:2rem 0;
+    overflow-x:auto;
+    -webkit-overflow-scrolling:touch;
+    border:1px solid var(--rule);
+    border-radius:6px;
+  }
+  table{border-collapse:collapse;width:100%;font-size:.84rem;line-height:1.5}
+  caption{
+    caption-side:top;
+    text-align:left;
+    font-family:var(--mono);
+    font-size:.72rem;
+    letter-spacing:.16em;
+    text-transform:uppercase;
+    color:var(--ink-faint);
+    padding:0 0 .9rem;
+  }
+  th,td{
+    text-align:left;
+    padding:.7rem .85rem;
+    border-bottom:1px solid var(--rule);
+    vertical-align:top;
+  }
+  thead th{
+    background:var(--paper);
+    font-family:var(--mono);
+    font-size:.68rem;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+    color:var(--ink-soft);
+    font-weight:600;
+    border-bottom:2px solid var(--rule-strong);
+    position:sticky;
+    top:0;
+  }
+  tbody tr:last-child td{border-bottom:none}
+  tbody tr:nth-child(even){background:rgba(0,0,0,.018)}
+  td code{font-size:.82em}
+  .ledger td:first-child{font-family:var(--mono);font-weight:600;color:var(--danger);width:2.2rem;text-align:center}
+  .trust td:first-child{font-weight:600}
+
+  .matrix-note{font-size:.92rem;color:var(--ink-faint);margin-top:-.5rem}
+
+  /* ---- ledger intro ---- */
+  .ledger-intro{
+    font-size:1.02rem;
+    color:var(--ink-soft);
+    border-top:2px solid var(--ink);
+    padding-top:2rem;
+    margin-top:1rem;
+  }
+
+  /* ---- closing ---- */
+  .closing{
+    margin:5rem 0 0;
+    padding:3rem 0 0;
+    border-top:2px solid var(--ink);
+  }
+  .closing p{font-size:1.1rem;color:var(--ink-soft)}
+  .closing .final{
+    font-family:var(--display);
+    font-size:1.3rem;
+    line-height:1.45;
+    color:var(--ink);
+    font-weight:500;
+    margin-top:1.75rem;
+  }
+
+  footer.colophon{
+    margin-top:5rem;
+    padding:2.5rem 0 4rem;
+    border-top:1px solid var(--rule);
+    font-family:var(--mono);
+    font-size:.74rem;
+    color:var(--ink-faint);
+    letter-spacing:.02em;
+  }
+  footer.colophon a{color:var(--ink-soft);text-decoration:none;border-bottom:1px solid var(--rule-strong)}
+
+  @media (max-width:640px){
+    body{font-size:16.5px}
+    header.masthead{padding:3rem 0 2rem}
+    .lede{font-size:1.05rem}
+    section.tip{margin-top:3.5rem}
+  }
+
+  @media print{
+    :root{--paper:#fff}
+    body{font-size:10.5pt;line-height:1.45}
+    .wrap,.bleed{max-width:100%;padding:0}
+    header.masthead{padding:0 0 1rem;margin-bottom:1.5rem}
+    pre{background:#f4f4f4;color:#1a1a1a;border:1px solid #ccc;font-size:8pt}
+    pre .c{color:#888}
+    .callout,.tablewrap{break-inside:avoid}
+    .ledger{font-size:7.5pt}
+    section.tip{margin-top:2rem;break-inside:avoid-page}
+    thead th{position:static}
+    a[href]:after{content:""}
+    .colophon{margin-top:2rem}
+    @page{margin:1.6cm}
+  }
+</style>
+</head>
+<body>
+
+<header class="masthead">
+  <div class="wrap">
+    <div class="eyebrow">AppSec · AI-Native Development · Field Notes</div>
+    <h1>AppSec-First Vibe Coding
+      <span class="sub">A self-taught engineer's playbook</span>
+    </h1>
+    <div class="byline"><strong>Kyle Rosebrook</strong> &nbsp;·&nbsp; Self-taught engineer &nbsp;·&nbsp; Updated May 2026</div>
+  </div>
+</header>
+
+<main>
+  <div class="wrap lede">
+    <p>I did not come up through a traditional CS path. I came from hospitality and retail management, which means I learned systems thinking from a different angle: how failure modes in a service environment propagate, how trust between components breaks down under load, how the gap between "works in the demo" and "works at 2am when no one is watching" is almost entirely a function of how seriously you modeled failure before you shipped.</p>
+    <p>That framing transfers directly to vibe coding. The tools are fast. The outputs are often good enough to look right.</p>
+    <p class="pull">The security gaps I've found in AI-generated production code were not caused by bad engineering — they were caused by engineers who trusted confident output without modeling the failure modes first.</p>
+    <p>What follows is four tips and an incident ledger. The tips are how I work. The ledger is what's actually been caught.</p>
+  </div>
+
+  <!-- TIP 1 -->
+  <section class="tip">
+    <div class="wrap">
+      <div class="tipnum">Tip 01</div>
+      <h2>AI Models Confidence, Not Correctness</h2>
+      <blockquote>It will generate syntactically valid, logically confident, and subtly wrong code for edge cases it wasn't trained on.</blockquote>
+      <p>The model gives you what looks like a complete answer. It does not flag what it doesn't know. It does not flag what <em>you</em> didn't know to ask. That gap is yours to close.</p>
+      <p><strong>Missing validation on untrusted input.</strong> Default behavior treats function arguments as clean. If the input originates from user-controlled sources, you're responsible for adding sanitization, type enforcement, and bounds checking. The AI will not add it unless you explicitly require it.</p>
+      <p><strong>The HumanX assessment tool, February 2026.</strong> I had AI generate the initial architecture for a live assessment tool we were deploying at a conference booth. The first pass had three issues that worked perfectly in every functional test and would have failed in production for three different reasons:</p>
+      <ol style="margin:0 0 1.25rem 1.4rem">
+        <li style="margin-bottom:.6rem"><code>NEXT_PUBLIC_ANTHROPIC_API_KEY</code> as the env var name. In Next.js, anything prefixed <code>NEXT_PUBLIC_</code> gets inlined into the browser JS bundle. The key would have been scrapable from the bundle on page load. Anthropic's browser CORS policy would have blocked the call anyway, but the leaked key is the bigger problem.</li>
+        <li style="margin-bottom:.6rem">AWS Lambda backup URL exposed client-side, also as a <code>NEXT_PUBLIC_</code> variable. Anyone with DevTools could have POSTed garbage to it.</li>
+        <li>No rate limiting on any endpoint that called a paid API. A bored attendee on conference WiFi running a script could have racked up real Claude fees fast.</li>
+      </ol>
+      <p>I caught all three in a pre-deploy audit. None of them were bugs in the AI's logic. The code did exactly what I asked for. The AI had no way to know the deployment surface — that conference WiFi attracts adversarial curiosity, that <code>NEXT_PUBLIC_</code> bleeds to the bundle, that paid APIs need cost ceilings independent of usage logic. You have to bring that context to the session <em>before</em> you start, not after you ship.</p>
+      <p>The fix was a server-side proxy route. Browser hits <code>/api/assess</code>; the server hits Anthropic. Key never touches the client. Per-IP throttle (10/hour) in the same route. Lambda call moved server-side too.</p>
+    </div>
+  </section>
+
+  <!-- TIP 2 -->
+  <section class="tip">
+    <div class="wrap">
+      <div class="tipnum">Tip 02</div>
+      <h2>Architecture-First Is Non-Negotiable</h2>
+      <blockquote>Features built without a modeled architecture are technical debt with a polished UI. AI accelerates the rate at which you can accumulate that debt.</blockquote>
+      <p>Before you prompt for any feature, system, or component, the following must be modeled explicitly. Not implied. Not assumed. Written down where you can reference it in the session:</p>
+      <ul style="margin:0 0 1.25rem 1.4rem">
+        <li style="margin-bottom:.5rem"><strong>System boundaries:</strong> What is inside this system and what is outside it? Where does trust change?</li>
+        <li style="margin-bottom:.5rem"><strong>Data flows:</strong> Where does data enter, what transforms it, where does it persist, who can read it?</li>
+        <li style="margin-bottom:.5rem"><strong>State transitions:</strong> What are the valid states of each entity? What triggers each transition? What's invalid?</li>
+        <li style="margin-bottom:.5rem"><strong>Auth model:</strong> Authentication mechanism, session lifecycle, authorization model (RBAC/ABAC/tenant-scoped), token storage, revocation.</li>
+        <li style="margin-bottom:.5rem"><strong>Failure modes:</strong> What happens when each dependency is unavailable?</li>
+        <li><strong>Abuse vectors:</strong> Who are the adversarial actors? What do they gain by breaking each component? What's the blast radius?</li>
+      </ul>
+      <h3>The meta-prompt pattern I use</h3>
+      <p>I enforce this with a structured prompt protocol that takes a <code>SCOPE_MODE</code> parameter:</p>
+      <ul style="margin:0 0 1.25rem 1.4rem">
+        <li style="margin-bottom:.4rem"><code>SCOPE_MODE: LITE</code> — spec + constraints only</li>
+        <li style="margin-bottom:.4rem"><code>SCOPE_MODE: STANDARD</code> — spec + arch + implementation plan</li>
+        <li><code>SCOPE_MODE: FULL</code> — complete implementation with tests, security notes, and observability hooks</li>
+      </ul>
+      <p>The model doesn't move to code until the architecture is stated. This is the single highest-leverage habit for preventing AI-generated technical debt.</p>
+      <h3>What skipping this actually costs — full audit on the same HumanX tool</h3>
+      <p>When I ran a complete pre-deploy audit, the three secret-and-throttle issues from Tip 1 were just part of the picture. The complete audit found seventeen findings. Most were not security issues in isolation — they were the cost of generating code without an architecture document first:</p>
+      <ul style="margin:0 0 1.25rem 1.4rem">
+        <li style="margin-bottom:.5rem">Missing HSTS header. No Content Security Policy. No <code>X-Frame-Options</code>.</li>
+        <li style="margin-bottom:.5rem">Null byte injection accepted in path parameters.</li>
+        <li style="margin-bottom:.5rem">The QR code component pulled from <code>api.qrserver.com</code> — an external CDN that the conference WiFi firewall blocks. The QR feature would have failed silently at the booth.</li>
+        <li style="margin-bottom:.5rem">No <code>.gitignore</code>, so <code>.env.local</code> would have committed to GitHub on the first push.</li>
+        <li style="margin-bottom:.5rem">No print stylesheet — the "Save Report" button rendered garbage.</li>
+        <li style="margin-bottom:.5rem">No viewport meta tag — iOS Safari rendered the wrong layout.</li>
+        <li><code>crypto.randomUUID()</code> used unguarded — throws on roughly 8% of older Android WebViews, which exist in the conference attendee population.</li>
+      </ul>
+      <p>Zero of these were bugs in the AI's output. Every one was a constraint that wasn't written down before generation began. The rebuild took a full day. The architecture document would have taken twenty minutes.</p>
+    </div>
+  </section>
+
+  <!-- TIP 3 -->
+  <section class="tip">
+    <div class="wrap">
+      <div class="tipnum">Tip 03</div>
+      <h2>Security Prompting Is a Discipline, Not a Checkbox</h2>
+      <blockquote>The model will answer questions you ask. It will not ask the questions you didn't think of. Your job is to have a standing list of questions that covers the failure modes you've seen.</blockquote>
+      <p>After generating any security-relevant code — auth handlers, data access layers, API endpoints, input processing — run this prompt verbatim:</p>
+      <pre>Adversarial security review. For the code above, answer each question:
+
+1. UNTRUSTED INPUT: Which function parameters could carry
+   user-controlled data? Is each one validated before use?
+
+2. SQL / QUERY CONSTRUCTION: Is any query assembled via
+   string concatenation? If so, where and with what input?
+
+3. CONCURRENCY: Are there race conditions possible under
+   concurrent requests? Identify any shared mutable state.
+
+4. DATA EXPOSURE: What data does this return or log?
+   Is any of it sensitive? Is it scoped to the requesting
+   user or tenant?
+
+5. FAIL BEHAVIOR: Does this fail open or fail closed?
+   What is the default behavior on error?
+
+6. IMPLICIT PERMISSIONS: Does this code assume that
+   authentication implies authorization? Where?
+
+7. MISSING VALIDATION: What inputs, states, or edge cases
+   are not covered by explicit validation?</pre>
+      <p>This is not a comprehensive security review. It is the minimum viable adversarial pass for code that touches auth, data access, or user input.</p>
+      <h3>What this caught in production — Intinc.AI platform, March 2026</h3>
+      <p>I ran the seven-question pass against the AI chat route and intelligence generation endpoint. The code had monthly plan limit checks — it correctly enforced subscription tiers. Question 7 (missing validation) flagged that there was no per-minute rate limit on either endpoint.</p>
+      <p>Monthly limit ≠ abuse protection. A single session could send a thousand requests per minute and remain "within plan" for the whole burst. At per-Claude-call cost, the bill compounds fast — well into the hundreds within an hour, before the monthly cap fires. The AI implemented exactly what I asked for: plan enforcement. It had no way to know I also needed request throttling. That gap only surfaces if you ask for it explicitly. The fix was four lines of middleware. The cost of not asking would have been a live cost-amplification surface.</p>
+    </div>
+  </section>
+
+  <!-- TIP 4 -->
+  <section class="tip">
+    <div class="wrap">
+      <div class="tipnum">Tip 04</div>
+      <h2>Incremental Review Must Be Structural, Not Personal</h2>
+      <blockquote>Code review discipline degrades under velocity pressure. The solution is not better intentions. It is gates that don't close until requirements are met.</blockquote>
+      <p>Personal discipline is not a reliable security control. These are structural gates that enforce review before progression — independent of how fast the sprint is moving:</p>
+      <ul style="margin:0 0 1.25rem 1.4rem">
+        <li style="margin-bottom:.5rem"><strong>CI smoke step</strong> — runs on every commit, fails fast on linting, type errors, and basic security patterns (hardcoded secrets, unsafe eval, missing env var guards). No merge without green CI.</li>
+        <li style="margin-bottom:.5rem"><strong>CODEOWNERS enforcement</strong> — security-sensitive paths (auth, data access, API boundaries, RLS policies) require review from a designated owner. Not just "a reviewer." The right reviewer.</li>
+        <li style="margin-bottom:.5rem"><strong>RLS policy review requirement</strong> — any migration touching a table with user or tenant data requires explicit RLS policy review before merge. Separate checklist item, not implied by code review.</li>
+        <li style="margin-bottom:.5rem"><strong>Test gate</strong> — tests written alongside the feature, not after. AI-generated code ships with AI-assisted tests, both reviewed before merge.</li>
+        <li><strong>Staged deployment with smoke verification</strong> — no production deploy without a post-deploy smoke step. Failures trigger automatic rollback.</li>
+      </ul>
+      <p>The reason engineers skip review steps under pressure is that the steps are perceived as friction. The reframe that works: these are not review steps, they are the definition of done. Code that hasn't passed the gates isn't ready. It isn't a judgment call. It's a state.</p>
+      <h3>Two findings from the same Intinc.AI audit, March 2026</h3>
+      <p>Both passed every functional test. Both got caught only by reading the code adversarially against a checklist.</p>
+      <p>The first was a row-level security scope gap. The user-facing RLS was correct: users could only access their own playbooks and conversations. But the admin dashboard queried both tables directly with no admin-specific policy. Tests written from the user's perspective all passed. Code review passed because the RLS policies existed and looked correct — nobody had checked whether they covered the admin path specifically. The fix was an explicit admin select policy on each table, gated on a profiles-table role check. The deeper fix was a checklist item: <em>"verify RLS for every query path, not just the primary user flow."</em></p>
+      <p>The second was subtler and more dangerous in a different way. The middleware file had a block for admin routes that was <em>entirely a comment</em>: "This block is a placeholder for future JWT claims-based role check." The actual protection worked — <code>requireRole('admin')</code> in the admin layout enforced access correctly. But the middleware comment created the impression of two-layer protection when only one layer existed. Anyone reading the codebase and concluding "admin routes are protected at middleware" would have been wrong. Comments that look like enforcement are worse than no comment at all. Fix: removed the misleading comment, documented in <code>SECURITY.md</code> that middleware does origin check only and role enforcement is at the layout level.</p>
+      <p>Structural gates catch what good intentions miss under deadline pressure. One of these would have been a real data exposure if it had shipped. The other was a slow-motion failure — code that would have looked safe to the next developer who came to read it.</p>
+      <div class="callout">
+        <span class="lbl">The honest version of this tip</span>
+        Gates are the goal, not the guarantee. On DashGen — a live deployed app — a Playwright E2E audit run against the <em>production URL</em> found six missing security headers and client-side auth guards that rendered protected content without redirecting. That code was already in production. The gate didn't catch it because the gate didn't exist yet for that project. The lesson isn't "feel bad about it." It's: if pre-deploy gates aren't in place, a recurring post-deploy audit against the live surface is the minimum compensating control. Audit the thing that's actually running, not just the thing in the repo.
+      </div>
+    </div>
+  </section>
+
+  <!-- TRUST MATRIX -->
+  <section class="tip">
+    <div class="bleed">
+      <div class="tipnum" style="text-align:center">Reference</div>
+      <h2 style="text-align:center;border:none;padding-bottom:0">AI Trust Calibration Matrix</h2>
+      <p class="matrix-note" style="text-align:center;max-width:38rem;margin:0 auto 1.5rem">Not all AI-generated output carries the same risk. Calibrate review depth to the actual blast radius.</p>
+      <div class="tablewrap">
+        <table class="trust">
+          <thead>
+            <tr><th>Output Type</th><th>Trust Level</th><th>Required Review Action</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Auth handlers / session logic</td><td>Never trust</td><td>Full adversarial review + CODEOWNERS sign-off</td></tr>
+            <tr><td>Data access / RLS-adjacent queries</td><td>Low trust</td><td>RLS policy review + tenant scope verification</td></tr>
+            <tr><td>API endpoints / input handling</td><td>Low trust</td><td>Input validation + 7-question adversarial pass</td></tr>
+            <tr><td>Business logic / algorithms</td><td>Medium trust</td><td>Unit test coverage + edge case review</td></tr>
+            <tr><td>UI components / boilerplate</td><td>Higher trust</td><td>Standard code review, no special protocol</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- LEDGER -->
+  <section class="tip">
+    <div class="bleed">
+      <div class="tipnum" style="text-align:center">The Record</div>
+      <h2 style="text-align:center;border:none;padding-bottom:0">Incident Ledger</h2>
+      <p class="ledger-intro">A scannable record of caught-and-fixed AppSec issues from real codebases. Every entry is a real catch on a real codebase. Most were caught before production exposure. One (DashGen) was caught <em>after</em> the app was already live — that one is the most instructive, because pre-deploy discipline is the goal but post-deploy auditing is the reality you live in when you ship fast.</p>
+      <div class="tablewrap">
+        <table class="ledger">
+          <thead>
+            <tr><th>#</th><th>Project</th><th>Date</th><th>Gap Type</th><th>What AI Missed</th><th>How Caught</th><th>Fix</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>1</td><td>HumanX Assessment Tool</td><td>Feb 2026</td><td>Client-side secret exposure</td><td><code>NEXT_PUBLIC_ANTHROPIC_API_KEY</code> inlined into browser bundle; AWS Lambda backup URL also exposed client-side as <code>NEXT_PUBLIC_</code> var</td><td>Pre-deploy audit</td><td>Server-side proxy route at <code>/api/assess</code>; env var renamed to <code>ANTHROPIC_API_KEY</code>; Lambda call moved server-side</td></tr>
+            <tr><td>2</td><td>HumanX Assessment Tool</td><td>Feb 2026</td><td>Cost-amplification vector</td><td>Zero rate limiting on endpoints calling a paid LLM API</td><td>Pre-deploy audit (every paid-API endpoint reviewed for throttle)</td><td>In-memory per-IP throttle (10/hour) + 25-second server timeout</td></tr>
+            <tr><td>3</td><td>HumanX Assessment Tool</td><td>Feb 2026</td><td>Architecture-gap cluster</td><td>17 missing controls including external QR CDN, missing <code>.gitignore</code>, no print CSS, no viewport meta, no security headers, unguarded <code>crypto.randomUUID()</code></td><td>Full pre-deploy audit traced back to no architecture doc</td><td>One-day rebuild with explicit architecture; inline QR generation via <code>qrcode</code> npm package; security headers in <code>next.config.js</code>; UUID polyfill</td></tr>
+            <tr><td>4</td><td>INT Smart Triage AI 2.0</td><td>Nov 2025</td><td>No error handling on browser storage</td><td><code>localStorage</code> get/set with no try/catch; entire React tree unmounts in private browsing mode</td><td>PR #110 review thinking through worst-case demo scenarios</td><td><code>safeLocalStorage</code> wrapper with try/catch on both ops; error boundary at provider level; fail-silent pattern</td></tr>
+            <tr><td>5</td><td>INT Smart Triage AI 2.0</td><td>Nov 2025</td><td>Auth bypass + service-role exposure</td><td><code>/api/analytics</code> had no auth check AND used the Supabase service-role key (bypasses RLS); returned all org data on public POST</td><td>GitHub PR review (PR #102)</td><td><code>getServerSession</code> 401; role whitelist (admin/analyst/manager) 403; switched service-role → anon client + RLS; per-access audit log</td></tr>
+            <tr><td>6</td><td>Intinc.AI</td><td>Mar 2026</td><td>Monthly quota with no per-minute throttle</td><td>Plan limits enforced correctly; nothing prevented a thousand-RPM single-session burst within plan</td><td>7-question adversarial review (Q7: missing validation)</td><td>Per-IP throttle middleware before plan check</td></tr>
+            <tr><td>7</td><td>Intinc.AI</td><td>Mar 2026</td><td>RLS scope gap (admin path uncovered)</td><td><code>playbooks</code> and <code>conversations</code> had user-scoped RLS but no admin-specific policy; admin queries silently broken or over-privileged</td><td>Full codebase audit (SEC-2)</td><td>Admin select policies gated on profiles-table role check; checklist item: "verify RLS for every query path"</td></tr>
+            <tr><td>8</td><td>Intinc.AI</td><td>Mar 2026</td><td>Comment-only role check creating false confidence</td><td>Middleware admin-routes block was entirely a placeholder comment; actual protection lived in layout's <code>requireRole()</code></td><td>Full codebase audit (SEC-3)</td><td>Removed misleading comment; documented real protection layer in <code>SECURITY.md</code></td></tr>
+            <tr><td>9</td><td>FlashFusion (waitlist)</td><td>Apr 2026</td><td>Email enumeration</td><td>Position-lookup endpoint keyed off a base64-encoded email — trivially decodable and iterable, so anyone could harvest who was on the waitlist</td><td>Self-directed post-build hardening pass against own work</td><td>Replaced with signed HS256 JWT (7-day expiry, single-purpose claim, zero-dependency Web Crypto); old email endpoint deleted</td></tr>
+            <tr><td>10</td><td>FlashFusion (waitlist)</td><td>Apr 2026</td><td>Rate limiter ineffective in serverless</td><td>In-memory rate limiter resets on every Vercel cold start — in serverless that means effectively no rate limiting, not "resets occasionally"</td><td>Same self-directed hardening pass; recognized the cold-start pattern from prior HumanX work</td><td>Upstash Redis-backed limiter across all 5 API routes, per-route configs (auth tightest at 3/min); in-memory fallback retained for local dev only</td></tr>
+            <tr><td>11</td><td>DashGen (live app)</td><td>Apr 2026</td><td>Missing security headers + non-redirecting auth guard — <strong>caught post-deploy</strong></td><td>Deployed app served none of: CSP, X-Frame-Options, X-Content-Type-Options, X-XSS-Protection, Referrer-Policy, Permissions-Policy. Protected routes used client-side guards that rendered landing content without changing the URL — looked gated, wasn't</td><td>Playwright E2E audit run against the <strong>live production URL</strong>, not the source</td><td>Drop-in Express <code>security-headers.js</code> middleware with CSP scoped to the exact stack; flagged the client-side guard as needing server-side route protection</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- CLOSING -->
+  <div class="wrap closing">
+    <p>The tools are fast. The failure modes are not obvious. The security gaps I've found in AI-generated production code were not caused by bad engineering — they were caused by engineers who trusted confident output without modeling the failure modes first.</p>
+    <p class="final">Architecture-first. Adversarial review on security surfaces. Structural gates that enforce quality independent of velocity pressure. These are not restrictions on how you use AI. They are the conditions under which AI actually accelerates safe production output.</p>
+  </div>
+</main>
+
+<footer class="colophon">
+  <div class="wrap">
+    Kyle Rosebrook · Self-taught engineer, Mundelein IL · <a href="https://kylerosebrook.com">kylerosebrook.com</a><br>
+    Eleven incidents · five codebases · Nov 2025 – Apr 2026 · all on systems the author built or controls.
+  </div>
+</footer>
+
+</body>
+</html>

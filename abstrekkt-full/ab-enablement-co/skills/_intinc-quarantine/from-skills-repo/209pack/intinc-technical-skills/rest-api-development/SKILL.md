@@ -1,0 +1,37 @@
+---
+name: rest-api-development
+description: Build RESTful APIs with proper HTTP methods, status codes, and error handling. Use when build restful apis with proper http methods, status codes, and error handling. Triggers on: rest, api, development, backend, technical implementation.
+version: 1.0.0
+allowed-tools: Bash, Read, Write
+license: MIT
+---
+
+# Rest Api Development
+
+## Purpose
+Build RESTful APIs with proper HTTP methods, status codes, and error handling.
+
+## When to Use
+- Building production systems requiring rest api development
+- Technical architecture decisions for backend
+- Implementation guidance for engineering teams
+
+## Core Workflow
+1. **Requirements Analysis** - Understand technical requirements and constraints
+2. **Architecture Design** - Design solution with best practices
+3. **Implementation** - Build with code examples and templates
+4. **Testing** - Validate with unit, integration, and performance tests
+5. **Documentation** - Create runbooks and technical docs
+
+## Key Deliverables
+- Architecture diagrams (Mermaid)
+- Code examples (Python/TypeScript/Bash)
+- Configuration templates (YAML/JSON)
+- Best practices documentation
+- Testing strategies
+
+## Dependencies
+Foundational technical skill (no IntInc dependencies).
+
+## License
+MIT License - See LICENSE.txt

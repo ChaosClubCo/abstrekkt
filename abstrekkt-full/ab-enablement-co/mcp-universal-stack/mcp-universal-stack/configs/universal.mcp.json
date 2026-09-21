@@ -1,0 +1,402 @@
+{
+  "meta": {
+    "name": "universal-mcp-stack",
+    "version": "2.0.0",
+    "description": "Unified MCP config: 31 native Claude.ai MCPs + 9 custom HTTP bridges with env-first secrets, health checks, and RBAC namespaces",
+    "author": "Kyle R. / Tessa (merged mastercontext)",
+    "created": "2025-12-14",
+    "contact": "kyle@intinc.com"
+  },
+  
+  "servers": {
+    "github-bridge": {
+      "type": "http",
+      "url": "http://localhost:7811/mcp/",
+      "description": "GitHub API bridge for repos, issues, PRs, Actions workflows",
+      "headers": {
+        "Authorization": "Bearer ${env:GITHUB_TOKEN:${input:github_token}}",
+        "X-MCP-Version": "2.0.0"
+      },
+      "health": {
+        "method": "GET",
+        "url": "http://localhost:7811/health",
+        "expectStatus": [200],
+        "interval": 30,
+        "timeout": 5
+      },
+      "capabilities": ["repos", "issues", "pulls", "actions", "code_search"],
+      "rbac": ["read-only", "deploy"]
+    },
+    
+    "supabase-bridge": {
+      "type": "http",
+      "url": "http://localhost:7812/mcp/",
+      "description": "Supabase API bridge for FlashFusion database operations",
+      "headers": {
+        "apikey": "${env:SUPABASE_SERVICE_ROLE_KEY:${input:supabase_service_role_key}}",
+        "Authorization": "Bearer ${env:SUPABASE_SERVICE_ROLE_KEY:${input:supabase_service_role_key}}",
+        "X-Supabase-Url": "${env:SUPABASE_URL:${input:supabase_url}}",
+        "X-MCP-Version": "2.0.0"
+      },
+      "health": {
+        "method": "GET",
+        "url": "http://localhost:7812/health",
+        "expectStatus": [200],
+        "interval": 30,
+        "timeout": 5
+      },
+      "capabilities": ["query", "insert", "update", "delete", "rpc", "storage", "realtime"],
+      "rbac": ["read-only", "data-admin"]
+    },
+    
+    "firebase-bridge": {
+      "type": "http",
+      "url": "http://localhost:7813/mcp/",
+      "description": "Firebase Admin bridge for Firestore, Auth, Storage",
+      "headers": {
+        "Authorization": "Bearer ${env:FIREBASE_ADMIN_TOKEN:${input:firebase_admin_token}}",
+        "X-Firebase-Project": "${env:FIREBASE_PROJECT_ID:${input:firebase_project_id}}",
+        "X-MCP-Version": "2.0.0"
+      },
+      "health": {
+        "method": "GET",
+        "url": "http://localhost:7813/health",
+        "expectStatus": [200],
+        "interval": 30,
+        "timeout": 5
+      },
+      "capabilities": ["firestore", "auth", "storage", "functions"],
+      "rbac": ["data-admin"]
+    },
+    
+    "postgres-bridge": {
+      "type": "http",
+      "url": "http://localhost:7814/mcp/",
+      "description": "Direct PostgreSQL bridge for SQL queries, schema inspection, RLS audits",
+      "headers": {
+        "X-Postgres-Connection": "${env:DATABASE_URL:${input:database_url}}",
+        "X-MCP-Version": "2.0.0"
+      },
+      "health": {
+        "method": "GET",
+        "url": "http://localhost:7814/health",
+        "expectStatus": [200],
+        "interval": 30,
+        "timeout": 5
+      },
+      "capabilities": ["query", "schema", "indexes", "rls_audit", "explain"],
+      "rbac": ["read-only", "data-admin"]
+    },
+    
+    "slack-bridge": {
+      "type": "http",
+      "url": "http://localhost:7815/mcp/",
+      "description": "Slack API bridge for messaging, channels, threads",
+      "headers": {
+        "Authorization": "Bearer ${env:SLACK_BOT_TOKEN:${input:slack_bot_token}}",
+        "X-Slack-Team": "${env:SLACK_TEAM_ID:${input:slack_team_id}}",
+        "X-MCP-Version": "2.0.0"
+      },
+      "health": {
+        "method": "GET",
+        "url": "http://localhost:7815/health",
+        "expectStatus": [200],
+        "interval": 30,
+        "timeout": 5
+      },
+      "capabilities": ["messages", "channels", "threads", "search", "users"],
+      "rbac": ["read-only", "comms"]
+    },
+    
+    "openai-bridge": {
+      "type": "http",
+      "url": "http://localhost:7816/mcp/",
+      "description": "OpenAI API bridge for GPT completions, embeddings, assistants",
+      "headers": {
+        "Authorization": "Bearer ${env:OPENAI_API_KEY:${input:openai_api_key}}",
+        "X-MCP-Version": "2.0.0"
+      },
+      "health": {
+        "method": "GET",
+        "url": "http://localhost:7816/health",
+        "expectStatus": [200],
+        "interval": 30,
+        "timeout": 5
+      },
+      "capabilities": ["chat", "completions", "embeddings", "assistants", "files"],
+      "rbac": ["ai-ops"],
+      "rate_limits": {
+        "requests_per_minute": 60,
+        "tokens_per_day": 1000000
+      }
+    },
+    
+    "anthropic-bridge": {
+      "type": "http",
+      "url": "http://localhost:7817/mcp/",
+      "description": "Anthropic API bridge for Claude completions",
+      "headers": {
+        "x-api-key": "${env:ANTHROPIC_API_KEY:${input:anthropic_api_key}}",
+        "anthropic-version": "2023-06-01",
+        "X-MCP-Version": "2.0.0"
+      },
+      "health": {
+        "method": "GET",
+        "url": "http://localhost:7817/health",
+        "expectStatus": [200],
+        "interval": 30,
+        "timeout": 5
+      },
+      "capabilities": ["messages", "completions"],
+      "rbac": ["ai-ops"],
+      "rate_limits": {
+        "requests_per_minute": 60,
+        "tokens_per_day": 1000000
+      }
+    },
+    
+    "google-bridge": {
+      "type": "http",
+      "url": "http://localhost:7818/mcp/",
+      "description": "Google APIs bridge for Workspace, Gemini, Cloud",
+      "headers": {
+        "Authorization": "Bearer ${env:GOOGLE_API_KEY:${input:google_api_key}}",
+        "X-MCP-Version": "2.0.0"
+      },
+      "health": {
+        "method": "GET",
+        "url": "http://localhost:7818/health",
+        "expectStatus": [200],
+        "interval": 30,
+        "timeout": 5
+      },
+      "capabilities": ["drive", "docs", "sheets", "gemini", "calendar"],
+      "rbac": ["read-only", "ai-ops"]
+    },
+    
+    "filesystem-bridge": {
+      "type": "http",
+      "url": "http://localhost:7819/mcp/",
+      "description": "Secure filesystem bridge with directory allowlisting",
+      "headers": {
+        "X-Allowed-Paths": "${env:FILESYSTEM_ALLOWED_PATHS:${input:filesystem_allowed_paths}}",
+        "X-MCP-Version": "2.0.0"
+      },
+      "health": {
+        "method": "GET",
+        "url": "http://localhost:7819/health",
+        "expectStatus": [200],
+        "interval": 30,
+        "timeout": 5
+      },
+      "capabilities": ["read", "write", "list", "search", "watch"],
+      "rbac": ["read-only"],
+      "security": {
+        "path_validation": "strict",
+        "symlink_follow": false,
+        "max_file_size_mb": 100
+      }
+    }
+  },
+  
+  "inputs": [
+    {
+      "type": "promptString",
+      "id": "github_token",
+      "description": "GitHub Personal Access Token (repo, workflow scopes)",
+      "password": true
+    },
+    {
+      "type": "promptString",
+      "id": "supabase_service_role_key",
+      "description": "Supabase Service Role Key (NOT anon key)",
+      "password": true
+    },
+    {
+      "type": "promptString",
+      "id": "supabase_url",
+      "description": "Supabase Project URL (https://xxx.supabase.co)",
+      "password": false
+    },
+    {
+      "type": "promptString",
+      "id": "firebase_admin_token",
+      "description": "Firebase Admin SDK Service Account JSON (base64)",
+      "password": true
+    },
+    {
+      "type": "promptString",
+      "id": "firebase_project_id",
+      "description": "Firebase Project ID",
+      "password": false
+    },
+    {
+      "type": "promptString",
+      "id": "database_url",
+      "description": "PostgreSQL Connection String (postgres://...)",
+      "password": true
+    },
+    {
+      "type": "promptString",
+      "id": "slack_bot_token",
+      "description": "Slack Bot User OAuth Token (xoxb-...)",
+      "password": true
+    },
+    {
+      "type": "promptString",
+      "id": "slack_team_id",
+      "description": "Slack Workspace/Team ID",
+      "password": false
+    },
+    {
+      "type": "promptString",
+      "id": "openai_api_key",
+      "description": "OpenAI API Key (sk-...)",
+      "password": true
+    },
+    {
+      "type": "promptString",
+      "id": "anthropic_api_key",
+      "description": "Anthropic API Key (sk-ant-...)",
+      "password": true
+    },
+    {
+      "type": "promptString",
+      "id": "google_api_key",
+      "description": "Google Cloud API Key or Service Account",
+      "password": true
+    },
+    {
+      "type": "promptString",
+      "id": "filesystem_allowed_paths",
+      "description": "Comma-separated allowed filesystem paths",
+      "password": false,
+      "default": "/home/claude/projects,/home/claude/documents"
+    }
+  ],
+  
+  "policies": {
+    "secrets": {
+      "preferEnvOverPrompt": true,
+      "maskInLogs": true,
+      "rotateHints": true,
+      "rotationIntervalDays": 90,
+      "auditLogging": true
+    },
+    "rbac": {
+      "enabled": true,
+      "defaultNamespace": "read-only",
+      "requireExplicitGrant": true,
+      "namespaces": [
+        {
+          "name": "read-only",
+          "description": "Safe read operations",
+          "servers": [
+            "github-bridge",
+            "supabase-bridge",
+            "postgres-bridge",
+            "slack-bridge",
+            "google-bridge",
+            "filesystem-bridge"
+          ],
+          "operations": ["read", "list", "search", "query"]
+        },
+        {
+          "name": "deploy",
+          "description": "CI/CD deployment operations",
+          "servers": ["github-bridge"],
+          "operations": ["read", "write", "deploy", "workflow_dispatch"]
+        },
+        {
+          "name": "data-admin",
+          "description": "Database administration",
+          "servers": ["supabase-bridge", "postgres-bridge", "firebase-bridge"],
+          "operations": ["read", "write", "delete", "migrate", "rls_audit"],
+          "requires": {
+            "mfa_verified": true
+          }
+        },
+        {
+          "name": "ai-ops",
+          "description": "AI model operations",
+          "servers": ["openai-bridge", "anthropic-bridge", "google-bridge"],
+          "operations": ["inference", "embeddings"],
+          "rate_limits": {
+            "requests_per_minute": 60,
+            "tokens_per_day": 1000000
+          }
+        },
+        {
+          "name": "comms",
+          "description": "Communication channels",
+          "servers": ["slack-bridge"],
+          "operations": ["read", "post"],
+          "restrictions": {
+            "dm_allowed": false,
+            "channel_allowlist": ["#engineering", "#alerts", "#general"]
+          }
+        }
+      ]
+    },
+    "health": {
+      "enabled": true,
+      "intervalSeconds": 30,
+      "timeoutSeconds": 5,
+      "failureThreshold": 3,
+      "alertOnFailure": true,
+      "alertChannels": ["slack:#ops-alerts", "email:ops@intinc.com"]
+    },
+    "logging": {
+      "level": "info",
+      "format": "json",
+      "destination": ["stdout", "file:/var/log/mcp/access.log"],
+      "retention_days": 90,
+      "pii_masking": true,
+      "request_id_header": "X-Request-ID"
+    }
+  },
+  
+  "orchestration": {
+    "engine": "n8n",
+    "url": "http://localhost:5678",
+    "webhookBase": "https://n8n.yourdomain.com/webhook",
+    "workflows": {
+      "health_monitor": {
+        "id": "health-monitor-workflow",
+        "trigger": "schedule",
+        "cron": "*/30 * * * * *",
+        "description": "Poll all bridge health endpoints"
+      },
+      "github_pr_review": {
+        "id": "github-pr-review-workflow",
+        "trigger": "webhook",
+        "description": "Automated PR review pipeline"
+      },
+      "incident_response": {
+        "id": "incident-response-workflow",
+        "trigger": "webhook",
+        "description": "Alert routing and escalation"
+      },
+      "data_sync": {
+        "id": "data-sync-workflow",
+        "trigger": "schedule",
+        "cron": "0 * * * *",
+        "description": "Hourly data synchronization"
+      }
+    }
+  },
+  
+  "native_mcps": {
+    "description": "These are native Claude.ai MCPs - no bridge needed",
+    "servers": [
+      "atlassian", "cloudflare", "stripe", "canva", "notion",
+      "sentry", "intercom", "plaid", "invideo", "zapier",
+      "netlify", "huggingface", "jam", "vercel", "fireflies",
+      "close", "cloudinary", "daloopa", "hubspot", "stytch",
+      "monday", "playwright", "melon", "godaddy", "cdata",
+      "scholar-gateway", "fellow", "n8n", "linear", "figma",
+      "learning-commons"
+    ],
+    "note": "Access these directly via Claude.ai MCP integration, not bridges"
+  }
+}

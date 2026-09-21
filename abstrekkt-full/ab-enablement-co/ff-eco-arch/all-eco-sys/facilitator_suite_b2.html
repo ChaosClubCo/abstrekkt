@@ -1,0 +1,289 @@
+<style>
+:root{--bg:#0c0c0b;--sf:#111110;--c:#181815;--b:#232320;--h:#303030;--a:#d4893a;--t:#ddd8ce;--t2:#807c74;--t3:#3a3835;--g:#5a9c5a;--m:#78afc8;--r:#c05050;--tg:#1e1e1a}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--t);font-family:system-ui,sans-serif;font-size:13px;line-height:1.6}
+h1{font-family:Georgia,serif;font-size:17px;font-weight:700}
+header{padding:12px 20px 10px;border-bottom:1px solid var(--b);display:flex;justify-content:space-between;align-items:flex-end}
+.sub{font-family:monospace;font-size:10px;color:var(--t2);margin-top:2px}
+nav{display:flex;border-bottom:1px solid var(--b);padding:0 20px;overflow-x:auto}
+.tb{background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;font:inherit;font-size:12px;font-weight:500;padding:8px 11px;color:var(--t2);margin-bottom:-1px;white-space:nowrap;transition:.15s}
+.tb.on{color:var(--t);border-bottom-color:var(--a)}
+#ct{padding:15px 20px;max-width:840px}
+.cd{background:var(--c);border:1px solid var(--b);border-radius:3px;padding:12px 14px;margin-bottom:7px}
+.mn{font-family:monospace;font-size:10px;color:var(--t2)}
+.inp{width:100%;padding:6px 9px;border-radius:2px;border:1px solid var(--h);font:inherit;font-size:12px;background:var(--bg);color:var(--t);margin-bottom:6px;outline:none}
+.lbl{font-family:monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--t3);margin-bottom:3px}
+.btn{background:transparent;border:1px solid var(--h);border-radius:2px;color:var(--t2);font-family:monospace;font-size:10px;letter-spacing:.06em;text-transform:uppercase;padding:5px 11px;cursor:pointer;transition:.15s}
+.btn:hover:not([disabled]){color:var(--t);border-color:var(--t2)}
+.btn.a{border-color:var(--a);color:var(--a)}
+.btn[disabled]{opacity:.35;cursor:not-allowed}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}
+.st{background:var(--sf);border-radius:2px;padding:9px;text-align:center}
+.sv{font-size:19px;font-weight:500}
+.sl{font-family:monospace;font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:.08em;margin-top:2px}
+.nx{border-left:3px solid var(--a);padding:8px 11px;background:rgba(212,137,58,.06);border-radius:0 2px 2px 0;margin-bottom:12px;cursor:pointer}
+.nx.g{border-left-color:var(--g);background:rgba(90,156,90,.05)}
+.nx.w{border-left-color:var(--r);background:rgba(192,80,80,.05)}
+.rd{display:flex;align-items:center;gap:7px;cursor:pointer;padding:5px 7px;border-radius:2px;border:1px solid var(--b);margin-bottom:3px;transition:.15s}
+.rd.on{border-color:var(--a);background:var(--tg)}
+.chk{display:flex;align-items:center;gap:5px;cursor:pointer;margin-bottom:4px;font-size:12px;color:var(--t2)}
+.ta{width:100%;background:var(--sf);border:1px solid var(--b);border-radius:2px;color:var(--t);font:inherit;font-size:12px;padding:7px 9px;resize:vertical;min-height:50px;outline:none}
+.tg{background:var(--tg);border:1px solid var(--h);border-radius:2px;font-family:monospace;font-size:9px;padding:1px 5px;color:var(--t2)}
+.ci{display:flex;gap:8px;align-items:flex-start;padding:8px 11px;border-bottom:1px solid var(--tg);cursor:pointer}
+.ci:last-child{border-bottom:none}
+.ci:hover,.ci.d{background:var(--sf)}
+.cb{width:13px;height:13px;flex-shrink:0;margin-top:1px;border:1px solid var(--h);border-radius:2px;display:flex;align-items:center;justify-content:center;font-size:8px;color:var(--g)}
+.ci.d .cb{background:#1a2a1a;border-color:var(--g)}
+.ci.d .cs{color:var(--t2);text-decoration:line-through}
+.cs{font-size:12px;font-weight:500;color:var(--t)}
+.msg{padding:7px 9px;border-radius:2px;font-size:12px;line-height:1.6;white-space:pre-wrap;max-width:88%}
+</style>
+<header>
+  <div><h1>Facilitator Suite</h1><div class="sub">◆ claude-sonnet-4-6 · Reading Room at Midnight · Variant B</div></div>
+  <div id="hs" style="display:flex;gap:14px"></div>
+</header>
+<nav id="nv"></nav>
+<div id="ct"></div>
+<script>
+const E=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const $=s=>document.querySelector(s);
+const TABS=[['d','Dashboard'],['i','Intake'],['p','Prompts'],['o','Outcomes'],['q','Objections'],['r','Report']];
+const LIT=[{v:'none',l:'None',d:'Never used AI'},{v:'casual',l:'Casual',d:'Tried ChatGPT'},{v:'regular',l:'Regular',d:'Weekly user'},{v:'power',l:'Power',d:'Projects+prompts'},{v:'advanced',l:'Advanced',d:'API/agents'}];
+const PA=['Email & comms','Meeting notes','Report writing','Research','Data analysis','Process docs','Code writing','Customer comms'];
+const UC=['Email drafting','Report writing','Meeting notes','Presentations','Summarizing docs','Competitor intel','SOPs','Project planning','Code writing','Code review'];
+const QCI=[['q1','Logs in independently',1],['q2','1+ Project w/ instructions',1],['q3','Memory configured',1],['q4','Prompt package delivered',1],['q5','Connector connected',0],['q6','#1 use case identified',0],['q7','Next session agreed',0]];
+const SC={'Completed':'var(--g)','In Progress':'var(--m)','Needs Follow-up':'var(--a)','No Show':'var(--r)','Scheduled':'var(--m)'};
+const QA=[
+  {id:1,c:'Time',q:"Don't have time",a:"10 min covers 80% of daily use. One use case this week."},
+  {id:2,c:'Jobs',q:"Will AI replace my job?",a:"Claude handles low-judgment volume work. Skilled decisions stay with you."},
+  {id:3,c:'Security',q:"IT won't approve this.",a:"SOC 2 Type II, no-training data on Team/Enterprise. trust.anthropic.com."},
+  {id:4,c:'Trust',q:"It gave me wrong info.",a:"Hallucination happens with all models. Fix: verification + citations. Treat output as first draft."},
+  {id:5,c:'Skill',q:"Not technical enough.",a:"Highest-value users aren't technical. Writing, summarizing, formatting — no tech skills needed."},
+  {id:6,c:'Value',q:"Already productive.",a:"Most find 2–3 hrs/week in first session — time currently on low-judgment tasks."},
+  {id:7,c:'Privacy',q:"What happens to my data?",a:"On Team/Enterprise: not used to train models. Full details at trust.anthropic.com."},
+];
+const G=ST=>ST.ins.length===0?{cl:'nx',ic:'var(--a)',f:'01',t:'Begin with intake',tab:'i'}:
+  (u=ST.ins.filter(i=>!ST.outs.find(o=>(o.n||o.employeeName)===i.n))).length?{cl:'nx',ic:'var(--a)',f:'04',t:u.length+' intake(s) without outcome',d:u.map(x=>x.n).join(', '),tab:'o'}:
+  (np=Object.values(ST.pkgs)).length<ST.ins.filter(i=>!np.find(p=>p.en===i.n)).length?{cl:'nx',ic:'var(--a)',f:'02',t:'Employees need prompt package',tab:'p'}:
+  (fu=ST.outs.filter(o=>o.st==='Needs Follow-up')).length?{cl:'nx w',ic:'var(--r)',f:'04',t:fu.length+' follow-up(s) needed',d:fu.map(x=>x.n||x.employeeName).join(', '),tab:'o'}:
+  {cl:'nx g',ic:'var(--g)',f:'✓',t:'Program up to date',d:ST.ins.length+' employees · '+ST.outs.filter(x=>x.st==='Completed').length+' complete'};
+let u,np,fu;
+
+const sget=async k=>{try{const r=await window.storage.get(k);return r?JSON.parse(r.value):null;}catch{return null;}};
+const sset=async(k,v)=>{try{await window.storage.set(k,JSON.stringify(v));}catch{}};
+const API=async(msgs,max,sys)=>{
+  const b={model:'claude-sonnet-4-6',max_tokens:max,messages:msgs};
+  if(sys)b.system=sys;
+  const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)});
+  const d=await r.json();if(!r.ok)throw new Error(d.error?.message||'HTTP '+r.status);
+  return d.content.filter(b=>b.type==='text').map(b=>b.text).join('');
+};
+
+const ST={t:'d',ins:[],outs:[],pkgs:{},rdy:false,ib:null,
+  if_:{n:'',r:'',pl:'pro',li:'',pa:[],no:'',dt:new Date().toISOString().slice(0,10)},
+  pf:{sel:'',uc:[],res:null,ld:false,er:''},
+  of_:{n:'',pl:'pro',st:'Completed',dt:new Date().toISOString().slice(0,10),qc:{},ga:''},
+  ov:'log',
+  ob:{q:'',ca:'all',ex:{},ms:[],ai:'',al:false,tb:'lib'},
+  rp:{res:'',ld:false,er:''},
+};
+
+async function init(){
+  const[a,b,c]=await Promise.all([sget('intake-records-v1'),sget('prompt-packages-v1'),sget('outcome-records-v1')]);
+  ST.ins=a||[];ST.pkgs=b||{};ST.outs=c||[];ST.rdy=true;render();
+}
+
+function rD(){
+  if(!ST.rdy)return'<div class="mn" style="padding:10px">Loading…</div>';
+  const co=ST.outs.filter(o=>o.st==='Completed').length;
+  const pr=ST.outs.filter(o=>['pro','max','team','enterprise'].includes(o.pl)).length;
+  const n=G(ST);
+  let h=`<div class="g4" style="margin-bottom:12px">`;
+  for(const[l,v,c] of[['Employees',ST.ins.length,'var(--t)'],['Sessions',ST.outs.length,'var(--t)'],['Complete',ST.outs.length?Math.round(co/ST.outs.length*100)+'%':'—',co?'var(--g)':'var(--t3)'],['Pro+',ST.outs.length?Math.round(pr/ST.outs.length*100)+'%':'—','var(--m)']]){
+    h+=`<div class="st"><div class="sv" style="color:${c}">${v}</div><div class="sl">${l}</div></div>`;
+  }
+  h+=`</div><div class="${n.cl}" data-a="ntb" data-v="${n.tab||''}"><div class="mn" style="color:${n.ic};margin-bottom:2px">◆ WHAT'S NEXT${n.f?' · '+n.f:''}</div><div style="font-size:13px;font-weight:500;color:var(--t)">${E(n.t)}</div>${n.d?`<div style="font-size:11px;color:var(--t2);margin-top:1px">${E(n.d)}</div>`:''}</div>`;
+  if(ST.ins.length){
+    h+='<div style="font-family:Georgia,serif;font-size:14px;font-weight:600;margin-bottom:7px">Recent intakes</div>';
+    h+='<div class="cd" style="padding:0;overflow:auto"><table style="width:100%;border-collapse:collapse"><thead><tr>';
+    for(const hd of['Employee','Role','Plan','Literacy'])h+=`<th style="font-family:monospace;font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:var(--t2);text-align:left;padding:5px 9px;border-bottom:1px solid var(--b)">${hd}</th>`;
+    h+='</tr></thead><tbody>';
+    for(const r of ST.ins.slice(0,5))h+=`<tr><td style="font-weight:500;color:var(--t);padding:6px 9px;border-bottom:1px solid var(--tg)">${E(r.n)}</td><td style="color:var(--t2);padding:6px 9px;border-bottom:1px solid var(--tg)">${E(r.r)}</td><td class="mn" style="color:var(--m);padding:6px 9px;border-bottom:1px solid var(--tg)">${(r.pl||'?').toUpperCase()}</td><td style="color:var(--t2);padding:6px 9px;border-bottom:1px solid var(--tg)">${E(r.li||'?')}</td></tr>`;
+    h+='</tbody></table></div>';
+  }else h+='<div class="cd" style="color:var(--t2)">No intakes yet. Use the Intake tab.</div>';
+  return h;
+}
+
+function rI(){
+  if(ST.ib){
+    const r=ST.ib;const li=LIT.find(l=>l.v===r.li);
+    const br=`SESSION BRIEF — ${r.n}\n${r.r} | ${r.pl.toUpperCase()} | ${li?.l||r.li}\nDate: ${r.dt}\nTime Drains: ${r.pa.join(', ')||'Not specified'}\nNotes: ${r.no||'None'}`;
+    return`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:11px"><div style="font-family:Georgia,serif;font-size:14px;font-weight:600">Brief — ${E(r.n)}</div><div style="display:flex;gap:5px"><button class="btn" id="cpb">Copy</button><button class="btn" data-a="clri">← New</button></div></div><div class="cd" style="background:var(--sf)"><pre class="mn" style="color:var(--t);font-size:11px;line-height:1.6;white-space:pre-wrap">${E(br)}</pre></div><div class="cd" style="margin-top:5px;border-color:#2a3a2a"><span class="mn" style="color:var(--g)">◆ Saved · intake-records-v1</span></div>`;
+  }
+  const f=ST.if_;const ok=f.n.trim()&&f.r.trim()&&f.li;
+  let h='<div style="font-family:Georgia,serif;font-size:14px;font-weight:600;margin-bottom:7px">Employee Profile</div><p style="font-size:11px;color:var(--t2);margin-bottom:11px">Fill before session. Generates brief on submit.</p>';
+  h+='<div class="cd" style="margin-bottom:7px"><div class="g2">';
+  h+=`<div><div class="lbl">Name *</div><input class="inp" data-f="n" value="${E(f.n)}" placeholder="Jane Smith"></div>`;
+  h+=`<div><div class="lbl">Role *</div><input class="inp" data-f="r" value="${E(f.r)}" placeholder="IT Manager"></div>`;
+  h+='<div><div class="lbl">Plan</div><select class="inp" data-f="pl">';
+  for(const p of['free','pro','max','team','enterprise'])h+=`<option value="${p}"${f.pl===p?' selected':''}>${p}</option>`;
+  h+=`</select></div><div><div class="lbl">Date</div><input class="inp" data-f="dt" type="date" value="${f.dt}"></div></div></div>`;
+  h+='<div class="cd" style="margin-bottom:7px"><div class="lbl" style="margin-bottom:6px">AI Literacy *</div>';
+  for(const l of LIT)h+=`<div class="rd${f.li===l.v?' on':''}" data-a="lit" data-v="${l.v}"><span class="mn" style="color:${f.li===l.v?'var(--a)':'var(--m)'}">${l.l}</span><span style="font-size:11px;color:var(--t3)">${l.d}</span></div>`;
+  h+='</div><div class="cd" style="margin-bottom:7px"><div class="lbl" style="margin-bottom:5px">Time Drains</div><div class="g2">';
+  for(const p of PA)h+=`<label class="chk"><input type="checkbox" data-arr="pa" value="${p}"${f.pa.includes(p)?' checked':''} style="accent-color:var(--a)">${p}</label>`;
+  h+=`</div></div><div class="cd" style="margin-bottom:9px"><div class="lbl" style="margin-bottom:4px">Notes</div><textarea class="ta" data-f="no">${E(f.no)}</textarea></div>`;
+  h+=`<div style="text-align:right"><button class="btn${ok?' a':''}" data-a="subi"${!ok?' disabled':''}>Generate Brief →</button></div>`;
+  return h;
+}
+
+function rP(){
+  const p=ST.pf;
+  let h='<div style="font-family:Georgia,serif;font-size:14px;font-weight:600;margin-bottom:7px">Prompt Package Builder</div><p style="font-size:11px;color:var(--t2);margin-bottom:11px">Select use cases → 6 tailored prompts via Sonnet 4.6.</p>';
+  if(ST.ins.length){h+='<div class="cd" style="margin-bottom:7px"><div class="lbl" style="margin-bottom:5px">Load from intake</div><div style="display:flex;gap:4px;flex-wrap:wrap">';for(const i of ST.ins.slice(0,6))h+=`<button class="btn${p.sel===i.n?' a':''}" data-a="seli" data-v="${E(i.n)}">${E(i.n)}</button>`;h+='</div></div>';}
+  h+=`<div class="cd" style="margin-bottom:7px"><div class="lbl" style="margin-bottom:5px">Use Cases <span class="mn">(${p.uc.length} selected)</span></div><div style="display:flex;flex-wrap:wrap;gap:4px">`;
+  for(const uc of UC)h+=`<button class="btn${p.uc.includes(uc)?' a':''}" data-a="toguc" data-v="${E(uc)}" style="padding:3px 8px">${p.uc.includes(uc)?'◆ ':''}${E(uc)}</button>`;
+  h+='</div></div>';
+  if(p.er)h+=`<div class="cd" style="border-color:rgba(192,80,80,.4);margin-bottom:7px"><span class="mn" style="color:var(--r)">✗ ${E(p.er)}</span></div>`;
+  if(p.ld){h+='<div class="cd"><span class="mn" style="color:var(--m)">◌ Generating 6 prompts…</span></div>';return h;}
+  if(p.res){
+    h+='<div style="font-family:Georgia,serif;font-size:14px;font-weight:600;margin-top:4px;margin-bottom:7px">Prompts</div>';
+    for(let i=0;i<p.res.prompts.length;i++){const pr=p.res.prompts[i];h+=`<div class="cd" style="margin-bottom:6px"><div style="display:flex;justify-content:space-between;margin-bottom:5px"><div><span class="tg">${E(pr.category)}</span><div style="font-size:13px;font-weight:500;color:var(--t);margin-top:3px">${E(pr.name)}</div></div><span class="mn">${i+1}/6</span></div><div style="font-size:11px;color:var(--t2);margin-bottom:6px">${E(pr.description)}</div><div style="background:var(--sf);border:1px solid var(--b);border-radius:2px;padding:7px 8px;font-size:11px;font-family:monospace;white-space:pre-wrap">${E(pr.prompt)}</div></div>`;}
+    h+='<div style="text-align:right"><button class="btn" data-a="clrp">Clear</button></div>';return h;
+  }
+  h+=`<div style="text-align:right"><button class="btn${p.uc.length?' a':''}" data-a="genp"${!p.uc.length?' disabled':''}>Generate →</button></div>`;
+  return h;
+}
+
+function rO(){
+  if(ST.ov==='dash'){
+    const o=ST.outs;let h=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:11px"><div style="font-family:Georgia,serif;font-size:14px;font-weight:600">Outcomes (${o.length})</div><button class="btn a" data-a="ov" data-v="log">+ Log</button></div>`;
+    if(o.length){h+='<div class="cd" style="padding:0;overflow:auto"><table style="width:100%;border-collapse:collapse"><thead><tr>';for(const hd of['Employee','Status','Plan','QC','Date'])h+=`<th style="font-family:monospace;font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:var(--t2);text-align:left;padding:5px 8px;border-bottom:1px solid var(--b)">${hd}</th>`;h+='</tr></thead><tbody>';for(const r of o)h+=`<tr><td style="font-weight:500;color:var(--t);padding:6px 8px;border-bottom:1px solid var(--tg)">${E(r.n||r.employeeName)}</td><td style="color:${SC[r.st]||'var(--t2)'};font-size:11px;padding:6px 8px;border-bottom:1px solid var(--tg)">${r.st}</td><td class="mn" style="color:var(--m);padding:6px 8px;border-bottom:1px solid var(--tg)">${(r.pl||'?').toUpperCase()}</td><td style="color:var(--t2);padding:6px 8px;border-bottom:1px solid var(--tg)">${Object.values(r.qc||{}).filter(Boolean).length}/${QCI.length}</td><td class="mn" style="padding:6px 8px;border-bottom:1px solid var(--tg)">${r.dt||'—'}</td></tr>`;h+='</tbody></table></div>';}
+    else h+='<div class="cd" style="color:var(--t2)">No sessions logged.</div>';return h;
+  }
+  const f=ST.of_;const ok=f.n.trim();
+  let h='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:11px"><div style="font-family:Georgia,serif;font-size:14px;font-weight:600">Log Session</div><button class="btn" data-a="ov" data-v="dash">← Back</button></div>';
+  if(ST.ins.length){h+='<div class="cd" style="margin-bottom:7px"><div class="lbl" style="margin-bottom:5px">Load from intake</div><div style="display:flex;gap:4px;flex-wrap:wrap">';for(const i of ST.ins.slice(0,5))h+=`<button class="btn" data-a="ldoc" data-n="${E(i.n)}" data-p="${E(i.pl||'pro')}">${E(i.n)}</button>`;h+='</div></div>';}
+  h+='<div class="cd" style="margin-bottom:7px"><div class="g2">';
+  h+=`<div><div class="lbl">Employee *</div><input class="inp" data-of="n" value="${E(f.n)}" placeholder="Jane Smith"></div>`;
+  h+='<div><div class="lbl">Status</div><select class="inp" data-of="st">';for(const s of['Completed','In Progress','Scheduled','Needs Follow-up','No Show'])h+=`<option${f.st===s?' selected':''}>${s}</option>`;
+  h+='</select></div><div><div class="lbl">Plan</div><select class="inp" data-of="pl">';for(const p of['free','pro','max','team','enterprise'])h+=`<option value="${p}"${f.pl===p?' selected':''}>${p}</option>`;
+  h+=`</select></div><div><div class="lbl">Date</div><input class="inp" data-of="dt" type="date" value="${f.dt}"></div></div></div>`;
+  h+='<div class="cd" style="margin-bottom:7px"><div class="lbl" style="margin-bottom:6px">QC Gate</div>';
+  for(const[id,l,crit] of QCI)h+=`<div class="ci${f.qc[id]?' d':''}" data-a="togqc" data-id="${id}"><div class="cb">${f.qc[id]?'◆':''}</div><span class="cs">${l}${crit?` <span style="font-size:9px;color:var(--r)">★</span>`:''}</span></div>`;
+  h+=`<div style="font-size:10px;color:var(--t3);margin-top:6px">★ critical · ${Object.values(f.qc).filter(Boolean).length}/${QCI.length} passed</div></div>`;
+  h+=`<div class="cd" style="margin-bottom:9px"><div class="lbl" style="margin-bottom:4px">Open Gaps</div><textarea class="ta" data-of="ga">${E(f.ga)}</textarea></div>`;
+  h+=`<div style="text-align:right"><button class="btn${ok?' a':''}" data-a="suboc"${!ok?' disabled':''}>Save →</button></div>`;
+  return h;
+}
+
+function rQ(){
+  const{q,ca,ex,ms,ai,al,tb}=ST.ob;
+  const cats=['all',...new Set(QA.map(x=>x.c))];
+  const res=QA.filter(x=>(ca==='all'||x.c===ca)&&(!q||x.q.toLowerCase().includes(q.toLowerCase())||x.a.toLowerCase().includes(q.toLowerCase())));
+  let h='<div style="font-family:Georgia,serif;font-size:14px;font-weight:600;margin-bottom:7px">Objection Handler</div>';
+  h+='<div style="display:flex;border:1px solid var(--h);border-radius:2px;overflow:hidden;width:fit-content;margin-bottom:11px">';
+  for(const[id,l] of[['lib','Library'],['ai','Ask AI']])h+=`<button class="btn${tb===id?' a':''}" data-a="otb" data-v="${id}" style="border:none;border-radius:0;${id==='lib'?'border-right:1px solid var(--h)':''}">${l}</button>`;
+  h+='</div>';
+  if(tb==='lib'){
+    h+=`<input class="inp" value="${E(q)}" data-a="oq" placeholder="Search objections…" style="margin-bottom:7px"><div style="display:flex;gap:3px;flex-wrap:wrap;margin-bottom:9px">`;
+    for(const c of cats)h+=`<button class="btn${ca===c?' a':''}" data-a="ocat" data-v="${c}" style="padding:2px 8px">${c==='all'?`All (${QA.length})`:c}</button>`;
+    h+='</div>';
+    if(!res.length){h+='<div class="cd" style="color:var(--t2)">No matches</div>';return h;}
+    for(const item of res){const open=ex[item.id];h+=`<div class="cd" style="padding:0;overflow:hidden;margin-bottom:4px"><div data-a="togob" data-id="${item.id}" style="padding:8px 12px;display:flex;align-items:flex-start;gap:7px;cursor:pointer"><span class="tg" style="flex-shrink:0">${item.c}</span><div style="flex:1"><div style="font-weight:500;font-size:12px;color:var(--t)">${E(item.q)}</div>${!open?`<div style="font-size:10px;color:var(--t3);margin-top:2px">${E(item.a.substring(0,55))}…</div>`:''}</div><span style="font-size:8px;color:var(--t3)">${open?'▲':'▼'}</span></div>${open?`<div style="padding:0 12px 10px;border-top:1px solid var(--b)"><div style="font-size:12px;color:var(--t2);line-height:1.6;padding-top:8px">${E(item.a)}</div></div>`:''}</div>`;}
+  }else{
+    h+='<div id="ait" style="height:240px;overflow-y:auto;display:flex;flex-direction:column;gap:5px;padding:2px 0">';
+    if(!ms.length)h+='<div class="mn" style="color:var(--t3);text-align:center;padding:16px">Ask about any adoption challenge.</div>';
+    for(const m of ms)h+=`<div style="display:flex;justify-content:${m.ro==='u'?'flex-end':'flex-start'}"><div class="msg" style="${m.ro==='u'?'background:rgba(212,137,58,.1);border:1px solid rgba(212,137,58,.2);align-self:flex-end':'background:var(--sf);border:1px solid var(--b)'};color:${m.e?'var(--r)':'var(--t)'}">${E(m.c)}</div></div>`;
+    if(al)h+='<div style="display:flex"><div class="msg" style="background:var(--sf);border:1px solid var(--b);color:var(--t3)">◌ thinking…</div></div>';
+    h+='</div><div style="display:flex;gap:5px;margin-top:7px">';
+    h+=`<input id="aiinp" class="inp" value="${E(ai)}" data-a="aiinp" placeholder="Ask about any pushback…" style="margin-bottom:0;flex:1"><button class="btn${ai.trim()?' a':''}" data-a="aigo"${!ai.trim()||al?' disabled':''}>→</button></div>`;
+  }
+  return h;
+}
+
+function rR(){
+  const{res,ld,er}=ST.rp;const co=ST.outs.filter(o=>o.st==='Completed').length;const fu=ST.outs.filter(o=>o.st==='Needs Follow-up').length;
+  let h='<div style="font-family:Georgia,serif;font-size:14px;font-weight:600;margin-bottom:7px">Program Health Report</div><p style="font-size:11px;color:var(--t2);margin-bottom:11px">AI-generated stakeholder narrative. Sonnet 4.6.</p>';
+  h+=`<div class="g4" style="margin-bottom:12px">`;for(const[l,v,c] of[['Enrolled',ST.ins.length,'var(--t)'],['Sessions',ST.outs.length,'var(--t)'],['Complete',co,'var(--g)'],['Follow-up',fu,fu?'var(--r)':'var(--t3)']])h+=`<div class="st"><div class="sv" style="color:${c}">${v}</div><div class="sl">${l}</div></div>`;h+='</div>';
+  if(er)h+=`<div class="cd" style="border-color:rgba(192,80,80,.4);margin-bottom:7px"><span class="mn" style="color:var(--r)">✗ ${E(er)}</span></div>`;
+  if(ld){h+='<div class="cd"><span class="mn" style="color:var(--m)">◌ Generating report…</span></div>';return h;}
+  if(res){h+=`<div class="cd" style="background:var(--sf)"><pre class="mn" style="color:var(--t);font-size:11px;line-height:1.7;white-space:pre-wrap">${E(res)}</pre></div><div style="display:flex;gap:5px;justify-content:flex-end;margin-top:6px"><button class="btn" id="cprep">Copy</button><button class="btn" data-a="genrep">Regenerate</button></div>`;return h;}
+  h+=`<div style="text-align:right"><button class="btn${ST.ins.length?' a':''}" data-a="genrep"${!ST.ins.length?' disabled':''}>Generate Report →</button></div>`;
+  if(!ST.ins.length)h+='<div class="cd" style="margin-top:6px;color:var(--t2)">Add at least one intake first.</div>';
+  return h;
+}
+
+const RM={d:rD,i:rI,p:rP,o:rO,q:rQ,r:rR};
+function render(){
+  $('#nv').innerHTML=TABS.map(([id,l])=>`<button class="tb${ST.t===id?' on':''}" data-a="tab" data-v="${id}">${l}</button>`).join('');
+  $('#ct').innerHTML=RM[ST.t]();
+  if(ST.rdy){$('#hs').innerHTML=[['employees',ST.ins.length],['sessions',ST.outs.length]].map(([l,v])=>`<div style="text-align:right"><div class="mn" style="font-size:15px;color:var(--t)">${v}</div><div class="mn" style="text-transform:uppercase;letter-spacing:.08em;color:var(--t3)">${l}</div></div>`).join('');}
+  const ai=$('#ait');if(ai)ai.scrollTop=ai.scrollHeight;
+  const cpb=$('#cpb');if(cpb&&ST.ib){const r=ST.ib;const li=LIT.find(l=>l.v===r.li);const br=`SESSION BRIEF — ${r.n}\n${r.r} | ${r.pl.toUpperCase()} | ${li?.l||r.li}\nDate: ${r.dt}\nTime Drains: ${r.pa.join(', ')||'Not specified'}\nNotes: ${r.no||'None'}`;cpb.onclick=()=>navigator.clipboard.writeText(br).catch(()=>{});}
+  const cp2=$('#cprep');if(cp2)cp2.onclick=()=>navigator.clipboard.writeText(ST.rp.res).catch(()=>{});
+}
+
+async function genP(){
+  const{uc,sel}=ST.pf;const emp=ST.ins.find(i=>i.n===sel);
+  const role=emp?.r||'employee';const lit=emp?LIT.find(l=>l.v===emp.li)?.l||'regular':'regular';
+  ST.pf.ld=true;ST.pf.er='';render();
+  try{const txt=await API([{role:'user',content:`Generate exactly 6 tailored Claude prompts. Role: ${role}, Literacy: ${lit}, Use cases: ${uc.join(', ')}. Each: name ≤6 words, category, full prompt with XML tags, 1-sentence description, 2 tips. JSON only no fences: {"prompts":[{"name":"","category":"","prompt":"","description":"","tips":[""]}]}`}],3000);
+    const parsed=JSON.parse(txt.replace(/```json|```/g,'').trim());ST.pf.res=parsed;
+    if(emp){ST.pkgs={...ST.pkgs,[emp.n]:{en:emp.n,...parsed,createdAt:new Date().toISOString()}};await sset('prompt-packages-v1',ST.pkgs);}
+  }catch(e){ST.pf.er=e.message;}ST.pf.ld=false;render();
+}
+
+async function genR(){
+  const co=ST.outs.filter(o=>o.st==='Completed').length;const pr=ST.outs.filter(o=>['pro','max','team','enterprise'].includes(o.pl)).length;
+  const fu=ST.outs.filter(o=>o.st==='Needs Follow-up');
+  const gaps=[...new Set(ST.outs.filter(o=>o.ga).map(o=>o.ga))].slice(0,3);
+  ST.rp.ld=true;ST.rp.er='';render();
+  try{ST.rp.res=await API([{role:'user',content:`Write a brief Claude enablement program health report for stakeholders. Data: ${ST.ins.length} enrolled, ${ST.outs.length} sessions (${ST.outs.length?Math.round(co/ST.outs.length*100):0}% complete), ${pr} on Pro+, ${fu.length} need follow-up. Gaps: ${gaps.join(' / ')||'none'}. Format: EXECUTIVE SUMMARY (2 sentences) | KEY METRICS | RISKS & ACTIONS | NEXT STEPS. Under 300 words. Non-technical audience.`}],1200);}
+  catch(e){ST.rp.er=e.message;}ST.rp.ld=false;render();
+}
+
+async function sendAI(){
+  const input=ST.ob.ai.trim();if(!input||ST.ob.al)return;
+  ST.ob.ai='';ST.ob.al=true;ST.ob.ms=[...ST.ob.ms,{ro:'u',c:input}];render();
+  try{const reply=await API(ST.ob.ms.map(m=>({role:m.ro==='u'?'user':'assistant',content:m.c})),350,"Claude enablement expert. Handle employee pushback. Direct, under 100 words.");ST.ob.ms=[...ST.ob.ms,{ro:'a',c:reply}];}
+  catch(e){ST.ob.ms=[...ST.ob.ms,{ro:'a',c:'Error: '+e.message,e:true}];}
+  ST.ob.al=false;render();
+}
+
+document.body.addEventListener('click',async e=>{
+  const el=e.target.closest('[data-a]');if(!el)return;
+  const a=el.dataset.a,v=el.dataset.v,id=el.dataset.id;
+  if(a==='tab'){ST.t=v;render();}
+  else if(a==='ntb'&&v){ST.t=v;render();}
+  else if(a==='lit'){ST.if_.li=v;render();}
+  else if(a==='subi'){const rec={...ST.if_,id:Date.now(),createdAt:new Date().toISOString()};ST.ins=[rec,...ST.ins];await sset('intake-records-v1',ST.ins);ST.ib=rec;render();}
+  else if(a==='clri'){ST.ib=null;ST.if_={n:'',r:'',pl:'pro',li:'',pa:[],no:'',dt:new Date().toISOString().slice(0,10)};render();}
+  else if(a==='seli'){ST.pf.sel=v;render();}
+  else if(a==='toguc'){ST.pf.uc=ST.pf.uc.includes(v)?ST.pf.uc.filter(x=>x!==v):[...ST.pf.uc,v];render();}
+  else if(a==='genp'){await genP();}
+  else if(a==='clrp'){ST.pf.res=null;ST.pf.uc=[];render();}
+  else if(a==='ov'){ST.ov=v;render();}
+  else if(a==='ldoc'){ST.of_.n=el.dataset.n;ST.of_.pl=el.dataset.p;render();}
+  else if(a==='togqc'){ST.of_.qc={...ST.of_.qc,[id]:!ST.of_.qc[id]};render();}
+  else if(a==='suboc'){const rec={...ST.of_,id:Date.now(),employeeName:ST.of_.n,createdAt:new Date().toISOString()};ST.outs=[rec,...ST.outs];await sset('outcome-records-v1',ST.outs);ST.of_={n:'',pl:'pro',st:'Completed',dt:new Date().toISOString().slice(0,10),qc:{},ga:''};ST.ov='dash';render();}
+  else if(a==='otb'){ST.ob.tb=v;render();}
+  else if(a==='ocat'){ST.ob.ca=v;render();}
+  else if(a==='togob'){ST.ob.ex={...ST.ob.ex,[id]:!ST.ob.ex[id]};render();}
+  else if(a==='aigo'){await sendAI();}
+  else if(a==='genrep'){await genR();}
+});
+
+document.body.addEventListener('input',e=>{
+  const el=e.target;
+  if(el.dataset.f)ST.if_[el.dataset.f]=el.value;
+  else if(el.dataset.arr){const k=el.dataset.arr,v=el.value;ST.if_[k]=el.checked?[...ST.if_[k],v]:ST.if_[k].filter(x=>x!==v);}
+  else if(el.dataset.of)ST.of_[el.dataset.of]=el.value;
+  else if(el.dataset.a==='oq'){ST.ob.q=el.value;render();}
+  else if(el.dataset.a==='aiinp'||el.id==='aiinp')ST.ob.ai=el.value;
+});
+
+document.body.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey&&e.target.id==='aiinp'){e.preventDefault();sendAI();}});
+init();
+</script>

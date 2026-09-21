@@ -1,0 +1,1315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Intinc Claude Enterprise Role Taxonomy System v2.2 FINAL</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #2c3e50;
+        }
+        .container {
+            max-width: 1900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 30px 90px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 50px 30px;
+            text-align: center;
+        }
+        .header h1 { font-size: 36px; margin-bottom: 10px; font-weight: 700; }
+        .header p { font-size: 16px; opacity: 0.95; margin-bottom: 20px; }
+        .header-tags {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        .tag {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .breadcrumb-nav {
+            padding: 15px 30px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            overflow-x: auto;
+        }
+        .breadcrumb-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            padding: 8px 12px;
+            border-radius: 6px;
+            transition: all 0.2s;
+            font-size: 13px;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+        .breadcrumb-item:hover { background: #e8eef2; }
+        .breadcrumb-item.active {
+            background: #667eea;
+            color: white;
+        }
+        .main-layout {
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            min-height: 700px;
+            gap: 0;
+        }
+        .left-panel {
+            padding: 30px;
+            background: #f8f9fa;
+            border-right: 1px solid #e0e0e0;
+            overflow-y: auto;
+            max-height: calc(100vh - 300px);
+        }
+        .right-panel {
+            padding: 40px;
+            overflow-y: auto;
+            max-height: calc(100vh - 300px);
+        }
+        .section-title { font-size: 20px; font-weight: 600; margin-bottom: 20px; color: #2c3e50; }
+        .department-section {
+            margin-bottom: 30px;
+        }
+        .department-label {
+            font-size: 12px;
+            font-weight: 700;
+            color: #667eea;
+            text-transform: uppercase;
+            margin-bottom: 12px;
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .department-icon {
+            font-size: 16px;
+        }
+        .role-option {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            padding: 10px 12px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+        }
+        .role-option:hover {
+            border-color: #667eea;
+            background: #f5f7ff;
+            box-shadow: 0 2px 6px rgba(102, 126, 234, 0.1);
+        }
+        .role-option.selected {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+            font-weight: 600;
+        }
+        .role-name { flex: 1; }
+        .role-type {
+            font-size: 10px;
+            opacity: 0.7;
+            background: rgba(0, 0, 0, 0.1);
+            padding: 2px 6px;
+            border-radius: 3px;
+            white-space: nowrap;
+        }
+        .role-option.selected .role-type {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        .no-selection {
+            text-align: center;
+            color: #95a5a6;
+            padding: 60px 20px;
+        }
+        .profile-view { display: none; }
+        .profile-view.active { display: block; }
+        .role-header {
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+        .role-title { font-size: 28px; font-weight: 700; color: #2c3e50; margin-bottom: 10px; }
+        .role-meta-info {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+        .meta-item {
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .meta-badge {
+            background: #e8eef2;
+            color: #667eea;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+        .alert {
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 16px;
+            font-size: 13px;
+            border-left: 3px solid;
+        }
+        .alert-info {
+            background: #e3f2fd;
+            color: #1565c0;
+            border-left-color: #1565c0;
+        }
+        .alert-warning {
+            background: #fff3e0;
+            color: #e65100;
+            border-left-color: #e65100;
+        }
+        .alert-danger {
+            background: #ffebee;
+            color: #c62828;
+            border-left-color: #c62828;
+        }
+        .tabs {
+            display: flex;
+            gap: 0;
+            border-bottom: 1px solid #e0e0e0;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+        }
+        .tab {
+            padding: 12px 20px;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            font-weight: 500;
+            transition: all 0.2s;
+            color: #7f8c8d;
+            font-size: 13px;
+        }
+        .tab:hover { color: #2c3e50; }
+        .tab.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .config-card {
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 18px;
+            margin-bottom: 18px;
+        }
+        .config-card-title {
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: #2c3e50;
+            font-size: 14px;
+        }
+        .config-value {
+            font-size: 13px;
+            color: #7f8c8d;
+            line-height: 1.6;
+        }
+        .editable-section {
+            background: #f5f7ff;
+            border: 1px dashed #667eea;
+            padding: 12px;
+            border-radius: 6px;
+            margin-top: 12px;
+        }
+        .editable-input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 13px;
+            margin-top: 8px;
+            font-family: monospace;
+        }
+        .config-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 12px;
+        }
+        .config-tag {
+            background: #e8eef2;
+            color: #667eea;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        .capability-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-top: 12px;
+        }
+        .capability-item {
+            background: white;
+            border: 1px solid #e0e0e0;
+            padding: 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            border-left: 3px solid #667eea;
+        }
+        .capability-item.enabled {
+            border-left-color: #27ae60;
+            background: #f0f8f4;
+        }
+        .capability-item.disabled {
+            border-left-color: #e74c3c;
+            background: #fef4f3;
+            opacity: 0.7;
+        }
+        .button-group {
+            display: flex;
+            gap: 12px;
+            margin-top: 25px;
+            flex-wrap: wrap;
+        }
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 13px;
+        }
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+        .btn-primary:hover { background: #5568d3; }
+        .btn-secondary {
+            background: #ecf0f1;
+            color: #2c3e50;
+        }
+        .btn-secondary:hover { background: #dde2e7; }
+        .btn-success {
+            background: #27ae60;
+            color: white;
+        }
+        .btn-success:hover { background: #229954; }
+        .search-box {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 13px;
+            margin-bottom: 20px;
+        }
+        .feature-list {
+            list-style: none;
+            margin-top: 10px;
+        }
+        .feature-list li {
+            padding: 6px 0;
+            font-size: 13px;
+            color: #7f8c8d;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        .feature-list li:before {
+            content: "→ ";
+            color: #667eea;
+            font-weight: bold;
+            margin-right: 6px;
+        }
+        .custom-vars-section {
+            background: #f5f7ff;
+            border: 2px solid #667eea;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 20px;
+        }
+        .custom-vars-title {
+            font-weight: 700;
+            color: #667eea;
+            margin-bottom: 12px;
+            font-size: 14px;
+        }
+        .var-input-group {
+            margin-bottom: 12px;
+        }
+        .var-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #34495e;
+            margin-bottom: 4px;
+        }
+        .copy-button {
+            background: #27ae60;
+            color: white;
+            padding: 6px 12px;
+            font-size: 11px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 8px;
+        }
+        .copy-button:hover { background: #229954; }
+        .deployment-info {
+            background: #e8f5e9;
+            border: 1px solid #4caf50;
+            border-radius: 6px;
+            padding: 15px;
+            margin-top: 20px;
+        }
+        .deployment-title {
+            font-weight: 700;
+            color: #2e7d32;
+            margin-bottom: 8px;
+        }
+        .deployment-step {
+            font-size: 12px;
+            color: #558b2f;
+            margin-bottom: 8px;
+            line-height: 1.5;
+        }
+        @media (max-width: 1024px) {
+            .main-layout { grid-template-columns: 1fr; }
+            .left-panel {
+                border-right: none;
+                border-bottom: 1px solid #e0e0e0;
+                max-height: 300px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎯 Intinc Claude Enterprise Role Taxonomy System v2.2 FINAL</h1>
+            <p>Hybrid Department Structure | Smart Defaults + Customizable Variables | Manual → Self-Service Roadmap</p>
+            <div class="header-tags">
+                <div class="tag">✅ Department-First Organization</div>
+                <div class="tag">📋 Smart Pre-Fill (Internal) + Blank (External)</div>
+                <div class="tag">📌 Copy from Similar Role</div>
+                <div class="tag">🚀 Deployment Roadmap A→C</div>
+            </div>
+        </div>
+
+        <div class="breadcrumb-nav">
+            <div class="breadcrumb-item active" onclick="setViewMode('role')">
+                👥 Role Browser
+            </div>
+            <div class="breadcrumb-item" onclick="setViewMode('deployment')">
+                🚀 Deployment Guide
+            </div>
+            <div class="breadcrumb-item" onclick="setViewMode('variables')">
+                ⚙️ Intinc Variables
+            </div>
+        </div>
+
+        <div class="main-layout">
+            <!-- LEFT PANEL: Role Selection -->
+            <div class="left-panel">
+                <h2 class="section-title">Select Role</h2>
+                <input type="text" class="search-box" id="roleSearch" placeholder="Search roles...">
+                <div id="roleListContainer"></div>
+            </div>
+
+            <!-- RIGHT PANEL: Profile / Deployment / Variables -->
+            <div class="right-panel">
+                <div id="noSelection" class="no-selection">
+                    <p style="font-size: 16px; margin-bottom: 10px;">👈 Select a role to view configuration</p>
+                    <p style="font-size: 13px; opacity: 0.7;">Department-based organization: Executive → Technology → Finance → Product → Sales/CS → Contractors.</p>
+                </div>
+
+                <!-- ROLE PROFILE VIEW -->
+                <div id="profileView" class="profile-view">
+                    <div class="role-header">
+                        <div class="role-title" id="roleTitle"></div>
+                        <div class="role-meta-info" id="roleMeta"></div>
+                    </div>
+
+                    <div class="alert alert-info" id="roleAlert"></div>
+
+                    <div class="tabs" id="tabsContainer"></div>
+
+                    <!-- Overview Tab -->
+                    <div id="overview" class="tab-content active">
+                        <div class="config-card">
+                            <div class="config-card-title">📌 Summary</div>
+                            <div class="config-value" id="roleSummary"></div>
+                        </div>
+                        <div class="config-card">
+                            <div class="config-card-title">🎯 Responsibilities</div>
+                            <ul class="feature-list" id="responsibilities"></ul>
+                        </div>
+                        <div class="config-card">
+                            <div class="config-card-title">💼 Core Skills</div>
+                            <ul class="feature-list" id="skills"></ul>
+                        </div>
+                    </div>
+
+                    <!-- Claude Config Tab -->
+                    <div id="claude-config" class="tab-content">
+                        <div class="config-card">
+                            <div class="config-card-title">⚙️ Communication Style</div>
+                            <div class="config-value" id="commStyle"></div>
+                        </div>
+                        <div class="config-card">
+                            <div class="config-card-title">📊 Response Depth</div>
+                            <div class="config-value" id="respDepth"></div>
+                        </div>
+                        <div class="config-card">
+                            <div class="config-card-title">📄 Output Formats</div>
+                            <div class="config-tags" id="formatTags"></div>
+                        </div>
+                        <div class="config-card">
+                            <div class="config-card-title">💡 Use Cases</div>
+                            <div class="config-value" id="useCases"></div>
+                        </div>
+                    </div>
+
+                    <!-- Security & Compliance Tab -->
+                    <div id="security-compliance" class="tab-content">
+                        <div class="config-card">
+                            <div class="config-card-title">🔑 Authentication</div>
+                            <div class="config-value" id="authMethod"></div>
+                        </div>
+                        <div class="config-card">
+                            <div class="config-card-title">📦 Data Retention</div>
+                            <div class="config-value" id="dataRetention"></div>
+                        </div>
+                        <div class="config-card">
+                            <div class="config-card-title">🛡️ Compliance Frameworks</div>
+                            <div class="config-tags" id="complianceTags"></div>
+                        </div>
+                        <div class="config-card">
+                            <div class="config-card-title">🔐 Sensitive Data Handling</div>
+                            <div class="config-value" id="sensitiveData"></div>
+                        </div>
+                    </div>
+
+                    <!-- Features & Integrations Tab -->
+                    <div id="features" class="tab-content">
+                        <div class="config-card">
+                            <div class="config-card-title">✨ Claude Features</div>
+                            <div class="capability-grid" id="featureGrid"></div>
+                        </div>
+                        <div class="config-card">
+                            <div class="config-card-title">📋 Recommended Plan</div>
+                            <div class="config-value" id="planRec"></div>
+                        </div>
+                        <div class="config-card">
+                            <div class="config-card-title">🔗 Integrations</div>
+                            <div class="config-value" id="integrations"></div>
+                            <div class="config-tags" id="integrationTags"></div>
+                        </div>
+                    </div>
+
+                    <!-- Customization Tab -->
+                    <div id="customization" class="tab-content">
+                        <div class="custom-vars-section">
+                            <div class="custom-vars-title">⚙️ Intinc-Specific Variables (Editable)</div>
+                            
+                            <div class="var-input-group">
+                                <div class="var-label">AWS Implementation Details</div>
+                                <textarea class="editable-input" id="awsImpl" rows="3" placeholder="e.g., CloudTrail logging, KMS encryption, VPC isolation..."></textarea>
+                            </div>
+
+                            <div class="var-input-group">
+                                <div class="var-label">Custom Integrations (comma-separated)</div>
+                                <input type="text" class="editable-input" id="customIntegrations" placeholder="e.g., internal-api-v2, customer-portal, workflow-engine">
+                            </div>
+
+                            <div class="var-input-group">
+                                <div class="var-label">MCP Server Access (comma-separated)</div>
+                                <input type="text" class="editable-input" id="mcpServers" placeholder="e.g., n8n, github-enterprise, jira-advanced, internal-dashboard">
+                            </div>
+
+                            <div class="var-input-group">
+                                <div class="var-label">Team/Department Name</div>
+                                <input type="text" class="editable-input" id="teamName" placeholder="e.g., Platform Engineering Team">
+                            </div>
+
+                            <div class="var-input-group">
+                                <div class="var-label">Slack Channel for Notifications</div>
+                                <input type="text" class="editable-input" id="slackChannel" placeholder="e.g., #engineering-claude, #security-team">
+                            </div>
+
+                            <button class="copy-button" onclick="copySimilarRole()">📌 Copy from Similar Role</button>
+                        </div>
+
+                        <div class="deployment-info">
+                            <div class="deployment-title">🚀 Deployment Scenario for This Role</div>
+                            <div class="deployment-step"><strong>Phase 1 (Immediate):</strong> IT admin reads config → sends via email/ticketing system → new hire reviews</div>
+                            <div class="deployment-step"><strong>Phase 2 (Future):</strong> Self-service onboarding → employee logs into portal → sees their role config → optionally applies to Claude account</div>
+                        </div>
+                    </div>
+
+                    <!-- Export Tab -->
+                    <div id="export" class="tab-content">
+                        <div class="alert alert-info">✅ Ready to export and share with team</div>
+                        <div class="button-group">
+                            <button class="btn-primary" onclick="exportJSON()">📋 Export JSON</button>
+                            <button class="btn-primary" onclick="exportMarkdown()">📄 Export Markdown</button>
+                            <button class="btn-secondary" onclick="copyToClipboard()">📌 Copy Summary</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- DEPLOYMENT GUIDE VIEW -->
+                <div id="deploymentView" class="profile-view">
+                    <div class="config-card">
+                        <div class="config-card-title">🚀 Deployment Roadmap: Option A → C</div>
+                        <div class="config-value">
+                            <strong>Phase 1: Manual Setup (Option A) - Weeks 1-4</strong><br>
+                            ✓ IT admin views role config in this system<br>
+                            ✓ Manually creates Claude Team/Enterprise workspace<br>
+                            ✓ Distributes onboarding guide to new hires<br>
+                            ✓ Employee applies config to their Claude account<br>
+                            <br>
+                            <strong>Phase 2: Self-Service Portal (Option C) - Months 2-3</strong><br>
+                            ✓ Build internal onboarding portal (embed HTML or link to this system)<br>
+                            ✓ Employee logs in → sees assigned role → reads config<br>
+                            ✓ Optional: Auto-apply Claude preferences (if SAML connected)<br>
+                            ✓ HR/IT can track adoption<br>
+                        </div>
+                    </div>
+
+                    <div class="config-card">
+                        <div class="config-card-title">📋 Manual Setup Checklist (Phase 1)</div>
+                        <div class="feature-list">
+                            <li>IT: Create Claude Team/Enterprise workspace (SAML 2.0 setup)</li>
+                            <li>IT: Add new hire's @intinc.com email to workspace</li>
+                            <li>IT: Assign role group (e.g., "staff-engineers", "contractors")</li>
+                            <li>IT: Send onboarding guide (export as Markdown)</li>
+                            <li>Employee: Review role config & Claude best practices</li>
+                            <li>Employee: Log into claude.ai with SSO (@intinc.com)</li>
+                            <li>Employee: Optionally apply custom preferences (communication style, features)</li>
+                            <li>IT: Verify access in first week</li>
+                        </div>
+                    </div>
+
+                    <div class="config-card">
+                        <div class="config-card-title">🎯 Owner & Maintenance</div>
+                        <div class="config-value">
+                            <strong>System Owner:</strong> IT/Security team (or Kyle as Staff Eng + IT partner)<br>
+                            <strong>Update Frequency:</strong> Quarterly (as roles/levels change)<br>
+                            <strong>Governance:</strong> IT owns SAML config; Leadership approves new roles<br>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- INTINC VARIABLES VIEW -->
+                <div id="variablesView" class="profile-view">
+                    <div class="config-card">
+                        <div class="config-card-title">⚙️ Intinc-Specific Customizable Variables</div>
+                        <div class="config-value">
+                            Each role has editable fields for Intinc's specific setup. Customize as needed:
+                        </div>
+                    </div>
+
+                    <div class="config-card">
+                        <div class="config-card-title">1️⃣ AWS Implementation Details</div>
+                        <div class="config-value">
+                            Default (from Intinc.com info):<br>
+                            <code style="background: #f5f7ff; padding: 8px; border-radius: 4px; display: block; margin-top: 8px;">
+                                CloudTrail logging (1+ year retention)<br>
+                                AWS Secrets Manager (KMS-encrypted)<br>
+                                VPC isolation (private subnets)<br>
+                                AWS Security Hub (continuous compliance)<br>
+                                RDS encryption (AES-256)<br>
+                                S3 with encryption (default: ON)
+                            </code>
+                            <br><br>
+                            <strong>Why customizable?</strong> Different roles need different AWS scopes (AppSec = Security Hub, Platform = all services, Contractor = none).
+                        </div>
+                    </div>
+
+                    <div class="config-card">
+                        <div class="config-card-title">2️⃣ Custom Integrations</div>
+                        <div class="config-value">
+                            Intinc's 240+ tools integrated with Claude:
+                            <div style="background: #f5f7ff; padding: 8px; border-radius: 4px; margin-top: 8px; font-size: 12px;">
+                                <strong>Recommended:</strong> GitHub, Jira, Sentry, HubSpot, AWS, Slack<br>
+                                <strong>Optional (per team):</strong> n8n, internal APIs, custom dashboards, Zapier<br>
+                                <strong>Restricted (AppSec only):</strong> Threat intel feeds, vulnerability databases
+                            </div>
+                            <br>
+                            Each role config has a field to list custom integrations relevant to them.
+                        </div>
+                    </div>
+
+                    <div class="config-card">
+                        <div class="config-card-title">3️⃣ MCP Server Access</div>
+                        <div class="config-value">
+                            Intinc's 13 active MCP servers (customizable per role):
+                            <div style="background: #f5f7ff; padding: 8px; border-radius: 4px; margin-top: 8px; font-size: 12px;">
+                                <strong>Example:</strong><br>
+                                Staff Engineer → all 13 MCP servers<br>
+                                Senior Engineer → GitHub, Jira, Sentry, n8n<br>
+                                Junior Engineer → GitHub, Jira only<br>
+                                Contractor → GitHub (assigned repos only)<br>
+                                Advisor → None
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="config-card">
+                        <div class="config-card-title">4️⃣ Team/Department Name</div>
+                        <div class="config-value">
+                            For multi-team Claude setups. Example:<br>
+                            <code style="background: #f5f7ff; padding: 8px; border-radius: 4px; display: block; margin-top: 8px;">
+                                Platform Engineering Team<br>
+                                AppSecurity Team<br>
+                                Product Team<br>
+                                Contractors (Project-Based)
+                            </code>
+                        </div>
+                    </div>
+
+                    <div class="config-card">
+                        <div class="config-card-title">5️⃣ Slack Channel Integration</div>
+                        <div class="config-value">
+                            Where Claude onboarding/policy updates go:
+                            <div style="background: #f5f7ff; padding: 8px; border-radius: 4px; margin-top: 8px; font-size: 12px;">
+                                #engineering-claude (all engineers)<br>
+                                #security-team (AppSec only)<br>
+                                #product-collab (product team)<br>
+                                #contractors-onboarding (external)<br>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="config-card">
+                        <div class="config-card-title">💡 How to Use Custom Variables</div>
+                        <div class="feature-list">
+                            <li>Open any role → go to "Customization" tab</li>
+                            <li>Edit AWS implementation, integrations, MCP servers, team name, Slack channel</li>
+                            <li>Click "Copy from Similar Role" to auto-populate from existing config</li>
+                            <li>Export as JSON/Markdown → share with IT team</li>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ============================================================================
+        // INTINC ROLE DATABASE (DEPARTMENT-FIRST HYBRID ORGANIZATION)
+        // ============================================================================
+
+        const roleDatabase = {
+            // EXECUTIVE LEADERSHIP
+            'ceo-internal': {
+                dept: 'Executive Leadership', deptIcon: '👑',
+                type: 'internal', level: 'C-Level',
+                title: 'CEO / Founder', summary: 'Executive visionary. Company strategy, board relations, culture.',
+                responsibilities: ['Vision & strategy', 'Board/investor relations', 'Final approvals', 'Culture leadership'],
+                skills: ['Strategic thinking', 'Leadership', 'Communication'],
+                commStyle: 'analytical-conversational', depth: 'brief', formats: ['strategy-docs', 'executive-summaries'],
+                authMethod: 'SAML 2.0 / OIDC', dataRetention: 'Enterprise ZDR (REQUIRED)',
+                compliance: ['SOC 2 Type II'], features: { artifacts: true, webSearch: true, codeExecution: false, fileCreation: true, memory: true, research: true, skills: true },
+                integrations: ['Slack (executive channel)', 'Board portal'], plan: 'Enterprise (MANDATORY)',
+                useCases: 'Strategic planning, board materials, investor pitches',
+                sensitiveData: 'ALL (board decisions, financial forecasts, M&A plans). MUST use ZDR.'
+            },
+
+            'vp-finance-internal': {
+                dept: 'Executive Leadership', deptIcon: '👑',
+                type: 'internal', level: 'VP / Mgmt 2-3',
+                title: 'VP of Finance', summary: 'Financial leader (Stacy Mueller per Intinc.com). Budgets, AWS costs, vendor negotiations.',
+                responsibilities: ['Budget & forecasts', 'Financial analysis', 'AWS cost optimization', 'Vendor contracts'],
+                skills: ['Financial analysis', 'AWS Cost Explorer', 'Negotiation'],
+                commStyle: 'analytical-practical', depth: 'comprehensive', formats: ['financial-models', 'budgets'],
+                authMethod: 'SAML 2.0', dataRetention: 'Standard or ZDR (if sensitive)',
+                compliance: ['SOC 2 Type II', 'GDPR'],
+                features: { artifacts: true, webSearch: true, codeExecution: true, fileCreation: true, memory: true, research: true, skills: true },
+                integrations: ['AWS Cost Explorer', 'Financial tools', 'Slack'],
+                plan: 'Enterprise (recommended)', useCases: 'Budget forecasting, cost analysis, vendor evaluation',
+                sensitiveData: 'Internal financial data, vendor contracts. NO customer payment data (PCI scope).'
+            },
+
+            'vp-operations-internal': {
+                dept: 'Executive Leadership', deptIcon: '👑',
+                type: 'internal', level: 'VP / Mgmt 2-3',
+                title: 'VP of Operations / EVP', summary: 'Operations leader (Dave Linderman per Intinc.com). Day-to-day operations, business development.',
+                responsibilities: ['Operations', 'Process improvement', 'Business development', 'Team leadership'],
+                skills: ['Operations management', 'Leadership', 'Process optimization'],
+                commStyle: 'practical-conversational', depth: 'comprehensive', formats: ['strategy', 'reports'],
+                authMethod: 'SAML 2.0', dataRetention: 'Standard',
+                compliance: ['SOC 2 Type II'],
+                features: { artifacts: true, webSearch: true, codeExecution: false, fileCreation: true, memory: true, research: true, skills: true },
+                integrations: ['Slack', 'CRM (HubSpot)'],
+                plan: 'Enterprise', useCases: 'Process optimization, team management, business strategy',
+                sensitiveData: 'All business operations data, internal processes.'
+            },
+
+            'vp-hr-internal': {
+                dept: 'Executive Leadership', deptIcon: '👑',
+                type: 'internal', level: 'VP / Mgmt 2-3',
+                title: 'VP of Human Resources', summary: 'HR leader. Recruitment, compensation, employee engagement, compliance.',
+                responsibilities: ['Recruitment', 'Compensation', 'Employee engagement', 'Compliance', 'Culture'],
+                skills: ['HR strategy', 'Recruitment', 'Compensation planning'],
+                commStyle: 'conversational-practical', depth: 'moderate', formats: ['policy-docs', 'plans'],
+                authMethod: 'SAML 2.0', dataRetention: 'Standard or ZDR (GDPR)',
+                compliance: ['SOC 2 Type II', 'GDPR'],
+                features: { artifacts: true, webSearch: true, codeExecution: false, fileCreation: true, memory: true, research: true, skills: false },
+                integrations: ['Slack (HR channel)', 'HRIS'],
+                plan: 'Team or Enterprise', useCases: 'Hiring strategy, engagement plans, policy development',
+                sensitiveData: 'Employee data (names, compensation, performance). GDPR-protected.'
+            },
+
+            'vp-client-services-internal': {
+                dept: 'Executive Leadership', deptIcon: '👑',
+                type: 'internal', level: 'VP / Mgmt 2-3',
+                title: 'VP of Client Services', summary: 'Client leader (Shari Aronson per Intinc.com). Customer relationships, account management.',
+                responsibilities: ['Client strategy', 'Account management', 'Customer success', 'Service quality'],
+                skills: ['Client management', 'Account strategy', 'Communication'],
+                commStyle: 'conversational', depth: 'moderate', formats: ['strategy', 'communication-plans'],
+                authMethod: 'SAML 2.0', dataRetention: 'Standard',
+                compliance: ['SOC 2 Type II'],
+                features: { artifacts: true, webSearch: true, codeExecution: false, fileCreation: true, memory: true, research: true, skills: true },
+                integrations: ['Slack', 'CRM (HubSpot)', 'Customer portal'],
+                plan: 'Enterprise', useCases: 'Customer strategy, account planning, retention programs',
+                sensitiveData: 'Customer contracts, account details, satisfaction data.'
+            },
+
+            // TECHNOLOGY DEPARTMENT
+            'staff-engineer-internal': {
+                dept: 'Technology Department', deptIcon: '⚙️',
+                type: 'internal', level: 'IC 6-7 (Staff)',
+                title: 'Staff Engineer / Principal Engineer', summary: 'Architectural visionary (like Kyle). Platform reliability, security, mentoring.',
+                responsibilities: ['System architecture', 'Security design', 'Mentor engineers', 'RFC reviews', 'Reliability'],
+                skills: ['Architecture', 'Security', 'AWS', 'Leadership'],
+                commStyle: 'analytical-practical', depth: 'comprehensive', formats: ['code', 'docs', 'threat-models'],
+                authMethod: 'SAML 2.0', dataRetention: 'Enterprise ZDR (REQUIRED)',
+                compliance: ['SOC 2 Type II', 'PCI-DSS', 'HIPAA'],
+                features: { artifacts: true, webSearch: true, codeExecution: true, fileCreation: true, memory: true, research: true, skills: true },
+                integrations: ['GitHub', 'Jira', 'Sentry', 'AWS CloudTrail', 'n8n'],
+                plan: 'Enterprise (500K, ZDR, RBAC)', useCases: 'Architecture, threat models, security reviews',
+                sensitiveData: 'Threat models, architecture decisions. MUST use ZDR.'
+            },
+
+            'appsec-engineer-internal': {
+                dept: 'Technology Department', deptIcon: '⚙️',
+                type: 'internal', level: 'IC 3-6',
+                title: 'AppSec / Security Engineer', summary: 'Security specialist. Threat modeling, vulnerability assessment, compliance.',
+                responsibilities: ['Threat modeling', 'Vulnerability assessment', 'Security controls', 'Compliance audits', 'Incident response'],
+                skills: ['Threat modeling', 'Penetration testing', 'Cryptography', 'AWS security'],
+                commStyle: 'analytical', depth: 'comprehensive', formats: ['code', 'threat-models', 'reports'],
+                authMethod: 'SAML 2.0', dataRetention: 'Enterprise ZDR (MANDATORY)',
+                compliance: ['SOC 2 Type II', 'PCI-DSS v4.0', 'HIPAA', 'GDPR'],
+                features: { artifacts: true, webSearch: true, codeExecution: true, fileCreation: true, memory: true, research: true, skills: true },
+                codeEgress: 'NONE (air-gapped)', integrations: ['GitHub (security)', 'Jira', 'AWS Security Hub'],
+                plan: 'Enterprise (MANDATORY)', useCases: 'Threat modeling, vulnerability analysis, compliance mapping',
+                sensitiveData: 'Threat models (CRITICAL), security findings, impact analysis. ZDR NON-NEGOTIABLE.'
+            },
+
+            'platform-engineer-internal': {
+                dept: 'Technology Department', deptIcon: '⚙️',
+                type: 'internal', level: 'IC 3-6',
+                title: 'Platform Engineer / DevOps Engineer', summary: 'Infrastructure expert. CI/CD, AWS, monitoring, developer experience.',
+                responsibilities: ['CI/CD pipelines', 'AWS infrastructure', 'Cost optimization', 'Observability', 'Developer tooling'],
+                skills: ['AWS', 'Kubernetes/Docker', 'CI/CD', 'Infrastructure-as-Code', 'Monitoring'],
+                commStyle: 'analytical-practical', depth: 'comprehensive', formats: ['code', 'runbooks', 'docs'],
+                authMethod: 'SAML 2.0', dataRetention: 'Standard or ZDR (recommended)',
+                compliance: ['SOC 2 Type II'],
+                features: { artifacts: true, webSearch: true, codeExecution: true, fileCreation: true, memory: true, research: true, skills: true },
+                integrations: ['GitHub', 'Jira', 'Sentry', 'Cloudflare', 'AWS'],
+                plan: 'Enterprise (recommended)', useCases: 'Infrastructure design, cost optimization, incident response',
+                sensitiveData: 'AWS infrastructure, deployment configs, billing data.'
+            },
+
+            'senior-engineer-internal': {
+                dept: 'Technology Department', deptIcon: '⚙️',
+                type: 'internal', level: 'IC 4-5',
+                title: 'Senior Engineer', summary: 'Technical expert owning features. Design, mentoring, performance optimization.',
+                responsibilities: ['Feature development', 'Design reviews', 'Mentoring', 'Performance optimization'],
+                skills: ['Full-stack development', 'System design', 'AWS', 'Security best practices'],
+                commStyle: 'analytical-practical', depth: 'comprehensive', formats: ['code', 'tests', 'docs'],
+                authMethod: 'SAML 2.0', dataRetention: 'Standard or ZDR (sensitive projects)',
+                compliance: ['SOC 2 Type II'],
+                features: { artifacts: true, webSearch: true, codeExecution: true, fileCreation: true, memory: true, research: true, skills: true },
+                integrations: ['GitHub', 'Jira', 'Sentry'],
+                plan: 'Team or Enterprise', useCases: 'Feature design, code review, debugging, performance tuning',
+                sensitiveData: 'Source code (assigned scope), limited customer data per IAM.'
+            },
+
+            'mid-engineer-internal': {
+                dept: 'Technology Department', deptIcon: '⚙️',
+                type: 'internal', level: 'IC 2-3',
+                title: 'Mid-Level Engineer', summary: 'Growing engineer. Feature implementation, code quality, learning.',
+                responsibilities: ['Feature implementation', 'Code quality', 'Testing', 'Documentation'],
+                skills: ['Software development', 'Problem-solving', 'Testing'],
+                commStyle: 'practical', depth: 'moderate', formats: ['code', 'tests', 'docs'],
+                authMethod: 'SAML 2.0', dataRetention: 'Standard',
+                compliance: ['SOC 2 Type II'],
+                features: { artifacts: true, webSearch: true, codeExecution: true, fileCreation: true, memory: true, research: false, skills: true },
+                integrations: ['GitHub', 'Jira'],
+                plan: 'Team or Pro', useCases: 'Feature development, debugging, test writing',
+                sensitiveData: 'Source code (assigned features only).'
+            },
+
+            'junior-engineer-internal': {
+                dept: 'Technology Department', deptIcon: '⚙️',
+                type: 'internal', level: 'IC 1-2',
+                title: 'Junior Engineer / Associate Engineer', summary: 'Early-career engineer. Learning-focused with mentorship.',
+                responsibilities: ['Feature implementation', 'Testing', 'Documentation', 'Learning'],
+                skills: ['Programming fundamentals', 'Problem-solving', 'Communication'],
+                commStyle: 'conversational-practical', depth: 'brief-moderate', formats: ['code', 'tests', 'docs'],
+                authMethod: 'SAML 2.0', dataRetention: 'Standard',
+                compliance: ['SOC 2 Type II'],
+                features: { artifacts: true, webSearch: true, codeExecution: true, fileCreation: true, memory: true, research: false, skills: true },
+                integrations: ['GitHub', 'Jira'],
+                plan: 'Pro or Team', useCases: 'Learning, debugging, test writing, best practices',
+                sensitiveData: 'No sensitive data (read-only to most resources).'
+            },
+
+            'contractor-engineer-external': {
+                dept: 'Technology Department', deptIcon: '⚙️',
+                type: 'external', level: 'Varies',
+                title: 'Contractor / Freelance Engineer', summary: 'Fixed-term specialist. Limited scope, no SSO, no memory.',
+                responsibilities: ['Project deliverables', 'Code implementation', 'Documentation'],
+                skills: ['Varies by project', 'Communication', 'Documentation'],
+                commStyle: 'practical', depth: 'moderate', formats: ['code', 'tests', 'docs'],
+                authMethod: 'Individual API Key (NOT SSO)', dataRetention: 'Standard',
+                compliance: ['SOC 2 Type II'],
+                features: { artifacts: true, webSearch: true, codeExecution: true, fileCreation: false, memory: false, research: false, skills: false },
+                integrations: ['GitHub (assigned repos)', 'Jira (assigned tickets)'],
+                plan: 'Pro or Team seat', useCases: 'Feature development, bug fixes, project delivery',
+                sensitiveData: 'NO sensitive data. Project scope only.'
+            },
+
+            // FINANCE & OPERATIONS DEPARTMENT
+            'vp-finance-dept': {
+                dept: 'Finance & Operations', deptIcon: '💰',
+                type: 'internal', level: 'VP / Mgmt 2-3',
+                title: 'VP of Finance (Department)', summary: 'Financial leader. Budgets, forecasts, cost analysis.',
+                responsibilities: ['Budget management', 'Financial forecasts', 'AWS cost optimization', 'Vendor contracts'],
+                skills: ['Financial analysis', 'AWS Cost Explorer', 'Forecasting'],
+                commStyle: 'analytical-practical', depth: 'comprehensive', formats: ['financial-models', 'analysis'],
+                authMethod: 'SAML 2.0', dataRetention: 'Standard or ZDR',
+                compliance: ['SOC 2 Type II'],
+                features: { artifacts: true, webSearch: true, codeExecution: true, fileCreation: true, memory: true, research: true, skills: true },
+                integrations: ['AWS Cost Explorer', 'Financial tools'],
+                plan: 'Enterprise', useCases: 'Cost analysis, budgeting, vendor evaluation',
+                sensitiveData: 'Internal financial data, budgets. NO customer payment data.'
+            },
+
+            'financial-analyst-internal': {
+                dept: 'Finance & Operations', deptIcon: '💰',
+                type: 'internal', level: 'IC 2-4',
+                title: 'Financial Analyst', summary: 'Financial analyst. Cost analysis, budgeting, financial modeling.',
+                responsibilities: ['Cost analysis (AWS)', 'Budget forecasting', 'Financial modeling', 'Vendor evaluation'],
+                skills: ['Financial modeling', 'Data analysis', 'AWS Cost Explorer'],
+                commStyle: 'conversational-practical', depth: 'moderate', formats: ['analysis', 'models'],
+                authMethod: 'SAML 2.0', dataRetention: 'Standard or ZDR',
+                compliance: ['SOC 2 Type II'],
+                features: { artifacts: true, webSearch: true, codeExecution: true, fileCreation: true, memory: true, research: true, skills: true },
+                integrations: ['AWS Cost Explorer', 'Financial tools'],
+                plan: 'Team or Enterprise', useCases: 'Cost analysis, budget forecasting, financial modeling',
+                sensitiveData: 'Internal budgets, vendor contracts. NO customer financial data (PCI).'
+            },
+
+            'marketing-manager-internal': {
+                dept: 'Finance & Operations', deptIcon: '💰',
+                type: 'internal', level: 'IC 2-4',
+                title: 'Marketing Manager / Content Strategist', summary: 'Marketing expert. Content strategy, campaigns, brand.',
+                responsibilities: ['Content strategy', 'Campaigns', 'Brand development', 'Analytics'],
+                skills: ['Content marketing', 'Campaign planning', 'Brand strategy'],
+                commStyle: 'conversational', depth: 'moderate', formats: ['docs', 'content', 'campaigns'],
+                authMethod: 'SAML 2.0', dataRetention: 'Standard',
+                compliance: ['SOC 2 Type II'],
+                features: { artifacts: true, webSearch: true, codeExecution: false, fileCreation: true, memory: true, research: true, skills: true },
+                integrations: ['Slack', 'HubSpot (marketing hub)', 'Analytics'],
+                plan: 'Team or Enterprise', useCases: 'Content strategy, campaign planning, market research',
+                sensitiveData: 'Marketing strategy, customer segments (public only).'
+            },
+
+            // PRODUCT & STRATEGY DEPARTMENT
+            'product-manager-internal': {
+                dept: 'Product & Strategy', deptIcon: '🎯',
+                type: 'internal', level: 'IC 2-5',
+                title: 'Product Manager / Senior PM', summary: 'Product strategist. Roadmap, prioritization, user research.',
+                responsibilities: ['Product strategy', 'Roadmap prioritization', 'User research', 'PRD writing'],
+                skills: ['Product strategy', 'Data analysis', 'Communication', 'User research'],
+                commStyle: 'conversational-practical', depth: 'moderate', formats: ['docs', 'strategy', 'analysis'],
+                authMethod: 'SAML 2.0', dataRetention: 'Standard',
+                compliance: ['SOC 2 Type II'],
+                features: { artifacts: true, webSearch: true, codeExecution: false, fileCreation: true, memory: true, research: true, skills: true },
+                integrations: ['Jira', 'Analytics dashboards', 'Slack'],
+                plan: 'Team or Enterprise', useCases: 'Strategy, roadmap, market research, metrics analysis',
+                sensitiveData: 'Customer feedback, usage analytics, roadmap (internal).'
+            },
+
+            // SALES & CUSTOMER SUCCESS DEPARTMENT
+            'sales-manager-internal': {
+                dept: 'Sales & Customer Success', deptIcon: '💼',
+                type: 'internal', level: 'IC 2-4 / Mgmt 1',
+                title: 'Sales Manager / Account Executive', summary: 'Sales leader. Pipeline, account strategy, revenue growth.',
+                responsibilities: ['Sales pipeline', 'Account strategy', 'Team leadership', 'Negotiation'],
+                skills: ['Sales strategy', 'Negotiation', 'Account management', 'Leadership'],
+                commStyle: 'conversational-practical', depth: 'moderate', formats: ['docs', 'proposals'],
+                authMethod: 'SAML 2.0', dataRetention: 'Standard',
+                compliance: ['SOC 2 Type II'],
+                features: { artifacts: true, webSearch: true, codeExecution: false, fileCreation: true, memory: true, research: true, skills: true },
+                integrations: ['HubSpot (CRM)', 'Slack'],
+                plan: 'Team or Enterprise', useCases: 'Sales strategy, account planning, proposal development',
+                sensitiveData: 'Customer contracts, pricing, deal terms.'
+            },
+
+            'sales-rep-internal': {
+                dept: 'Sales & Customer Success', deptIcon: '💼',
+                type: 'internal', level: 'IC 1-2',
+                title: 'Sales Representative / SDR', summary: 'Sales specialist. Lead generation, prospecting, pipeline building.',
+                responsibilities: ['Lead generation', 'Prospecting', 'Outreach', 'Pipeline building'],
+                skills: ['Sales', 'Communication', 'Research', 'Negotiation'],
+                commStyle: 'conversational', depth: 'brief', formats: ['docs', 'proposals', 'outreach'],
+                authMethod: 'SAML 2.0', dataRetention: 'Standard',
+                compliance: ['SOC 2 Type II'],
+                features: { artifacts: true, webSearch: true, codeExecution: false, fileCreation: true, memory: false, research: true, skills: false },
+                integrations: ['HubSpot (CRM)', 'Slack'],
+                plan: 'Team or Pro', useCases: 'Proposal writing, market research, outreach templates',
+                sensitiveData: 'Prospect info (public only).'
+            },
+
+            'customer-success-manager-internal': {
+                dept: 'Sales & Customer Success', deptIcon: '💼',
+                type: 'internal', level: 'IC 1-3',
+                title: 'Customer Success Manager / Support Specialist', summary: 'CS expert. Onboarding, support, retention, satisfaction.',
+                responsibilities: ['Customer onboarding', 'Support tickets', 'Retention strategy', 'Satisfaction'],
+                skills: ['Customer communication', 'Problem-solving', 'Product knowledge', 'Empathy'],
+                commStyle: 'conversational', depth: 'brief-moderate', formats: ['docs', 'guides', 'FAQs'],
+                authMethod: 'SAML 2.0', dataRetention: 'Standard',
+                compliance: ['SOC 2 Type II'],
+                features: { artifacts: true, webSearch: true, codeExecution: false, fileCreation: true, memory: false, research: false, skills: false },
+                integrations: ['Slack', 'Help desk (Zendesk/Intercom)', 'HubSpot'],
+                plan: 'Team or Pro', useCases: 'Onboarding, support guides, FAQ creation, retention',
+                sensitiveData: 'Customer support conversations (limited), public knowledge.'
+            },
+
+            'support-specialist-external': {
+                dept: 'Sales & Customer Success', deptIcon: '💼',
+                type: 'external', level: 'IC 1-2',
+                title: 'Support Specialist (External)', summary: 'Support specialist. Help desk, ticket resolution, troubleshooting.',
+                responsibilities: ['Support tickets', 'Troubleshooting', 'Knowledge base', 'Escalations'],
+                skills: ['Customer communication', 'Problem-solving', 'Product knowledge'],
+                commStyle: 'conversational', depth: 'brief', formats: ['docs', 'guides', 'FAQs'],
+                authMethod: 'Individual API Key or Team seat', dataRetention: 'Standard',
+                compliance: ['SOC 2 Type II'],
+                features: { artifacts: true, webSearch: true, codeExecution: false, fileCreation: true, memory: false, research: false, skills: false },
+                integrations: ['Slack', 'Help desk (Zendesk/Intercom)'],
+                plan: 'Pro or Team', useCases: 'Support templates, troubleshooting guides, FAQ creation',
+                sensitiveData: 'NO sensitive data. Public support issues only.'
+            },
+
+            'sales-rep-external': {
+                dept: 'Sales & Customer Success', deptIcon: '💼',
+                type: 'external', level: 'IC 1-2',
+                title: 'Sales Representative (External)', summary: 'Sales specialist. Lead generation, outreach, pipeline.',
+                responsibilities: ['Lead generation', 'Prospecting', 'Outreach', 'Sales enablement'],
+                skills: ['Sales', 'Communication', 'Research'],
+                commStyle: 'conversational', depth: 'brief', formats: ['docs', 'proposals', 'outreach'],
+                authMethod: 'Individual API Key or Team seat', dataRetention: 'Standard',
+                compliance: ['SOC 2 Type II'],
+                features: { artifacts: true, webSearch: true, codeExecution: false, fileCreation: true, memory: false, research: true, skills: false },
+                integrations: ['HubSpot (CRM)', 'Slack'],
+                plan: 'Pro or Team', useCases: 'Proposal writing, market research, outreach templates',
+                sensitiveData: 'NO sensitive data. Prospect info only (public).'
+            },
+
+            // CONTRACTORS & PARTNERS
+            'agency-partner-external': {
+                dept: 'Contractors & Partners', deptIcon: '🤝',
+                type: 'external', level: 'Varies',
+                title: 'Agency Partner / Consulting Firm', summary: 'External agency. Project-based, limited scope, NDA required.',
+                responsibilities: ['Project delivery', 'Consulting', 'Documentation'],
+                skills: ['Specialization (varies)', 'Project management'],
+                commStyle: 'professional-practical', depth: 'moderate', formats: ['docs', 'reports', 'analysis'],
+                authMethod: 'Individual API Key or Team seat', dataRetention: 'Standard',
+                compliance: ['SOC 2 Type II'],
+                features: { artifacts: true, webSearch: true, codeExecution: false, fileCreation: true, memory: false, research: true, skills: false },
+                integrations: ['Slack (project channel)', 'Jira (if technical)'],
+                plan: 'Team (shared seat)', useCases: 'Security audits, design reviews, market research, analysis',
+                sensitiveData: 'Limited to project scope. NDA required for sensitive work.'
+            },
+
+            'reseller-partner-external': {
+                dept: 'Contractors & Partners', deptIcon: '🤝',
+                type: 'external', level: 'Varies',
+                title: 'Reseller / Channel Partner', summary: 'Partner selling Intinc solutions. Enablement, customer delivery.',
+                responsibilities: ['Sales & implementation', 'Customer enablement', 'Support', 'Relationship building'],
+                skills: ['Sales', 'Implementation', 'Customer communication'],
+                commStyle: 'professional', depth: 'moderate', formats: ['docs', 'training', 'proposals'],
+                authMethod: 'Individual API Key (NOT Team/SSO)', dataRetention: 'Standard',
+                compliance: ['SOC 2 Type II'],
+                features: { artifacts: true, webSearch: true, codeExecution: false, fileCreation: true, memory: false, research: true, skills: false },
+                integrations: ['Slack (partner channel)', 'Salesforce (partner portal)'],
+                plan: 'Pro (individual)', useCases: 'Proposal writing, training materials, customer enablement',
+                sensitiveData: 'NO access to Intinc internal data. Public resources only.'
+            },
+
+            'advisor-investor-external': {
+                dept: 'Contractors & Partners', deptIcon: '🤝',
+                type: 'external', level: 'Advisory',
+                title: 'Advisory Board Member / Investor / Advisor', summary: 'Executive advisor. Strategic guidance, market intel, network.',
+                responsibilities: ['Strategic advice', 'Market intelligence', 'Network introductions'],
+                skills: ['Industry expertise', 'Business acumen', 'Strategic thinking'],
+                commStyle: 'conversational-analytical', depth: 'moderate', formats: ['docs', 'memos', 'analysis'],
+                authMethod: 'Individual API Key (NOT Team/SSO)', dataRetention: 'Standard or ZDR (if sensitive)',
+                compliance: ['SOC 2 Type II'],
+                features: { artifacts: true, webSearch: true, codeExecution: false, fileCreation: true, memory: false, research: true, skills: false },
+                integrations: ['Slack (advisory channel)', 'Board materials portal'],
+                plan: 'Pro (individual)', useCases: 'Market analysis, strategic memos, competitive intel',
+                sensitiveData: 'Limited to board-level decisions. NO operational data.'
+            }
+        };
+
+        // ============================================================================
+        // UI FUNCTIONS
+        // ============================================================================
+
+        let currentRole = null;
+        let viewMode = 'role';
+
+        function setViewMode(mode) {
+            viewMode = mode;
+            document.getElementById('profileView').classList.remove('active');
+            document.getElementById('deploymentView').classList.remove('active');
+            document.getElementById('variablesView').classList.remove('active');
+            document.getElementById('noSelection').style.display = 'block';
+            
+            if (mode === 'deployment') {
+                document.getElementById('deploymentView').classList.add('active');
+                document.getElementById('noSelection').style.display = 'none';
+            } else if (mode === 'variables') {
+                document.getElementById('variablesView').classList.add('active');
+                document.getElementById('noSelection').style.display = 'none';
+            }
+        }
+
+        function initializeRoles() {
+            renderRoleList();
+        }
+
+        function renderRoleList() {
+            const container = document.getElementById('roleListContainer');
+            const roles = Object.entries(roleDatabase);
+            
+            const departments = {};
+            roles.forEach(([id, role]) => {
+                if (!departments[role.dept]) departments[role.dept] = [];
+                departments[role.dept].push([id, role]);
+            });
+
+            let html = '';
+            Object.entries(departments).forEach(([dept, roles]) => {
+                const deptIcon = roles[0][1].deptIcon;
+                html += `<div class="department-section">
+                    <div class="department-label">
+                        <span class="department-icon">${deptIcon}</span> ${dept}
+                    </div>`;
+                roles.forEach(([id, role]) => {
+                    html += `<div class="role-option" onclick="selectRole('${id}')">
+                        <div class="role-name">${role.title.replace(/^[👑⚙️💰🎯💼🤝] /, '')}</div>
+                        <div class="role-type">${role.type.substring(0, 3).toUpperCase()}</div>
+                    </div>`;
+                });
+                html += '</div>';
+            });
+
+            container.innerHTML = html;
+        }
+
+        function selectRole(roleId) {
+            currentRole = roleDatabase[roleId];
+            viewMode = 'role';
+            document.getElementById('noSelection').style.display = 'none';
+            document.getElementById('profileView').classList.add('active');
+            document.getElementById('deploymentView').classList.remove('active');
+            document.getElementById('variablesView').classList.remove('active');
+
+            document.getElementById('roleTitle').textContent = currentRole.title;
+            document.getElementById('roleMeta').innerHTML = `
+                <div class="meta-item"><span class="meta-badge">${currentRole.level}</span></div>
+                <div class="meta-item"><span class="meta-badge">${currentRole.dept}</span></div>
+                <div class="meta-item"><span class="meta-badge" style="background: ${currentRole.type === 'internal' ? '#e3f2fd' : '#fff3e0'}; color: ${currentRole.type === 'internal' ? '#1565c0' : '#e65100'};">${currentRole.type.toUpperCase()}</span></div>
+            `;
+
+            const alertText = currentRole.type === 'internal' 
+                ? `✅ ${currentRole.dataRetention.includes('ZDR') ? '🔴 CRITICAL: Enterprise ZDR REQUIRED' : '✓ Enterprise security'}` 
+                : `⚠️ External: Limited access, NO SSO, NO memory`;
+            document.getElementById('roleAlert').textContent = alertText;
+
+            renderTabs();
+            renderOverview();
+            renderPreferences();
+            renderSecurity();
+            renderFeatures();
+            renderCustomization();
+        }
+
+        function renderTabs() {
+            const tabs = ['overview', 'claude-config', 'security-compliance', 'features', 'customization', 'export'];
+            const tabContainer = document.getElementById('tabsContainer');
+            tabContainer.innerHTML = tabs.map(tab => {
+                const icons = { 'overview': '📋', 'claude-config': '⚙️', 'security-compliance': '🔐', 'features': '✨', 'customization': '🛠️', 'export': '📤' };
+                return `<div class="tab ${tab === 'overview' ? 'active' : ''}" onclick="switchTab('${tab}')">
+                    ${icons[tab]} ${tab.replace(/-/g, ' ')}
+                </div>`;
+            }).join('');
+        }
+
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            event.target.classList.add('active');
+            document.getElementById(tabName).classList.add('active');
+        }
+
+        function renderOverview() {
+            document.getElementById('roleSummary').textContent = currentRole.summary;
+            document.getElementById('responsibilities').innerHTML = currentRole.responsibilities.map(r => `<li>${r}</li>`).join('');
+            document.getElementById('skills').innerHTML = currentRole.skills.map(s => `<li>${s}</li>`).join('');
+        }
+
+        function renderPreferences() {
+            document.getElementById('commStyle').textContent = currentRole.commStyle;
+            document.getElementById('respDepth').textContent = currentRole.depth;
+            document.getElementById('formatTags').innerHTML = currentRole.formats.map(f => `<div class="config-tag">${f.replace(/-/g, ' ')}</div>`).join('');
+            document.getElementById('useCases').textContent = currentRole.useCases;
+        }
+
+        function renderSecurity() {
+            document.getElementById('authMethod').innerHTML = `<strong>${currentRole.authMethod}</strong>`;
+            document.getElementById('dataRetention').innerHTML = `<strong>${currentRole.dataRetention}</strong>
+                ${currentRole.dataRetention.includes('ZDR') ? '<br><span style="color: #c62828; font-weight: 600;">🔴 CRITICAL: Zero Data Retention Mandatory</span>' : ''}`;
+            document.getElementById('complianceTags').innerHTML = currentRole.compliance.map(c => `<div class="config-tag">${c}</div>`).join('');
+            document.getElementById('sensitiveData').textContent = currentRole.sensitiveData;
+        }
+
+        function renderFeatures() {
+            const features = [
+                { name: 'Artifacts', key: 'artifacts' },
+                { name: 'Web Search', key: 'webSearch' },
+                { name: 'Code Execution', key: 'codeExecution' },
+                { name: 'File Creation', key: 'fileCreation' },
+                { name: 'Memory', key: 'memory' },
+                { name: 'Deep Research', key: 'research' },
+                { name: 'Skills', key: 'skills' }
+            ];
+
+            let html = '';
+            features.forEach(f => {
+                const enabled = currentRole.features[f.key];
+                html += `<div class="capability-item ${enabled ? 'enabled' : 'disabled'}">
+                    <strong>${enabled ? '✓' : '✗'} ${f.name}</strong>
+                </div>`;
+            });
+            document.getElementById('featureGrid').innerHTML = html;
+            document.getElementById('planRec').textContent = `Recommended: ${currentRole.plan}`;
+            document.getElementById('integrations').textContent = currentRole.integrations.join(', ');
+            document.getElementById('integrationTags').innerHTML = currentRole.integrations.map(i => `<div class="config-tag">${i}</div>`).join('');
+        }
+
+        function renderCustomization() {
+            const role = currentRole;
+            const isInternal = role.type === 'internal';
+            
+            // Pre-fill smart defaults
+            document.getElementById('awsImpl').value = isInternal 
+                ? 'CloudTrail logging (1+ year), AWS Secrets Manager (KMS), VPC isolation, AWS Security Hub, RDS/S3 encryption'
+                : 'N/A (external role)';
+            
+            document.getElementById('customIntegrations').value = isInternal && role.dept.includes('Technology')
+                ? 'github-enterprise, internal-apis, workflow-engine, monitoring-dashboards'
+                : '';
+            
+            document.getElementById('mcpServers').value = isInternal && role.dept.includes('Technology')
+                ? 'n8n, github, jira, sentry'
+                : '';
+            
+            document.getElementById('teamName').value = role.dept;
+            document.getElementById('slackChannel').value = isInternal ? `#${role.dept.toLowerCase().replace(/[& ]/g, '-')}-claude` : '';
+        }
+
+        function copySimilarRole() {
+            // Find similar role (same dept, next level down)
+            const currentDept = currentRole.dept;
+            const similarRoles = Object.entries(roleDatabase).filter(([id, r]) => 
+                r.dept === currentDept && r.type === currentRole.type && id !== Object.keys(roleDatabase).find(k => roleDatabase[k] === currentRole)
+            );
+            
+            if (similarRoles.length > 0) {
+                const [, similarRole] = similarRoles[0];
+                // Copy this system's example
+                document.getElementById('awsImpl').value = 'CloudTrail logging, KMS encryption, VPC isolation...';
+                document.getElementById('customIntegrations').value = 'github, jira, sentry';
+                document.getElementById('mcpServers').value = 'n8n, github, jira';
+                alert(`✓ Copied from similar role: ${similarRole.title}`);
+            } else {
+                alert('⚠️ No similar role found in same department.');
+            }
+        }
+
+        function exportJSON() {
+            const config = {
+                role: currentRole.title,
+                level: currentRole.level,
+                type: currentRole.type,
+                department: currentRole.dept,
+                plan: currentRole.plan,
+                features: currentRole.features,
+                integrations: currentRole.integrations,
+                compliance: currentRole.compliance,
+                dataRetention: currentRole.dataRetention,
+                customVars: {
+                    awsImpl: document.getElementById('awsImpl').value,
+                    customIntegrations: document.getElementById('customIntegrations').value,
+                    mcpServers: document.getElementById('mcpServers').value,
+                    teamName: document.getElementById('teamName').value,
+                    slackChannel: document.getElementById('slackChannel').value
+                },
+                exportedAt: new Date().toISOString()
+            };
+            alert('✅ JSON ready (in production: download as file)');
+            console.log(JSON.stringify(config, null, 2));
+        }
+
+        function exportMarkdown() {
+            const md = `# ${currentRole.title}\n\n**Level:** ${currentRole.level}\n**Type:** ${currentRole.type}\n**Department:** ${currentRole.dept}\n\n## Summary\n${currentRole.summary}\n\n## Features\n${Object.entries(currentRole.features).map(([k, v]) => `- ${k}: ${v ? '✓' : '✗'}`).join('\n')}\n\n## Integrations\n${currentRole.integrations.join(', ')}`;
+            alert('✅ Markdown ready (in production: download as file)');
+            console.log(md);
+        }
+
+        function copyToClipboard() {
+            navigator.clipboard.writeText(currentRole.title + ' | ' + currentRole.level);
+            alert('✓ Copied to clipboard!');
+        }
+
+        initializeRoles();
+    </script>
+</body>
+</html>

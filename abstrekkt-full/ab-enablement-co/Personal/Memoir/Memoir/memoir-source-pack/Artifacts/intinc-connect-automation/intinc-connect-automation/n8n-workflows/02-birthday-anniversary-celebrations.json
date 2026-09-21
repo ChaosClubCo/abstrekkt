@@ -1,0 +1,259 @@
+{
+  "name": "INTINC Connect - Birthday & Anniversary Celebrations",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [{ "field": "cronExpression", "expression": "0 8 * * *" }]
+        }
+      },
+      "id": "daily-trigger",
+      "name": "Daily 8AM Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{$env.INTINC_CONNECT_API_URL}}/api/employees/milestones/today",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "response": { "response": { "responseFormat": "json" } }
+        }
+      },
+      "id": "fetch-milestones",
+      "name": "Fetch Today's Milestones",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [470, 300],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "intinc-connect-api",
+          "name": "INTINC Connect API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.milestones.length > 0 }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "check-milestones",
+      "name": "Any Milestones Today?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [690, 300]
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "milestones",
+        "options": {}
+      },
+      "id": "split-milestones",
+      "name": "Split Milestones",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [910, 200]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.type }}",
+              "operation": "equals",
+              "value2": "birthday"
+            }
+          ]
+        }
+      },
+      "id": "router-birthday",
+      "name": "Is Birthday?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [1130, 200]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Process birthday celebration\nconst milestone = $input.first().json;\nconst today = new Date();\n\n// Birthday messages with variety\nconst birthdayMessages = [\n  `🎂 Happy Birthday, ${milestone.first_name}! 🎉 Wishing you an amazing day filled with joy and celebration!`,\n  `🎈 It's ${milestone.first_name}'s birthday today! 🎁 Join us in wishing them a fantastic year ahead!`,\n  `🌟 Birthday Alert! 🎂 Help us celebrate ${milestone.first_name}'s special day with some recognition love!`,\n  `🎉 Cheers to ${milestone.first_name} on their birthday! 🥳 May this year bring you success and happiness!`\n];\n\nconst teamsEmojis = ['🎂', '🎈', '🎁', '🥳', '🎉', '✨', '🌟', '💫'];\nconst randomEmoji = teamsEmojis[Math.floor(Math.random() * teamsEmojis.length)];\n\nreturn {\n  ...milestone,\n  celebration_type: 'birthday',\n  celebration_message: birthdayMessages[Math.floor(Math.random() * birthdayMessages.length)],\n  teams_emoji: randomEmoji,\n  points_award: 50,\n  card_color: '#FF6B6B',\n  celebration_id: `BDAY-${milestone.employee_id}-${today.getFullYear()}`\n};"
+      },
+      "id": "process-birthday",
+      "name": "Process Birthday",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1350, 100]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.type }}",
+              "operation": "equals",
+              "value2": "anniversary"
+            }
+          ]
+        }
+      },
+      "id": "router-anniversary",
+      "name": "Is Anniversary?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [1130, 400]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Process work anniversary celebration\nconst milestone = $input.first().json;\nconst today = new Date();\nconst years = milestone.years_at_company;\n\n// Anniversary messages based on tenure\nlet message, pointsAward, cardColor;\n\nif (years === 1) {\n  message = `🎊 Congrats ${milestone.first_name} on your 1-year anniversary at INTINC! 🎉 Thank you for an amazing first year!`;\n  pointsAward = 100;\n  cardColor = '#4ECDC4';\n} else if (years >= 2 && years < 5) {\n  message = `🌟 ${milestone.first_name} is celebrating ${years} years at INTINC! 🏆 Thank you for your continued dedication!`;\n  pointsAward = 150;\n  cardColor = '#45B7D1';\n} else if (years >= 5 && years < 10) {\n  message = `🏅 WOW! ${milestone.first_name} hits ${years} years with INTINC! 🎖️ Your commitment and expertise make our team stronger every day!`;\n  pointsAward = 250;\n  cardColor = '#96CEB4';\n} else if (years >= 10) {\n  message = `🏆 LEGENDARY! ${milestone.first_name} celebrates ${years} incredible years at INTINC! 👑 You are the heart and soul of our company!`;\n  pointsAward = 500;\n  cardColor = '#FFD93D';\n} else {\n  message = `🎉 Happy Work Anniversary, ${milestone.first_name}!`;\n  pointsAward = 50;\n  cardColor = '#6C5CE7';\n}\n\nreturn {\n  ...milestone,\n  celebration_type: 'anniversary',\n  celebration_message: message,\n  teams_emoji: '🏆',\n  points_award: pointsAward,\n  card_color: cardColor,\n  celebration_id: `ANNIV-${milestone.employee_id}-${years}yr-${today.getFullYear()}`\n};"
+      },
+      "id": "process-anniversary",
+      "name": "Process Anniversary",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1350, 400]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.INTINC_CONNECT_API_URL}}/api/recognition",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"type\": \"{{$json.celebration_type}}\",\n  \"recipient_id\": \"{{$json.employee_id}}\",\n  \"sender_id\": \"system\",\n  \"message\": \"{{$json.celebration_message}}\",\n  \"points\": {{$json.points_award}},\n  \"tags\": [\"{{$json.celebration_type}}\", \"milestone\", \"celebration\"],\n  \"visibility\": \"public\",\n  \"metadata\": {\n    \"celebration_id\": \"{{$json.celebration_id}}\",\n    \"auto_generated\": true\n  }\n}",
+        "options": {}
+      },
+      "id": "create-recognition-birthday",
+      "name": "Create Birthday Recognition",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1570, 100],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "intinc-connect-api",
+          "name": "INTINC Connect API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.INTINC_CONNECT_API_URL}}/api/recognition",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"type\": \"{{$json.celebration_type}}\",\n  \"recipient_id\": \"{{$json.employee_id}}\",\n  \"sender_id\": \"system\",\n  \"message\": \"{{$json.celebration_message}}\",\n  \"points\": {{$json.points_award}},\n  \"tags\": [\"{{$json.celebration_type}}\", \"milestone\", \"celebration\"],\n  \"visibility\": \"public\",\n  \"metadata\": {\n    \"celebration_id\": \"{{$json.celebration_id}}\",\n    \"years_at_company\": {{$json.years_at_company}},\n    \"auto_generated\": true\n  }\n}",
+        "options": {}
+      },
+      "id": "create-recognition-anniversary",
+      "name": "Create Anniversary Recognition",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1570, 400],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "intinc-connect-api",
+          "name": "INTINC Connect API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.TEAMS_WEBHOOK_URL}}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"@type\": \"MessageCard\",\n  \"@context\": \"http://schema.org/extensions\",\n  \"themeColor\": \"{{$json.card_color}}\",\n  \"summary\": \"{{$json.celebration_type === 'birthday' ? '🎂 Birthday Celebration!' : '🏆 Work Anniversary!'}}\",\n  \"sections\": [{\n    \"activityTitle\": \"{{$json.teams_emoji}} {{$json.celebration_type === 'birthday' ? 'Happy Birthday!' : 'Happy Work Anniversary!'}}\",\n    \"activitySubtitle\": \"{{$json.celebration_message}}\",\n    \"activityImage\": \"https://intinc.com/wp-content/uploads/2024/11/Dot-favicon.png\",\n    \"facts\": [\n      { \"name\": \"Celebrating\", \"value\": \"{{$json.first_name}} {{$json.last_name}}\" },\n      { \"name\": \"Department\", \"value\": \"{{$json.department}}\" },\n      { \"name\": \"Points Awarded\", \"value\": \"{{$json.points_award}} 🎁\" }\n    ],\n    \"markdown\": true\n  }],\n  \"potentialAction\": [{\n    \"@type\": \"OpenUri\",\n    \"name\": \"Send Recognition in INTINC Connect\",\n    \"targets\": [{ \"os\": \"default\", \"uri\": \"{{$env.INTINC_CONNECT_URL}}/recognition/new?recipient={{$json.employee_id}}&occasion={{$json.celebration_type}}\" }]\n  }]\n}",
+        "options": {}
+      },
+      "id": "teams-celebration-post",
+      "name": "Post Celebration to MS Teams",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1790, 250]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.POSTHOG_API_URL}}/capture",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"api_key\": \"{{$env.POSTHOG_API_KEY}}\",\n  \"event\": \"milestone_celebration_sent\",\n  \"distinct_id\": \"{{$json.employee_id}}\",\n  \"properties\": {\n    \"celebration_type\": \"{{$json.celebration_type}}\",\n    \"celebration_id\": \"{{$json.celebration_id}}\",\n    \"department\": \"{{$json.department}}\",\n    \"points_awarded\": {{$json.points_award}},\n    \"years_at_company\": {{$json.years_at_company || 0}},\n    \"workflow\": \"n8n_milestone_celebrations\"\n  }\n}",
+        "options": {}
+      },
+      "id": "posthog-track-celebration",
+      "name": "Track in PostHog",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [2010, 250]
+    },
+    {
+      "parameters": {},
+      "id": "no-milestones",
+      "name": "No Milestones Today",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [910, 400]
+    }
+  ],
+  "connections": {
+    "Daily 8AM Trigger": {
+      "main": [[{ "node": "Fetch Today's Milestones", "type": "main", "index": 0 }]]
+    },
+    "Fetch Today's Milestones": {
+      "main": [[{ "node": "Any Milestones Today?", "type": "main", "index": 0 }]]
+    },
+    "Any Milestones Today?": {
+      "main": [
+        [{ "node": "Split Milestones", "type": "main", "index": 0 }],
+        [{ "node": "No Milestones Today", "type": "main", "index": 0 }]
+      ]
+    },
+    "Split Milestones": {
+      "main": [
+        [
+          { "node": "Is Birthday?", "type": "main", "index": 0 },
+          { "node": "Is Anniversary?", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Is Birthday?": {
+      "main": [[{ "node": "Process Birthday", "type": "main", "index": 0 }], []]
+    },
+    "Is Anniversary?": {
+      "main": [[{ "node": "Process Anniversary", "type": "main", "index": 0 }], []]
+    },
+    "Process Birthday": {
+      "main": [[{ "node": "Create Birthday Recognition", "type": "main", "index": 0 }]]
+    },
+    "Process Anniversary": {
+      "main": [[{ "node": "Create Anniversary Recognition", "type": "main", "index": 0 }]]
+    },
+    "Create Birthday Recognition": {
+      "main": [[{ "node": "Post Celebration to MS Teams", "type": "main", "index": 0 }]]
+    },
+    "Create Anniversary Recognition": {
+      "main": [[{ "node": "Post Celebration to MS Teams", "type": "main", "index": 0 }]]
+    },
+    "Post Celebration to MS Teams": {
+      "main": [[{ "node": "Track in PostHog", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Chicago"
+  },
+  "staticData": null,
+  "tags": ["intinc-connect", "birthdays", "anniversaries", "celebrations"],
+  "triggerCount": 0,
+  "updatedAt": "2025-11-25T00:00:00.000Z",
+  "versionId": "1.0.0"
+}

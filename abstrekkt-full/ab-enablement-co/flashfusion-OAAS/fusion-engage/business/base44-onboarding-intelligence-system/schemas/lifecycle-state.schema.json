@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://flashfusion.local/schemas/lifecycle-state.schema.json",
+  "title": "LifecycleState",
+  "description": "Single source of truth for a user's lifecycle stage and next-best-action. Written by core prompt 05 (Lifecycle Intelligence); read by activation, retention, and expansion layers.",
+  "type": "object",
+  "required": ["userId", "stage", "enteredAt", "updatedAt"],
+  "additionalProperties": false,
+  "properties": {
+    "userId": { "type": "string" },
+    "stage": {
+      "type": "string",
+      "enum": ["new", "onboarding", "activated", "habitual", "power_user", "at_risk", "dormant", "reactivated", "churned"]
+    },
+    "previousStage": {
+      "type": ["string", "null"],
+      "enum": ["new", "onboarding", "activated", "habitual", "power_user", "at_risk", "dormant", "reactivated", "churned", null]
+    },
+    "enteredAt": { "type": "string", "format": "date-time" },
+    "nextBestAction": {
+      "type": "object",
+      "properties": {
+        "action": { "type": "string", "description": "e.g. show_first_win, send_digest, offer_upgrade, win_back" },
+        "channel": { "type": "string", "enum": ["in_app", "email", "push"] },
+        "reason": { "type": "string", "description": "Explainable trace tied to the user's stated outcome." }
+      }
+    },
+    "signals": {
+      "type": "object",
+      "properties": {
+        "activationReached": { "type": "boolean" },
+        "sessionsPerWeek": { "type": "number" },
+        "decayDetected": { "type": "boolean" },
+        "expansionReady": { "type": "boolean" }
+      }
+    },
+    "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+    "abVariant": { "type": "string", "enum": ["outcome_first", "standard"] },
+    "updatedAt": { "type": "string", "format": "date-time" }
+  }
+}

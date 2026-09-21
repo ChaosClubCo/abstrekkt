@@ -1,0 +1,142 @@
+{
+  "name": "OAI Token Budget Reset",
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "nodes": [
+    {
+      "id": "n1-bud",
+      "name": "Schedule Every Hour",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        100,
+        300
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 1
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "n2-bud",
+      "name": "Get Auto-Reset Budgets",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        300,
+        300
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "",
+          "name": "Base44 API Key"
+        }
+      },
+      "parameters": {
+        "method": "GET",
+        "url": "https://api.base44.com/apps/694c756124d640756ea9ba23/entities/TokenBudget",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "is_active",
+              "value": "true"
+            },
+            {
+              "name": "auto_reset_enabled",
+              "value": "true"
+            },
+            {
+              "name": "_limit",
+              "value": "500"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "n3-bud",
+      "name": "Find Due Resets",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        500,
+        300
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const items=($input.first().json.items||[]);const now=new Date();const due=items.filter(b=>b.next_reset_at&&new Date(b.next_reset_at)<=now);if(!due.length)return[{json:{skip:true}}];return due.map(b=>{const next=b.period==='daily'?new Date(now.getTime()+86400000):new Date(new Date(now).setMonth(now.getMonth()+1,1));return{json:{id:b._id||b.id,workspace_id:b.workspace_id,all_time_tokens:(b.all_time_tokens_used||0)+(b.tokens_used||0),all_time_cost:(b.all_time_cost_usd||0)+(b.cost_used_usd||0),new_periods:(b.total_periods_tracked||0)+1,next_reset:next.toISOString()}}});"
+      }
+    },
+    {
+      "id": "n4-bud",
+      "name": "Reset Budget",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        700,
+        300
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "",
+          "name": "Base44 API Key"
+        }
+      },
+      "parameters": {
+        "method": "PUT",
+        "url": "=https://api.base44.com/apps/694c756124d640756ea9ba23/entities/TokenBudget/{{$json.id}}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={\"tokens_used\":0,\"cost_used_usd\":0,\"last_reset_at\":\"{{$now.toISO()}}\",\"next_reset_at\":\"{{$json.next_reset}}\",\"total_periods_tracked\":{{$json.new_periods}},\"all_time_tokens_used\":{{$json.all_time_tokens}},\"all_time_cost_usd\":{{$json.all_time_cost}}}"
+      }
+    }
+  ],
+  "connections": {
+    "Schedule Every Hour": {
+      "main": [
+        [
+          {
+            "node": "Get Auto-Reset Budgets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Auto-Reset Budgets": {
+      "main": [
+        [
+          {
+            "node": "Find Due Resets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find Due Resets": {
+      "main": [
+        [
+          {
+            "node": "Reset Budget",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

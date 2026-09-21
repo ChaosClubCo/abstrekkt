@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Chapter 4: Hardware Failure</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400..800;1,400..800&amp;family=JetBrains+Mono:wght@400..800&amp;family=Literata:ital,opsz,wght@0,7..72,200..900;1,7..72,200..900&amp;family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "background": "#131315",
+                    "outline": "#9c8f78",
+                    "on-surface": "#e5e1e4",
+                    "surface-container-low": "#1c1b1d",
+                    "on-secondary-fixed": "#001b3e",
+                    "secondary-fixed": "#d6e3ff",
+                    "secondary-container": "#026bd2",
+                    "on-error": "#690005",
+                    "primary-fixed-dim": "#fbbc00",
+                    "on-background": "#e5e1e4",
+                    "surface-dim": "#131315",
+                    "on-error-container": "#ffdad6",
+                    "tertiary": "#e6e6e1",
+                    "on-tertiary-fixed-variant": "#454744",
+                    "surface-container-high": "#2a2a2c",
+                    "tertiary-fixed": "#e3e3de",
+                    "surface-container-highest": "#353437",
+                    "on-secondary": "#003064",
+                    "tertiary-fixed-dim": "#c6c7c2",
+                    "on-primary": "#402d00",
+                    "on-secondary-fixed-variant": "#00468c",
+                    "on-tertiary-fixed": "#1a1c19",
+                    "on-surface-variant": "#d4c5ab",
+                    "on-primary-container": "#6d5000",
+                    "on-secondary-container": "#ebf0ff",
+                    "on-primary-fixed": "#261a00",
+                    "inverse-surface": "#e5e1e4",
+                    "surface-container-lowest": "#0e0e10",
+                    "secondary-fixed-dim": "#a9c7ff",
+                    "outline-variant": "#504532",
+                    "on-primary-fixed-variant": "#5c4300",
+                    "primary-container": "#ffbf00",
+                    "inverse-on-surface": "#313032",
+                    "error-container": "#93000a",
+                    "on-tertiary-container": "#535551",
+                    "tertiary-container": "#c9cac5",
+                    "primary-fixed": "#ffdfa0",
+                    "secondary": "#a9c7ff",
+                    "surface-variant": "#353437",
+                    "on-tertiary": "#2f312e",
+                    "inverse-primary": "#795900",
+                    "surface-tint": "#fbbc00",
+                    "error": "#ffb4ab",
+                    "surface": "#131315",
+                    "surface-container": "#201f21",
+                    "surface-bright": "#39393b",
+                    "primary": "#ffe2ab"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "unit": "8px",
+                    "gutter": "24px",
+                    "container-padding": "40px",
+                    "window-frame-thickness": "12px"
+            },
+            "fontFamily": {
+                    "display-lg": ["EB Garamond", "serif"],
+                    "headline-md": ["EB Garamond", "serif"],
+                    "label-caps": ["EB Garamond", "serif"],
+                    "body-lg": ["Literata", "serif"],
+                    "display-lg-mobile": ["EB Garamond", "serif"],
+                    "body-md": ["Literata", "serif"],
+                    "technical-sm": ["JetBrains Mono", "monospace"]
+            },
+            "fontSize": {
+                    "display-lg": ["48px", { "lineHeight": "1.1", "letterSpacing": "-0.02em", "fontWeight": "500" }],
+                    "headline-md": ["24px", { "lineHeight": "1.4", "fontWeight": "400" }],
+                    "label-caps": ["12px", { "lineHeight": "1.0", "letterSpacing": "0.1em", "fontWeight": "600" }],
+                    "body-lg": ["18px", { "lineHeight": "1.6", "fontWeight": "400" }],
+                    "display-lg-mobile": ["32px", { "lineHeight": "1.2", "fontWeight": "500" }],
+                    "body-md": ["16px", { "lineHeight": "1.6", "fontWeight": "400" }],
+                    "technical-sm": ["12px", { "lineHeight": "1.5", "letterSpacing": "-0.01em", "fontWeight": "400" }]
+            }
+          }
+        }
+      }
+    </script>
+<style>
+        body { background-color: #000; } /* Outer dark space */
+        .window-frame {
+            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1), inset 0 0 20px rgba(0,0,0,0.8);
+            background-image: url('data:image/svg+xml,%3Csvg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"%3E%3Cfilter id="noiseFilter"%3E%3CfeTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="3" stitchTiles="stitch"/%3E%3C/filter%3E%3Crect width="100%25" height="100%25" filter="url(%23noiseFilter)" opacity="0.05"/%3E%3C/svg%3E');
+        }
+        .glass-panel {
+            backdrop-filter: blur(12px);
+            box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.1);
+        }
+        .editorial-margin { margin-left: auto; margin-right: auto; max-width: 720px; }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24; }
+        .filled-icon { font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+    </style>
+</head>
+<body class="text-on-surface bg-background min-h-screen flex items-center justify-center p-0 md:p-window-frame-thickness overflow-x-hidden selection:bg-primary-container selection:text-on-primary-container">
+<!-- The Window Frame Master Wrapper -->
+<div class="window-frame relative w-full h-full min-h-[calc(100vh-24px)] rounded-none md:rounded-xl bg-background overflow-hidden flex flex-col md:flex-row shadow-[0_0_50px_rgba(0,0,0,1)] border border-white/5">
+<!-- TopAppBar (Mobile Only - Simplified to represent the semantic shell) -->
+<header class="md:hidden sticky top-0 z-50 bg-background/90 backdrop-blur-md border-b border-white/5 px-6 py-4 flex justify-between items-center">
+<span class="font-display-lg-mobile text-display-lg-mobile text-primary tracking-tight">Halls of Villains and Virtues</span>
+<span class="material-symbols-outlined text-primary">settings</span>
+</header>
+<!-- SideNavBar (Desktop Only) -->
+<nav class="hidden md:flex flex-col py-10 bg-surface-dim/80 backdrop-blur-xl docked left-0 h-full w-64 border-r border-white/10 shadow-2xl shrink-0">
+<div class="px-8 mb-12 flex flex-col gap-4">
+<div class="w-16 h-16 rounded-full bg-surface-container border border-outline/30 overflow-hidden">
+<img alt="User Portrait" class="w-full h-full object-cover opacity-80 grayscale mix-blend-luminosity" data-alt="A moody, high-contrast monochrome portrait of a thoughtful person in deep shadows, cinematic lighting, editorial style, conveying solemnity and archiving memory within a dark editorial interface context." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAeUJp0IE1_z6KlYveSDOKxYU6DSdzxhWAvO742zGvE4WtOTYf9K_wELY9sznI_GPCvLgk4lpIc5IN4Xm3chka0TROGYMHh75k9UEYLNrsvQz0MRBQa9XTw9Elk_yhJZi2pkYxTN47c1dg77EedRf6zFzBHJyahSR8dLUoehoU4CizgAjxNmcijqdsQT-AjIbeiXPsvNPFJTivgLj5sfMqaAC3IXxyvdaJdLTQuelqpfKmN-Uy2hKBbUlFNjoZuz9LMYSmmRz1lKoq7"/>
+</div>
+<div>
+<h2 class="text-headline-md font-headline-md text-primary">The Narrator</h2>
+<p class="font-technical-sm text-technical-sm text-on-surface-variant opacity-70">Archivist of Souls</p>
+</div>
+</div>
+<div class="flex-1 flex flex-col gap-2">
+<a class="group flex items-center gap-4 py-3 px-8 text-on-surface-variant hover:bg-white/5 hover:text-primary transition-all" href="#">
+<span class="material-symbols-outlined text-xl group-hover:scale-110 transition-transform">fingerprint</span>
+<span class="font-label-caps text-label-caps">Identity</span>
+</a>
+<a class="group flex items-center gap-4 py-3 px-8 text-on-surface-variant hover:bg-white/5 hover:text-primary transition-all" href="#">
+<span class="material-symbols-outlined text-xl group-hover:scale-110 transition-transform">auto_awesome</span>
+<span class="font-label-caps text-label-caps">Virtues</span>
+</a>
+<a class="group flex items-center gap-4 py-3 px-8 text-primary font-bold border-l-2 border-primary bg-primary/5 transition-all" href="#">
+<span class="material-symbols-outlined text-xl filled-icon">skull</span>
+<span class="font-label-caps text-label-caps">Villains</span>
+</a>
+<a class="group flex items-center gap-4 py-3 px-8 text-on-surface-variant hover:bg-white/5 hover:text-primary transition-all" href="#">
+<span class="material-symbols-outlined text-xl group-hover:scale-110 transition-transform">balance</span>
+<span class="font-label-caps text-label-caps">Integrity</span>
+</a>
+</div>
+<div class="mt-auto px-8 py-4 border-t border-white/5">
+<div class="font-technical-sm text-technical-sm text-error flex items-center gap-2">
+<span class="material-symbols-outlined text-sm">warning</span>
+<span>SYSTEM RUPTURE</span>
+</div>
+</div>
+</nav>
+<!-- Main Content Canvas -->
+<main class="flex-1 overflow-y-auto pb-32 md:pb-12 scroll-smooth">
+<article class="max-w-5xl mx-auto px-6 md:px-12 py-12 md:py-24">
+<!-- Chapter Header -->
+<header class="mb-16 md:mb-24 flex flex-col md:flex-row gap-8 items-start md:items-end justify-between border-b border-white/5 pb-8">
+<div>
+<span class="font-technical-sm text-technical-sm text-primary mb-4 block tracking-widest uppercase">Chapter 04</span>
+<h1 class="font-display-lg-mobile text-display-lg-mobile md:font-display-lg md:text-display-lg text-primary-fixed mb-4">Hardware Failure</h1>
+<p class="font-body-md text-body-md text-on-surface-variant max-w-xl">An engineering report on the collapse of biological impulse control systems, documented post-hypoxia.</p>
+</div>
+<!-- Hardware Error Log Widget -->
+<div class="glass-panel bg-surface-container/40 p-4 rounded-lg border border-error/20 min-w-[240px]">
+<div class="font-technical-sm text-technical-sm text-error flex items-center gap-2 mb-3 border-b border-error/10 pb-2">
+<span class="material-symbols-outlined text-[16px]">terminal</span>
+                            SYS_DIAGNOSTIC_ERR
+                        </div>
+<ul class="font-technical-sm text-technical-sm space-y-2 text-on-surface-variant">
+<li class="flex justify-between items-center"><span class="text-on-surface">ANXIETY</span> <span class="text-error">CRITICAL</span></li>
+<li class="flex justify-between items-center"><span class="text-on-surface">RECALL</span> <span class="text-outline-variant">DEVASTATED</span></li>
+<li class="flex justify-between items-center"><span class="text-on-surface">IMPULSE (PFC)</span> <span class="text-primary-container">REDUCED</span></li>
+</ul>
+</div>
+</header>
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-12">
+<!-- Main Prose -->
+<div class="lg:col-span-8 editorial-margin">
+<div class="prose prose-invert max-w-none">
+<p class="font-body-lg text-body-lg text-on-surface leading-relaxed mb-6 first-letter:text-5xl first-letter:font-display-lg first-letter:text-primary first-letter:float-left first-letter:mr-3 first-letter:mt-2">
+                                I woke up drenched in piss. Not the cold, ignorable damp of a spilled drink, but the heavy, sour saturation of total system failure. The hospital bed sheets clung to my legs, adhering the cotton of my pajama bottoms to my skin like wet papier-mâché. 
+                            </p>
+<p class="font-body-md text-body-md text-on-surface-variant leading-relaxed mb-6">
+                                They were sitting on either side of the bed. My parents. Flanking me like stone gargoyles guarding a ruin. Neither of them would look at me directly; their gazes were fixed on middle distances—the humming vital signs monitor, the beige linoleum, anywhere but the epicenter of the collapse. The silence in the room wasn't peaceful; it was the vacuum left behind after an implosion.
+                            </p>
+<div class="my-12 glass-panel bg-surface-container-high/30 p-6 rounded-lg border-l-4 border-l-primary-container">
+<h3 class="font-label-caps text-label-caps text-primary mb-3 flex items-center gap-2">
+<span class="material-symbols-outlined text-sm">memory</span>
+                                    The Unreliable Narrator Protocol
+                                </h3>
+<p class="font-body-md text-body-md text-on-surface-variant mb-4">
+                                    This is the exact moment I realized my mind was no longer a secure database. I cannot trust my own logging mechanisms. 
+                                </p>
+<div class="bg-surface-container-lowest p-4 rounded font-technical-sm text-technical-sm text-on-surface/80">
+<p class="mb-2"><span class="text-outline">Querying Clinical Records...</span></p>
+<p class="text-error/80 mb-1">&gt; CONFLICT DETECTED: EVENT TIMESTAMP</p>
+<p class="pl-4 border-l border-white/10">&gt; Record A indicates: Summer 2020</p>
+<p class="pl-4 border-l border-white/10">&gt; Record B indicates: Oct 2021</p>
+<p class="mt-2 text-primary-container">&gt; Resolution: FAILED. The memory failure itself is the only verified artifact.</p>
+</div>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant leading-relaxed mb-6">
+                                The doctors called it a hypoxia event. A dangerous cocktail of Xanax and Ambien that effectively unplugged the mainframes. But that's a clinical euphemism. It wasn't a tragedy; it was a predictable outcome of corrupted hardware. I was overclocking a broken machine, feeding it chemical suppression until the operating system panicked and shut down to protect the core. 
+                            </p>
+<p class="font-body-md text-body-md text-on-surface-variant leading-relaxed mb-6">
+                                The prefrontal cortex—the biological governance module responsible for impulse control—doesn't just pause during active addiction; it degrades. It sustains structural damage. 
+                            </p>
+</div>
+</div>
+<!-- Sidebar Visualizations & Artifacts -->
+<div class="lg:col-span-4 space-y-8">
+<!-- Forensic Artifact Card -->
+<div class="glass-panel bg-surface-container-low/50 rounded-xl overflow-hidden border border-white/10">
+<div class="relative h-48 bg-surface-container-highest">
+<img alt="Fabric Texture" class="w-full h-full object-cover mix-blend-luminosity opacity-40" data-alt="A close-up, dimly lit shot of dark, worn cotton fabric, resembling stained pajama bottoms, highly textured, clinical forensic photography style, dark editorial aesthetic with deep shadows and minimal warm amber highlights." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDbgJzwM7Hz0Envyeh74S6Oh3yl48P2bnEgSg8F_EaRKhcm8NWjVpJceKzfp9J6Yq23EMqpZjEMJoZ_v6PHRPJyxZeLpQf3joXC7ahrs8VBwu_0_XWSVZ7SfRCG2fAmhPvLh1Vl6QkHnPThhBY1_B3w_Ohd5otqLQqHSd7poe8UwKJPzbU-KrT3WzZdqWC4uulf_U1bmbw3vhwBVQwY3h9YV_fA5_JjWxllizAg3l-EXs2xE0JteTarXMzgal2qOOoang5qhk3_Fuqp"/>
+<div class="absolute inset-0 bg-gradient-to-t from-surface-container-low to-transparent"></div>
+<div class="absolute bottom-3 right-3 bg-error/20 text-error font-technical-sm text-[10px] px-2 py-1 rounded border border-error/30 backdrop-blur-sm">
+                                    EVIDENCE ID: 89-B
+                                </div>
+</div>
+<div class="p-5">
+<h4 class="font-headline-md text-[18px] text-primary mb-1">Forensic Artifact: Pajama Bottoms</h4>
+<p class="font-technical-sm text-technical-sm text-on-surface-variant opacity-80 mb-3">Status: Preserved in current inventory.</p>
+<p class="font-body-md text-[14px] text-on-surface leading-snug">
+                                    Physical evidence of the system crash. Kept not out of sentimentality, but as a hardcoded reminder of the physical cost of software failure.
+                                </p>
+</div>
+</div>
+<!-- Recursive Trap Visualization -->
+<div class="glass-panel bg-surface-container/60 rounded-xl p-6 border border-white/5">
+<h4 class="font-label-caps text-label-caps text-primary mb-6 flex items-center gap-2">
+<span class="material-symbols-outlined text-sm">all_inclusive</span>
+                                The Recursive Trap
+                            </h4>
+<div class="relative flex flex-col items-center gap-4">
+<!-- Top Node -->
+<div class="w-full bg-surface-bright/40 p-3 rounded border border-outline-variant text-center relative z-10">
+<span class="font-technical-sm text-technical-sm text-on-surface block">Substance Consumption</span>
+<span class="font-technical-sm text-[10px] text-on-surface-variant">(Xanax + Ambien)</span>
+</div>
+<!-- Down Arrow -->
+<div class="h-8 w-px bg-gradient-to-b from-outline-variant to-error/50"></div>
+<!-- Bottom Node -->
+<div class="w-full bg-error/10 p-3 rounded border border-error/30 text-center relative z-10">
+<span class="font-technical-sm text-technical-sm text-error block">PFC Damage</span>
+<span class="font-technical-sm text-[10px] text-error/70">(Reduced Impulse Control)</span>
+</div>
+<!-- Feedback Loop Line (SVG) -->
+<svg class="absolute top-0 left-0 w-full h-full pointer-events-none opacity-50" style="z-index: 0;">
+<path class="text-error" d="M 20 20 C -20 20, -20 120, 20 120" fill="none" stroke="currentColor" stroke-dasharray="4 4" stroke-width="1"></path>
+<path class="text-error" d="M 20 20 L 25 15 M 20 20 L 25 25" fill="none" stroke="currentColor" stroke-width="1"></path>
+</svg>
+</div>
+<p class="font-body-md text-[13px] text-on-surface-variant mt-6 text-center">
+                                Structural degradation of governance modules exponentially increases dependency reliance. Escape mathematically improbable without external hard-reset.
+                            </p>
+</div>
+</div>
+</div>
+</article>
+</main>
+<!-- BottomNavBar (Mobile Only) -->
+<nav class="md:hidden fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-8 pb-8 pt-4 bg-surface-container/90 backdrop-blur-md rounded-t-xl shadow-[0_-10px_30px_rgba(0,0,0,0.5)] border-t border-white/5">
+<a class="flex flex-col items-center justify-center text-primary bg-primary/10 rounded-full px-6 py-2 shadow-[0_0_15px_rgba(255,191,0,0.3)] transition-transform duration-500 perspective-1000 active:rotate-x-12" href="#">
+<span class="material-symbols-outlined mb-1">theater_comedy</span>
+<span class="font-technical-sm text-technical-sm">Villains</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant opacity-60 hover:opacity-100 hover:text-primary transition-opacity" href="#">
+<span class="material-symbols-outlined mb-1">history_toggle_off</span>
+<span class="font-technical-sm text-technical-sm">Timeline</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant opacity-60 hover:opacity-100 hover:text-primary transition-opacity" href="#">
+<span class="material-symbols-outlined mb-1">verified</span>
+<span class="font-technical-sm text-technical-sm">Virtues</span>
+</a>
+</nav>
+</div>
+</body></html>

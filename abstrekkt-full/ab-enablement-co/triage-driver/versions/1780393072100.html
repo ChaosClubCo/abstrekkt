@@ -1,0 +1,720 @@
+<!doctype html>
+<script type="application/json" id="cowork-artifact-meta">
+{
+  "name": "Triage Driver",
+  "schemaVersion": 1,
+  "description": "Interactive driver for the Chat Extraction Kit triage output. Reads triage.json (3,540 ranked chats) from disk via Desktop Commander, auto-detects lane (Personal/INTINC/Freelance/Kinsley/Skip/Unknown) by content keyword heuristic, cross-flags already-packaged chats from extracted-packages/INDEX.md, persists your tags + decisions in localStorage, and emits single-chat extraction prompts to chat via sendPrompt. Filters: lane, mode, score, decision, unfinished-only, hide packaged. One row, one Send button — no batch overload.",
+  "mcpTools": [
+    "mcp__Desktop_Commander__read_file"
+  ],
+  "mcpServerNames": [
+    "Desktop_Commander"
+  ]
+}
+</script>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Triage Driver — Chat Extraction Kit</title>
+<style>
+  :root {
+    color-scheme: light;
+    --bg: #ffffff;
+    --surface: #f7f7f8;
+    --surface-2: #eef0f3;
+    --border: #d8dbe0;
+    --text: #1a1d22;
+    --text-soft: #5a6270;
+    --text-mute: #8a92a0;
+    --accent: #2563eb;
+    --accent-soft: #dbeafe;
+    --warn: #b45309;
+    --warn-soft: #fef3c7;
+    --bad: #b91c1c;
+    --bad-soft: #fee2e2;
+    --good: #047857;
+    --good-soft: #d1fae5;
+    --lane-personal: #6d28d9;
+    --lane-intinc: #1d4ed8;
+    --lane-freelance: #0e7490;
+    --lane-kinsley: #9d174d;
+    --lane-skip: #6b7280;
+    --lane-unknown: #92400e;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); font: 14px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif; }
+  header { position: sticky; top: 0; z-index: 20; background: var(--bg); border-bottom: 1px solid var(--border); padding: 10px 14px; }
+  h1 { font-size: 14px; margin: 0; font-weight: 600; display: inline-block; }
+  h1 .sub { color: var(--text-soft); font-weight: 400; margin-left: 8px; font-size: 12px; }
+  .status { float: right; color: var(--text-soft); font-size: 12px; padding-top: 2px; }
+  .toolbar { display: flex; flex-wrap: wrap; gap: 8px; padding: 10px 14px; border-bottom: 1px solid var(--border); background: var(--surface); align-items: center; }
+  .toolbar > * { font-size: 12px; }
+  .toolbar label { color: var(--text-soft); margin-right: 4px; }
+  select, input[type="text"], input[type="number"], button { font: inherit; font-size: 12px; padding: 4px 8px; border: 1px solid var(--border); background: white; color: var(--text); border-radius: 4px; }
+  button { cursor: pointer; background: white; }
+  button:hover { background: var(--surface-2); }
+  button.primary { background: var(--accent); color: white; border-color: var(--accent); }
+  button.primary:hover { background: #1e40af; }
+  button.warn { background: var(--warn-soft); border-color: #fde68a; }
+  button.bad  { background: var(--bad-soft); border-color: #fca5a5; }
+  button.good { background: var(--good-soft); border-color: #6ee7b7; }
+  .stats { padding: 6px 14px; background: var(--surface-2); border-bottom: 1px solid var(--border); display: flex; gap: 14px; font-size: 12px; color: var(--text-soft); flex-wrap: wrap; }
+  .stats strong { color: var(--text); }
+  .stats .pill { background: white; border: 1px solid var(--border); border-radius: 12px; padding: 1px 8px; }
+  table { width: 100%; border-collapse: collapse; }
+  thead th { position: sticky; top: 0; background: var(--surface); border-bottom: 1px solid var(--border); padding: 6px 8px; text-align: left; font-weight: 600; color: var(--text-soft); font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; cursor: pointer; user-select: none; }
+  thead th.sortable:hover { background: var(--surface-2); }
+  thead th .arrow { color: var(--accent); margin-left: 2px; }
+  tbody td { border-bottom: 1px solid var(--surface-2); padding: 5px 8px; vertical-align: top; }
+  tbody tr:hover { background: var(--surface); }
+  tbody tr.packaged { background: rgba(180, 83, 9, 0.04); }
+  tbody tr.packaged td:first-child { box-shadow: inset 3px 0 0 var(--warn); }
+  tbody tr.done { opacity: 0.55; }
+  .score-cell { font-variant-numeric: tabular-nums; font-weight: 600; }
+  .score-cell.hi { color: var(--good); }
+  .score-cell.mid { color: var(--accent); }
+  .title-cell { font-weight: 500; }
+  .title-cell .meta { color: var(--text-mute); font-size: 11px; display: block; margin-top: 1px; font-weight: 400; }
+  .flag { display: inline-block; padding: 0 5px; margin-right: 3px; border-radius: 3px; background: var(--warn-soft); color: var(--warn); font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em; }
+  .flag.dup { background: var(--surface-2); color: var(--text-soft); }
+  .flag.pkg { background: var(--bad-soft); color: var(--bad); }
+  .lane-cell select { width: 100%; padding: 2px 4px; }
+  .lane-badge { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 4px; vertical-align: middle; }
+  .lane-personal { background: var(--lane-personal); }
+  .lane-intinc { background: var(--lane-intinc); }
+  .lane-freelance { background: var(--lane-freelance); }
+  .lane-kinsley { background: var(--lane-kinsley); }
+  .lane-skip { background: var(--lane-skip); }
+  .lane-unknown { background: var(--lane-unknown); }
+  .auto-mark { font-size: 9px; color: var(--text-mute); margin-left: 3px; }
+  .decision-cell { white-space: nowrap; }
+  .decision-cell button { padding: 2px 6px; margin-right: 2px; font-size: 11px; }
+  .decision-cell button.active { background: var(--accent); color: white; border-color: var(--accent); }
+  .actions-cell button { padding: 2px 6px; font-size: 11px; margin-right: 2px; }
+  .expand { background: var(--surface); border-top: 1px solid var(--border); }
+  .expand td { padding: 10px 14px; }
+  .expand .components { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; margin: 8px 0; }
+  .expand .comp { background: white; border: 1px solid var(--border); border-radius: 4px; padding: 6px; }
+  .expand .comp .label { color: var(--text-mute); font-size: 10px; text-transform: uppercase; }
+  .expand .comp .bar { height: 4px; background: var(--surface-2); border-radius: 2px; margin-top: 3px; overflow: hidden; }
+  .expand .comp .bar i { display: block; height: 100%; background: var(--accent); }
+  .expand .comp .val { font-size: 12px; font-variant-numeric: tabular-nums; }
+  .expand .path { font-family: ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size: 11px; color: var(--text-soft); margin-top: 6px; word-break: break-all; }
+  .expand .preview { background: white; border: 1px solid var(--border); padding: 8px; margin-top: 8px; max-height: 240px; overflow: auto; font-family: ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size: 11px; white-space: pre-wrap; }
+  .empty { padding: 40px; text-align: center; color: var(--text-mute); }
+  .err { background: var(--bad-soft); color: var(--bad); padding: 8px 14px; border-bottom: 1px solid #fca5a5; font-size: 12px; }
+  .info { background: var(--accent-soft); color: #1e40af; padding: 8px 14px; border-bottom: 1px solid #93c5fd; font-size: 12px; }
+  .info button, .err button { margin-left: 8px; }
+  .note { width: 100%; min-height: 50px; font: inherit; font-size: 11px; padding: 4px; border: 1px solid var(--border); border-radius: 3px; }
+  .small { font-size: 11px; color: var(--text-soft); }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Triage Driver <span class="sub">Chat Extraction Kit — interactive shortlist over <span id="totalCount">…</span> chats</span></h1>
+  <div class="status" id="status">initializing…</div>
+</header>
+
+<div id="banner"></div>
+
+<div class="toolbar">
+  <label>Lane</label>
+  <select id="filterLane">
+    <option value="">All lanes</option>
+    <option value="personal">Personal</option>
+    <option value="intinc">INTINC</option>
+    <option value="freelance">Freelance</option>
+    <option value="kinsley">Kinsley</option>
+    <option value="skip">Skip</option>
+    <option value="unknown">Unknown</option>
+  </select>
+
+  <label>Mode</label>
+  <select id="filterMode">
+    <option value="">All modes</option>
+    <option value="CODEKIT">CODEKIT</option>
+    <option value="ZIP_SPEC">ZIP_SPEC</option>
+    <option value="DOCS_ONLY">DOCS_ONLY</option>
+    <option value="PROMPTS_ONLY">PROMPTS_ONLY</option>
+  </select>
+
+  <label>Min score</label>
+  <input type="number" id="filterScore" value="75" min="0" max="100" step="1" style="width:55px" />
+
+  <label>Decision</label>
+  <select id="filterDecision">
+    <option value="">Any decision</option>
+    <option value="none">Untagged</option>
+    <option value="extract">Extract</option>
+    <option value="skip">Skip</option>
+    <option value="defer">Defer</option>
+    <option value="done">Done</option>
+  </select>
+
+  <label><input type="checkbox" id="filterUnfinished" /> Unfinished only</label>
+  <label><input type="checkbox" id="filterRep" checked /> Reps only (hide dups)</label>
+  <label><input type="checkbox" id="filterHidePkg" /> Hide already-packaged</label>
+
+  <input type="text" id="filterSearch" placeholder="Search title…" style="flex:1;min-width:140px" />
+
+  <button id="refreshBtn" title="Reload triage.json from disk via Desktop Commander">↻ Refresh data</button>
+  <button id="exportBtn" title="Copy current filtered view as JSON">⎘ Export filtered</button>
+  <button id="resetBtn" class="warn" title="Clear all your tags + decisions">⚠ Reset state</button>
+</div>
+
+<div class="stats" id="stats"></div>
+
+<table id="grid">
+  <thead>
+    <tr>
+      <th class="sortable" data-sort="score" style="width:60px">Score</th>
+      <th style="width:34%">Title</th>
+      <th style="width:50px">Msgs</th>
+      <th style="width:90px">Mode</th>
+      <th style="width:140px">Flags</th>
+      <th style="width:140px">Lane</th>
+      <th style="width:200px">Decision</th>
+      <th style="width:120px">Actions</th>
+    </tr>
+  </thead>
+  <tbody id="tbody"></tbody>
+</table>
+
+<script>
+"use strict";
+
+// ─── Paths and config ──────────────────────────────────────────────────────
+const TRIAGE_PATH  = "E:\\claude-chat-extraction-kit-v2\\data-8fb47a09-919b-43db-bf8f-513a2818df50-1779424005-59ea6cb3-batch-0001\\triage.json";
+const CHAT_ROOT    = "E:\\claude-chat-extraction-kit-v2\\data-8fb47a09-919b-43db-bf8f-513a2818df50-1779424005-59ea6cb3-batch-0001\\";
+const STATE_KEY    = "triage-driver-v1";
+
+// ─── Already-packaged source-chat allowlist (from extracted-packages/INDEX.md)
+const PACKAGED_TITLES = [
+  "clarifying deliverables for zip generation",
+  "elite full stack ai forward architecture audit and charter",
+  "flashfusion development next steps",
+  "prompt replication engine implementation",
+  "agentic ai vendors list",
+  "enterprise claude setup profile builder",
+  "system prompt audit and expansion roadmap",
+  "int inc enterprise claude implementation and audit",
+  "enterprise ai transformation master prompt system",
+  "intinc engagement platform landing page and dashboard",
+  "comprehensive prompt library for 15 year context engineer",
+  "staff engineer system instructions v4.1",
+  "staff engineer system instructions",
+  "optimizing", // partial — gemini-custom-instructions-kit (1 of 3)
+  "gemini custom instruction strategies",
+  "crafting effective", // partial — gemini-custom-instructions-kit (3 of 3)
+  "custom skills planning for company",
+  "production grade flashfusion architecture on vercel and supabase",
+  "portfolio consolidation and source of truth monorepo setup",
+  "universal ai app generator",
+  "building a production grade ai prompt engineering platform",
+  "ai co founder strategy for firebase studio app development",
+  "flutterflow marketplace app development guide",
+  "v0 app development discipline and lint stack setup",
+  "v0.app development discipline and lint stack setup",
+  "project evaluation framework for buildathon submissions",
+  "secure flask oauth application with pkce",
+  "production ready ui design prompts library",
+  "production grade ui prompt pack with design tokens",
+];
+
+// ─── Lane heuristic (title-based, fast first-pass) ─────────────────────────
+const LANE_KEYWORDS = {
+  intinc: [
+    "int inc","intinc","kixie","msm","freshservice","kaseya","bitdefender",
+    "bitwarden","service desk","csr role","daniel bell","prompt newsletter",
+    "soc 2","soc2","iso 27001","internal tooling","helpdesk","ticketing",
+    "onboarding review","sales team transition","onboarding",
+  ],
+  kinsley: [
+    "kinsley","child","kid","family","school schedule","parenting","kids app",
+    "family app","sacred journeys",
+  ],
+  freelance: [
+    "client","customization service","freelance","per client","contract work",
+    "consult",
+  ],
+  personal: [
+    "flashfusion","flash fusion","chaosclub","chaos club","ff agent",
+    "agent control center","kit","extract","deliverable","zip","package",
+    "skill","prompt replication","cowork","claude skills","mcp",
+  ],
+};
+
+function laneHeuristic(text) {
+  const t = (text || "").toLowerCase();
+  const scores = { personal: 0, intinc: 0, freelance: 0, kinsley: 0 };
+  for (const lane in LANE_KEYWORDS) {
+    for (const kw of LANE_KEYWORDS[lane]) {
+      if (t.includes(kw)) scores[lane] += 1;
+    }
+  }
+  // Higher specificity wins; INTINC and Kinsley keywords are more specific
+  // than PERSONAL kit-domain keywords, so weight them.
+  scores.intinc *= 2;
+  scores.kinsley *= 2;
+  scores.freelance *= 2;
+  let best = "unknown", bestScore = 0;
+  for (const k in scores) if (scores[k] > bestScore) { best = k; bestScore = scores[k]; }
+  return bestScore === 0 ? "unknown" : best;
+}
+
+function normTitle(s) {
+  return (s || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+}
+
+function isPackaged(title) {
+  const t = normTitle(title);
+  if (!t) return false;
+  return PACKAGED_TITLES.some(p => {
+    const np = normTitle(p);
+    return t === np || t.includes(np) || np.includes(t);
+  });
+}
+
+// ─── State (localStorage) ──────────────────────────────────────────────────
+let STATE = (() => {
+  try { return JSON.parse(localStorage.getItem(STATE_KEY) || "{}"); }
+  catch { return {}; }
+})();
+function saveState() { localStorage.setItem(STATE_KEY, JSON.stringify(STATE)); }
+function rowState(uuid) { return STATE[uuid] = STATE[uuid] || {}; }
+
+// ─── Embedded fallback data (top 80 by score) ──────────────────────────────
+// Used if MCP refresh hasn't run yet. Sourced from your verified PowerShell
+// dump of TRIAGE.md plus the schema confirmed via triage.json record #0.
+const EMBEDDED = [/*__EMBEDDED_PLACEHOLDER__*/];
+
+// ─── Data ──────────────────────────────────────────────────────────────────
+let CHATS = [];   // full dataset
+let SORT  = { col: "score", dir: "desc" };
+let EXPANDED = new Set();
+
+function setStatus(msg, cls) {
+  const s = document.getElementById("status");
+  s.textContent = msg;
+  s.style.color = cls === "err" ? "var(--bad)" : cls === "ok" ? "var(--good)" : "";
+}
+
+function setBanner(html, cls) {
+  const b = document.getElementById("banner");
+  b.innerHTML = html ? `<div class="${cls || 'info'}">${html}</div>` : "";
+}
+
+async function loadFromDisk() {
+  if (!window.cowork || !window.cowork.callMcpTool) {
+    setBanner("Cowork MCP bridge not available — using embedded top-80 only. Click ↻ when bridge loads.", "err");
+    return false;
+  }
+  setStatus("loading from disk…");
+  try {
+    const r = await window.cowork.callMcpTool("mcp__Desktop_Commander__read_file", { path: TRIAGE_PATH });
+    // Envelope shape varies; try common keys.
+    let txt = r && (r.content || r.text || (r.result && r.result.content) || r);
+    if (typeof txt === "object" && txt !== null && txt.content) txt = txt.content;
+    if (typeof txt !== "string") txt = JSON.stringify(txt);
+    // Desktop Commander often wraps the file body in a JSON envelope with a
+    // "content" field that itself contains "[Reading … lines …]\n\n<json>".
+    // Strip the optional preamble before parsing.
+    const m = txt.match(/^\[Reading[^\]]+\]\s*([\s\S]+)$/);
+    if (m) txt = m[1];
+    const data = JSON.parse(txt);
+    if (!Array.isArray(data)) throw new Error("triage.json is not an array");
+    CHATS = data;
+    setStatus(`loaded ${CHATS.length} chats from disk`, "ok");
+    setBanner("");
+    return true;
+  } catch (e) {
+    setStatus("disk load failed", "err");
+    setBanner(`Disk load failed: <code>${String(e).slice(0, 200)}</code>. Using embedded fallback. <button onclick="loadFromDisk().then(render)">Retry</button>`, "err");
+    return false;
+  }
+}
+
+function applyLane(chat) {
+  const st = rowState(chat.uuid);
+  if (st.lane) { chat._lane = st.lane; chat._laneSource = "user"; return; }
+  chat._lane = laneHeuristic(chat.title);
+  chat._laneSource = "auto";
+}
+
+function flagPackaged(chat) {
+  chat._packaged = isPackaged(chat.title);
+}
+
+function preprocess() {
+  document.getElementById("totalCount").textContent = CHATS.length;
+  for (const c of CHATS) { applyLane(c); flagPackaged(c); }
+}
+
+// ─── Filtering ────────────────────────────────────────────────────────────
+function getFilters() {
+  return {
+    lane: document.getElementById("filterLane").value,
+    mode: document.getElementById("filterMode").value,
+    minScore: parseFloat(document.getElementById("filterScore").value) || 0,
+    decision: document.getElementById("filterDecision").value,
+    unfinished: document.getElementById("filterUnfinished").checked,
+    repsOnly: document.getElementById("filterRep").checked,
+    hidePkg: document.getElementById("filterHidePkg").checked,
+    search: document.getElementById("filterSearch").value.toLowerCase().trim(),
+  };
+}
+
+function filterChats(chats, f) {
+  return chats.filter(c => {
+    if (c.score < f.minScore) return false;
+    if (f.mode && c.mode !== f.mode) return false;
+    if (f.unfinished && !(c.flags || []).some(x => x === "unfinished-build" || x === "asks-to-continue" || x === "truncated")) return false;
+    if (f.repsOnly && c.is_representative === false) return false;
+    if (f.hidePkg && c._packaged) return false;
+    if (f.lane && c._lane !== f.lane) return false;
+    if (f.decision) {
+      const d = (rowState(c.uuid).decision || "none");
+      if (d !== f.decision) return false;
+    }
+    if (f.search && !(c.title || "").toLowerCase().includes(f.search)) return false;
+    return true;
+  });
+}
+
+function sortChats(chats) {
+  const dir = SORT.dir === "asc" ? 1 : -1;
+  return chats.slice().sort((a, b) => {
+    const av = a[SORT.col], bv = b[SORT.col];
+    if (av == null) return 1; if (bv == null) return -1;
+    return (av > bv ? 1 : av < bv ? -1 : 0) * dir;
+  });
+}
+
+// ─── Stats strip ───────────────────────────────────────────────────────────
+function renderStats(visible) {
+  const byLane = { personal:0, intinc:0, freelance:0, kinsley:0, skip:0, unknown:0 };
+  const byDec  = { none:0, extract:0, skip:0, defer:0, done:0 };
+  let pkg = 0;
+  for (const c of visible) {
+    byLane[c._lane] = (byLane[c._lane] || 0) + 1;
+    const d = rowState(c.uuid).decision || "none";
+    byDec[d] = (byDec[d] || 0) + 1;
+    if (c._packaged) pkg++;
+  }
+  const total = CHATS.length;
+  document.getElementById("stats").innerHTML = `
+    <span><strong>${visible.length}</strong> of ${total} visible</span>
+    <span class="pill">extract: <strong>${byDec.extract}</strong></span>
+    <span class="pill">skip: <strong>${byDec.skip}</strong></span>
+    <span class="pill">defer: <strong>${byDec.defer}</strong></span>
+    <span class="pill">done: <strong>${byDec.done}</strong></span>
+    <span class="pill">untagged: <strong>${byDec.none}</strong></span>
+    <span class="pill" style="border-color:var(--warn);color:var(--warn)">already packaged: <strong>${pkg}</strong></span>
+    <span style="color:var(--text-mute)">•</span>
+    <span><span class="lane-badge lane-personal"></span>Personal ${byLane.personal||0}</span>
+    <span><span class="lane-badge lane-intinc"></span>INTINC ${byLane.intinc||0}</span>
+    <span><span class="lane-badge lane-freelance"></span>Freelance ${byLane.freelance||0}</span>
+    <span><span class="lane-badge lane-kinsley"></span>Kinsley ${byLane.kinsley||0}</span>
+    <span><span class="lane-badge lane-unknown"></span>Unknown ${byLane.unknown||0}</span>
+  `;
+}
+
+// ─── Row rendering ─────────────────────────────────────────────────────────
+function escapeHtml(s) {
+  return String(s || "").replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+}
+
+function renderRow(c) {
+  const st = rowState(c.uuid);
+  const dec = st.decision || "none";
+  const cls = ["row"];
+  if (c._packaged) cls.push("packaged");
+  if (dec === "done") cls.push("done");
+  const tr = document.createElement("tr");
+  tr.className = cls.join(" ");
+  tr.dataset.uuid = c.uuid;
+
+  const flagsHtml = (c.flags || []).map(f => {
+    if (f.startsWith("dup")) return `<span class="flag dup" title="${escapeHtml(f)}">dup</span>`;
+    return `<span class="flag">${escapeHtml(f.replace(/-/g, " "))}</span>`;
+  }).join("");
+  const pkgFlag = c._packaged ? `<span class="flag pkg" title="Already in extracted-packages/INDEX.md">PKG</span>` : "";
+
+  const scoreCls = c.score >= 90 ? "hi" : c.score >= 80 ? "mid" : "";
+  const laneSrcMark = c._laneSource === "user" ? "👤" : c._laneSource === "content" ? "✓" : "⚡";
+
+  tr.innerHTML = `
+    <td class="score-cell ${scoreCls}">${c.score?.toFixed?.(1) ?? c.score}</td>
+    <td class="title-cell">
+      ${escapeHtml(c.title || "(untitled)")}
+      <span class="meta">${escapeHtml(c.created || "")}${c.created ? " · " : ""}cluster ${c.cluster ?? "—"}</span>
+    </td>
+    <td>${c.msg_count ?? "—"}</td>
+    <td>${escapeHtml(c.mode || "")}</td>
+    <td>${pkgFlag}${flagsHtml}</td>
+    <td class="lane-cell">
+      <span class="lane-badge lane-${c._lane}"></span>
+      <select data-act="lane">
+        <option value="personal" ${c._lane==="personal"?"selected":""}>Personal</option>
+        <option value="intinc" ${c._lane==="intinc"?"selected":""}>INTINC</option>
+        <option value="freelance" ${c._lane==="freelance"?"selected":""}>Freelance</option>
+        <option value="kinsley" ${c._lane==="kinsley"?"selected":""}>Kinsley</option>
+        <option value="skip" ${c._lane==="skip"?"selected":""}>Skip</option>
+        <option value="unknown" ${c._lane==="unknown"?"selected":""}>Unknown</option>
+      </select>
+      <span class="auto-mark" title="${c._laneSource==='user'?'manual':c._laneSource==='content'?'content-verified':'title heuristic'}">${laneSrcMark}</span>
+    </td>
+    <td class="decision-cell">
+      <button data-act="dec" data-val="extract" class="${dec==='extract'?'active':''}">Extract</button>
+      <button data-act="dec" data-val="skip"    class="${dec==='skip'   ?'active':''}">Skip</button>
+      <button data-act="dec" data-val="defer"   class="${dec==='defer'  ?'active':''}">Defer</button>
+      <button data-act="dec" data-val="done"    class="${dec==='done'   ?'active':''}">Done</button>
+    </td>
+    <td class="actions-cell">
+      <button data-act="expand" title="Preview chat content + components">${EXPANDED.has(c.uuid)?"▼":"▶"}</button>
+      <button data-act="send" class="primary" title="Push extraction prompt for THIS chat to CC">Send →</button>
+    </td>
+  `;
+  return tr;
+}
+
+function renderExpand(c) {
+  const st = rowState(c.uuid);
+  const tr = document.createElement("tr");
+  tr.className = "expand";
+  tr.dataset.expandFor = c.uuid;
+  const comp = c.components || {};
+  const compsHtml = ["depth","code","artifacts","intent","filetree","unfinished","summary"]
+    .map(k => {
+      const v = comp[k] ?? 0;
+      const pct = Math.round((v || 0) * 100);
+      return `<div class="comp"><div class="label">${k}</div><div class="val">${v?.toFixed?.(2) ?? v}</div><div class="bar"><i style="width:${pct}%"></i></div></div>`;
+    }).join("");
+  tr.innerHTML = `
+    <td colspan="8">
+      <div class="components">${compsHtml}</div>
+      <div class="path">📄 ${escapeHtml(c.path || "")}</div>
+      <div style="margin-top:6px">
+        <button data-act="preview">Preview first 200 lines</button>
+        <button data-act="recheck-lane">Verify lane via content</button>
+        <span class="small" style="margin-left:8px">human: ${c.human_chars ?? 0} ch · assistant: ${c.assistant_chars ?? 0} ch · ${c.has_summary ? "has summary" : "no summary"}</span>
+      </div>
+      <div class="preview" id="prev-${c.uuid}" style="display:none"></div>
+      <div style="margin-top:8px"><label class="small">Note:</label>
+        <textarea class="note" data-act="note">${escapeHtml(st.note || "")}</textarea>
+      </div>
+    </td>
+  `;
+  return tr;
+}
+
+// ─── Render ────────────────────────────────────────────────────────────────
+function render() {
+  if (!CHATS.length) {
+    document.getElementById("tbody").innerHTML = `<tr><td colspan="8" class="empty">No data loaded yet.</td></tr>`;
+    return;
+  }
+  const f = getFilters();
+  const visible = sortChats(filterChats(CHATS, f));
+  renderStats(visible);
+  const tbody = document.getElementById("tbody");
+  tbody.innerHTML = "";
+  // cap render to first 500 to keep DOM snappy
+  const slice = visible.slice(0, 500);
+  for (const c of slice) {
+    tbody.appendChild(renderRow(c));
+    if (EXPANDED.has(c.uuid)) tbody.appendChild(renderExpand(c));
+  }
+  if (visible.length > 500) {
+    const note = document.createElement("tr");
+    note.innerHTML = `<td colspan="8" class="empty">Showing first 500 of ${visible.length} matches. Narrow your filters to see more.</td>`;
+    tbody.appendChild(note);
+  }
+}
+
+// ─── Actions ───────────────────────────────────────────────────────────────
+function findChat(uuid) { return CHATS.find(c => c.uuid === uuid); }
+
+function buildExtractPrompt(c) {
+  return [
+    `/extract-chat FULL ZIP_SPEC`,
+    ``,
+    `Source: ${c.path}`,
+    `Title: ${c.title}`,
+    `Score: ${c.score} | Mode: ${c.mode} | Msgs: ${c.msg_count} | Flags: ${(c.flags || []).join(", ") || "none"}`,
+    `Lane: ${c._lane}${c._laneSource === "user" ? " (manual)" : ""}`,
+    ``,
+    `Build a production-grade package under extracted-packages/, run the kit's`,
+    `Extractor → Critic → Builder → Packager pipeline, end with the CLAIMS CHECK`,
+    `contract (verified / inferred / unresolved / contradictions), and update`,
+    `extracted-packages/INDEX.md with a new row in the matching section.`,
+  ].join("\n");
+}
+
+async function previewChat(c, target) {
+  if (!window.cowork || !window.cowork.callMcpTool) {
+    target.style.display = "block";
+    target.textContent = "Cowork MCP bridge unavailable — preview disabled.";
+    return;
+  }
+  target.style.display = "block";
+  target.textContent = "loading…";
+  try {
+    const r = await window.cowork.callMcpTool("mcp__Desktop_Commander__read_file", {
+      path: CHAT_ROOT + (c.path || "").replace(/\//g, "\\"),
+      length: 200,
+    });
+    let txt = r && (r.content || r.text || (r.result && r.result.content) || r);
+    if (typeof txt === "object" && txt !== null && txt.content) txt = txt.content;
+    if (typeof txt !== "string") txt = JSON.stringify(txt);
+    target.textContent = txt.slice(0, 8000);
+  } catch (e) {
+    target.textContent = "preview failed: " + String(e).slice(0, 200);
+  }
+}
+
+async function recheckLane(c) {
+  if (!window.cowork || !window.cowork.callMcpTool) return;
+  try {
+    const r = await window.cowork.callMcpTool("mcp__Desktop_Commander__read_file", {
+      path: CHAT_ROOT + (c.path || "").replace(/\//g, "\\"),
+      length: 80,
+    });
+    let txt = r && (r.content || r.text || (r.result && r.result.content) || r);
+    if (typeof txt === "object" && txt !== null && txt.content) txt = txt.content;
+    const lane = laneHeuristic(String(txt) + " " + c.title);
+    const st = rowState(c.uuid);
+    if (st.lane) { /* user override wins, leave it */ }
+    else { c._lane = lane; c._laneSource = "content"; }
+    render();
+  } catch (e) { /* silent */ }
+}
+
+document.addEventListener("click", async (e) => {
+  const btn = e.target.closest("button[data-act], thead th[data-sort]");
+  if (!btn) return;
+  // sort
+  if (btn.tagName === "TH") {
+    const col = btn.dataset.sort;
+    if (SORT.col === col) SORT.dir = SORT.dir === "asc" ? "desc" : "asc";
+    else { SORT.col = col; SORT.dir = "desc"; }
+    render();
+    return;
+  }
+  const tr = btn.closest("tr");
+  const uuid = tr && tr.dataset.uuid;
+  const c = uuid && findChat(uuid);
+  const act = btn.dataset.act;
+  if (act === "dec" && c) {
+    const v = btn.dataset.val;
+    const st = rowState(c.uuid);
+    st.decision = (st.decision === v) ? null : v;
+    saveState();
+    render();
+  } else if (act === "expand" && c) {
+    if (EXPANDED.has(c.uuid)) EXPANDED.delete(c.uuid); else EXPANDED.add(c.uuid);
+    render();
+  } else if (act === "send" && c) {
+    if (!window.cowork || !window.cowork.sendPrompt) {
+      alert("Cowork sendPrompt unavailable — copy this manually:\n\n" + buildExtractPrompt(c));
+      return;
+    }
+    const prompt = buildExtractPrompt(c);
+    if (!confirm(`Send single extraction prompt to CC for:\n\n${c.title}\n\n(score ${c.score}, ${c.msg_count} msgs)`)) return;
+    window.cowork.sendPrompt(prompt);
+    const st = rowState(c.uuid);
+    st.sentAt = Date.now();
+    if (!st.decision) st.decision = "extract";
+    saveState();
+    render();
+  } else if (act === "preview" && c) {
+    const target = document.getElementById("prev-" + c.uuid);
+    if (target) previewChat(c, target);
+  } else if (act === "recheck-lane" && c) {
+    await recheckLane(c);
+  }
+});
+
+document.addEventListener("change", (e) => {
+  const t = e.target;
+  // filter inputs
+  if (t.closest(".toolbar")) { render(); return; }
+  // per-row inputs
+  const tr = t.closest("tr");
+  const uuid = tr && tr.dataset.uuid;
+  const c = uuid && findChat(uuid);
+  if (!c) {
+    // could be inside expand row
+    const ex = t.closest("tr.expand");
+    if (ex) {
+      const u = ex.dataset.expandFor;
+      const cc = findChat(u);
+      if (cc && t.dataset.act === "note") {
+        rowState(cc.uuid).note = t.value;
+        saveState();
+      }
+    }
+    return;
+  }
+  if (t.dataset.act === "lane") {
+    const st = rowState(c.uuid);
+    st.lane = t.value;
+    c._lane = t.value;
+    c._laneSource = "user";
+    saveState();
+    render();
+  }
+});
+
+document.getElementById("filterSearch").addEventListener("input", () => render());
+
+document.getElementById("refreshBtn").addEventListener("click", async () => {
+  const ok = await loadFromDisk();
+  if (ok) { preprocess(); render(); }
+});
+
+document.getElementById("exportBtn").addEventListener("click", () => {
+  const f = getFilters();
+  const visible = sortChats(filterChats(CHATS, f));
+  const out = visible.map(c => ({
+    score: c.score, title: c.title, mode: c.mode, msgs: c.msg_count,
+    lane: c._lane, packaged: c._packaged, decision: rowState(c.uuid).decision || null,
+    path: c.path, uuid: c.uuid, flags: c.flags,
+  }));
+  const text = JSON.stringify(out, null, 2);
+  navigator.clipboard?.writeText(text).then(
+    () => setStatus(`copied ${out.length} rows to clipboard`, "ok"),
+    () => alert(text.slice(0, 4000) + (text.length > 4000 ? "\n…truncated" : "")),
+  );
+});
+
+document.getElementById("resetBtn").addEventListener("click", () => {
+  if (!confirm("Clear ALL your tags and decisions? This cannot be undone.")) return;
+  STATE = {};
+  localStorage.removeItem(STATE_KEY);
+  for (const c of CHATS) { applyLane(c); }
+  render();
+});
+
+// ─── Boot ──────────────────────────────────────────────────────────────────
+(async () => {
+  // Try disk first; if MCP bridge isn't ready, fall back to embedded.
+  let loaded = false;
+  if (window.cowork && window.cowork.callMcpTool) loaded = await loadFromDisk();
+  if (!loaded && EMBEDDED.length) {
+    CHATS = EMBEDDED;
+    setStatus(`embedded fallback: ${CHATS.length} chats`, "");
+    setBanner("Showing embedded top-80 only. Click ↻ Refresh data to load all 3,540 from disk.", "info");
+  } else if (!loaded) {
+    setStatus("no data", "err");
+    setBanner(`Can't reach <code>${TRIAGE_PATH}</code>. Verify the path exists and Desktop Commander MCP is connected, then click <button onclick="(async()=>{ if(await loadFromDisk()){ preprocess(); render(); } })()">↻ Retry</button>`, "err");
+  }
+  preprocess();
+  render();
+})();
+</script>
+
+</body>
+</html>

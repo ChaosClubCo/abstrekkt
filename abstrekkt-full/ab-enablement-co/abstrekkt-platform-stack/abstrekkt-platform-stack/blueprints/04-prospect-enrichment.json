@@ -1,0 +1,129 @@
+{
+  "name": "04 — Prospect Enrichment",
+  "flow": [
+    {
+      "id": 1,
+      "module": "hubspot:WatchCRMObjects",
+      "version": 1,
+      "parameters": {
+        "objectType": "CONTACT",
+        "event": "CREATED",
+        "connection": "{{HUBSPOT_CONNECTION_ID}}"
+      },
+      "mapper": {},
+      "metadata": {
+        "designer": { "x": 0, "y": 0 },
+        "notes": "Fires on every new HubSpot contact. Use HubSpot connection from Make → Connections. Alternative: use a HubSpot workflow that POSTs to a Make webhook on contact creation — more reliable than polling."
+      }
+    },
+    {
+      "id": 2,
+      "module": "hubspot:GetCRMRecord",
+      "version": 1,
+      "parameters": {
+        "objectType": "CONTACT",
+        "connection": "{{HUBSPOT_CONNECTION_ID}}"
+      },
+      "mapper": {
+        "objectId": "{{1.objectId}}",
+        "properties": ["firstname", "lastname", "company", "email"]
+      },
+      "metadata": {
+        "designer": { "x": 200, "y": 0 },
+        "notes": "Fetch full contact record to get company name and person name for enrichment."
+      }
+    },
+    {
+      "id": 3,
+      "module": "http:ActionSendData",
+      "version": 3,
+      "parameters": { "handleErrors": true },
+      "mapper": {
+        "url": "https://api.parallel.ai/v1/entity-search",
+        "serializeUrl": false,
+        "method": "post",
+        "headers": [
+          { "name": "Authorization", "value": "Bearer {{PARALLEL_API_KEY}}" },
+          { "name": "Content-Type", "value": "application/json" }
+        ],
+        "body": "{\"query\": \"{{2.properties.company}} {{2.properties.firstname}} {{2.properties.lastname}}\"}",
+        "parseBody": true,
+        "timeout": 20
+      },
+      "metadata": {
+        "designer": { "x": 400, "y": 0 },
+        "notes": "Parallel Entity Search. Verify endpoint at docs.parallel.ai — may be GET with query param instead of POST."
+      }
+    },
+    {
+      "id": 4,
+      "module": "http:ActionSendData",
+      "version": 3,
+      "parameters": { "handleErrors": true },
+      "mapper": {
+        "url": "https://api.parallel.ai/v1/enrich",
+        "serializeUrl": false,
+        "method": "post",
+        "headers": [
+          { "name": "Authorization", "value": "Bearer {{PARALLEL_API_KEY}}" },
+          { "name": "Content-Type", "value": "application/json" }
+        ],
+        "body": "{\"company\": \"{{2.properties.company}}\", \"person\": {\"first_name\": \"{{2.properties.firstname}}\", \"last_name\": \"{{2.properties.lastname}}\"}, \"fields\": [\"funding_stage\", \"tech_stack\", \"recent_news\", \"employee_count\", \"linkedin_title\"]}",
+        "parseBody": true,
+        "timeout": 30
+      },
+      "metadata": {
+        "designer": { "x": 600, "y": 0 },
+        "notes": "Parallel Enrichment. Verify endpoint and request schema at docs.parallel.ai. May use Task API instead of a direct /enrich endpoint."
+      }
+    },
+    {
+      "id": 5,
+      "module": "hubspot:UpdateCRMRecord",
+      "version": 1,
+      "parameters": {
+        "objectType": "CONTACT",
+        "connection": "{{HUBSPOT_CONNECTION_ID}}"
+      },
+      "mapper": {
+        "objectId": "{{1.objectId}}",
+        "properties": {
+          "parallel_enriched_at": "{{formatDate(now, 'YYYY-MM-DDTHH:mm:ssZ')}}",
+          "parallel_tech_stack": "{{4.body.tech_stack}}",
+          "parallel_funding_stage": "{{4.body.funding_stage}}",
+          "parallel_recent_news": "{{4.body.recent_news}}",
+          "parallel_employee_count": "{{4.body.employee_count}}"
+        }
+      },
+      "metadata": {
+        "designer": { "x": 800, "y": 0 },
+        "notes": "BEFORE USING: create custom properties in HubSpot → Properties: parallel_enriched_at (datetime), parallel_tech_stack (text), parallel_funding_stage (text), parallel_recent_news (text), parallel_employee_count (number). Module name may differ — check available HubSpot modules in your Make org."
+      }
+    },
+    {
+      "id": 6,
+      "module": "flow:ErrorHandler",
+      "version": 1,
+      "parameters": {},
+      "mapper": {
+        "action": "IGNORE",
+        "message": "Enrichment failed for contact {{1.objectId}} — {{error.message}}"
+      },
+      "metadata": {
+        "designer": { "x": 1000, "y": 100 },
+        "notes": "Error handler — if Parallel enrichment fails (contact not found, API error), skip silently and log. Don't block the scenario for contacts that can't be enriched."
+      }
+    }
+  ],
+  "metadata": {
+    "instant": true,
+    "version": 1,
+    "scenario": {
+      "roundtrips": 1,
+      "maxErrors": 10,
+      "autoCommit": true,
+      "sequential": false
+    },
+    "_notes": "SETUP: PARALLEL_API_KEY, HUBSPOT_CONNECTION_ID (from Make → Connections after connecting HubSpot). Create 5 custom HubSpot properties before activating (see notes on step 5). LANE SEPARATION: This blueprint runs on ALL new contacts. If you need to restrict to FlashFusion-only contacts, add a filter after step 1 that checks a contact source field. Day-job contacts must never enter this enrichment pipeline."
+  }
+}

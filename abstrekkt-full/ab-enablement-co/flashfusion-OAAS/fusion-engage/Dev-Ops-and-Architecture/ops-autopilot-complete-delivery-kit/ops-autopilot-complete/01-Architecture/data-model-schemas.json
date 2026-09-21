@@ -1,0 +1,93 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Ops Autopilot Data Model Schemas",
+  "definitions": {
+    "RunStatus": { "type": "string", "enum": ["PENDING","RUNNING","WAITING_FOR_APPROVAL","COMPLETED","FAILED","PAUSED","CANCELLED"] },
+    "StepStatus": { "type": "string", "enum": ["PENDING","RUNNING","WAITING_FOR_APPROVAL","COMPLETED","FAILED","SKIPPED"] },
+    "ApprovalDecision": { "type": "string", "enum": ["APPROVED","DENIED","EXPIRED","ESCALATED"] },
+    "Run": {
+      "type": "object",
+      "required": ["id","customer_id","workflow_id","status","trigger","idempotency_key","started_at"],
+      "properties": {
+        "id": { "type": "string", "format": "uuid" },
+        "customer_id": { "type": "string", "format": "uuid" },
+        "workflow_id": { "type": "string" },
+        "status": { "$ref": "#/definitions/RunStatus" },
+        "trigger": { "type": "object", "required": ["type","source_id"], "properties": { "type": { "type": "string", "enum": ["teams_bot","slack","api","schedule"] }, "source_id": { "type": "string" } } },
+        "initiator_user_id": { "type": ["string","null"] },
+        "idempotency_key": { "type": "string", "minLength": 64, "maxLength": 64 },
+        "context": { "type": "object", "default": {} },
+        "metadata": { "type": "object", "default": {} },
+        "started_at": { "type": "string", "format": "date-time" },
+        "completed_at": { "type": ["string","null"], "format": "date-time" }
+      }
+    },
+    "Step": {
+      "type": "object",
+      "required": ["id","run_id","step_index","step_name","connector_type","connector_action","status"],
+      "properties": {
+        "id": { "type": "string", "format": "uuid" },
+        "run_id": { "type": "string", "format": "uuid" },
+        "step_index": { "type": "integer", "minimum": 0 },
+        "step_name": { "type": "string" },
+        "connector_type": { "type": "string", "enum": ["azure_ad","okta","jira","servicenow","slack","teams","email","custom"] },
+        "connector_action": { "type": "string" },
+        "status": { "$ref": "#/definitions/StepStatus" },
+        "input_params_hash": { "type": ["string","null"] },
+        "output": { "type": ["object","null"] },
+        "error": { "type": ["object","null"], "properties": { "code": {"type":"string"}, "message": {"type":"string"}, "retry_count": {"type":"integer"} } },
+        "execution_time_ms": { "type": ["integer","null"], "minimum": 0 },
+        "timeout_ms": { "type": "integer", "default": 30000 }
+      }
+    },
+    "Approval": {
+      "type": "object",
+      "required": ["id","run_id","step_id","approval_policy_id","requester_id","requested_at","context_snapshot","ttl_seconds","notification_channel"],
+      "properties": {
+        "id": { "type": "string", "format": "uuid" },
+        "run_id": { "type": "string", "format": "uuid" },
+        "step_id": { "type": "string", "format": "uuid" },
+        "approval_policy_id": { "type": "string", "format": "uuid" },
+        "requester_id": { "type": "string" },
+        "approver_id": { "type": ["string","null"] },
+        "decision": { "oneOf": [{"$ref":"#/definitions/ApprovalDecision"},{"type":"null"}] },
+        "decision_reason": { "type": ["string","null"] },
+        "context_snapshot": { "type": "object" },
+        "ttl_seconds": { "type": "integer", "minimum": 60, "maximum": 604800, "default": 3600 },
+        "notification_channel": { "type": "string", "enum": ["slack","teams","email"] }
+      }
+    },
+    "AuditLog": {
+      "type": "object",
+      "required": ["id","customer_id","timestamp","event_type","actor_id","actor_type","resource_type","resource_id","action","outcome","hmac_signature"],
+      "properties": {
+        "id": { "type": "string", "format": "uuid" },
+        "customer_id": { "type": "string", "format": "uuid" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "event_type": { "type": "string" },
+        "actor_id": { "type": "string" },
+        "actor_type": { "type": "string", "enum": ["user","system","service_account","int_support"] },
+        "resource_type": { "type": "string" },
+        "resource_id": { "type": "string", "format": "uuid" },
+        "action": { "type": "string" },
+        "change_delta": { "type": ["object","null"] },
+        "outcome": { "type": "string", "enum": ["success","failure","denied","timeout"] },
+        "hmac_signature": { "type": "string" },
+        "chain_hash": { "type": ["string","null"] }
+      }
+    },
+    "Policy": {
+      "type": "object",
+      "required": ["id","customer_id","policy_name","workflow_ids","rules","version"],
+      "properties": {
+        "id": { "type": "string", "format": "uuid" },
+        "customer_id": { "type": "string", "format": "uuid" },
+        "policy_name": { "type": "string" },
+        "workflow_ids": { "type": "array", "items": { "type": "string" } },
+        "rules": { "type": "array", "items": { "type": "object", "required": ["condition","action"], "properties": { "condition": {"type":"object"}, "action": {"type":"string","enum":["require_approval","auto_approve","deny","rate_limit"]}, "approval_chain": {"type":"array","items":{"type":"string"}}, "ttl_seconds": {"type":"integer"}, "rate_limit": {"type":"object"}, "fallback": {"type":"string","enum":["REQUIRE_APPROVAL","DENY"]} } } },
+        "version": { "type": "integer" },
+        "is_active": { "type": "boolean", "default": true }
+      }
+    }
+  }
+}

@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>The QA Loop Nobody Runs — Kyle Rosebrook</title>
+<meta name="description" content="AI moves fast enough that you can ship something broken before you notice. The QA loop for AI-generated code is different — you're not checking if it runs, you're checking if it's doing the right thing."/>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT,WONK@0,9..144,300..900,0..100,0..1;1,9..144,300..900,0..100,0..1&family=Crimson+Pro:ital,wght@0,300..600;1,300..600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --ink:           #0d0c0a;
+    --ink-deep:      #080705;
+    --bg:            #1a1a1d;
+    --bg-2:          #232328;
+    --bg-3:          #2c2c33;
+    --paper:         #e8e0cc;
+    --paper-dim:     #94907e;
+    --paper-faint:   #5e5b50;
+    --border:        #2e2e35;
+    --border-bright: #3d3d44;
+    --brass:         #C8A86A;
+    --brass-soft:    #d9bd87;
+    --brass-deep:    #8B7548;
+    --brass-bg:      rgba(200,168,106,0.07);
+    --gate:          #e6cd9a;
+    --oxblood:       #7a3838;
+    --rule:          #252520;
+    --measure:       640px;
+    --measure-wide:  1080px;
+  }
+
+  body {
+    background: radial-gradient(ellipse 70% 40% at 50% -10%, rgba(200,168,106,0.06), transparent 60%), var(--ink);
+    color: var(--paper);
+    font-family: 'Crimson Pro', Georgia, serif;
+    font-size: 1.2rem;
+    line-height: 1.78;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  body::after {
+    content: '';
+    position: fixed; inset: 0;
+    pointer-events: none; z-index: 2; opacity: 0.35;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.13 0 0 0 0 0.11 0 0 0 0 0.07 0 0 0 0.4 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  /* ── Nav ── */
+  #progress-bar{position:fixed;top:0;left:0;height:2px;width:0%;background:var(--brass);z-index:200;transition:width .1s linear;pointer-events:none;}
+  nav{position:sticky;top:0;z-index:100;background:rgba(13,12,10,0.92);backdrop-filter:blur(14px);border-bottom:1px solid var(--rule);}
+  .nav-inner{display:flex;justify-content:space-between;align-items:center;max-width:var(--measure-wide);margin:0 auto;padding:.9rem clamp(1.25rem,4vw,2rem);}
+  .nav-wordmark{font-family:'Fraunces',serif;font-variation-settings:'opsz' 24,'WONK' 1;font-weight:350;font-size:.9rem;color:var(--paper);text-decoration:none;letter-spacing:-.01em;}
+  .nav-wordmark em{font-style:italic;color:var(--brass);}
+  .nav-links{display:flex;gap:1.5rem;}
+  .nav-links a{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:500;letter-spacing:.16em;text-transform:uppercase;color:var(--paper-faint);text-decoration:none;transition:color .2s;}
+  .nav-links a:hover{color:var(--brass);}
+
+  /* ── Article ── */
+  .article-wrap { max-width: var(--measure); margin: 0 auto; padding: 4rem clamp(1.25rem,4vw,2rem) 6rem; }
+
+  .kicker {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px; font-weight: 500;
+    letter-spacing: 0.24em; text-transform: uppercase;
+    color: var(--brass); margin-bottom: 14px;
+    display: flex; align-items: center; gap: 1rem;
+  }
+  .kicker-rule { flex: 1; height: 1px; background: var(--brass-deep); opacity: 0.4; }
+
+  h1 {
+    font-family: 'Fraunces', serif;
+    font-size: clamp(2rem, 5vw, 2.8rem);
+    font-weight: 500; line-height: 1.1;
+    letter-spacing: -0.018em;
+    font-variation-settings: 'opsz' 72, 'SOFT' 20, 'WONK' 1;
+    color: var(--gate);
+    margin-bottom: 1.25rem;
+  }
+
+  .deck {
+    font-size: 1.2rem; line-height: 1.6;
+    color: var(--paper-dim); font-style: italic;
+    margin-bottom: 2rem;
+  }
+
+  .byline {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--paper-faint);
+    margin-bottom: 2.5rem;
+    display: flex; gap: 1rem; align-items: center;
+  }
+  .byline span { color: var(--brass); }
+
+  hr.section-rule {
+    border: none; border-top: 1px solid var(--rule);
+    margin: 2.5rem 0;
+  }
+
+  p { margin-bottom: 1.6rem; }
+  p:last-child { margin-bottom: 0; }
+
+  h2 {
+    font-family: 'Fraunces', serif;
+    font-size: 1.3rem; font-weight: 500;
+    line-height: 1.25; letter-spacing: -0.01em;
+    font-variation-settings: 'opsz' 36, 'SOFT' 10, 'WONK' 0;
+    color: var(--gate);
+    margin: 2.75rem 0 1rem;
+  }
+
+  .lede {
+    font-size: 1.3rem; line-height: 1.6;
+    color: var(--paper);
+    margin-bottom: 2rem;
+  }
+
+  blockquote {
+    border-left: 2px solid var(--brass-deep);
+    margin: 2rem 0;
+    padding: 0.75rem 0 0.75rem 1.5rem;
+    color: var(--brass);
+    font-style: italic;
+    font-size: 1.15rem;
+    line-height: 1.6;
+  }
+
+  .callout {
+    background: var(--bg-2);
+    border: 1px solid var(--border);
+    border-left: 2px solid var(--brass-deep);
+    padding: 1.25rem 1.5rem;
+    margin: 2rem 0;
+    font-size: 1.05rem;
+    color: var(--paper-dim);
+    line-height: 1.7;
+  }
+  .callout strong { color: var(--paper); }
+  .callout-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px; letter-spacing: 0.24em;
+    text-transform: uppercase; color: var(--brass);
+    margin-bottom: 0.5rem; display: block;
+  }
+
+  strong { color: var(--gate); font-weight: 600; }
+  em { font-style: italic; color: var(--paper-dim); }
+  a { color: var(--brass); text-decoration: none; border-bottom: 1px solid rgba(200,168,106,0.2); transition: border-color .2s; }
+  a:hover { border-bottom-color: rgba(200,168,106,0.6); }
+
+  /* ── Footer ── */
+  .essay-footer {
+    margin-top: 4rem;
+    padding-top: 2rem;
+    border-top: 1px solid var(--rule);
+  }
+  .footer-meta {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px; letter-spacing: 0.2em;
+    text-transform: uppercase; color: var(--paper-faint);
+    display: flex; justify-content: space-between;
+    margin-bottom: 1rem;
+  }
+  .footer-note {
+    font-size: 0.95rem; line-height: 1.6;
+    color: var(--paper-faint); font-style: italic;
+  }
+
+  .claims {
+    margin-top: 3rem;
+    padding: 1.25rem 1.5rem;
+    background: var(--bg-2);
+    border: 1px solid var(--border);
+    font-size: 0.85rem; line-height: 1.65;
+    color: var(--paper-faint);
+  }
+  .claims h4 {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px; letter-spacing: 0.24em;
+    text-transform: uppercase; color: var(--brass);
+    margin-bottom: 0.5rem;
+  }
+  .claims p { margin-bottom: 0.5rem; font-size: 0.85rem; color: var(--paper-faint); }
+  .sourced { color: var(--brass-deep); }
+  .generated { color: var(--paper-faint); font-style: italic; }
+</style>
+</head>
+<body>
+
+<div id="progress-bar"></div>
+<nav aria-label="Site navigation">
+  <div class="nav-inner">
+    <a href="https://kylerosebrook.com" class="nav-wordmark">Kyle <em>Rosebrook</em></a>
+    <div class="nav-links">
+      <a href="https://kylerosebrook.com/writing">Writing</a>
+      <a href="https://flashfusion.co" target="_blank" rel="noopener">FlashFusion</a>
+    </div>
+  </div>
+</nav>
+
+<div class="article-wrap">
+
+  <div class="kicker">
+    Load-Bearing
+    <span class="kicker-rule"></span>
+    Essay 04 of 08 · Foundation Series
+  </div>
+
+  <h1>The QA Loop Nobody Runs</h1>
+  <p class="deck">AI-generated code runs. That's not the same as it doing the right thing. The gap between those two statements is where production breaks.</p>
+
+  <div class="byline">
+    <span>Kyle Rosebrook</span> · <span>Load-Bearing · flashfusion.co</span>
+  </div>
+
+  <hr class="section-rule">
+
+  <p class="lede">The fastest I've ever shipped something broken was the month I started using AI to generate code.</p>
+
+  <p>It wasn't because the code was buggy. It ran. It passed lint. It passed my quick manual test. It did the thing the test covered, did it correctly, and I shipped it before I noticed that the thing the test covered wasn't the thing the production system needed.</p>
+
+  <p>That's the failure mode AI introduced that I didn't have a name for at the time: <strong>confident incorrectness</strong>. The code is correct. It's solving the wrong problem with professional accuracy.</p>
+
+  <h2>What the Old QA Loop Caught</h2>
+
+  <p>Before AI code generation, my QA loop was mostly about correctness at the syntax level. Does it run. Does the output match the expected value. Does it handle the null case. These are the things unit tests check, and the things you catch when you write the code yourself, because writing it forces you to think through the execution path.</p>
+
+  <p>That loop still works. It's just not sufficient anymore.</p>
+
+  <p>When I write code myself, I understand it in a way that reveals what it's not doing. When AI writes it, I understand what it's doing — which is different. The AI's code is usually well-structured, clearly commented, and follows patterns I recognize. It reads well. Reading it is not the same as reasoning about whether it maps correctly to the problem.</p>
+
+  <h2>The New Failure Mode</h2>
+
+  <p>I was building a data processing pipeline. It needed to handle three document types differently depending on a field value. I described this to the AI, got back code that handled three document types, ran it, and the output looked right.</p>
+
+  <p>The field value it was checking was the wrong field. Not wrong by much — close enough that my manual test, which used clean data with obvious values, passed. The edge case it missed was the one that appeared in real data: documents where the primary field was null and the secondary field held the routing value.</p>
+
+  <p>That's a domain knowledge gap. The AI doesn't know my data. It knows what I told it about my data, which is always an incomplete translation. The code was correct given the specification. The specification was incomplete.</p>
+
+  <blockquote>
+    AI doesn't have access to what you didn't say. Every missing constraint is a confident assumption.
+  </blockquote>
+
+  <h2>The QA Loop You Need Now</h2>
+
+  <p>The loop that caught me was:</p>
+
+  <div class="callout">
+    <span class="callout-label">The gap between "does it run" and "does it do the right thing"</span>
+    <p><strong>Does the logic match the domain?</strong> Not does the code match the spec — does the spec capture the domain correctly. These are different questions. The first is a code review. The second is a requirements review. You need both.</p>
+    <p><strong>What assumptions did the AI make that you didn't state?</strong> Paste your AI-generated code back to the AI and ask it to list every assumption it made that isn't in your prompt. You'll find at least one thing you forgot to specify.</p>
+    <p><strong>What does this do with bad data?</strong> Real data is dirty. Your test data isn't. Run the code against the messiest data you have before you ship.</p>
+    <p><strong>What's the failure mode?</strong> Not the error case — the wrong-but-no-error case. Where does this produce output that looks right but isn't?</p>
+  </div>
+
+  <p>None of this is new QA wisdom. It's old QA wisdom applied to a new failure surface. The surface is confidence. AI-generated code fails silently in a way that handwritten code often doesn't, because handwritten code carries the uncertainty of the person who wrote it. You can feel the edges. AI-generated code presents as complete.</p>
+
+  <h2>The Audit That Changes How You Use AI</h2>
+
+  <p>I started running a five-minute audit after every AI-generated block before merging:</p>
+
+  <p>What did I not tell the AI? What assumption is embedded in this code that I didn't specify? If this runs on real data instead of test data, what breaks silently?</p>
+
+  <p>The last question is the one that matters most. "Breaks silently" means: produces output without throwing an error, with output that looks plausible but is wrong. That's worse than a crash. A crash tells you something. Silent wrong output accumulates.</p>
+
+  <p>The QA loop I described above takes about five minutes. I ran it after I got burned. I should have designed it before I started using AI for production code.</p>
+
+  <p>That's the thing nobody posts about AI development workflows: not how fast you can generate, but how you validate what you generated before it touches real data. The generation speed creates pressure to skip the audit. The audit is the part that makes the speed useful.</p>
+
+  <div class="essay-footer">
+    <div class="footer-meta">
+      <span>Load-Bearing · flashfusion.co</span>
+      <span>Essay 04 of 08 · Foundation Series</span>
+    </div>
+    <p class="footer-note">
+      Load-Bearing covers AI tools tested in real use — no hype, no sales pitch, just what holds. <a href="https://flashfusion.co">flashfusion.co</a>
+    </p>
+  </div>
+
+  <div class="claims">
+    <h4>Claims / Counterexamples / Contradictions</h4>
+    <p class="generated">[GENERATED] "Confident incorrectness" framing — reasoned from experience, not a named concept in literature.</p>
+    <p class="generated">[GENERATED] The five-minute audit sequence — derived from real practice, not formally documented or benchmarked.</p>
+    <p class="sourced">[SOURCED in experience] The routing bug described is a real incident. Domain specifics stripped for generality.</p>
+    <h4 style="margin-top:1rem;">Gaps</h4>
+    <p>This describes solo practitioner QA. Team environments with review processes have additional checkpoints not covered here. The audit described assumes the developer has enough domain knowledge to identify assumption gaps — a prerequisite worth stating explicitly.</p>
+  </div>
+
+</div>
+
+<script>
+  const pb=document.getElementById('progress-bar');
+  if(pb){document.addEventListener('scroll',()=>{const s=window.scrollY,h=document.body.scrollHeight-window.innerHeight;pb.style.width=(h>0?(s/h*100):0)+'%';});}
+</script>
+</body>
+</html>

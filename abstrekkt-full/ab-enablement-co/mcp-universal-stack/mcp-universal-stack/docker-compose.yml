@@ -1,0 +1,286 @@
+version: '3.8'
+
+# ==============================================================================
+# MCP Universal Stack - Docker Compose
+# ==============================================================================
+# Usage: docker-compose up -d
+# ==============================================================================
+
+services:
+  # ============================================================================
+  # N8N ORCHESTRATION ENGINE
+  # ============================================================================
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: mcp-n8n
+    restart: unless-stopped
+    ports:
+      - "5678:5678"
+    environment:
+      - N8N_BASIC_AUTH_ACTIVE=${N8N_BASIC_AUTH_ACTIVE:-true}
+      - N8N_BASIC_AUTH_USER=${N8N_BASIC_AUTH_USER:-admin}
+      - N8N_BASIC_AUTH_PASSWORD=${N8N_BASIC_AUTH_PASSWORD:-changeme}
+      - N8N_HOST=${N8N_HOST:-localhost}
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+      - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY}
+      - WEBHOOK_URL=${N8N_WEBHOOK_URL:-http://localhost:5678}
+      - GENERIC_TIMEZONE=America/Chicago
+    volumes:
+      - n8n_data:/home/node/.n8n
+      - ./n8n-workflows:/home/node/workflows:ro
+    networks:
+      - mcp-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5678/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ============================================================================
+  # GITHUB BRIDGE
+  # ============================================================================
+  github-bridge:
+    build:
+      context: ./bridges/github-bridge
+      dockerfile: Dockerfile
+    container_name: mcp-github-bridge
+    restart: unless-stopped
+    ports:
+      - "7811:7811"
+    environment:
+      - GITHUB_TOKEN=${GITHUB_TOKEN}
+      - GITHUB_BRIDGE_PORT=7811
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+    networks:
+      - mcp-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:7811/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    depends_on:
+      - n8n
+
+  # ============================================================================
+  # SUPABASE BRIDGE
+  # ============================================================================
+  supabase-bridge:
+    build:
+      context: ./bridges/supabase-bridge
+      dockerfile: Dockerfile
+    container_name: mcp-supabase-bridge
+    restart: unless-stopped
+    ports:
+      - "7812:7812"
+    environment:
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+      - SUPABASE_BRIDGE_PORT=7812
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+    networks:
+      - mcp-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:7812/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    depends_on:
+      - n8n
+
+  # ============================================================================
+  # FIREBASE BRIDGE
+  # ============================================================================
+  firebase-bridge:
+    build:
+      context: ./bridges/firebase-bridge
+      dockerfile: Dockerfile
+    container_name: mcp-firebase-bridge
+    restart: unless-stopped
+    ports:
+      - "7813:7813"
+    environment:
+      - FIREBASE_PROJECT_ID=${FIREBASE_PROJECT_ID}
+      - FIREBASE_ADMIN_TOKEN=${FIREBASE_ADMIN_TOKEN}
+      - FIREBASE_BRIDGE_PORT=7813
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+    networks:
+      - mcp-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:7813/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    depends_on:
+      - n8n
+
+  # ============================================================================
+  # POSTGRESQL BRIDGE
+  # ============================================================================
+  postgres-bridge:
+    build:
+      context: ./bridges/postgres-bridge
+      dockerfile: Dockerfile
+    container_name: mcp-postgres-bridge
+    restart: unless-stopped
+    ports:
+      - "7814:7814"
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - POSTGRES_BRIDGE_PORT=7814
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+    networks:
+      - mcp-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:7814/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    depends_on:
+      - n8n
+
+  # ============================================================================
+  # SLACK BRIDGE
+  # ============================================================================
+  slack-bridge:
+    build:
+      context: ./bridges/slack-bridge
+      dockerfile: Dockerfile
+    container_name: mcp-slack-bridge
+    restart: unless-stopped
+    ports:
+      - "7815:7815"
+    environment:
+      - SLACK_BOT_TOKEN=${SLACK_BOT_TOKEN}
+      - SLACK_TEAM_ID=${SLACK_TEAM_ID}
+      - SLACK_BRIDGE_PORT=7815
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+    networks:
+      - mcp-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:7815/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    depends_on:
+      - n8n
+
+  # ============================================================================
+  # OPENAI BRIDGE
+  # ============================================================================
+  openai-bridge:
+    build:
+      context: ./bridges/openai-bridge
+      dockerfile: Dockerfile
+    container_name: mcp-openai-bridge
+    restart: unless-stopped
+    ports:
+      - "7816:7816"
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - OPENAI_BRIDGE_PORT=7816
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+    networks:
+      - mcp-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:7816/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    depends_on:
+      - n8n
+
+  # ============================================================================
+  # ANTHROPIC BRIDGE
+  # ============================================================================
+  anthropic-bridge:
+    build:
+      context: ./bridges/anthropic-bridge
+      dockerfile: Dockerfile
+    container_name: mcp-anthropic-bridge
+    restart: unless-stopped
+    ports:
+      - "7817:7817"
+    environment:
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - ANTHROPIC_BRIDGE_PORT=7817
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+    networks:
+      - mcp-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:7817/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    depends_on:
+      - n8n
+
+  # ============================================================================
+  # GOOGLE BRIDGE
+  # ============================================================================
+  google-bridge:
+    build:
+      context: ./bridges/google-bridge
+      dockerfile: Dockerfile
+    container_name: mcp-google-bridge
+    restart: unless-stopped
+    ports:
+      - "7818:7818"
+    environment:
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+      - GOOGLE_BRIDGE_PORT=7818
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+    volumes:
+      - ${GOOGLE_APPLICATION_CREDENTIALS:-./credentials/google-sa.json}:/app/credentials/google-sa.json:ro
+    networks:
+      - mcp-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:7818/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    depends_on:
+      - n8n
+
+  # ============================================================================
+  # FILESYSTEM BRIDGE
+  # ============================================================================
+  filesystem-bridge:
+    build:
+      context: ./bridges/filesystem-bridge
+      dockerfile: Dockerfile
+    container_name: mcp-filesystem-bridge
+    restart: unless-stopped
+    ports:
+      - "7819:7819"
+    environment:
+      - FILESYSTEM_ALLOWED_PATHS=${FILESYSTEM_ALLOWED_PATHS}
+      - FILESYSTEM_BRIDGE_PORT=7819
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+    volumes:
+      - ${HOME}/projects:/mnt/projects:ro
+      - ${HOME}/documents:/mnt/documents:ro
+    networks:
+      - mcp-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:7819/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    depends_on:
+      - n8n
+
+# ==============================================================================
+# NETWORKS
+# ==============================================================================
+networks:
+  mcp-network:
+    driver: bridge
+    name: mcp-universal-network
+
+# ==============================================================================
+# VOLUMES
+# ==============================================================================
+volumes:
+  n8n_data:
+    name: mcp-n8n-data

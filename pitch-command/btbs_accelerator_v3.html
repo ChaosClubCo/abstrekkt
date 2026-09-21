@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BTBS Accelerator v3</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300;1,400&family=JetBrains+Mono:wght@400;500&display=swap');
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#08090b;--surface:#0f1117;--s2:#161b25;--s3:#1c2230;--border:#1e2535;--b2:#28344a;--text:#dde2f0;--muted:#4a5580;--dim:#2a3550;--orange:#ff4d00;--cyan:#00e5ff;--purple:#a855f7;--green:#00ff88;--amber:#ffaa00;--red:#ff3355;--r:6px}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh}
+.hdr{padding:14px 20px;border-bottom:1px solid var(--border);background:var(--surface);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}
+.hdr-title{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:.1em}.hdr-title span{color:var(--orange)}
+.hdr-sub{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);margin-top:2px}
+.badge{font-family:'JetBrains Mono',monospace;font-size:10px;padding:3px 8px;border-radius:3px;border:1px solid}
+.badge-o{color:var(--orange);border-color:rgba(255,77,0,.3);background:rgba(255,77,0,.07)}
+.badge-c{color:var(--cyan);border-color:rgba(0,229,255,.25);background:rgba(0,229,255,.06)}
+.badge-g{color:var(--green);border-color:rgba(0,255,136,.25);background:rgba(0,255,136,.06)}
+.layout{display:grid;grid-template-columns:230px 1fr;height:calc(100vh - 57px)}
+.sidebar{background:var(--surface);border-right:1px solid var(--border);overflow-y:auto;padding:12px 0}
+.main{overflow-y:auto;padding:20px}
+.tb{width:100%;text-align:left;padding:10px 16px;background:none;border:none;color:var(--muted);font-family:'DM Sans',sans-serif;font-size:12px;cursor:pointer;display:flex;align-items:center;gap:8px;border-left:3px solid transparent;transition:all .15s}
+.tb:hover{color:var(--text);background:var(--s2)}.tb.active{color:var(--text);background:var(--s2);border-left-color:var(--orange)}
+.tb .ti{font-size:14px;flex-shrink:0}.tb .tp{margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted)}.tb.active .tp{color:var(--cyan)}
+.sl{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);padding:12px 16px 6px;letter-spacing:.1em;text-transform:uppercase}
+.sd{border:none;border-top:1px solid var(--border);margin:8px 0}
+.th{margin-bottom:20px}.tt{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:.1em;color:var(--orange)}
+.td{font-size:13px;color:var(--muted);margin-top:4px;line-height:1.6}
+.tc{font-size:12px;color:var(--cyan);margin-top:8px;font-style:italic;line-height:1.5}
+.fc{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:18px;margin-bottom:14px;transition:border-color .2s}
+.fc.ho{border-color:rgba(168,85,247,.4)}.fc.ni{border-color:rgba(255,170,0,.3)}
+.fl{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px;display:flex;align-items:center;gap:8px}
+.fl .fd{width:6px;height:6px;border-radius:50%;background:var(--dim);flex-shrink:0}
+.fc.ho .fd{background:var(--green)}.fc.ni .fd{background:var(--amber)}
+.fs{font-size:14px;line-height:1.8;margin-bottom:10px;color:var(--text)}
+.bk{display:inline-block;min-width:70px;border-bottom:1px solid var(--b2);background:var(--s2);border-radius:3px;padding:2px 8px;font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--cyan);outline:none;margin:0 3px}
+.bk:focus{border-color:var(--cyan);background:var(--s3)}.bk::placeholder{color:var(--dim)}
+.bk.pf{color:var(--amber);border-bottom-color:rgba(255,170,0,.3);background:rgba(255,170,0,.05)}
+.fh{font-size:11px;color:var(--muted);font-style:italic;margin-bottom:10px}
+.fa{display:flex;gap:8px;flex-wrap:wrap}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;font-size:12px;font-weight:500;cursor:pointer;border-radius:4px;border:none;transition:all .15s;font-family:'DM Sans',sans-serif}
+.btn-e{background:rgba(168,85,247,.12);color:var(--purple);border:1px solid rgba(168,85,247,.3)}.btn-e:hover{background:rgba(168,85,247,.2)}
+.btn-g{background:transparent;color:var(--muted);border:1px solid var(--border)}.btn-g:hover{color:var(--text);border-color:var(--b2)}
+.btn-o{background:var(--orange);color:#fff}.btn-o:hover{background:#ff6622}
+.btn-cy{background:transparent;color:var(--cyan);border:1px solid rgba(0,229,255,.3)}.btn-cy:hover{background:rgba(0,229,255,.08)}
+.btn-gr{background:transparent;color:var(--green);border:1px solid rgba(0,255,136,.3)}.btn-gr:hover{background:rgba(0,255,136,.08)}
+.fo{background:var(--s3);border:1px solid var(--b2);border-left:3px solid var(--purple);border-radius:0 var(--r) var(--r) 0;padding:14px 16px;margin-top:12px;font-size:14px;line-height:1.85;color:var(--text);display:none;white-space:pre-wrap}
+.fo.vis{display:block}
+.ol{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--purple);letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px}
+.oa{display:flex;gap:6px;margin-top:10px;padding-top:8px;border-top:1px solid var(--border)}
+.cs{font-family:'JetBrains Mono',monospace;font-size:10px;padding:3px 8px;background:var(--s2);border:1px solid var(--border);color:var(--muted);border-radius:3px;cursor:pointer}.cs:hover{color:var(--text)}
+.nc{background:rgba(255,170,0,.06);border:1px solid rgba(255,170,0,.2);border-radius:4px;padding:8px 12px;font-size:12px;color:var(--amber);margin-top:8px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.sp{width:14px;height:14px;border:2px solid var(--border);border-top-color:var(--purple);border-radius:50%;animation:spin .5s linear infinite;display:inline-block;flex-shrink:0}
+.lt{color:var(--muted);font-size:13px;font-style:italic}
+.da{background:var(--s2);border:1px solid var(--b2);border-radius:var(--r);padding:20px;font-size:14px;line-height:1.9;color:var(--text);min-height:300px;white-space:pre-wrap;margin-bottom:12px}
+.ca{padding:14px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);margin-bottom:14px}
+.cl{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--orange);margin-bottom:8px;letter-spacing:.08em}
+textarea.ci{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:4px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;padding:10px;resize:vertical;min-height:80px;outline:none}
+textarea.ci:focus{border-color:var(--b2)}
+select.si{background:var(--s2);border:1px solid var(--border);border-radius:4px;color:var(--text);font-size:12px;padding:6px 10px;outline:none;font-family:'DM Sans',sans-serif;margin-bottom:8px;width:100%}
+.mp{display:inline-block;font-size:11px;padding:3px 10px;border-radius:12px;margin:3px;background:rgba(0,229,255,.07);border:1px solid rgba(0,229,255,.2);color:var(--cyan)}
+.mpr{background:rgba(255,51,85,.06);border-color:rgba(255,51,85,.3);color:var(--red)}
+.op{background:var(--border);height:3px;border-radius:2px;overflow:hidden;margin:6px 0}
+.opf{height:100%;background:linear-gradient(to right,var(--orange),var(--purple));transition:width .6s}
+.sr{display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap}
+.st{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:10px 14px;flex:1;min-width:100px}
+.sn{font-family:'Bebas Neue',sans-serif;font-size:24px;color:var(--cyan)}.stl{font-size:11px;color:var(--muted);margin-top:2px}
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--b2);border-radius:2px}
+</style>
+</head>
+<body>
+<div class="hdr">
+<div>
+<div class="hdr-title">BREATHE THROUGH THE <span>BULLSHIT</span> &mdash; <span style="color:var(--cyan)">v3</span></div>
+<div class="hdr-sub">May 8 2026 &middot; Patched + expanded &middot; Fill blanks &rarr; expand &rarr; assemble</div>
+</div>
+<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+<span class="badge badge-o" id="fc-ct">0 filled</span>
+<span class="badge badge-c" id="ex-ct">0 drafted</span>
+<span class="badge badge-g" id="wc-ct">~0 words</span>
+</div>
+</div>
+<div class="layout">
+<div class="sidebar">
+<div class="sl">Narrative Threads</div>
+<button class="tb active" onclick="go(0)" id="t0"><span class="ti">&#x1F37A;</span>Before the Break<span class="tp" id="p0">6/6</span></button>
+<button class="tb" onclick="go(1)" id="t1"><span class="ti">&#x26A1;</span>The Rupture<span class="tp" id="p1">5/10</span></button>
+<button class="tb" onclick="go(2)" id="t2"><span class="ti">&#x1F527;</span>The Construction<span class="tp" id="p2">0/8</span></button>
+<button class="tb" onclick="go(3)" id="t3"><span class="ti">&#x1F4E1;</span>Late-Life Emergence<span class="tp" id="p3">0/6</span></button>
+<button class="tb" onclick="go(4)" id="t4"><span class="ti">&#x1FA9E;</span>Parallel Constructions<span class="tp" id="p4">0/8</span></button>
+<div class="sd"></div>
+<div class="sl">Tools</div>
+<button class="tb" onclick="go(5)" id="t5"><span class="ti">&#x26A1;</span>Quick Capture + Prompts</button>
+<button class="tb" onclick="go(6)" id="t6"><span class="ti">&#x1F4C4;</span>Assembled Draft</button>
+<div class="sd"></div>
+<div style="padding:10px 16px">
+<div class="op"><div class="opf" id="of" style="width:29%"></div></div>
+<div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);margin-top:4px">11/38 scenes drafted</div>
+</div>
+<div style="padding:8px 16px;font-size:11px">
+<div style="color:var(--amber);margin-bottom:4px;font-size:10px;letter-spacing:.05em;font-family:'JetBrains Mono',monospace">CONFIRMED</div>
+<span class="mp">O'Toole's</span><span class="mp">Relief</span><span class="mp">Age gap</span><span class="mp">Tom</span><span class="mp">Sally</span><span class="mp">Mom OD</span><span class="mp">Maple St</span><span class="mp">mdaddy</span><span class="mp">Card table</span><span class="mp">The Five</span><span class="mp">Settlement</span><span class="mp">Ryan kitchen</span><span class="mp">Kinsley 5th</span><span class="mp">CLC</span><span class="mp">Peter</span><span class="mp">Rogers/Herr</span>
+<div style="color:var(--red);margin-top:6px;font-size:10px;letter-spacing:.05em;font-family:'JetBrains Mono',monospace">NEEDS INPUT</div>
+<span class="mp mpr">Couch ?</span><span class="mp mpr">Mom acct ?</span><span class="mp mpr">Compactors ?</span><span class="mp mpr">Tom full ch ?</span><span class="mp mpr">NIU ?</span><span class="mp mpr">Walk real? ?</span>
+</div>
+</div>
+<div class="main" id="M"></div>
+</div>
+<script>
+var SYS="You are writing Kyle Rosebrook's literary memoir 'Breathe Through the Bullshit.'\n\nCRITICAL VOICE RULES:\n- Direct, metaphor-heavy, technical precision on emotional states\n- Strategic profanity only if earned\n- NEVER: 'and that\\'s when I realized' / 'looking back' / 'it was then'\n- Declarative. Specific. Sensory. Let the reader draw conclusions.\n- Uncertainty stays uncertain. Gaps stay gaps. Memory distortion is material.\n- Literary nonfiction. NOT self-help. NOT a recovery arc.\n- Start mid-thought. Avoid starting with 'I' if possible.\n\nAUTHOR FACTS (ground truth — never inflate):\n- L1 Service Desk Tech at a managed IT firm (never named). Written SME designation.\n- No degree, no credentials, no license. Self-taught. Portfolio only.\n- ~30 tools hands-on (240+ catalogued MCP configs, NOT mastered)\n- TBI caused BY addiction (hypoxia from OD), not external trauma\n- Salvation Army Milwaukee ~6 months, ~2017. Rogers/Herrington June-July 2020.\n- Tom: closer than brother, died choking on vomit alone, Colin texted Kyle\n- Kinsley: Friday custody 3:25pm. The book is a letter to her.\n- FlashFusion built 1.5 years BEFORE current employer existed. Clean IP.\n- mdaddy: person from Herrington treatment. Real. Detail stays private.\n- The Five: Matt Horne, Tom Ropel, Dave Datt (dead), Ryan (lost), Kyle. Trump Tower ~2015/16.\n- Card table: where Bear's website was built. Screenshot method. 1:30am photo. Origin of everything.\n- CLC: 6 years, 10 withdrawals, 5 failures. Kyle wants to return as teacher.\n- Peter: Marine, heroin, died. Mr. and Mrs. Burgess buried their second son.";
+
+var D={
+"btb-1":"The bar at O\u2019Toole\u2019s on a Tuesday afternoon was dim, familiar, forgiving, and the trick was to get there before the lunch crowd thinned out, before the stools emptied and the bartender had nothing to do but watch you. Volume was camouflage. You needed the noise \u2014 the sports recap bleeding from two different TVs, the waitress calling out ticket numbers, the guy three seats down laughing too hard at something his buddy said. In a full bar, a man drinking alone at 1pm is background. In a quiet bar, he\u2019s a problem. So you timed it. Walked in around 11:45, ordered something with food attached to it so there was a plate involved, a performance of normalcy with ranch dressing. The Jameson came second. Or third. The count was never the point. The point was the particular quality of afternoon light through tinted windows \u2014 that amber wash that made everything look like it was already a memory, already soft at the edges, already something that happened to someone else. You could breathe in there. That was the whole thing. You could just breathe.",
+"btb-2":"Fran and Stewart needed their Tuesday night pre-dinner \u2014 gin martini, extra olive, and whatever was closest to a Shirley Temple without being called one \u2014 before they said anything. Before coats were off, before the host stand, before they\u2019d even made eye contact with me across the room. I just knew. Not from training, not from some chart on a break-room wall about reading body language. Something fucking easier than that: they were tired, they came here every Tuesday, and I was paying attention. The golden rule with a service industry translation \u2014 if you walked in looking like the day had taken a piece of you, you wanted the thing that always made it better waiting when you sat down. I had it ready. That\u2019s the whole trick. Not magic. Not intuition. Just the willingness to actually look at the person in front of you and ask yourself what they need before they have to ask. Most people never learn that. I don\u2019t know why. It costs nothing and it\u2019s the only part of that job I never got tired of.",
+"btb-3":"Calm, collected, a little smirk here and there \u2014 that was the surface. Underneath it, my jaw was working like I was chewing gravel, arms loose but never still, the kind of stillness that isn\u2019t stillness at all but controlled motion waiting for somewhere to go. Around me, somebody was already cursing a customer\u2019s mother under their breath, the particular low register of a professional grievance, and across the floor another person had locked onto her next task with the kind of laser focus that makes the rest of the room disappear. Nobody tried to direct anybody. Things just moved. There\u2019s a specific choreography to a team that\u2019s running hot \u2014 not smooth, not clean, but functional the way a busted engine is functional: loud, burning something it shouldn\u2019t, still getting you where you need to go. I was fluent in that language. The smirk wasn\u2019t detachment. It was translation. What I knew how to do was read the frequency everyone else was broadcasting and tune myself to it without ever letting on that I was receiving anything at all.",
+"btb-4":"On good nights I could hold the orders, the faces, the rotations in front, and still have the go juice running underneath \u2014 that warm static behind everything, the hum that kept the signal clear. Two processors, both online. The floor could be three deep at the bar and I\u2019d already know who was switching to water, who needed another without asking, who was going to be a problem before they knew it themselves. The go juice didn\u2019t slow me down. That\u2019s the lie I told and the thing that was also, for a while, just true. On bad nights the second processor crashed first. The hum went choppy, then silent, and what was left was just the raw feed \u2014 someone\u2019s drink order landing wrong, a table giving me a look, some manager circling \u2014 and nothing underneath to buffer it. No running current. Just the noise. I\u2019d find someone to blame before I even registered I was doing it, voice already raised, the words already out and uglier than they needed to be. The dual-track wasn\u2019t a skill. It was a dependency dressed up as competence, and when one rail went down, I took everyone near me with it.",
+"btb-5":"Fran and Stewart asked the bar if I\u2019d work their son\u2019s wedding. Not just asked if someone was available \u2014 asked for me by name. Patrick came and found me during a Tuesday close, told me like he was doing me a favor, which he was. Something in my chest did a thing I wasn\u2019t expecting: a small clean warmth, the kind that doesn\u2019t announce itself. These were good people. They tipped like they remembered what it felt like to not have money, asked about my week and actually waited for the answer. The manager said no. Weekend availability \u2014 Kinsley. Friday pickups, the whole architecture of it, already built into the schedule of my life even before she was fully in it. I wasn\u2019t angry. The refusal meant something too, the same way the request did: that her presence was real enough to cost me something, to reshape what I could offer and where. I stood at the service well after Patrick walked away, holding the news in both hands \u2014 the wanting and the not-getting and the reason for the not-getting \u2014 and something about all three of them together felt, briefly, like enough.",
+"btb-6":"Before any of it broke, there was already the gap-filling. The way I\u2019d locate the empty space in a room and move toward it \u2014 not the people, not the noise, but the quiet pocket between them where nothing was required of me. Parties where I\u2019d end up in someone\u2019s kitchen reorganizing their spice rack. Conversations where I\u2019d tune out mid-sentence and reconstruct what the other person probably meant, then respond to that instead of what they actually said. I\u2019d find the seam in any situation and slip through it. I didn\u2019t have a name for it then. I called it being observant. Called it being chill. Later I\u2019d hear someone call it dissociation and I\u2019d nod like they\u2019d just told me my shirt was blue. The gaps weren\u2019t random \u2014 they were precision-cut to my exact shape. Which should have been the signal. When the place you fit perfectly is the place where nothing exists, something\u2019s already wrong. I just hadn\u2019t found the thing that filled the gap yet. The thing that would make the absence feel like a choice instead of a verdict.",
+"rup-1":"Relief is the most addictive feeling of all. Not the high. Not the euphoria people picture when they imagine someone like me \u2014 the neon rush, the chemical carnival. Quiet. The peace. Seeing color for a second when everything before had been this particular shade of gray that doesn\u2019t have a name because nobody who hasn\u2019t lived inside it can describe it. That\u2019s what people get wrong about addiction, or what I got wrong about myself for years: I wasn\u2019t chasing sensation. I was chasing subtraction. The removal of something. A future I thought would come if I could just get still enough, just get the noise down to a manageable frequency, just find the off switch for the version of me that couldn\u2019t stop running calculations on every possible way things might go wrong. Relief isn\u2019t a feeling. It\u2019s the absence of a feeling that had been running so long I\u2019d forgotten it wasn\u2019t supposed to be there. The drug found that switch. That\u2019s the whole story, and also not the story at all, because finding the switch and knowing what it costs you are two entirely different educations.",
+"rup-2":"Three times I\u2019ve tried to write the beginning of this story, and three times I\u2019ve given a different age. Nineteen. Twenty-one. Nineteen again, maybe. The honest answer \u2014 and I mean the actual, stripped-down, no-performance answer \u2014 is I don\u2019t fucking remember. Not because I\u2019m being coy. Not because the uncertainty is some literary device I\u2019m deploying to seem complicated. The gap in the record isn\u2019t evasion. It\u2019s not a trick. It\u2019s not even a wound I can point to and say there, that\u2019s where it started bleeding. The uncertainty is a statement of present tense. It\u2019s the shape of my brain right now, trying to reach backward and finding the footing just \u2014 gone. Soft ground where there should be bedrock. I know the feeling that came before. I know the feeling that came after. The seam between them, the specific Tuesday or Friday or whichever unremarkable night the switch got thrown \u2014 that\u2019s gone. Which means the thesis of this book isn\u2019t what happened when. The thesis is what it costs a person to not know.",
+"rup-4":"Tom was closer to me than my actual brother. Colin texted me. That\u2019s how I found out \u2014 not a call, a text, from his childhood friend who got the worst job in the world that night. Tom had choked on his own vomit, alone. My knees found the floor before my brain caught up, and I was already sobbing by the time gravity finished the sentence. Silent-crying is a lie \u2014 there\u2019s nothing silent about it, it\u2019s just crying that hasn\u2019t decided to be loud yet, and mine decided on the stairs, halfway down, loud enough that my mom\u2019s face just stopped. Froze. She already knew it was the kind of news that rewires something. Tom\u2019s dead. I said it out loud because saying it out loud was supposed to make it smaller, manageable, a fact instead of a fissure. It didn\u2019t. What I couldn\u2019t do was stop. Couldn\u2019t stop crying, couldn\u2019t stop the specific animal sound that kept escaping before I could close my mouth around it, couldn\u2019t make my body understand that refusing to believe something has never once changed whether it\u2019s true. That was a bad day. The worst kind of understatement. The kind you use when the real words don\u2019t exist yet.",
+"rup-5":"The Salvation Army in Milwaukee. My parents drove me. I had a white garbage bag with scented strips \u2014 the kind you\u2019d hang in a car \u2014 stuffed between whatever I threw in because nobody tells you how to pack for a place like that. Didn\u2019t wash my clothes for the first month. Furious doesn\u2019t cover it. What I remember: the intake desk, horseshoe hairline on the man who greeted us, baby blue polo tucked neat, like neatness meant something in a building that smelled like industrial cleaner and other people\u2019s lives. Fake plant wedged between the pay phones I wasn\u2019t allowed to touch for thirty days. Benches that looked salvaged from a subway station, because they probably were. The ceilings in that warehouse \u2014 cedar beams, maybe, massive, the kind of bones that made you feel small in a way that wasn\u2019t entirely unwelcome. Six months in that building. White supremacists two bunks over. Sausages so far past their date you ate them anyway because hunger doesn\u2019t negotiate. Three-thirty in the morning, snow, a shovel, and the specific silence of a city that doesn\u2019t know you exist. Christmas in clothes somebody else decided they were done with.",
+"rup-6":"My mother found me unresponsive. She called EMS. I don\u2019t remember the door opening, don\u2019t remember her voice, don\u2019t remember whether I looked like I was sleeping or whether I looked like something had already left. The mind does this \u2014 builds a wall between itself and the moment it almost stopped. What I know from the record: Xanax and Ambien, June 2020, West Allis, the apartment where Kinsley\u2019s crib was already assembled in the second bedroom, pink mobile hanging over nothing. What I know from her: she didn\u2019t scream. She has told me this more than once, like it\u2019s the detail she\u2019s still trying to understand about herself \u2014 that she moved through it quiet and precise, called the number, said the words, held the door open for strangers carrying equipment into the place where her son had gone somewhere she couldn\u2019t follow. She doesn\u2019t talk about what she thought on the drive. Neither do I. Some silences between a mother and her child are load-bearing. You pull the wrong one and everything above it comes down.",
+"rup-9":"The apartment on Maple Drive had a train track behind it that shook the walls when something came through. Not metaphorically. The dishes moved. I set up Kinsley\u2019s room before she was supposed to come. Crib, everything. The room sat there. She never made it. My life was in bad enough shape that I was never allowed to have her there, which was the right call, which I understood even then, which did not make the room easier to walk past. It was the first place I\u2019d ever lived truly on my own. I couldn\u2019t keep a job long enough to cover rent. I wasn\u2019t safe enough for my parents\u2019 house \u2014 or they didn\u2019t trust me enough, which is the same thing from a different angle. COVID had just started. The world was making its own version of my problem \u2014 suddenly unable to trust any of the systems it had built to keep itself running. I noticed the symmetry. Didn\u2019t find it comforting.",
+"rup-10":"Then Herrington. Waukesha. Residential, six weeks, give or take. There was a woman there I\u2019ll call mdaddy, which is what she let herself be called, the kind of nickname that sounds like a joke but isn\u2019t one. She did something for me that I am not going to reduce by explaining. The category of thing it was: she was one of the people without whom I would not be here. That\u2019s the category. The specific thing stays between us. The last I heard she turned her life around. Found someone worth spending it with. I am so glad. I mean that in the plainest possible way. I am glad she exists and that she kept going and that whatever she found on the other side of that place was worth what it cost to get there."
+};
+
+var NC={"rup-6":"The 'she didn't scream' detail is AI-generated \u2014 NOT confirmed by Kyle. Two blanks left unfilled. Needs Kyle's real input before print."};
+
+var T=[
+{id:0,title:"BEFORE THE BREAK",desc:"O'Toole's, reading rooms, the diagnostic instinct forming before it had a name.",confirmed:"All 6 scenes drafted. Fran + Stewart, wedding block, go juice, gap-filling all confirmed.",frames:[
+{id:"btb-1",label:"Opening image \u2014 the bar",s:"The bar at O'Toole's on a %%day/shift%% was %%3 words%%, and the trick was %%what?%%."},
+{id:"btb-2",label:"Reading the room \u2014 Fran + Stewart",s:"I knew ~~Fran and Stewart~~ needed %%what?%% before they said anything. It was %%what it actually was%%."},
+{id:"btb-3",label:"The performance face",s:"Surface: ~~calm, collected~~. Underneath: %%jaw, arms, what else?%%. Nobody %%saw it?%%."},
+{id:"btb-4",label:"The dual-track state",s:"Good nights: %%go juice, dual-track%%. Bad nights: %%what happened?%%."},
+{id:"btb-5",label:"The wedding request",s:"~~Fran and Stewart~~ asked for me by name. Manager said no \u2014 ~~Kinsley~~. What I felt: %%what?%%."},
+{id:"btb-6",label:"The early signal \u2014 gap-filling",s:"Before any of it broke: %%the gap-filling behavior%%. I called it %%being observant, being chill%%."}
+]},
+{id:1,title:"THE RUPTURE",desc:"TBI. Substance abuse as self-medication. When the narrator becomes unreliable.",confirmed:"5 of 10 drafted. Couch scene needs confirmation. Mom scene has AI-generated detail. New: Maple St, Herrington/mdaddy, 2017 intervention, Peter drafted.",frames:[
+{id:"rup-1",label:"Relief line \u2014 EPIGRAPH",s:"Relief is the most addictive feeling of all. Not the %%quiet, peace, seeing color%%. I was chasing %%a future I thought would come%%."},
+{id:"rup-2",label:"The age problem",s:"Was it ~~19 or 21~~? The honest answer is %%I don't fucking remember%%. The uncertainty isn't %%evasion \u2014 it's a statement of now%%."},
+{id:"rup-3",label:"The couch scene \u2014 NEEDS INPUT",s:"Someone said you don't have to. Not %%what it wasn't%%. %%What it was%%. The difference is %%everything?%%.",ni:1},
+{id:"rup-4",label:"Tom",s:"~~Tom~~ was closer than my actual brother. ~~Colin~~ texted me. Tom choked on his own vomit, alone."},
+{id:"rup-5",label:"Milwaukee \u2014 Salvation Army",s:"~~Sally~~. White garbage bag, scented strips. Horseshoe hair, blue polo, fake plant. %%one more image%%."},
+{id:"rup-6",label:"Mother finding Kyle \u2014 NEEDS CONFIRMATION",s:"~~My mother~~ found me ~~unresponsive~~. She called ~~EMS~~. I don't remember %%what?%%. She told me: %%what?%%.",ni:1},
+{id:"rup-7",label:"The 2017 intervention",s:"~~My parents~~ told me I needed to leave. Options: ~~Sally Chicago or Milwaukee~~. I took %%which and why?%%. I didn't look back. I can still see them."},
+{id:"rup-8",label:"Peter / Mr. and Mrs. Burgess",s:"~~Peter~~ was a Marine, kicked out for heroin. Met him at ~~Sally~~. He introduced me to %%who?%%. ~~Mr. and Mrs. Burgess~~ buried their second son."},
+{id:"rup-9",label:"Maple Street apartment",s:"~~Maple Drive, West Allis~~. Train track. Kinsley's room set up. Crib. She never came. %%What it represented%%."},
+{id:"rup-10",label:"Herrington / mdaddy",s:"~~Herrington. Oconomowoc~~. Six weeks. ~~mdaddy~~. She did something I won't reduce by explaining."}
+]},
+{id:2,title:"THE CONSTRUCTION",desc:"First tools. External cognition. Learning to code as learning to think in a new architecture.",confirmed:"Card table sequence locked (Ch 11). Screenshot method = origin. CLC degree confirmed (6yr, 10 withdrawals). Tool archaeology NOT yet done.",frames:[
+{id:"con-1",label:"The first tool",s:"The first system I built to compensate was %%what?%%. I built it because %%what was failing?%%. I called it %%what?%%."},
+{id:"con-2",label:"When optimization became necessity",s:"There's a moment when a tool becomes %%load-bearing?%%. That happened when %%specific incident%%."},
+{id:"con-3",label:"Learning to code",s:"Learning to code wasn't about %%career%%. It was about %%new architecture?%%. First thing I built: %%what?%%."},
+{id:"con-4",label:"Tools as archaeological evidence",s:"Map every tool against a timeline: %%what you'd see%%. Each marks when %%organic function failed%%."},
+{id:"con-5",label:"The documentation compulsion",s:"I document everything because %%why?%%. The system that should hold this \u2014 %%memory%% \u2014 %%what happened to it?%%."},
+{id:"con-6",label:"What the construction cost",s:"Building it cost %%what?%%. Gave back %%what?%%. Those two things are %%not equal?%%."},
+{id:"con-7",label:"The card table",s:"The card table is where I built ~~Bear's website~~. The screenshot method: %%describe it%%. ~~1:30am~~ \u2014 that photo means %%what?%%."},
+{id:"con-8",label:"The associate's degree",s:"~~CLC~~. ~~Six years~~. ~~Ten withdrawals~~. ~~Five failures~~. Finished during %%the card table era%%. The degree isn't the point. The point is %%what?%%."}
+]},
+{id:3,title:"LATE-LIFE EMERGENCE",desc:"Self-teaching to technical competence. L1 hired outside normal process. The constructed self arriving.",confirmed:"Daniel confirmed. Written SME designation. hqforai.com cutout. 1.5yr pre-employment IP. NOT YET DRAFTED.",frames:[
+{id:"lem-1",label:"The hire",s:"~~Daniel~~ brought me in as L1 with zero experience because %%what did he see?%%. It wasn't %%credentials%%."},
+{id:"lem-2",label:"The SME designation",s:"Performance review: AI SME. Official title: L1. The gap: %%describe it%%. I had built %%what?%%."},
+{id:"lem-3",label:"Being cut out",s:"They brought in ~~hqforai.com~~. I knew more because %%how?%%. They didn't use me because %%honest read?%%."},
+{id:"lem-4",label:"What I built before they existed",s:"I'd been building %%FlashFusion?%% for ~~1.5 years~~ before I knew they existed. When I got there they had %%what?%%."},
+{id:"lem-5",label:"FlashFusion",s:"FlashFusion got to ~~60-70%~~ and stopped. Not because I couldn't finish \u2014 because %%why?%%. Lesson: %%honest?%%."},
+{id:"lem-6",label:"The constructed self",s:"The person now isn't who came before. He's %%built?%% from %%what materials?%%. Pre-break Kyle would %%what?%%."}
+]},
+{id:4,title:"PARALLEL CONSTRUCTIONS",desc:"Kinsley. Chaos Club. The Five. CLC. The memoir itself. All the same project.",confirmed:"Friday custody confirmed. Letter frame confirmed. The Five excavated Apr 16. Kinsley's 5th birthday confirmed. CLC as layered site confirmed.",frames:[
+{id:"par-1",label:"The letter frame",s:"This is a letter to ~~Kinsley~~. Not because she'll read it now \u2014 because %%why?%%. What I want her to know: %%the thing%%."},
+{id:"par-2",label:"Friday",s:"Fridays I have Kinsley. The transition: %%one image%%. What I carry: %%what?%%. What I put down: %%what?%%."},
+{id:"par-3",label:"Chaos Club",s:"Chaos Club exists because %%what gap?%%. 'Where no one has to pretend.' I wrote that because %%what experience?%%."},
+{id:"par-4",label:"The same project",s:"The memoir and the platform are the same project. Memoir is %%what?%%. Platform is %%what?%%."},
+{id:"par-5",label:"What permanently left",s:"Gone: %%what?%%. Exists now that couldn't before: %%what?%%. That trade is %%fair? complicated?%%."},
+{id:"par-6",label:"The Five \u2014 settlement arc",s:"Five of us. Photo has ~~three~~. ~~Dave~~ in India. ~~Ryan~~ forgotten until the count. ~~$50K~~ in %%3-4 months%% on %%drugs, car, Trump Tower%%."},
+{id:"par-7",label:"Kinsley's 5th birthday \u2014 reunion",s:"I reached out to ~~Matt and Tom~~ when I moved back. Reunion at %%Kinsley's birthday%%. Matt brought ~~Stephanie, two girls~~. Tom brought ~~Oliver~~. ~~Dave~~ dead. ~~Ryan~~ silent."},
+{id:"par-8",label:"CLC \u2014 the return",s:"The kid kicked out of ~~NIU~~, ~~15 attempts~~ at CLC, wants to walk back in as %%the teacher%%. ~~Ryan~~ works there as %%counselor%%. Lost touch during %%the years this book is about%%."}
+]},
+];
+
+var PROMPTS=[
+{name:"O'Toole's Sensory",p:"Memoir excavation. Phase: BEFORE THE BREAK. Target: O'Toole's. Ask three sensory questions about the physical environment \u2014 the bar, the work, the body. Push for specific details and contradictions. Session format: questions only, three at a time."},
+{name:"Diagnostic Instinct Origins",p:"Focus: where the diagnostic instinct started. Ask: What was the first time I remember knowing something was wrong before anyone else? Was it at O'Toole's or earlier? Was the knowing intellectual or physical? Three questions, no prose."},
+{name:"Memory When It Worked",p:"What did competence feel like before the break? What was the most complex thing I held in my head without writing it down? What did it feel like to not need a system? Three questions."},
+{name:"The Rupture \u2014 First Pass",p:"Handle carefully. Single question: What's the first specific moment old strategies had stopped working? Not the cause \u2014 just the moment of noticing. One question at a time. If I stop, we stop."},
+{name:"Ground the Relief Line",p:"Focus: grounding 'relief is the most addictive feeling.' When I first used, was relief the right word? What was the noise that stopped? What had I tried before? Don't let me be vague."},
+{name:"Age Oscillation",p:"The age question \u2014 19 or 21? Right now, what number comes first? What specific memory is attached? Could both be true? Push toward what I DO remember. If uncertainty is the real answer, that becomes the opening."},
+{name:"First Tool Archaeology",p:"The first system I built to compensate. What was the first thing \u2014 notebook, app, ritual \u2014 where I thought 'this is different'? What was failing before it? Was it embarrassing to need it? Push past 'calendar apps' to the specific instance."},
+{name:"Chronological Tool Map",p:"Build the archaeology in order. Running list: [PERIOD] \u2014 [TOOL] \u2014 [PROBLEM] \u2014 [EMOTION]. Start: what period came after things broke? What was the very first system? Entry by entry."},
+{name:"The Life Coach Figure",p:"Critical gap: Soaring Bear. How did I find them? What did they say that mattered? Why is this figure significant to reconstruction? Push for specific scenes, specific words."},
+{name:"Late-Night Walk \u2014 Real?",p:"Verification: age 17, streetlights, hands in pockets. Does this feel like a real memory? Is there a physical sensation of recognition \u2014 location, temperature, reason? Or emotional truth wearing a scene that never happened?"},
+{name:"Meditation Shift",p:"When did meditation enter? What was it supposed to fix? When did the approach shift from 'I want this to work' to 'I am open to this helping'? What does that difference feel like in the body?"},
+{name:"Three Chapter Openings",p:"Test drive three structural options, 300 words each. A: The Age Oscillation. B: O'Toole's in medias res. C: The Construction, present day working backward. Write A first. Ask which next."},
+{name:"Structural Commit",p:"Four options: 1) Chronological with memory intrusions 2) Systems as chapters 3) Parallel timelines 4) Arsenal structure. Honest case for each. Actual recommendation. Which fits the material?"},
+{name:"The Failed First Draft",p:"What to do with the Storyteller Pro failure \u2014 redemption arc, 'Mind Unchained,' emoji chapters. Options: A) meta-chapter 'The Wrong Book,' B) scattered fragments, C) prologue reframe. Recommendation."}
+];
+
+var state={ct:0,out:Object.assign({},D),cap:[]};
+
+function ps(r){var s=r;s=s.replace(/%%([^%]+)%%/g,function(m,p){return'<input class="bk" placeholder="'+p.replace(/"/g,"&quot;")+'">';});s=s.replace(/~~([^~]+)~~/g,function(m,p){return'<input class="bk pf" value="'+p.replace(/"/g,"&quot;")+'">';});return s;}
+
+function rt(i){var t=T[i];if(!t){rs(i);return;}
+var h='<div class="th"><div class="tt">'+t.title+'</div><div class="td">'+t.desc+'</div><div class="tc">&#10003; '+t.confirmed+'</div></div>';
+t.frames.forEach(function(f){var ho=!!state.out[f.id];var ni=!!f.ni&&!ho;
+h+='<div class="fc'+(ho?' ho':'')+(ni?' ni':'')+'" id="c-'+f.id+'">';
+h+='<div class="fl"><span class="fd"></span>'+f.label;
+if(ho)h+=' <span style="color:var(--green);font-size:10px">&#10003; DRAFTED</span>';
+if(ni)h+=' <span style="color:var(--amber);font-size:10px">&#9888; NEEDS INPUT</span>';
+h+='</div><div class="fs">'+ps(f.s)+'</div>';
+h+='<div class="fa"><button class="btn btn-e" onclick="ex(\''+f.id+'\')"><span class="sp" id="s-'+f.id+'" style="display:none"></span>'+(ho?'Regenerate':'Expand')+'</button>';
+if(ho)h+='<button class="btn btn-g" onclick="cl(\''+f.id+'\')">Clear</button>';
+h+='</div>';
+if(ho){h+='<div class="fo vis" id="o-'+f.id+'"><div class="ol">DRAFT PROSE</div>'+state.out[f.id].replace(/\n/g,'<br>');
+if(NC[f.id])h+='<div class="nc">&#9888; '+NC[f.id]+'</div>';
+h+='<div class="oa"><button class="cs" onclick="co(\''+f.id+'\')">COPY</button><button class="cs" onclick="ad(\''+f.id+'\')">ADD TO DRAFT</button></div></div>';}
+else h+='<div class="fo" id="o-'+f.id+'"></div>';
+h+='</div>';});
+document.getElementById('M').innerHTML=h;us();}
+
+function rs(i){var h='';
+if(i===5){
+h='<div class="th"><div class="tt">QUICK CAPTURE + EXCAVATION PROMPTS</div><div class="td">Dump raw fragments or load a pre-built excavation session.</div></div>';
+h+='<div class="ca"><div class="cl">SELECT EXCAVATION PROMPT</div><select class="si" id="pp" onchange="lp()"><option value="">-- Choose a pre-built session --</option>';
+PROMPTS.forEach(function(p,j){h+='<option value="'+j+'">'+p.name+'</option>';});
+h+='</select><div class="cl" style="margin-top:8px">OR DUMP A MEMORY FRAGMENT</div>';
+h+='<textarea class="ci" id="ct" placeholder="Anything raw. A smell, a name, an image."></textarea>';
+h+='<div style="display:flex;gap:8px;margin-top:8px"><button class="btn btn-o" onclick="pc()">Process fragment</button><button class="btn btn-cy" onclick="wf()">Which frame?</button><button class="btn btn-gr" onclick="lp()">Load selected prompt</button></div>';
+h+='<div class="fo" id="co" style="margin-top:12px"></div></div>';
+state.cap.forEach(function(c,j){h+='<div class="fc" style="border-color:rgba(0,229,255,.2)"><div class="fl">#'+(j+1)+' \u2014 '+c.d+'</div><div style="font-size:13px;color:var(--muted);line-height:1.6">'+c.t+'</div>';if(c.p)h+='<div class="fo vis" style="margin-top:8px">'+c.p.replace(/\n/g,'<br>')+'</div>';h+='</div>';});
+}else if(i===6){
+var ks=Object.keys(state.out);var w=ks.reduce(function(a,k){return a+state.out[k].split(/\s+/).length;},0);
+h='<div class="th"><div class="tt">ASSEMBLED DRAFT</div><div class="td">~'+w+' words across '+ks.length+' scenes.</div></div>';
+h+='<div class="sr"><div class="st"><div class="sn">'+ks.length+'</div><div class="stl">Scenes</div></div><div class="st"><div class="sn">~'+w+'</div><div class="stl">Words</div></div><div class="st"><div class="sn">'+Math.round(w/70000*100)+'%</div><div class="stl">of 70K target</div></div></div>';
+h+='<div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap"><button class="btn btn-o" onclick="aa()">Assemble all</button><button class="btn btn-cy" onclick="cd()">Copy draft</button><button class="btn btn-g" onclick="ap()">AI: Smooth transitions</button></div>';
+h+='<div class="da" id="da"></div><div class="fo" id="po"></div>';
+}
+document.getElementById('M').innerHTML=h;
+if(i===6&&Object.keys(state.out).length)aa();}
+
+function lp(){var sel=document.getElementById('pp');var txt=document.getElementById('ct');if(!sel||!txt)return;var v=sel.value;if(v==='')return;txt.value=PROMPTS[parseInt(v)].p;}
+
+function us(){var f=0,tt=0;document.querySelectorAll('.bk').forEach(function(b){tt++;if(b.value.trim())f++;});var e=Object.keys(state.out).length;var w=Object.values(state.out).reduce(function(a,v){return a+v.split(/\s+/).length;},0);
+document.getElementById('fc-ct').textContent=f+'/'+tt+' filled';document.getElementById('ex-ct').textContent=e+' drafted';document.getElementById('wc-ct').textContent='~'+w+' words';
+var pct=Math.round(e/38*100);document.getElementById('of').style.width=pct+'%';}
+
+function gv(id){var c=document.getElementById('c-'+id);if(!c)return{};var v={};c.querySelectorAll('.bk').forEach(function(b){v[b.placeholder||'v']=b.value.trim()||b.placeholder;});return v;}
+
+async function ex(id){var t=T[state.ct];if(!t)return;var fr=t.frames.find(function(f){return f.id===id;});if(!fr)return;
+var v=gv(id);var sp=document.getElementById('s-'+id);var o=document.getElementById('o-'+id);
+if(sp)sp.style.display='inline-block';o.classList.add('vis');o.innerHTML='<span class="lt"><span class="sp"></span> Writing...</span>';
+var pr='Thread: '+t.title+'\nFrame: '+fr.label+'\nTemplate: '+fr.s+'\nValues: '+JSON.stringify(v)+'\n\nWrite ONE paragraph (150-220 words). Publication-quality. Output ONLY the paragraph.';
+try{var r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1000,system:SYS,messages:[{role:'user',content:pr}]})});
+var d=await r.json();var tx=(d.content||[]).map(function(c){return c.text||'';}).join('');state.out[id]=tx;
+o.innerHTML='<div class="ol">DRAFT PROSE</div>'+tx.replace(/\n/g,'<br>')+'<div class="oa"><button class="cs" onclick="co(\''+id+'\')">COPY</button><button class="cs" onclick="ad(\''+id+'\')">ADD TO DRAFT</button></div>';
+}catch(e){o.innerHTML='<span style="color:var(--red)">'+e.message+'</span>';}
+if(sp)sp.style.display='none';us();}
+
+function cl(id){delete state.out[id];var o=document.getElementById('o-'+id);if(o){o.classList.remove('vis');o.innerHTML='';}us();}
+function co(id){var t=state.out[id];if(t)navigator.clipboard.writeText(t).then(function(){if(event&&event.target){var b=event.target;b.textContent='COPIED';setTimeout(function(){b.textContent='COPY';},1500);}});}
+function ad(id){var t=state.out[id];if(!t)return;go(6);setTimeout(function(){var da=document.getElementById('da');if(da)da.textContent=(da.textContent.trim()?da.textContent+'\n\n':'')+t;},150);}
+
+function aa(){var da=document.getElementById('da');if(!da)return;var parts=[];T.forEach(function(t){t.frames.forEach(function(f){if(state.out[f.id])parts.push({th:t.title,lb:f.label,tx:state.out[f.id]});});});
+if(!parts.length){da.innerHTML='<span style="color:var(--muted);font-style:italic">No scenes drafted.</span>';return;}
+da.innerHTML=parts.map(function(p){return'<div style="margin-bottom:28px"><div style="font-family:JetBrains Mono,monospace;font-size:9px;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:.08em">'+p.th+' \u00b7 '+p.lb+'</div>'+p.tx.replace(/\n/g,'<br>')+'</div>';}).join('');}
+function cd(){var da=document.getElementById('da');if(da)navigator.clipboard.writeText(da.innerText);}
+
+async function ap(){var parts=[];T.forEach(function(t){t.frames.forEach(function(f){if(state.out[f.id])parts.push(state.out[f.id]);});});if(!parts.length)return;
+var o=document.getElementById('po');o.classList.add('vis');o.innerHTML='<span class="lt"><span class="sp"></span> Smoothing...</span>';
+try{var r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:2000,system:SYS,messages:[{role:'user',content:'Add brief transitional sentences between these memoir sections. Do not rewrite. Only smooth connections.\n\n'+parts.join('\n\n---\n\n')}]})});
+var d=await r.json();o.innerHTML=(d.content||[]).map(function(c){return c.text||'';}).join('').replace(/\n/g,'<br>');}catch(e){o.innerHTML='<span style="color:var(--red)">'+e.message+'</span>';}}
+
+async function pc(){var t=document.getElementById('ct').value.trim();if(!t)return;var o=document.getElementById('co');o.classList.add('vis');o.innerHTML='<span class="lt"><span class="sp"></span></span>';
+try{var r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:600,system:SYS,messages:[{role:'user',content:'Memory fragment: "'+t+'"\n\n1. Bullet: usable details/images.\n2. One sentence in Kyle\'s voice.\n\nBrief triage only.'}]})});
+var d=await r.json();var res=(d.content||[]).map(function(c){return c.text||'';}).join('');o.innerHTML=res.replace(/\n/g,'<br>');state.cap.push({t:t,p:res,d:new Date().toLocaleTimeString()});}catch(e){o.innerHTML='<span style="color:var(--red)">'+e.message+'</span>';}}
+
+async function wf(){var t=document.getElementById('ct').value.trim();if(!t)return;var o=document.getElementById('co');o.classList.add('vis');o.innerHTML='<span class="lt"><span class="sp"></span></span>';
+var list=T.reduce(function(a,th){return a+th.frames.map(function(f){return th.title+' / '+f.label;}).join('\n')+'\n';},'');
+try{var r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:200,system:SYS,messages:[{role:'user',content:'Fragment: "'+t+'"\nFrames:\n'+list+'\nWhich 1-2 frames? One sentence why.'}]})});
+var d=await r.json();o.innerHTML=(d.content||[]).map(function(c){return c.text||'';}).join('').replace(/\n/g,'<br>');}catch(e){o.innerHTML='<span style="color:var(--red)">'+e.message+'</span>';}}
+
+function go(i){state.ct=i;document.querySelectorAll('.tb').forEach(function(b,j){b.classList.toggle('active',j===i);});rt(i);}
+rt(0);us();
+</script>
+</body>
+</html>

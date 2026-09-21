@@ -1,0 +1,2 @@
+import { CreateProjectRequestSchema, type CreateProjectRequest } from '@memoir/shared';
+export async function createProject(baseUrl:string,payload:CreateProjectRequest){const parsed=CreateProjectRequestSchema.parse(payload); const r=await fetch(`${baseUrl}/v1/projects`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(parsed)}); if(!r.ok) throw new Error(`Create failed: ${r.status}`); return r.json();}

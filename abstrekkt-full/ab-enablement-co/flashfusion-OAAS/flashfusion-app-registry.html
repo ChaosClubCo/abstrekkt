@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FlashFusion — App Registry</title>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Instrument+Mono:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#000;--sur:#0c0c0c;--bor:#1e1e1e;--txt:#e8e0d4;--mut:#444;--dim2:#111;
+  --ff:#d4652a;--int:#10a37f;--per:#7c6af7;--arc:#3a3a3a;
+  --s-review:#ffb800;--s-live:#10a37f;--s-beta:#4a9eff;--s-dev:#d4652a;--s-concept:#7c6af7;--s-archived:#555;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--txt);font-family:'Instrument Mono',monospace;font-size:12px;line-height:1.6;padding:0;min-height:100vh}
+body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradient(transparent,transparent 3px,rgba(0,0,0,.05) 3px,rgba(0,0,0,.05) 4px);pointer-events:none;z-index:0}
+.wrap{max-width:1400px;margin:0 auto;padding:20px;position:relative;z-index:1}
+
+/* HEADER */
+.hdr{border-bottom:1px solid var(--bor);padding-bottom:14px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:12px}
+.hdr h1{font-family:'Anton',sans-serif;font-size:40px;line-height:.9;letter-spacing:1px}
+.hdr h1 em{font-style:normal;color:var(--ff)}
+.hdr p{font-size:10px;color:var(--mut);margin-top:5px;letter-spacing:.3px}
+
+/* STATS */
+.stats{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.stat{padding:6px 12px;background:var(--sur);border:1px solid var(--bor);border-radius:4px;font-size:10px;letter-spacing:.5px}
+.stat strong{font-weight:400}
+.stat .n{font-family:'Anton',sans-serif;font-size:18px;display:block;line-height:1}
+.stat.ff .n{color:var(--ff)}
+.stat.int .n{color:var(--int)}
+.stat.per .n{color:var(--per)}
+.stat.tot .n{color:var(--txt)}
+
+/* TOOLBAR */
+.tb{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center}
+.tb input{background:var(--sur);border:1px solid var(--bor);color:var(--txt);font-family:'Instrument Mono',monospace;font-size:11px;padding:7px 11px;border-radius:4px;outline:none;width:200px}
+.tb input:focus{border-color:var(--ff)}
+.tb input::placeholder{color:var(--mut)}
+.chip-grp{display:flex;gap:4px;flex-wrap:wrap}
+.chip{padding:5px 10px;border:1px solid var(--bor);border-radius:3px;background:transparent;color:var(--mut);font-family:'Instrument Mono',monospace;font-size:9px;letter-spacing:.6px;cursor:pointer;transition:all .15s}
+.chip.active,.chip:hover{border-color:currentColor}
+.chip.all.active{color:var(--txt);border-color:var(--txt)}
+.chip.ff.active{color:var(--ff);border-color:var(--ff);background:rgba(212,101,42,.08)}
+.chip.int.active{color:var(--int);border-color:var(--int);background:rgba(16,163,127,.08)}
+.chip.per.active{color:var(--per);border-color:var(--per);background:rgba(124,106,247,.08)}
+.chip.arc.active{color:#888;border-color:#555}
+.chip.slive.active{color:var(--s-live);border-color:var(--s-live);background:rgba(16,163,127,.08)}
+.chip.sbeta.active{color:var(--s-beta);border-color:var(--s-beta);background:rgba(74,158,255,.08)}
+.chip.sdev.active{color:var(--s-dev);border-color:var(--s-dev);background:rgba(212,101,42,.08)}
+.chip.sreview.active{color:var(--s-review);border-color:var(--s-review);background:rgba(255,184,0,.08)}
+.chip.sconcept.active{color:var(--s-concept);border-color:var(--s-concept);background:rgba(124,106,247,.08)}
+.chip.sarchived.active{color:#666;border-color:#444}
+.exp-btns{display:flex;gap:6px;margin-left:auto}
+.ebtn{padding:6px 12px;background:transparent;border:1px solid var(--bor);color:var(--mut);font-family:'Instrument Mono',monospace;font-size:10px;letter-spacing:.4px;border-radius:3px;cursor:pointer;transition:all .2s}
+.ebtn:hover{border-color:var(--ff);color:var(--ff)}
+
+/* TABLE */
+.tbl-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:11px}
+thead tr{background:var(--dim2);border-bottom:1px solid var(--bor)}
+th{padding:8px 10px;font-size:9px;letter-spacing:1.2px;text-transform:uppercase;color:var(--mut);font-weight:400;text-align:left;white-space:nowrap;cursor:pointer;user-select:none}
+th:hover{color:var(--txt)}
+th .sort{opacity:.4;margin-left:3px}
+th.sorted .sort{opacity:1;color:var(--ff)}
+tbody tr{border-bottom:1px solid var(--bor);transition:background .1s;cursor:pointer}
+tbody tr:hover{background:var(--sur)}
+tbody tr.expanded{background:var(--sur);border-bottom:none}
+td{padding:8px 10px;vertical-align:middle}
+td.name-cell{font-size:11px;color:var(--txt);white-space:nowrap}
+td.name-cell a{color:var(--ff);text-decoration:none;font-size:9px;margin-left:6px;opacity:.7}
+td.name-cell a:hover{opacity:1}
+.flag{color:#ffb800;font-size:9px;margin-left:4px}
+
+/* LANE BADGE */
+.lane{display:inline-block;padding:2px 7px;border-radius:2px;font-size:9px;letter-spacing:.5px}
+.lane-ff{background:rgba(212,101,42,.1);color:var(--ff);border:1px solid rgba(212,101,42,.3)}
+.lane-int{background:rgba(16,163,127,.1);color:var(--int);border:1px solid rgba(16,163,127,.3)}
+.lane-per{background:rgba(124,106,247,.1);color:var(--per);border:1px solid rgba(124,106,247,.3)}
+.lane-arc{background:rgba(80,80,80,.1);color:#666;border:1px solid rgba(80,80,80,.3)}
+
+/* STATUS PILL */
+.status{display:inline-block;padding:2px 8px;border-radius:2px;font-size:9px;letter-spacing:.5px;cursor:pointer;border:1px solid transparent;transition:all .15s}
+.status:hover{filter:brightness(1.3)}
+.s-review{background:rgba(255,184,0,.1);color:var(--s-review);border-color:rgba(255,184,0,.3)}
+.s-live{background:rgba(16,163,127,.1);color:var(--s-live);border-color:rgba(16,163,127,.3)}
+.s-beta{background:rgba(74,158,255,.1);color:var(--s-beta);border-color:rgba(74,158,255,.3)}
+.s-dev{background:rgba(212,101,42,.1);color:var(--s-dev);border-color:rgba(212,101,42,.3)}
+.s-concept{background:rgba(124,106,247,.1);color:var(--s-concept);border-color:rgba(124,106,247,.3)}
+.s-archived{background:rgba(80,80,80,.1);color:#666;border-color:rgba(80,80,80,.3)}
+
+/* DNS CHIP */
+.dns-chip{font-size:9px;color:var(--mut);white-space:nowrap}
+.dns-chip strong{color:#888}
+
+/* WSJF */
+.wsjf-val{color:var(--ff);font-family:'Anton',sans-serif;font-size:14px}
+.wsjf-zero{color:var(--mut)}
+
+/* EXPANDED ROW */
+tr.exp-detail td{padding:0;border-bottom:1px solid var(--bor)}
+.exp-body{padding:14px 14px 14px 28px;background:var(--dim2);display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.ef{display:flex;flex-direction:column;gap:4px}
+.ef-lbl{font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--mut)}
+.ef-val{font-size:11px;color:var(--txt)}
+.ef-val a{color:var(--ff);text-decoration:none}
+.ef-val a:hover{text-decoration:underline}
+.ef-val.flag-val{color:#ffb800}
+.ef input,.ef textarea,.ef select{background:var(--bg);border:1px solid var(--bor);color:var(--txt);font-family:'Instrument Mono',monospace;font-size:11px;padding:5px 8px;border-radius:3px;outline:none;width:100%}
+.ef input:focus,.ef textarea:focus,.ef select:focus{border-color:var(--ff)}
+.ef textarea{min-height:50px;resize:vertical}
+.save-row{grid-column:1/-1;display:flex;gap:8px;justify-content:flex-end;padding-top:6px;border-top:1px solid var(--bor)}
+.sbtn{padding:5px 14px;border-radius:3px;font-family:'Instrument Mono',monospace;font-size:10px;letter-spacing:.4px;cursor:pointer;transition:all .15s}
+.sbtn-save{background:rgba(212,101,42,.15);border:1px solid rgba(212,101,42,.5);color:var(--ff)}
+.sbtn-save:hover{background:rgba(212,101,42,.25)}
+.sbtn-cancel{background:transparent;border:1px solid var(--bor);color:var(--mut)}
+.sbtn-cancel:hover{border-color:#555;color:#888}
+
+/* DNS TABLE IN EXPAND */
+.dns-tbl{font-size:10px;border-collapse:collapse;width:100%}
+.dns-tbl td{padding:3px 6px;border-bottom:1px solid var(--bor)}
+.dns-tbl td:first-child{color:var(--mut);width:60px}
+.proxy-on{color:var(--int)}
+.proxy-off{color:var(--mut)}
+
+/* EMPTY */
+.empty{padding:40px;text-align:center;color:var(--mut);font-size:11px}
+
+/* SCROLLBAR */
+::-webkit-scrollbar{width:3px;height:3px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--bor);border-radius:2px}
+::-webkit-scrollbar-thumb:hover{background:#333}
+
+@media(max-width:900px){
+  .exp-body{grid-template-columns:1fr 1fr}
+  .stats{gap:6px}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="hdr">
+  <div>
+    <h1>FLASHFUSION<br><em>APP REGISTRY</em></h1>
+    <p>// 46 apps · Base44 · Cloudflare DNS · production status tracker</p>
+  </div>
+  <div id="hdr-right"></div>
+</div>
+
+<div class="stats" id="stats"></div>
+
+<div class="tb">
+  <input type="text" id="search" placeholder="Search apps..." oninput="render()">
+  <div class="chip-grp" id="lane-chips"></div>
+  <div class="chip-grp" id="status-chips"></div>
+  <div class="exp-btns">
+    <button class="ebtn" onclick="exportMD()">↓ EXPORT .MD</button>
+    <button class="ebtn" onclick="exportJSON()">↓ EXPORT JSON</button>
+    <button class="ebtn" onclick="resetData()" style="color:#c05050;border-color:#3a1a1a">↺ RESET</button>
+  </div>
+</div>
+
+<div class="tbl-wrap">
+<table id="main-table">
+  <thead>
+    <tr>
+      <th onclick="setSort('name')">APP NAME <span class="sort" id="sort-name">↕</span></th>
+      <th onclick="setSort('lane')">LANE <span class="sort" id="sort-lane">↕</span></th>
+      <th onclick="setSort('status')">STATUS <span class="sort" id="sort-status">↕</span></th>
+      <th>SUBDOMAIN</th>
+      <th>DNS RECORD</th>
+      <th onclick="setSort('wsjf')">WSJF <span class="sort" id="sort-wsjf">↕</span></th>
+      <th>GITHUB</th>
+      <th>CUSTOM DOMAIN</th>
+    </tr>
+  </thead>
+  <tbody id="tbody"></tbody>
+</table>
+</div>
+
+</div>
+
+<script>
+const STATUSES = ['Review','Live','Beta','Dev','Concept','Archived'];
+const LANES = ['FlashFusion','INT','Personal','Archived'];
+
+const RAW = [
+  {id:'68dd8e79ca073475565c8e16',name:'Fusion AI',lane:'FlashFusion',subdomain:'@',customDomain:'flashfusion.co',dnsType:'A',dnsName:'@',dnsContent:'216.24.57.1',dnsProxy:true,ghSlug:'fusion-ai',notes:'Root domain. Register flashfusion.co in Base44 for this app.',audience:'',stack:'Base44',revenue:'',wsjf:0},
+  {id:'69c440b10249984f1114bc4b',name:'Invoke',lane:'FlashFusion',subdomain:'invoke',customDomain:'',dnsType:'CNAME',dnsName:'invoke',dnsContent:'base44.onrender.com',dnsProxy:true,ghSlug:'invoke',notes:'',audience:'',stack:'Base44',revenue:'',wsjf:0},
+  {id:'69ec47a6fdaa15b82e6dafed',name:'Migrated from WordPress',lane:'Personal',subdomain:'—',customDomain:'kylerosebrook.com',dnsType:'—',dnsName:'—',dnsContent:'—',dnsProxy:false,ghSlug:'kylerosebrook',notes:'kylerosebrook.com content. Needs own domain config.',audience:'',stack:'Base44/WP',revenue:'',wsjf:0},
+  {id:'69d64045d159060e89b95019',name:'Beta Tester Army',lane:'FlashFusion',subdomain:'beta',customDomain:'',dnsType:'CNAME',dnsName:'beta',dnsContent:'base44.onrender.com',dnsProxy:true,ghSlug:'beta-tester-army',notes:'',audience:'',stack:'Base44',revenue:'',wsjf:0},
+  {id:'69f43f0643bb023bc2f3025d',name:'Inner-Odyssey',lane:'Personal',subdomain:'inner',customDomain:'',dnsType:'CNAME',dnsName:'inner',dnsContent:'base44.onrender.com',dnsProxy:true,ghSlug:'inner-odyssey',notes:'',audience:'',stack:'Base44',revenue:'',wsjf:0},
+  {id:'69bc83651c6a5b423a8da1fd',name:'agentrus',lane:'FlashFusion',subdomain:'agentrus',customDomain:'',dnsType:'CNAME',dnsName:'agentrus',dnsContent:'base44.onrender.com',dnsProxy:true,ghSlug:'agentrus',notes:'',audience:'',stack:'Base44',revenue:'',wsjf:0},
+  {id:'69d6866d29e0b32ab7e05bac',name:'Flagship Command',lane:'FlashFusion',subdomain:'command',customDomain:'',dnsType:'CNAME',dnsName:'command',dnsContent:'base44.onrender.com',dnsProxy:true,ghSlug:'flagship-command',notes:'',audience:'',stack:'Base44',revenue:'',wsjf:0},
+  {id:'6975c6683335e8a2a4f036a7',name:'TeamSync',lane:'INT',subdomain:'teamsync',customDomain:'',dnsType:'CNAME',dnsName:'teamsync',dnsContent:'base44.onrender.com',dnsProxy:true,ghSlug:'teamsync',notes:'',audience:'',stack:'Base44',revenue:'',wsjf:0},
+  {id:'69f6549bc82b9bbc8cac2f6d',name:'FlowState',lane:'FlashFusion',subdomain:'flow',customDomain:'',dnsType:'CNAME',dnsName:'flow',dnsContent:'base44.onrender.com',dnsProxy:true,ghSlug:'flowstate',notes:'',audience:'',stack:'Base44',revenue:'',wsjf:0},
+  {id:'6966ea092e97c4d0d7e27a83',name:'Ascend.Ai',lane:'FlashFusion',subdomain:'ascend',customDomain:'',dnsType:'CNAME',dnsName:'ascend',dnsContent:'base44.onrender.com',dnsProxy:true,ghSlug:'ascend-ai',notes:'',audience:'',stack:'Base44',revenue:'',wsjf:0},
+  {id:'69180d077a5cbed7242f90ab',name:'SparkAcademy',lane:'Personal',subdomain:'academy',customDomain:'',dnsType:'CNAME',dnsName:'academy',dnsContent:'base44.onrender.com',dnsProxy:true,ghSlug:'sparkacademy',notes:'',audience:'',stack:'Base44',revenue:'',wsjf:0},
+  {id:'69adbc8d6c3049874e5853fe',name:'Lexical-dot-arena',lane:'Personal',subdomain:'lexical',customDomain:'',dnsType:'CNAME',dnsName:'lexical',dnsContent:'base44.onrender.com',dnsProxy:true,ghSlug:'lexical-arena',notes:'',audience:'',stack:'Base44',revenue:'',wsjf:0},
+  {id:'69c44063f697f0f1017ed1c2',name:'Continuum',lane:'FlashFusion',subdomain:'continuum',customDomain:'',dnsType:'CNAME',dnsName:'continuum',dnsContent:'base44.onrender.com',dnsProxy:true,ghSlug:'continuum',notes:'Separate Next.js/Supabase project — verify this is the B44 version.',audience:'',stack:'Base44 / Next.js / Supabase',revenue:'',wsjf:0},
+  {id:'69d4d31db6dc03e671f83084',name:'Conduit',lane:'FlashFusion',subdomain:'conduit',customDomain:'',dnsType:'CNAME',dnsName:'conduit',dnsContent:'base44.onrender.com',dnsProxy:true,ghSlug:'conduit',notes:'',audience:'',stack:'Base44',revenue:'',wsjf:0},
+  {id:'69d600b633fe9356fc676f72',name:'AffordableStoreStuff',lane:'Personal',subdomain:'store',customDomain:'',dnsType:'CNAME',dnsName:'store',dnsContent:'base44.onrender.com',dnsProxy:true,ghSlug:'affordablestorestuff',notes:'',audience:'',stack:'Base44',revenue:'',wsjf:0},
+  {id:'69f5480fb2b733d922d915ff',name:'Studio Spark',lane:'FlashFusion',subdomain:'spark',customDomain:'',dnsType:'CNAME',dnsName:'spark',dnsContent:'base44.onrender.com',dnsProxy:true,ghSlug:'studio-spark',notes:'',audience:'',stack:'Base44',revenue:'',wsjf:0},
+  {id:'6905b1b4b24bc70c894362b1',name:'WebnfloW',lane:'FlashFusion',subdomain:'webnflow',customDomain:'',dnsType:'CNAME',dnsName:'webnflow',dnsContent:'base44.onrender.com',dnsProxy:true,ghSlug:'webnflow',notes:'',audience:'',stack:'Base44',revenue:'',wsjf:0},
+  {id:'69f64dfad431e2eda98a57aa',name:'Graph Studio',lane:'FlashFusion',subdomain:'graph',customDomain:'',dnsType:'CNAME',dnsName:'graph',dnsContent:'base44.onrender.com',dnsProxy:true,ghSlug:'graph-studio',notes:'',audience:'',stack:'Base44',revenue:'',wsjf:0},
+  {id:'691e3ae3bd4916f2e05ae35e',name:'INTeract',lane:'INT',subdomain:'interact',customDomain:'',dnsType:'CNAME',dnsName:'interact',dnsContent:'base44.onrender.com',dnsProxy:true,ghSlug:'interact',notes:'',audience:'INT employees',stack:'Base44',revenue:'Internal',wsjf:0},
+  {id:'694c756124d640756ea9ba23',name:'Orchestrator AI',lane:'FlashFusion',subdomain:'orchestrator',customDomain:'',dnsType:'CNAME',dnsName:'orchestrator',dnsContent:'base44.onrender.com',dnsProxy:true,ghSlug:'orchestrator-ai',notes:'',audience:'',stack:'Base44',revenue:'',wsjf:0},
+  {id:'68a40c8f3d65dd588715bca9',name:'ArchDesigner',lane:'FlashFusion',subdomain:'archdesigner',customDomain:'',dnsType:'CNAME',dnsName:'archdesigner',dnsContent:'base44.onrender.com',dnsProxy:true,ghSlug:'archdesigner',notes:'',audience:'',stack:'Base44',revenue:'',wsjf:0},
+  {id:'68a184521fdcdb5b8b0fae36',name:'Archon Orchestrator',lane:'FlashFusion',subdomain:'archon',customDomain:'',dnsType:'CNAME',dnsName:'archon',dnsContent:'base44.onrender.com',dnsProxy:true,ghSlug:'archon-orchestrator',notes:'',audience:'',stack:'Base44',revenue:'',wsjf:0},
+  {id:'68b1d9717d45745ba2475eec',name:'Sedona Soul Sessions',lane:'Personal',subdomain:'sedona',customDomain:'',dnsType:'CNAME',dnsName:'sedona',dnsContent:'base44.onrender.com',dnsProxy:true,ghSlug:'sedona-soul-sessions',notes:'',audience:'',stack:'Base44',revenue:'',wsjf:0},
+  {id:'68d1c017b920ca5b5d9c7db5',name:'SoleIgnite',lane:'Archived',subdomain:'—',customDomain:'',dnsType:'—',dnsName:'—',dnsContent:'—',dnsProxy:false,ghSlug:'soleignite',notes:'Archived. Sole Revival paused — do not re-engage.',audience:'',stack:'Base44',revenue:'',wsjf:0},
+  {id:'68f03dfd5b675d4559f305d9',name:'GameCraft',lane:'Personal',subdomain:'gamecraft',customDomain:'',dnsType:'CNAME',dnsName:'gamecraft',dnsContent:'base44.onrender.com',dnsProxy:true,ghSlug:'gamecraft',notes:'',audience:'',stack:'Base44',revenue:'',wsjf:0},
+  {id:'68f81edd94b5b21e9c72953d',name:'Champions Hub',lane:'Personal',subdomain:'champions',customDomain:'',dnsType:'CNAME',dnsName:'champions',dnsContent:'base44.onrender.com',dnsProxy:true,ghSlug:'champions-hub',notes:'',audience:'',stack:'Base44',revenue:'',wsjf:0},
+  {id:'68f83f5bde8a37c8491aec1f',name:'TESSA',lane:'FlashFusion',subdomain:'tessa',customDomain:'',dnsType:'CNAME',dnsName:'tessa',dnsContent:'base44.onrender.com',dnsProxy:true,ghSlug:'tessa',notes:'⚠ Possible duplicate of "Tessa" app — verify before DNS.',audience:'',stack:'Base44',revenue:'',wsjf:0},
+  {id:'6905b170a16696741559c314',name:'Battle Arena Pro',lane:'Personal',subdomain:'battle',customDomain:'',dnsType:'CNAME',dnsName:'battle',dnsContent:'base44.onrender.com',dnsProxy:true,ghSlug:'battle-arena-pro',notes:'',audience:'',stack:'Base44',revenue:'',wsjf:0},
+  {id:'695358c874c44c15f2191368',name:'Enterprise Hub',lane:'FlashFusion',subdomain:'enterprise',customDomain:'',dnsType:'CNAME',dnsName:'enterprise',dnsContent:'base44.onrender.com',dnsProxy:true,ghSlug:'enterprise-hub',notes:'',audience:'',stack:'Base44',revenue:'',wsjf:0},
+  {id:'6953593fa0363e206cad4944',name:'Nexus Copilot',lane:'FlashFusion',subdomain:'nexus',customDomain:'',dnsType:'CNAME',dnsName:'nexus',dnsContent:'base44.onrender.com',dnsProxy:true,ghSlug:'nexus-copilot',notes:'',audience:'',stack:'Base44',revenue:'',wsjf:0},
+  {id:'695fdfc2bb2f0d4d1c302175',name:'LifeSync',lane:'Personal',subdomain:'lifesync',customDomain:'',dnsType:'CNAME',dnsName:'lifesync',dnsContent:'base44.onrender.com',dnsProxy:true,ghSlug:'lifesync',notes:'',audience:'',stack:'Base44',revenue:'',wsjf:0},
+  {id:'6964ae9bccc476276ac51682',name:'Enterprise AI App Generator',lane:'FlashFusion',subdomain:'generator',customDomain:'',dnsType:'CNAME',dnsName:'generator',dnsContent:'base44.onrender.com',dnsProxy:true,ghSlug:'enterprise-ai-generator',notes:'',audience:'',stack:'Base44',revenue:'',wsjf:0},
+  {id:'696794d3b250852091312921',name:'AI Ops Concierge',lane:'FlashFusion',subdomain:'ops',customDomain:'',dnsType:'CNAME',dnsName:'ops',dnsContent:'base44.onrender.com',dnsProxy:true,ghSlug:'ai-ops-concierge',notes:'',audience:'',stack:'Base44',revenue:'',wsjf:0},
+  {id:'696c01e92b52fbdc507430f1',name:'Card Catalog AI',lane:'INT',subdomain:'catalog',customDomain:'',dnsType:'CNAME',dnsName:'catalog',dnsContent:'base44.onrender.com',dnsProxy:true,ghSlug:'card-catalog-ai',notes:'',audience:'INT employees',stack:'Base44',revenue:'Internal',wsjf:0},
+  {id:'69726bea1c1525bf9ac336d1',name:'Chaos Club',lane:'Personal',subdomain:'chaos',customDomain:'',dnsType:'CNAME',dnsName:'chaos',dnsContent:'base44.onrender.com',dnsProxy:true,ghSlug:'chaos-club',notes:'Chaos Club Co. peer support platform.',audience:'Peer support',stack:'Base44',revenue:'',wsjf:0},
+  {id:'6973c63c8956a95a1239ebd6',name:'AI Studio',lane:'FlashFusion',subdomain:'studio',customDomain:'',dnsType:'CNAME',dnsName:'studio',dnsContent:'base44.onrender.com',dnsProxy:true,ghSlug:'ai-studio',notes:'',audience:'',stack:'Base44',revenue:'',wsjf:0},
+  {id:'69771560d39c8c6139201b55',name:'ScoutReel',lane:'Personal',subdomain:'scout',customDomain:'',dnsType:'CNAME',dnsName:'scout',dnsContent:'base44.onrender.com',dnsProxy:true,ghSlug:'scoutreel',notes:'',audience:'',stack:'Base44',revenue:'',wsjf:0},
+  {id:'69845451675b814799b78d47',name:'AI Game Day Oracle',lane:'Personal',subdomain:'oracle',customDomain:'',dnsType:'CNAME',dnsName:'oracle',dnsContent:'base44.onrender.com',dnsProxy:true,ghSlug:'ai-game-day-oracle',notes:'',audience:'',stack:'Base44',revenue:'',wsjf:0},
+  {id:'69861bd9ee42e63a83ea6c2e',name:'INTelligence.ai',lane:'INT',subdomain:'intelligence',customDomain:'',dnsType:'CNAME',dnsName:'intelligence',dnsContent:'base44.onrender.com',dnsProxy:true,ghSlug:'intelligence-ai',notes:'',audience:'INT employees',stack:'Base44',revenue:'Internal',wsjf:0},
+  {id:'6990d794da1e2f0102c267bd',name:'Sole Customizer',lane:'Archived',subdomain:'—',customDomain:'',dnsType:'—',dnsName:'—',dnsContent:'—',dnsProxy:false,ghSlug:'sole-customizer',notes:'Archived. Sole Revival paused — do not re-engage.',audience:'',stack:'Base44',revenue:'',wsjf:0},
+  {id:'6993224085066ce50f0a4b00',name:'Proactive Mentor OS',lane:'INT',subdomain:'mentor',customDomain:'',dnsType:'CNAME',dnsName:'mentor',dnsContent:'base44.onrender.com',dnsProxy:true,ghSlug:'proactive-mentor-os',notes:'',audience:'INT employees',stack:'Base44',revenue:'Internal',wsjf:0},
+  {id:'69b6f0ff7b33fdefbbb4148f',name:'Tessa',lane:'FlashFusion',subdomain:'tessa-v2',customDomain:'',dnsType:'CNAME',dnsName:'tessa-v2',dnsContent:'base44.onrender.com',dnsProxy:true,ghSlug:'tessa-v2',notes:'⚠ Possible duplicate of "TESSA" app — resolve before DNS.',audience:'',stack:'Base44',revenue:'',wsjf:0},
+  {id:'69d3f57a73a8e3da2bdcdbcd',name:'CreditReview',lane:'Personal',subdomain:'credit',customDomain:'',dnsType:'CNAME',dnsName:'credit',dnsContent:'base44.onrender.com',dnsProxy:true,ghSlug:'creditreview',notes:'',audience:'',stack:'Base44',revenue:'',wsjf:0},
+  {id:'69d51947e1f726c213750550',name:'rifts.to',lane:'Personal',subdomain:'rifts',customDomain:'rifts.to',dnsType:'CNAME',dnsName:'rifts',dnsContent:'base44.onrender.com',dnsProxy:true,ghSlug:'rifts-to',notes:'Has own domain rifts.to — verify if separate DNS config needed.',audience:'',stack:'Base44',revenue:'',wsjf:0},
+  {id:'69d896ccb63da457468b275b',name:'Knowledge OS',lane:'FlashFusion',subdomain:'knowledge',customDomain:'',dnsType:'CNAME',dnsName:'knowledge',dnsContent:'base44.onrender.com',dnsProxy:true,ghSlug:'knowledge-os',notes:'',audience:'',stack:'Base44',revenue:'',wsjf:0},
+  {id:'68a60dfb8f545166ef4207d1',name:'AuraFlow',lane:'Personal',subdomain:'aura',customDomain:'',dnsType:'CNAME',dnsName:'aura',dnsContent:'base44.onrender.com',dnsProxy:true,ghSlug:'auraflow',notes:'',audience:'',stack:'Base44',revenue:'',wsjf:0},
+];
+
+const GH_BASE = 'https://github.com/Krosebrook/';
+const B44_BASE = 'https://app.base44.com/apps/';
+const STORAGE_KEY = 'ff_registry_v1';
+const SORT_FIELDS = ['name','lane','status','wsjf'];
+const LANE_KEYS = {FlashFusion:'ff',INT:'int',Personal:'per',Archived:'arc'};
+const STATUS_LC = s => s.toLowerCase().replace(/\s/g,'');
+
+let apps = [];
+let laneFilter = 'All';
+let statusFilter = 'All';
+let sortField = 'name';
+let sortDir = 1;
+let expandedId = null;
+let editingId = null;
+let editDraft = {};
+
+function load() {
+  const saved = localStorage.getItem(STORAGE_KEY);
+  if (saved) {
+    try {
+      const parsed = JSON.parse(saved);
+      apps = RAW.map(r => {
+        const s = parsed.find(p => p.id === r.id);
+        return s ? {...r,...s} : {...r, status:'Review'};
+      });
+      return;
+    } catch(e) {}
+  }
+  apps = RAW.map(r => ({...r, status: r.lane === 'Archived' ? 'Archived' : 'Review'}));
+}
+
+function save() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(apps));
+}
+
+function buildStats() {
+  const el = document.getElementById('stats');
+  const total = apps.length;
+  const ff = apps.filter(a=>a.lane==='FlashFusion').length;
+  const int = apps.filter(a=>a.lane==='INT').length;
+  const per = apps.filter(a=>a.lane==='Personal').length;
+  const live = apps.filter(a=>a.status==='Live').length;
+  const beta = apps.filter(a=>a.status==='Beta').length;
+  const review = apps.filter(a=>a.status==='Review').length;
+  el.innerHTML = `
+    <div class="stat tot"><span class="n">${total}</span>TOTAL APPS</div>
+    <div class="stat ff"><span class="n">${ff}</span>FLASHFUSION</div>
+    <div class="stat int"><span class="n">${int}</span>INT</div>
+    <div class="stat per"><span class="n">${per}</span>PERSONAL</div>
+    <div class="stat" style="--n-color:#10a37f"><span class="n" style="color:#10a37f">${live}</span>LIVE</div>
+    <div class="stat" style="--n-color:#4a9eff"><span class="n" style="color:#4a9eff">${beta}</span>BETA</div>
+    <div class="stat" style="--n-color:#ffb800"><span class="n" style="color:#ffb800">${review}</span>NEEDS REVIEW</div>
+  `;
+}
+
+function buildFilters() {
+  const laneEl = document.getElementById('lane-chips');
+  const statEl = document.getElementById('status-chips');
+  const lanes = ['All',...LANES];
+  const statuses = ['All',...STATUSES];
+  laneEl.innerHTML = lanes.map(l => {
+    const k = l === 'All' ? 'all' : LANE_KEYS[l];
+    const active = laneFilter === l ? 'active' : '';
+    return `<button class="chip ${k} ${active}" onclick="setLane('${l}')">${l.toUpperCase()}</button>`;
+  }).join('');
+  statEl.innerHTML = statuses.map(s => {
+    const k = s === 'All' ? 'all' : 's'+STATUS_LC(s);
+    const active = statusFilter === s ? 'active' : '';
+    return `<button class="chip ${k} ${active}" onclick="setStatus('${s}')">${s.toUpperCase()}</button>`;
+  }).join('');
+}
+
+function setLane(l) { laneFilter = l; expandedId = null; editingId = null; render(); }
+function setStatus(s) { statusFilter = s; expandedId = null; editingId = null; render(); }
+function setSort(f) {
+  if (sortField === f) sortDir *= -1; else { sortField = f; sortDir = 1; }
+  render();
+}
+
+function filtered() {
+  const q = document.getElementById('search').value.trim().toLowerCase();
+  return apps.filter(a => {
+    if (laneFilter !== 'All' && a.lane !== laneFilter) return false;
+    if (statusFilter !== 'All' && a.status !== statusFilter) return false;
+    if (q && !a.name.toLowerCase().includes(q)) return false;
+    return true;
+  }).sort((a,b) => {
+    let av = a[sortField], bv = b[sortField];
+    if (typeof av === 'string') av = av.toLowerCase();
+    if (typeof bv === 'string') bv = bv.toLowerCase();
+    return av < bv ? -sortDir : av > bv ? sortDir : 0;
+  });
+}
+
+function laneClass(lane) {
+  return {FlashFusion:'lane-ff',INT:'lane-int',Personal:'lane-per',Archived:'lane-arc'}[lane] || 'lane-arc';
+}
+
+function statusClass(s) {
+  return 's-'+STATUS_LC(s);
+}
+
+function cyclicStatus(current) {
+  const i = STATUSES.indexOf(current);
+  return STATUSES[(i+1) % STATUSES.length];
+}
+
+function cycleStatus(id, e) {
+  e.stopPropagation();
+  const a = apps.find(x=>x.id===id);
+  if (!a) return;
+  a.status = cyclicStatus(a.status);
+  save(); buildStats(); render();
+}
+
+function toggleExpand(id) {
+  if (editingId === id) return;
+  expandedId = expandedId === id ? null : id;
+  editingId = null;
+  render();
+}
+
+function startEdit(id, e) {
+  e.stopPropagation();
+  const a = apps.find(x=>x.id===id);
+  editDraft = {...a};
+  editingId = id;
+  expandedId = id;
+  render();
+  setTimeout(()=>{
+    const el = document.getElementById(`edit-audience-${id}`);
+    if (el) el.focus();
+  }, 50);
+}
+
+function cancelEdit(e) {
+  e.stopPropagation();
+  editingId = null;
+  editDraft = {};
+  render();
+}
+
+function saveEdit(id, e) {
+  e.stopPropagation();
+  const idx = apps.findIndex(x=>x.id===id);
+  if (idx < 0) return;
+  apps[idx] = {...apps[idx],...editDraft};
+  editingId = null;
+  editDraft = {};
+  save(); buildStats(); render();
+}
+
+function draftChange(field, val) {
+  editDraft[field] = field === 'wsjf' ? (parseInt(val)||0) : val;
+}
+
+function buildExpandedRow(a) {
+  const isEditing = editingId === a.id;
+  const d = isEditing ? editDraft : a;
+  const ghUrl = GH_BASE + a.ghSlug;
+  const b44Url = B44_BASE + a.id;
+  const fullDomain = a.subdomain === '@' ? (a.customDomain || 'flashfusion.co') :
+    a.subdomain === '—' ? (a.customDomain || '—') :
+    `${a.subdomain}.flashfusion.co`;
+
+  const hasCustom = !!a.customDomain;
+  const dnsSection = a.dnsType === '—' ? '<em style="color:var(--mut)">No DNS entry (archived or external domain)</em>' : `
+    <table class="dns-tbl">
+      <tr><td>TYPE</td><td>${a.dnsType}</td></tr>
+      <tr><td>NAME</td><td>${a.dnsName}</td></tr>
+      <tr><td>CONTENT</td><td>${a.dnsContent}</td></tr>
+      <tr><td>PROXY</td><td class="${a.dnsProxy?'proxy-on':'proxy-off'}">${a.dnsProxy?'ON ✓':'OFF'}</td></tr>
+      <tr><td>TTL</td><td>Auto</td></tr>
+    </table>`;
+
+  const flagNote = a.notes && a.notes.startsWith('⚠') ?
+    `<div class="ef"><div class="ef-lbl">FLAGS</div><div class="ef-val flag-val">${a.notes}</div></div>` : '';
+
+  if (isEditing) {
+    return `
+      <div class="exp-body">
+        <div class="ef"><div class="ef-lbl">BASE44 EDITOR</div><div class="ef-val"><a href="${b44Url}" target="_blank">${a.id.slice(-8)} ↗</a></div></div>
+        <div class="ef"><div class="ef-lbl">GITHUB ⚠ unverified</div><div class="ef-val"><a href="${ghUrl}" target="_blank">Krosebrook/${a.ghSlug} ↗</a></div></div>
+        <div class="ef"><div class="ef-lbl">FULL URL</div><div class="ef-val" style="color:var(--mut)">${fullDomain}</div></div>
+        <div class="ef"><div class="ef-lbl">DNS RECORD</div><div>${dnsSection}</div></div>
+        <div class="ef"><div class="ef-lbl">TARGET AUDIENCE</div><input id="edit-audience-${a.id}" value="${d.audience||''}" oninput="draftChange('audience',this.value)" onclick="event.stopPropagation()"></div>
+        <div class="ef"><div class="ef-lbl">TECH STACK</div><input value="${d.stack||''}" oninput="draftChange('stack',this.value)" onclick="event.stopPropagation()"></div>
+        <div class="ef"><div class="ef-lbl">REVENUE MODEL</div><input value="${d.revenue||''}" oninput="draftChange('revenue',this.value)" onclick="event.stopPropagation()"></div>
+        <div class="ef"><div class="ef-lbl">WSJF SCORE (0-10)</div><input type="number" min="0" max="10" value="${d.wsjf||0}" oninput="draftChange('wsjf',this.value)" onclick="event.stopPropagation()"></div>
+        <div class="ef" style="grid-column:span 2"><div class="ef-lbl">NOTES</div><textarea oninput="draftChange('notes',this.value)" onclick="event.stopPropagation()">${d.notes||''}</textarea></div>
+        <div class="ef"><div class="ef-lbl">SUBDOMAIN</div><input value="${d.subdomain||''}" oninput="draftChange('subdomain',this.value)" onclick="event.stopPropagation()"></div>
+        <div class="ef"><div class="ef-lbl">CUSTOM DOMAIN</div><input value="${d.customDomain||''}" oninput="draftChange('customDomain',this.value)" onclick="event.stopPropagation()"></div>
+        <div class="save-row">
+          <button class="sbtn sbtn-cancel" onclick="cancelEdit(event)">CANCEL</button>
+          <button class="sbtn sbtn-save" onclick="saveEdit('${a.id}',event)">SAVE CHANGES</button>
+        </div>
+      </div>`;
+  }
+
+  return `
+    <div class="exp-body">
+      <div class="ef"><div class="ef-lbl">BASE44 EDITOR</div><div class="ef-val"><a href="${b44Url}" target="_blank">${a.id.slice(-8)} ↗</a></div></div>
+      <div class="ef"><div class="ef-lbl">GITHUB ⚠ unverified</div><div class="ef-val"><a href="${ghUrl}" target="_blank">Krosebrook/${a.ghSlug} ↗</a></div></div>
+      <div class="ef"><div class="ef-lbl">FULL URL</div><div class="ef-val" style="color:${hasCustom?'var(--ff)':'var(--mut)'}">${fullDomain}${hasCustom?' ✦':''}</div></div>
+      <div class="ef"><div class="ef-lbl">DNS RECORD</div><div>${dnsSection}</div></div>
+      <div class="ef"><div class="ef-lbl">TARGET AUDIENCE</div><div class="ef-val">${a.audience||'<em style="color:var(--mut)">—</em>'}</div></div>
+      <div class="ef"><div class="ef-lbl">TECH STACK</div><div class="ef-val">${a.stack||'<em style="color:var(--mut)">—</em>'}</div></div>
+      <div class="ef"><div class="ef-lbl">REVENUE MODEL</div><div class="ef-val">${a.revenue||'<em style="color:var(--mut)">—</em>'}</div></div>
+      <div class="ef"><div class="ef-lbl">WSJF SCORE</div><div class="ef-val ${a.wsjf?'':'wsjf-zero'}">${a.wsjf||'—'}</div></div>
+      ${a.notes && !a.notes.startsWith('⚠') ? `<div class="ef" style="grid-column:span 2"><div class="ef-lbl">NOTES</div><div class="ef-val">${a.notes}</div></div>` : ''}
+      ${flagNote}
+      <div class="save-row">
+        <button class="sbtn sbtn-save" onclick="startEdit('${a.id}',event)">EDIT</button>
+      </div>
+    </div>`;
+}
+
+function render() {
+  buildStats();
+  buildFilters();
+
+  SORT_FIELDS.forEach(f => {
+    const el = document.getElementById(`sort-${f}`);
+    if (!el) return;
+    const th = el.parentElement;
+    th.classList.toggle('sorted', sortField === f);
+    el.textContent = sortField === f ? (sortDir > 0 ? '↑' : '↓') : '↕';
+  });
+
+  const rows = filtered();
+  const tbody = document.getElementById('tbody');
+
+  if (rows.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="8" class="empty">No apps match current filters.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = rows.map(a => {
+    const fullDomain = a.subdomain === '@' ? (a.customDomain||'flashfusion.co') :
+      a.subdomain === '—' ? '—' : `${a.subdomain}.flashfusion.co`;
+    const hasCustom = !!a.customDomain;
+    const wsjfDisp = a.wsjf ? `<span class="wsjf-val">${a.wsjf}</span>` : `<span class="wsjf-zero">—</span>`;
+    const flagMark = (a.notes||'').startsWith('⚠') ? '<span class="flag" title="'+a.notes.replace(/"/g,"'")+'">⚠</span>' : '';
+    const dnsShort = a.dnsType === '—' ? '<span style="color:var(--mut)">—</span>' :
+      `<span class="dns-chip"><strong>${a.dnsType}</strong> ${a.dnsName} → ${a.dnsContent.replace('base44.onrender.com','b44.render')}</span>`;
+    const ghShort = `<a href="https://github.com/Krosebrook/${a.ghSlug}" target="_blank" onclick="event.stopPropagation()" style="color:var(--ff);font-size:10px;opacity:.7;text-decoration:none">${a.ghSlug} ↗</a>`;
+    const customDisp = hasCustom ? `<span style="color:var(--ff)">${a.customDomain} ✦</span>` :
+      `<span style="color:var(--mut);font-size:9px">gap — base44.app URL</span>`;
+    const expanded = expandedId === a.id;
+
+    return `
+      <tr class="${expanded?'expanded':''}" onclick="toggleExpand('${a.id}')">
+        <td class="name-cell">${a.name}${flagMark}<a href="https://app.base44.com/apps/${a.id}" target="_blank" onclick="event.stopPropagation()">B44 ↗</a></td>
+        <td><span class="lane ${laneClass(a.lane)}">${a.lane}</span></td>
+        <td><span class="status ${statusClass(a.status)}" onclick="cycleStatus('${a.id}',event)" title="Click to cycle status">${a.status}</span></td>
+        <td style="color:var(--mut);font-size:10px">${fullDomain}</td>
+        <td>${dnsShort}</td>
+        <td>${wsjfDisp}</td>
+        <td>${ghShort}</td>
+        <td>${customDisp}</td>
+      </tr>
+      ${expanded ? `<tr class="exp-detail"><td colspan="8">${buildExpandedRow(a)}</td></tr>` : ''}
+    `;
+  }).join('');
+}
+
+function exportMD() {
+  const all = [...apps].sort((a,b)=>a.lane.localeCompare(b.lane)||a.name.localeCompare(b.name));
+  const date = new Date().toISOString().split('T')[0];
+  let md = `# FlashFusion App Registry\n_Generated: ${date} | ${apps.length} apps_\n\n`;
+  const lanes = ['FlashFusion','INT','Personal','Archived'];
+  lanes.forEach(lane => {
+    const group = all.filter(a=>a.lane===lane);
+    if (!group.length) return;
+    md += `## ${lane}\n\n`;
+    md += `| App | Status | Subdomain | DNS Type | DNS Content | WSJF | GitHub | Custom Domain | Notes |\n`;
+    md += `|-----|--------|-----------|----------|-------------|------|--------|---------------|-------|\n`;
+    group.forEach(a => {
+      const domain = a.subdomain==='@'?(a.customDomain||'flashfusion.co'):a.subdomain==='—'?'—':`${a.subdomain}.flashfusion.co`;
+      md += `| ${a.name} | ${a.status} | ${domain} | ${a.dnsType} | ${a.dnsContent} | ${a.wsjf||'—'} | [↗](${GH_BASE+a.ghSlug}) | ${a.customDomain||'⚠ gap'} | ${(a.notes||'').replace(/\|/g,'\\|')} |\n`;
+    });
+    md += '\n';
+  });
+  md += `---\n\n## DNS Records (Cloudflare)\n\n| Type | Name | Content | Proxy | App |\n|------|------|---------|-------|-----|\n`;
+  apps.filter(a=>a.dnsType!=='—').forEach(a=>{
+    md += `| ${a.dnsType} | ${a.dnsName} | ${a.dnsContent} | ${a.dnsProxy?'Proxied':'DNS only'} | ${a.name} |\n`;
+  });
+  const blob = new Blob([md],{type:'text/markdown'});
+  const url = URL.createObjectURL(blob);
+  const link = Object.assign(document.createElement('a'),{href:url,download:`ff-registry-${date}.md`});
+  link.click(); URL.revokeObjectURL(url);
+}
+
+function exportJSON() {
+  const date = new Date().toISOString().split('T')[0];
+  const blob = new Blob([JSON.stringify(apps,null,2)],{type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const link = Object.assign(document.createElement('a'),{href:url,download:`ff-registry-${date}.json`});
+  link.click(); URL.revokeObjectURL(url);
+}
+
+function resetData() {
+  if (!confirm('Reset all status, notes, and edits to defaults?')) return;
+  localStorage.removeItem(STORAGE_KEY);
+  load(); render();
+}
+
+load(); render();
+</script>
+</body>
+</html>
