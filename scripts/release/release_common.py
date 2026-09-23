@@ -7,14 +7,10 @@ from __future__ import annotations
 
 import hashlib
 import json
-import sys
 import time
 import urllib.error
 import urllib.request
 from pathlib import Path
-
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from repo_integrity import SECRET_PATTERNS  # noqa: E402  (single source of secret patterns)
 
 USER_AGENT = "abstrekkt-release-verifier/1 (+https://github.com/ChaosClubCo/abstrekkt)"
 PLATFORM_FILES = {"_headers", "_redirects"}  # consumed by Pages, never served

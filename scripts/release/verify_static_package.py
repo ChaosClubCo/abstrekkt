@@ -13,7 +13,10 @@ import re
 import sys
 from pathlib import Path, PurePosixPath
 
-from release_common import PLATFORM_FILES, REQUIRED_FILES, SECRET_PATTERNS, emit, package_files
+from release_common import PLATFORM_FILES, REQUIRED_FILES, emit, package_files
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from repo_integrity import SECRET_PATTERNS  # noqa: E402  (single source of secret patterns)
 
 ALLOWED_SUFFIXES = {
     ".html", ".css", ".js", ".mjs", ".json", ".txt", ".xml", ".svg",
