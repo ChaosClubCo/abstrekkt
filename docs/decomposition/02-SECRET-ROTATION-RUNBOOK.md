@@ -7,6 +7,13 @@ Blocking gate: no extraction in `03-EXTRACTION-RUNBOOK.md` and later proceeds to
 
 `Infinite-heroes-env.txt` is tracked in git (commit `b7468661`), 134 lines, 108 unique `KEY=value` credential names. The `.gitignore` rule `*-env.txt` is inert for this specific file because it was committed before the rule existed. As of this audit, rotation status is **unconfirmed — treat every key below as live until this ledger says otherwise.**
 
+**Status update, 2026-09-23 (refresh in place, per `docs/DOCUMENTATION_STANDARDS.md`):**
+
+- `Infinite-heroes-env.txt` and `project/uploads/Backup-codes-krosebrook86.txt` (account backup codes, restored to `main` by `77c0a1d2`) were removed from the tip of branch `claude/charming-darwin-39g5to` on explicit instruction from the repository owner (see Post-rotation below). **Both remain readable in git history.** Removal from HEAD is not remediation.
+- Root cause of the earlier re-entry: `.gitignore` carried `*.env` and `*-env.txt` with trailing inline `# …` comments, which git treats as part of the pattern, so both rules never matched anything. Fixed in the same change. `scripts/repo_integrity.py` now fails CI if any tracked file matches `.gitignore`, apart from a reviewed three-file allowlist.
+- A masked pattern triage (values never printed) found no other real-shaped credentials in HEAD. The four other files listed in `never-extract.denylist` under "Live/possible credentials", plus ten further pattern-matched files (vendored templates, test fixtures, four copies of one skill doc), contain placeholders or test fixtures only.
+- Rotation status is **unchanged: unconfirmed.** Every ledger row below is still treated as live. Add one row for the backup codes: regenerate them at the account provider, which invalidates the old set.
+
 ## Procedure per key
 
 1. Open the provider's console (column below).
@@ -176,4 +183,4 @@ Blocking gate: no extraction in `03-EXTRACTION-RUNBOOK.md` and later proceeds to
 
 - Store real values only in each target repo's own secret manager (GitHub Actions secrets, Wrangler secrets, Fly/Railway secrets) — never in a repo file, `.env.example` excluded (name-only templates remain fine).
 - Once every row above shows `verified_at`, update `01-DECOMPOSITION_PLAN.md`'s Phase 0 status and this file's blocking-gate note.
-- `Infinite-heroes-env.txt` itself stays in this repo's history (569 MB `.git`, no history rewrite planned — see `01-DECOMPOSITION_PLAN.md` architecture choice C). Rotation neutralizes the leak; it does not remove the tracked file. Do not delete the file without a separate, explicit decision — deleting from the working tree does not remove it from history and could create a false sense of resolution.
+- `Infinite-heroes-env.txt` itself stays in this repo's history (569 MB `.git`, no history rewrite planned — see `01-DECOMPOSITION_PLAN.md` architecture choice C). Rotation neutralizes the leak; it does not remove the tracked file. Do not delete the file without a separate, explicit decision — deleting from the working tree does not remove it from history and could create a false sense of resolution. **Decision recorded 2026-09-23:** the repository owner explicitly instructed deletion ("Delete the credentials first"). The file was removed from HEAD in the change that added this note. History is untouched: no rewrite, consistent with choice C. This decision does not close this runbook's gate; only completed rotation does.
