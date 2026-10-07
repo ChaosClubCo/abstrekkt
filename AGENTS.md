@@ -63,3 +63,13 @@ For repository-governance changes, verify at minimum:
 - no changed path under `loxihart/` bypasses the freeze;
 - changed text files pass lightweight secret-pattern screening;
 - the PR diff contains only intended authority-domain changes.
+
+## Base44 dev environment
+
+The runnable web app is `Unicorn-maybe/flashfusion-web/` — a frontend-only Next.js 16 marketing site (React 19, Three.js, Tailwind). No database, no external services, no secrets required.
+
+- **Compose:** `docker-compose.base44.yml` runs `node:22`, bind-mounts `Unicorn-maybe/flashfusion-web/` to `/app`, installs deps with `npm ci`, and starts `next dev -H 0.0.0.0 -p 3000`.
+- **Preview origin:** `next.config.mjs` sets `allowedDevOrigins` from `BASE44_PUBLIC_HOST_SUFFIX` so the preview proxy can load dev assets/HMR.
+- **Healthcheck:** `node -e "fetch('http://localhost:3000/')..."` — probes the dev server, no custom endpoint.
+- **Verify:** `curl -s -o /dev/null -w '%{http_code}' http://localhost:3000/` should return 200.
+- The `rendered/` directory is a separate static HTML build tool, not the preview app.
