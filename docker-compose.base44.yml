@@ -1,0 +1,30 @@
+services:
+  web:
+    image: node:22
+    working_dir: /app
+    volumes:
+      - ./Unicorn-maybe/flashfusion-web:/app
+    ports:
+      - "3000:3000"
+    environment:
+      - BASE44_PUBLIC_HOST_SUFFIX=${BASE44_PUBLIC_HOST_SUFFIX}
+      - __VITE_ADDITIONAL_SERVER_ALLOWED_HOSTS=${BASE44_PUBLIC_HOST_SUFFIX}
+    command:
+      [
+        "sh",
+        "-ec",
+        "npm ci --no-audit --no-fund && exec npm run dev -- -H 0.0.0.0 -p 3000",
+      ]
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://localhost:3000/').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 5s
+      start_period: 90s
+      retries: 6
+    restart: on-failure
