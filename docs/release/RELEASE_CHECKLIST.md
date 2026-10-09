@@ -4,7 +4,7 @@ Authority domain: `abstrekkt_publication` (`repository-registry.yaml`). Base rev
 Assessed: 2026-10-09 (UTC). Evidence: `docs/release/evidence/` (index in its `README.md`).
 Statuses: PASS, FAIL, INCONCLUSIVE, NEEDS EXTERNAL VERIFICATION (NEV), NOT APPLICABLE (N/A).
 
-**Verdict at this revision: NO-GO.** Open CRITICAL rows: R-SEC-01, R-SEC-02. Open HIGH rows: R-CI-01, R-DEP-01, R-DEP-02, R-JRN-01, R-SEC-03, R-CI-02, R-OBS-01.
+**Verdict at this revision: NO-GO.** Open CRITICAL rows: R-SEC-01, R-SEC-02. Open HIGH rows: R-CI-01, R-DEP-01, R-DEP-02, R-JRN-01, R-SEC-03, R-CI-02, R-OBS-01, R-ROLL-01.
 
 ## Scope
 
