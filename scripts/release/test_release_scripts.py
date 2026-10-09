@@ -10,6 +10,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from cf_zone_diagnose import redact_expression, route_matches  # noqa: E402
+from compose_headers import compose  # noqa: E402
 from release_common import is_challenge, route_for  # noqa: E402
 from verify_static_package import resolve_link, verify  # noqa: E402
 from write_receipt import derive_status  # noqa: E402
@@ -85,6 +86,34 @@ class ClassificationTests(unittest.TestCase):
         self.assertEqual(derive_status({"status": "PASS"}, {"classification": "CHALLENGED"}), "DEPLOYED_UNVERIFIED")
         self.assertEqual(derive_status({"status": "FAIL"}, {"classification": "MATCH"}), "FAILED")
         self.assertEqual(derive_status({}, {}), "FAILED")
+
+
+class HeaderCompositionTests(unittest.TestCase):
+    SHA = "a" * 40
+
+    def test_managed_headers_without_committed_rules(self):
+        out = compose("", self.SHA)
+        self.assertTrue(out.startswith("/*\n"))
+        self.assertIn("  X-Frame-Options: DENY\n", out)
+        self.assertIn("  Permissions-Policy: camera=(), microphone=(), geolocation=()\n", out)
+        self.assertIn(f"  X-Abstrekkt-Release: {self.SHA}\n", out)
+        self.assertNotIn("Preserved", out)
+
+    def test_committed_rules_are_preserved_after_managed_block(self):
+        committed = '/\n  Link: </pillars/>; rel="describedby"; type="text/html"\n'
+        out = compose(committed, self.SHA)
+        self.assertIn('/\n  Link: </pillars/>; rel="describedby"; type="text/html"\n', out)
+        self.assertLess(out.index("X-Frame-Options"), out.index("Link:"))
+
+    def test_committed_managed_header_fails_closed(self):
+        with self.assertRaises(ValueError):
+            compose("/*\n  x-frame-options: SAMEORIGIN\n", self.SHA)
+        with self.assertRaises(ValueError):
+            compose("/*\n  X-Abstrekkt-Release: spoofed\n", self.SHA)
+
+    def test_invalid_release_sha_rejected(self):
+        with self.assertRaises(ValueError):
+            compose("", "HEAD")
 
 
 class ZoneDiagnoseTests(unittest.TestCase):

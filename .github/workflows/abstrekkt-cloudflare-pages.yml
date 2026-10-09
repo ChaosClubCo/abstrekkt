@@ -181,25 +181,10 @@ jobs:
         run: |
           set -euo pipefail
           # X-Abstrekkt-Release lets the apex read-back prove which release is serving.
-          cat > "$PACKAGE_ROOT/_headers" <<EOF
-          /*
-            X-Content-Type-Options: nosniff
-            X-Frame-Options: DENY
-            Referrer-Policy: strict-origin-when-cross-origin
-            Permissions-Policy: camera=(), microphone=(), geolocation=()
-            X-Abstrekkt-Release: ${CANDIDATE_SHA}
-
-          /*.html
-            Cache-Control: public, max-age=0, must-revalidate
-
-          /sitemap.xml
-            Content-Type: application/xml; charset=utf-8
-            Cache-Control: public, max-age=300
-
-          /robots.txt
-            Content-Type: text/plain; charset=utf-8
-            Cache-Control: public, max-age=300
-          EOF
+          # Committed package rules (e.g. the homepage Link header) are preserved after
+          # the managed block; a committed rule that sets a managed header stops the release.
+          python "$RELEASE_TOOLS/compose_headers.py" "$PACKAGE_ROOT" --release-sha "$CANDIDATE_SHA"
+          cat "$PACKAGE_ROOT/_headers"
 
       - name: Gate the exact upload directory
         shell: bash
