@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import AccessGate from './AccessGate';
 import { api, ControlApiError } from './api';
 
 const STAGES = [
@@ -26,6 +27,9 @@ export default function App() {
   const [pending, setPending] = useState<string | null>(null);
   const [notice, setNotice] = useState<Notice>(null);
   const [offline, setOffline] = useState(false);
+  const [access, setAccess] = useState<'unknown' | 'granted' | 'token' | 'unconfigured'>('unknown');
+  const [lockMessage, setLockMessage] = useState<string>('');
+  const [loadGeneration, setLoadGeneration] = useState(0);
 
   const refresh = useCallback(async () => {
     const [pilot, streamHead, history] = await Promise.all([
@@ -51,12 +55,25 @@ export default function App() {
       try {
         await api.health();
         await refresh();
+        setAccess('granted');
+        setLockMessage('');
       } catch (error) {
+        if (error instanceof ControlApiError && error.status === 401) {
+          setAccess('token');
+          setLockMessage(error.message);
+          return;
+        }
+        if (error instanceof ControlApiError && error.status === 503 && error.code === 'CONSOLE_UNCONFIGURED') {
+          setAccess('unconfigured');
+          setLockMessage(error.message);
+          return;
+        }
         setOffline(true);
+        setAccess('granted');
         setNotice({ kind: 'error', text: error instanceof Error ? error.message : 'Canonical service unavailable.' });
       }
     })();
-  }, [refresh]);
+  }, [refresh, loadGeneration]);
 
   const pilot = pilotBundle?.pilot;
   const stage = pilot?.stage;
@@ -66,6 +83,16 @@ export default function App() {
     if (error instanceof ControlApiError && error.status === 409 && error.code === 'STALE_VERSION') {
       await refresh();
       setNotice({ kind: 'info', text: 'Pilot state changed while you were working. The latest server state has been loaded. Review it before retrying.' });
+      return;
+    }
+    if (error instanceof ControlApiError && error.status === 401) {
+      setAccess('token');
+      setLockMessage(error.message);
+      return;
+    }
+    if (error instanceof ControlApiError && error.status === 503 && error.code === 'CONSOLE_UNCONFIGURED') {
+      setAccess('unconfigured');
+      setLockMessage(error.message);
       return;
     }
     if (error instanceof ControlApiError && error.status === 409 && error.code === 'DUPLICATE_MUTATION') {
@@ -197,6 +224,20 @@ export default function App() {
         return <Panel eyebrow="Pilot" title={String(stage)}><p>Server state loaded.</p></Panel>;
     }
   }, [completeObservation, integrity, mutate, offline, pending, pilot, receipt, runVerification, stage, verifyIntegrity]);
+
+  if (access === 'token' || access === 'unconfigured') {
+    return (
+      <AccessGate
+        mode={access}
+        message={lockMessage}
+        onUnlocked={() => {
+          setAccess('unknown');
+          setLockMessage('');
+          setLoadGeneration((generation) => generation + 1);
+        }}
+      />
+    );
+  }
 
   return <main className="appShell">
     <header className="topbar">

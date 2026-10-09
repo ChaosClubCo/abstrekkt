@@ -66,6 +66,20 @@ function upstream(target, env) {
   }
 }
 
+// Join base + path and refuse anything that leaves the base origin. Without this, a
+// path such as "@evil.example/x" turns "https://api.notion.com" into a URL whose host
+// is evil.example, and the injected upstream secret is sent there.
+function upstreamUrl(base, path) {
+  const suffix = path == null ? "" : String(path);
+  if (suffix && !suffix.startsWith("/")) return null;
+  let baseUrl, target;
+  try {
+    baseUrl = new URL(base);
+    target = new URL(base.replace(/\/+$/, "") + suffix);
+  } catch { return null; }
+  return target.origin === baseUrl.origin ? target.href : null;
+}
+
 async function handle(request, env) {
   if (request.method === "OPTIONS") return new Response(null, { headers: CORS });
   if (request.method !== "POST") return json({ error: "POST only" }, 405);
@@ -84,7 +98,8 @@ async function handle(request, env) {
   } else {
     const u = upstream(req.target, env);
     if (!u || !u.base) return json({ error: "unknown target: " + req.target }, 400);
-    targetUrl = u.base + (req.path || "");
+    targetUrl = upstreamUrl(u.base, req.path);
+    if (!targetUrl) return json({ error: "path must start with / and stay on the target origin" }, 400);
     headers = { ...headers, ...u.inject };
   }
 
@@ -105,6 +120,7 @@ function json(obj, status) {
 
 // Cloudflare Workers entrypoint
 export default { fetch: handle };
+export { handle, upstreamUrl };
 
 // Vercel/Node note: export a handler that adapts (req,res) to the above,
 // or copy the body of handle() into your framework's function signature.

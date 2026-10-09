@@ -32,6 +32,15 @@ SECRET_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
     ("bearer token", re.compile(r"(?i)authorization\s*[:=]\s*bearer\s+[A-Za-z0-9._~+/=-]{20,}")),
 )
 
+# Tracked files that match .gitignore are forbidden: that is how credential files
+# (Infinite-heroes-env.txt, Backup-codes-*) re-entered HEAD after earlier purges.
+# Only these reviewed, non-secret files are exempt.
+TRACKED_IGNORED_ALLOWLIST = frozenset({
+    "Unicorn-maybe/flashfusion-web/tsconfig.tsbuildinfo",
+    "a2alayer/a2a-layer/cards/n8n-credential-unlocker.json",
+    "a2alayer/a2a-layer/cards/secret-scanner.json",
+})
+
 CODE_EXTENSIONS = {
     ".c", ".cc", ".cpp", ".cs", ".go", ".java", ".js", ".jsx", ".kt",
     ".mjs", ".mts", ".py", ".rb", ".rs", ".sh", ".swift", ".ts", ".tsx",
@@ -107,6 +116,13 @@ def check_frozen_paths(paths: list[str], failures: list[str]) -> None:
             )
 
 
+def check_tracked_ignored(failures: list[str]) -> None:
+    output = git("ls-files", "-z", "--cached", "--ignored", "--exclude-standard")
+    for relative in filter(None, output.split("\0")):
+        if relative not in TRACKED_IGNORED_ALLOWLIST:
+            fail(f"tracked file matches .gitignore (possible credential); untrack it: {relative}", failures)
+
+
 def check_changed_secrets(paths: list[str], failures: list[str]) -> None:
     for relative in paths:
         path = ROOT / relative
@@ -141,6 +157,7 @@ def main() -> int:
     failures: list[str] = []
     check_required_files(failures)
     check_root_authority(failures)
+    check_tracked_ignored(failures)
 
     paths = changed_paths(args.base)
     check_frozen_paths(paths, failures)

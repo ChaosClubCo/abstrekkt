@@ -1,262 +1,372 @@
-# Cloudflare Agent Readiness Roadmap
+# Abstrekkt Production Trust Roadmap
 
-**Status:** Certification in progress  
-**Last updated:** 2026-08-27  
-**Production mutation gate:** `productionMutationPermitted = false`
+This roadmap is dependency-driven. A phase exits only when its evidence gate is satisfied; dates and implementation enthusiasm do not substitute for proof.
 
-## Objective
+## Phase 0 — Protect the credential and trust boundary
 
-Establish machine-verifiable provenance, configuration validity, dry-run safety, and immutable evidence for every Cloudflare production resource before allowing an agent to mutate production.
+### Objective
 
-The terminal artifact is `CloudflareAgentReadinessReceipt/v1`. Production mutation remains denied until every required gate below passes against one coherent source/runtime state.
+Ensure untrusted pull-request code cannot obtain production/provider credentials and that protected source changes cannot bypass required deterministic checks.
 
-## Current Snapshot
+### Entry conditions
 
-### Verified or strongly established
+- canonical repository and default branch identified;
+- exact default-branch SHA recorded;
+- current workflows and rulesets inspected.
 
-- `flashnframe`: production Worker deployment directly binds to Git SHA `fc1431430638943f363aaaa5c109f7117940d016` in `ChaosClubCo/flashnframe-app`.
-- `flashnframe-staging`: source/config relationship established through the FlashnFrame repository and staging workflow; final receipt must still bind the exact runtime deployment state.
-- `containers-template`: repository discovered at `ChaosClubCo/containers-template`; Wrangler configuration exists and Cloudflare deployment history records Wrangler deployment.
-- `abstrekkt`: repository and Wrangler deployment lineage established; exact deployed source SHA still requires final binding.
-- `loxihart-composio-webhook`: implementation/provisioning evidence exists under `tooling/webhook-receiver`; exact deployed SHA remains to be proven.
-- Browser Rendering classification has been completed in the readiness investigation.
+### Deliverables
 
-### Explicitly unresolved
+- uncredentialed PR verification;
+- exact-head SHA checkout/read-back in production-trust conformance CI;
+- required deterministic source/integrity checks;
+- documented trusted-manual boundary for secret-bearing execution;
+- investigation of workflow registration anomalies;
+- ruleset review for required checks, approvals, and thread resolution.
 
-- `creator-ecosystem-mcp-gateway`: API-created Worker; no repository provenance has yet been proven.
-- `infinite-heros-bedtime-chronicles-v5`: Cloudflare resource was created from a dashboard template while the similarly named GitHub application is Vercel-oriented. Name equality is not accepted as provenance.
-- Production Pages project/deployment to repository/SHA binding.
-- Final exhaustive Worker binding and route evidence reconciliation.
-- Wrangler version and authenticated identity receipt for the final execution environment.
-- Per-repository validation, builds/tests, and non-mutating deployment dry-runs.
-- Final evidence hashing and immutable readiness receipt.
+### Exit gate
 
-## Certification Invariants
+Every secret-bearing production workflow is demonstrably isolated from arbitrary PR/push execution, and the required main ruleset covers the deterministic trust gate with no unexplained execution-path anomalies.
 
-1. **No inferred provenance.** A resource name matching a repository is insufficient.
-2. **No cross-account ambiguity.** Every Cloudflare evidence operation must explicitly assert the intended account before execution.
-3. **No production mutation during certification.** Validation must remain read-only or use non-mutating dry-run mechanisms until the terminal gate passes.
-4. **One coherent revision per source.** Config, tests, build, dry-run, and evidence hashes must reference the same exact Git SHA.
-5. **Runtime/source drift fails closed.** Any drift after evidence collection invalidates certification and requires the affected gates to rerun.
-6. **Negative evidence is evidence.** API-created, dashboard-created, repositoryless, or externally managed resources must be classified explicitly rather than assigned speculative repositories.
-7. **Receipts are derived from evidence.** `productionMutationPermitted` must not be manually flipped.
+### Evidence required
 
-## Roadmap
+- ruleset JSON/state;
+- workflow trigger definitions;
+- exact-head CI run IDs;
+- credential boundary documentation;
+- blocker/incident records for anomalies.
 
-### CF-01 — Freeze Resource Inventory
+### Blockers / dependencies
 
-**Goal:** Produce the canonical Cloudflare production inventory.
+- current Loxihart production-release workflow is registering push-event failures despite source declaring `workflow_dispatch`; this requires resolution or authoritative explanation before Phase 0 closes;
+- current main ruleset does not yet require the new Production Trust Conformance check;
+- human approval/thread-resolution requirements are currently weak.
 
-Required evidence:
+### Non-goals
 
-- All Workers/scripts.
-- Individual Worker bindings.
-- Individual Worker routes/custom domains.
-- Worker deployment/version metadata.
-- Pages projects and production deployments.
-- Browser Rendering resources/classification.
-- Workers AI inventory/classification.
-- Relevant account-level resources used by the Workers.
+- live provider behavior;
+- production KMS signing;
+- public runtime certification.
 
-**Exit criteria:** inventory is exhaustive, timestamped, account-bound, and hashable.
+## Phase 1 — First genuine multi-provider behavioral proof
 
-### CF-02 — Resolve 7/7 Worker Provenance
+### Objective
 
-For every Worker, assign exactly one provenance class:
+Prove that Anthropic, OpenAI, and Gemini execute the same disposable behavior task under the same ACTIVE policy projection and are evaluated by deterministic code.
 
-- `REPOSITORY_BOUND`
-- `API_CREATED_WITH_SOURCE_ARTIFACT`
-- `DASHBOARD_TEMPLATE`
-- `EXTERNALLY_MANAGED`
-- `REPOSITORYLESS`
-- `UNRESOLVED`
+### Entry conditions
 
-For repository-bound Workers capture:
+- Phase 0 exit gate PASS;
+- first durable policy is ACTIVE and distribution-conformant;
+- provider-neutral task/evidence/result/receipt contracts are VERIFIED;
+- provider credentials are available only through the trusted execution boundary.
 
-- repository owner/name;
-- exact Git SHA;
-- config path;
-- entrypoint path;
-- deployment workflow/script;
-- Cloudflare deployment/version ID;
-- evidence demonstrating the relationship.
+### Deliverables
 
-Priority work:
+- thin Anthropic runner;
+- thin OpenAI runner;
+- thin Gemini runner;
+- isolated disposable fixture sandbox per provider;
+- normalized action evidence;
+- deterministic evaluator;
+- `LiveAgentBehaviorConformanceReceipt/v1`.
 
-1. Bind `abstrekkt` to an exact deployed SHA.
-2. Bind `loxihart-composio-webhook` provisioning/deployment to an exact SHA.
-3. Resolve or explicitly classify `creator-ecosystem-mcp-gateway`.
-4. Preserve the dashboard-template classification for the Bedtime Worker unless contrary evidence is discovered.
-5. Reconcile `containers-template` exact current source revision with the live Worker.
-6. Reconfirm FlashnFrame production and staging runtime bindings.
+### Exit gate
 
-**Exit criteria:** 7/7 Workers have a non-speculative provenance classification and no `UNRESOLVED` entries remain.
+All selected providers have status `EXECUTED`, each executed evidence hash verifies, each deterministic verdict is PASS, `allProvidersExecuted=true`, and `behaviorallyConformant=true` on one exact source SHA.
 
-### CF-03 — Resolve Pages Provenance
+### Evidence required
 
-Capture for every relevant Pages project:
+- provider/model IDs;
+- adapter versions;
+- task/projection hashes;
+- normalized evidence;
+- evidence SHA-256 values;
+- live receipt ID/hash;
+- trusted workflow/run identity.
 
-- project name;
-- production URL/custom domains;
-- production deployment ID;
-- source provider/repository;
-- branch;
-- exact commit SHA where available;
-- build command;
-- output directory;
-- environment bindings relevant to deployment.
+### Blockers / dependencies
 
-Cross-check GitHub Pages/Cloudflare Pages assumptions. Repository metadata indicating `has_pages=true` is not itself proof of which platform serves production.
+- real provider credentials and current API/model availability;
+- provider runtime failures are INCONCLUSIVE rather than PASS.
 
-**Exit criteria:** every production Pages surface maps to an authoritative source or is explicitly classified as externally managed.
+### Non-goals
 
-### CF-04 — Freeze `CloudflareResourceSourceManifest/v1`
+- production signing;
+- canonical repository mutation by provider agents.
 
-Create a machine-readable manifest joining:
+## Phase 2 — Real production signing root
 
-`Cloudflare resource -> deployment/version -> bindings/routes -> provenance class -> repository -> exact SHA -> config/workflow evidence`
+### Objective
 
-The manifest becomes the input contract for subsequent validation.
+Establish externally custodied asymmetric production signing and offline verification.
 
-**Exit criteria:** schema-valid manifest, zero unresolved resources, SHA-256 recorded.
+### Entry conditions
 
-### CF-05 — Verify Execution Identity
+- Phase 1 PASS;
+- external KMS account/authority available;
+- least-privilege signing identity design approved.
 
-Capture from the exact environment intended for future Cloudflare operations:
+### Deliverables
 
-- `wrangler --version`;
-- `wrangler whoami`;
-- authenticated account identifier;
-- explicit assertion that the account equals the production account expected by the manifest;
-- Node/package-manager versions where repository tooling depends on them.
+- asymmetric `SIGN_VERIFY` key, preferably P-256 / ECDSA-SHA-256 where supported by the selected KMS contract;
+- public-key retrieval and fingerprinting;
+- `VerificationKeyRegistry/v1`;
+- trusted/revoked/unknown-key semantics;
+- offline verifier;
+- real canonical checkpoint/signature receipt.
 
-**Fail closed** on account mismatch.
+### Exit gate
 
-### CF-06 — Repository Validation Matrix
+Real KMS signing PASS, offline public-key verification PASS, tampered payload FAIL, revoked key FAIL, unknown key FAIL, and all evidence binds the same source SHA and payload hash.
 
-For each repository represented in the source manifest, at its frozen SHA:
+### Evidence required
 
-1. install dependencies using the lockfile-preserving command;
-2. validate Wrangler/config schemas;
-3. run typecheck;
-4. run lint where configured;
-5. run repository tests;
-6. build production artifacts;
-7. run security/dependency checks defined by the repository;
-8. verify the working tree remains clean.
+- KMS key ID/ARN metadata;
+- public-key fingerprint;
+- key-registry hash;
+- payload hash;
+- real signature;
+- acceptance-test receipts.
 
-Do not suppress failures merely to obtain a green matrix.
+### Blockers / dependencies
 
-**Exit criteria:** every applicable static gate passes at the exact manifest SHA.
+- KMS credentials/tool access;
+- approved key lifecycle and rotation policy.
 
-### CF-07 — Non-Mutating Cloudflare Dry-Runs
+### Non-goals
 
-For each repository/deployable Worker:
+- local/test signing presented as production evidence.
 
-- run the repository-supported Wrangler deployment dry-run/config validation;
-- capture resolved bindings and compatibility settings;
-- verify expected routes/resource names;
-- confirm no deployment/version/resource mutation occurred;
-- compare dry-run configuration with the frozen Cloudflare inventory.
+## Phase 3 — Deploy read-only provenance service
 
-**Exit criteria:** every deployable target passes dry-run with no source/runtime configuration contradiction.
+### Objective
 
-### CF-08 — Runtime Drift Reconciliation
+Expose verification and lineage without granting mutation or signing authority.
 
-Immediately before certification, re-read:
+### Entry conditions
 
-- Worker deployments/versions;
-- bindings;
-- routes/custom domains;
-- Pages production deployments;
-- repository HEAD/SHA state relevant to the candidate.
+- Phase 2 PASS;
+- read-only service identity and hosting target defined.
 
-Compare with `CloudflareResourceSourceManifest/v1`.
+### Deliverables
 
-**Exit criteria:** zero unexplained drift. Any drift invalidates affected downstream evidence.
+- ACTIVE registry/projection inspection;
+- asset lineage/status inspection;
+- checkpoint/signature verification;
+- health endpoint;
+- MCP-compatible read-only surface where useful;
+- explicit absence of mutation/signing credentials.
 
-### CF-09 — Evidence Bundle and Hashes
+### Exit gate
 
-Persist normalized evidence for every gate. Compute SHA-256 for:
+Runtime read-back confirms the exact deployed revision, health reports read-only mode and absent signing/mutation credentials, and verification smoke tests pass against real preserved evidence.
 
-- resource inventory;
-- provenance manifest;
-- identity/account assertion;
-- repository validation results;
-- dry-run results;
-- drift reconciliation;
-- final receipt payload.
+### Evidence required
 
-Evidence must be sufficient for an independent verifier to reproduce the verdict without trusting prose summaries.
+- source SHA;
+- deployment/version ID;
+- published URL;
+- runtime identity;
+- health response;
+- tool inventory;
+- read-back/smoke-test receipt.
 
-### CF-10 — Issue `CloudflareAgentReadinessReceipt/v1`
+### Blockers / dependencies
 
-Minimum receipt fields:
+- deployment environment;
+- runtime identity/secret configuration;
+- signed evidence from Phase 2.
 
-```json
-{
-  "schema": "CloudflareAgentReadinessReceipt/v1",
-  "productionMutationPermitted": false,
-  "accountAssertion": "PASS|FAIL",
-  "resourceInventory": "PASS|FAIL",
-  "workerProvenance": "PASS|FAIL",
-  "pagesProvenance": "PASS|FAIL",
-  "browserRenderingClassification": "PASS|FAIL",
-  "workersAIClassification": "PASS|FAIL",
-  "repositoryValidation": "PASS|FAIL",
-  "nonMutatingDryRuns": "PASS|FAIL",
-  "runtimeSourceDrift": "PASS|FAIL",
-  "evidenceBundleSha256": "<sha256>"
-}
-```
+### Non-goals
 
-`productionMutationPermitted` may derive to `true` only when every required certification gate is `PASS` and no unresolved or stale evidence remains.
+- promotion, append, or signing capabilities.
 
-## Mutation Authorization Rule
+## Phase 4 — First Production Trust Receipt
 
-```text
-resource inventory PASS
-        -> 7/7 provenance PASS
-        -> Pages provenance PASS
-        -> source manifest frozen
-        -> Wrangler identity PASS
-        -> production account assertion PASS
-        -> config/type/lint/tests/build PASS
-        -> non-mutating dry-runs PASS
-        -> runtime/source drift PASS
-        -> evidence hashes frozen
-        -> CloudflareAgentReadinessReceipt/v1 PASS
-        -> productionMutationPermitted = true
-```
+### Objective
 
-Until that sequence completes:
+Produce the first top-level immutable trust decision from subordinate evidence rather than duplicated narrative claims.
 
-```text
-productionMutationPermitted = false
-```
+### Entry conditions
 
-## After Certification
+- Phases 1–3 PASS on mutually compatible exact revisions/evidence identities.
 
-Certification authorizes controlled production operations; it does not authorize arbitrary mutation. Production writes should additionally require:
+### Deliverables
 
-- explicit target resource;
-- bounded intended change;
-- pre-mutation state capture;
-- change preview/diff where supported;
-- rollback strategy;
-- post-mutation independent readback;
-- immutable mutation receipt;
-- idempotency/replay protection for automated operations.
+- `ProductionTrustReceipt/v1`;
+- deterministic cross-reference validation;
+- mismatch/downgrade reason codes.
 
-## Definition of Done
+### Exit gate
 
-Cloudflare agent readiness is complete only when an independent reviewer can start with the final receipt and evidence bundle and prove:
+Every subordinate receipt hash, source SHA, registry projection, provider/task identity, signing payload, and deployment binding verifies consistently; overall verdict is computed deterministically.
 
-1. which production resources exist;
-2. where every deployable resource came from;
-3. which exact source revision produced the candidate configuration;
-4. which authenticated Cloudflare account was targeted;
-5. that source/config/tests/builds passed;
-6. that deployment dry-runs were non-mutating and coherent with runtime state;
-7. that no source/runtime drift occurred before receipt issuance; and
-8. that `productionMutationPermitted=true` was mechanically derived from those facts.
+### Evidence required
+
+- immutable subordinate receipt IDs/hashes;
+- source SHA;
+- key registry hash/fingerprint;
+- live behavior receipt;
+- deployment/provenance verification evidence.
+
+### Blockers / dependencies
+
+- any missing or mismatched subordinate evidence.
+
+### Non-goals
+
+- replacing subordinate receipts with a monolithic duplicate blob.
+
+## Phase 5 — Operational reliability, retention, and rotation
+
+### Objective
+
+Make trust evidence sustainable under retries, failures, retention limits, key rotation, and service degradation.
+
+### Entry conditions
+
+- first Production Trust Receipt PASS.
+
+### Deliverables
+
+- evidence retention policy;
+- key rotation/revocation runbooks;
+- backup/restore verification;
+- idempotent receipt persistence;
+- alerting and structured operational telemetry;
+- incident/recovery semantics.
+
+### Exit gate
+
+Failure, recovery, rotation, and retention exercises produce deterministic evidence without rewriting historical receipts.
+
+### Evidence required
+
+- recovery drills;
+- rotation receipts;
+- restore validation;
+- alert tests;
+- retention-policy checks.
+
+### Blockers / dependencies
+
+- storage and observability ownership.
+
+### Non-goals
+
+- adding new asset classes before core reliability is proven.
+
+## Phase 6 — Expand durable asset classes
+
+### Objective
+
+Apply the proven lifecycle to additional SKILL, POLICY, SOP, SCHEMA/CONTRACT, TEST/EVALUATION, and DOCUMENTATION assets.
+
+### Entry conditions
+
+- Phase 5 PASS;
+- promotion and verification machinery stable.
+
+### Deliverables
+
+- evidence-backed promotion candidates;
+- per-class acceptance contracts;
+- deprecation/supersession semantics;
+- registry lineage.
+
+### Exit gate
+
+New classes can move through `CANDIDATE -> PROMOTED -> TESTED -> VERIFIED -> ACTIVE -> DEPRECATED` with deterministic receipts and no provider-specific divergence.
+
+### Evidence required
+
+- occurrence references;
+- promotion authority;
+- source/content hashes;
+- acceptance receipts;
+- adapter projection conformance.
+
+### Blockers / dependencies
+
+- real repeated-use evidence for ordinary promotion.
+
+### Non-goals
+
+- promoting every repeated sentence into a bureaucracy collectible.
+
+## Phase 7 — Product and UI integration
+
+### Objective
+
+Expose trust/evidence state in Abstrekkt product surfaces without weakening the underlying deterministic contracts.
+
+### Entry conditions
+
+- stable production trust APIs/receipts;
+- accessibility and authorization model defined.
+
+### Deliverables
+
+- evidence inspector;
+- claim/source/verification views;
+- receipt lineage;
+- stale/conflict indicators;
+- accessible list/table fallbacks for graphs.
+
+### Exit gate
+
+Users can answer what happened, on which revision, under whose authority, with what evidence, and what remains unproven without privileged raw-storage access.
+
+### Evidence required
+
+- authorization tests;
+- WCAG 2.2 AA-oriented checks;
+- runtime integration tests;
+- provenance read-back.
+
+### Blockers / dependencies
+
+- Phases 3–6 stable APIs and data contracts.
+
+### Non-goals
+
+- UI-generated trust decisions.
+
+## Phase 8 — Scale and interoperability
+
+### Objective
+
+Support additional providers, repositories, environments, and external verifiers while preserving deterministic trust semantics.
+
+### Entry conditions
+
+- product integration and operational reliability PASS;
+- stable versioning/compatibility policy.
+
+### Deliverables
+
+- provider/plugin conformance contract;
+- multi-repository/runtime bindings;
+- portability/export format;
+- verifier compatibility suite;
+- performance/cost controls.
+
+### Exit gate
+
+New integrations can prove contract compatibility without changing the core evaluator or weakening source/task/provider identity checks.
+
+### Evidence required
+
+- compatibility matrices;
+- cross-implementation fixtures;
+- load/latency results;
+- cost/retention observations;
+- interoperability receipts.
+
+### Blockers / dependencies
+
+- mature operational evidence from earlier phases.
+
+### Non-goals
+
+- scale for its own sake.

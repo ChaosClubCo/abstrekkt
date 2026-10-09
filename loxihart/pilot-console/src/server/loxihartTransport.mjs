@@ -14,6 +14,8 @@ export const CONTROL_API_TIMEOUT_BODY = {
 
 const PILOT_ID = 'pilot-lakeview-001';
 const AUTHORITY_HEADER_NAMES = new Set([
+  'authorization',
+  'x-loxihart-console-token',
   'x-loxihart-demo-token',
   'x-loxihart-organization',
   'x-loxihart-actor',

@@ -1,0 +1,100 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://abstrekkt.com/schemas/portfolio-atlas/v1",
+  "title": "Abstrekkt Portfolio Atlas v1",
+  "type": "object",
+  "required": ["schema", "generated_from", "checked_at", "entities"],
+  "additionalProperties": false,
+  "properties": {
+    "schema": { "const": "AbstrekktPortfolioAtlas/v1" },
+    "generated_from": {
+      "type": "object",
+      "required": ["repository", "revision"],
+      "additionalProperties": false,
+      "properties": {
+        "repository": { "type": "string", "minLength": 1 },
+        "revision": { "type": "string", "pattern": "^[0-9a-f]{40}$" }
+      }
+    },
+    "checked_at": { "type": "string", "format": "date-time" },
+    "entities": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/entity" }
+    }
+  },
+  "$defs": {
+    "claimStatus": {
+      "enum": ["VERIFIED", "SUPPORTED", "INTERNAL", "PROVISIONAL", "HISTORICAL", "UNVERIFIED"]
+    },
+    "entity": {
+      "type": "object",
+      "required": [
+        "id", "slug", "name", "entity_type", "owner_domain", "portfolio_state",
+        "visibility", "repository", "claims", "evidence"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9._-]+$" },
+        "slug": { "type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" },
+        "name": { "type": "string", "minLength": 1 },
+        "entity_type": {
+          "enum": ["company", "product", "application", "tool", "system", "research", "publication"]
+        },
+        "owner_domain": { "type": "string", "minLength": 1 },
+        "portfolio_state": {
+          "enum": ["ACTIVE", "REFERENCE_ONLY", "HISTORICAL", "PROVISIONAL", "EXCLUDED"]
+        },
+        "visibility": { "enum": ["PUBLIC", "PRIVATE", "MIXED"] },
+        "canonical_owner_repository": { "type": ["string", "null"] },
+        "repository": {
+          "type": "object",
+          "required": ["state", "checked_at"],
+          "additionalProperties": false,
+          "properties": {
+            "state": { "enum": ["VERIFIED", "UNKNOWN", "NOT_APPLICABLE"] },
+            "full_name": { "type": ["string", "null"] },
+            "default_branch": { "type": ["string", "null"] },
+            "head_sha": {
+              "anyOf": [
+                { "type": "null" },
+                { "type": "string", "pattern": "^[0-9a-f]{40}$" }
+              ]
+            },
+            "private": { "type": ["boolean", "null"] },
+            "checked_at": { "type": "string", "format": "date-time" }
+          }
+        },
+        "claims": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["key", "value", "claim_status"],
+            "additionalProperties": false,
+            "properties": {
+              "key": { "type": "string", "minLength": 1 },
+              "value": { "type": "string", "minLength": 1 },
+              "claim_status": { "$ref": "#/$defs/claimStatus" },
+              "public": { "type": "boolean", "default": false }
+            }
+          }
+        },
+        "evidence": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": ["kind", "source", "checked_at"],
+            "additionalProperties": false,
+            "properties": {
+              "kind": { "enum": ["repository", "governance", "document", "runtime", "user_assertion"] },
+              "source": { "type": "string", "minLength": 1 },
+              "revision": { "type": ["string", "null"] },
+              "checked_at": { "type": "string", "format": "date-time" }
+            }
+          }
+        }
+      }
+    }
+  }
+}
