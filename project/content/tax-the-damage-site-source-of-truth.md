@@ -87,7 +87,7 @@ No publication date has been announced.
 
 ## Narrative Architecture
 
-The current working manuscript architecture is a reconciled 12-chapter structure with a prologue and epilogue. It remains revisable when new excavation materially changes the evidence.
+The September 25 reconciled architecture remains the current working structural framework, with a prologue, multi-part chapter sequence, and epilogue. **The exact chapter count is intentionally provisional.** A later direct author ruling requires two separate standalone character chapters that have not yet been explicitly integrated into the numbered map, so public copy must not present “12 chapters” or any other count as final.
 
 The high-level narrative functions are:
 
@@ -152,7 +152,7 @@ Loxihart is the current operating organization context. Abstrekkt is the public-
 - “Diagnostic instinct” is an editorial framework grounded in repeated behavior, not a diagnosis.
 - “Prosthetic memory,” “external RAM,” and “external hard drive” are memoir metaphors, not medical-device claims.
 - The July 2022 external-scaffolding chronology is source-backed; whether Kyle used each prescribed tool, for how long, and how effective each was remains excavation material unless separately verified.
-- The 12-chapter-plus-prologue/epilogue architecture is the current working canon for planning, not an immutable publication contract.
+- The September 25 structural framework is the current planning baseline, but exact chapter count and numbering remain open until later standalone-character chapter rulings are integrated.
 
 ## Protected or Excluded
 
@@ -200,6 +200,7 @@ When sources conflict, use this order:
 - Maintain a visible distinction between verified fact, recollection, interpretation, dispute, unknown, and quarantined material.
 - Keep Abstrekkt related to but structurally subordinate to the memoir on the book page.
 - Do not present O’Toole’s as literal “before the break” chronology.
+- Do not present a fixed chapter count until later direct structural rulings are explicitly integrated.
 - Do not infer subjective experience from the July 2022 prescriptions. Excavation answers must come from Kyle or direct supporting evidence.
 
 ## SEO
