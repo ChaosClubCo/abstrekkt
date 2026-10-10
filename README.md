@@ -43,7 +43,7 @@ Audit base for the first production-trust conformance build: `6fbfada9cfd164b08c
 | Exact live runtime revision | INCONCLUSIVE | Existing deployment workflow is candidate-SHA-aware, but runtime read-back/version evidence is a separate gate |
 | Production certification | BLOCKED | Requires compatible live behavior, signing, provenance, and deployment evidence |
 
-See [`docs/PRODUCTION_TRUST_ARCHITECTURE.md`](docs/PRODUCTION_TRUST_ARCHITECTURE.md), [`docs/DOCUMENTATION_STANDARDS.md`](docs/DOCUMENTATION_STANDARDS.md), and [`roadmap.md`](roadmap.md).
+See [`docs/PRODUCTION_TRUST_ARCHITECTURE.md`](docs/PRODUCTION_TRUST_ARCHITECTURE.md), [`docs/DOCUMENTATION_STANDARDS.md`](docs/DOCUMENTATION_STANDARDS.md), and [`ROADMAP.md`](ROADMAP.md).
 
 ## Mutation rule
 

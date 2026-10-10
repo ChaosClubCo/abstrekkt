@@ -1,61 +1,26 @@
 import type { Config, Context } from '@netlify/functions';
-import { forwardLoxihart, resolveOperation } from '../../src/server/loxihartTransport.mjs';
+import { handleLoxihartProxy } from '../../src/server/loxihartProxy.mjs';
 
-const CONTROL_API_BASE = 'https://nvolybcifgkzxvywhpuv.supabase.co/functions/v1/loxihart-control-api';
-const ORGANIZATION_ID = 'org-lakeview-hvac';
-const ACTOR_ID = 'operator:kyle-demo';
-// Staging-only fallback for the fictional Lakeview demo. Production identities must use managed secrets.
-const STAGING_DEMO_TOKEN = 'lakeview-public-demo-v1';
-
-function proxyError(code: string, message: string, status: number) {
-  return new Response(JSON.stringify({ error: { code, message } }), {
-    status,
-    headers: { 'Content-Type': 'application/json; charset=utf-8' },
-  });
-}
-
-async function parseRequest(req: Request) {
-  const url = new URL(req.url);
-  if (req.method === 'GET') {
-    return { operation: url.searchParams.get('operation') ?? '', payload: {} };
-  }
-  if (req.method !== 'POST') {
-    throw Object.assign(new Error('Only GET and POST are supported.'), { status: 405 });
-  }
-  let parsed: unknown;
-  try {
-    parsed = await req.json();
-  } catch {
-    throw Object.assign(new Error('Request body must be valid JSON.'), { status: 422 });
-  }
-  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-    throw Object.assign(new Error('Request body must be a JSON object.'), { status: 422 });
-  }
-  const { operation, ...payload } = parsed as Record<string, unknown>;
-  return { operation: typeof operation === 'string' ? operation : '', payload };
+/**
+ * Emergency lock of the public /api/loxihart proxy.
+ * Canonical Loxihart runtime lives in Krosebrook/Loxihart; this mutation closes an
+ * unauthenticated control-plane hole still served from this frozen tree.
+ */
+function netlifyEnv() {
+  return {
+    get(name: string): string | undefined {
+      try {
+        const value = Netlify.env.get(name);
+        return value ?? undefined;
+      } catch {
+        return undefined;
+      }
+    },
+  };
 }
 
 export default async (req: Request, _context: Context) => {
-  try {
-    const { operation, payload } = await parseRequest(req);
-    const resolved = resolveOperation(operation, payload);
-    const demoToken = Netlify.env.get('LOXIHART_DEMO_TOKEN') ?? STAGING_DEMO_TOKEN;
-
-    return await forwardLoxihart({
-      url: `${CONTROL_API_BASE}${resolved.path}`,
-      method: resolved.method,
-      body: resolved.body,
-      identity: {
-        demoToken,
-        organizationId: ORGANIZATION_ID,
-        actorId: ACTOR_ID,
-      },
-    });
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    const status = Number((error as { status?: number })?.status) || 422;
-    return proxyError('PROXY_VALIDATION_ERROR', message, status);
-  }
+  return handleLoxihartProxy(req, netlifyEnv());
 };
 
 export const config: Config = {
