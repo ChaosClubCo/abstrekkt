@@ -97,6 +97,10 @@ export async function handleWebhook(request, env) {
     return new Response('Invalid JSON', { status: 400 });
   }
 
+  if (payload === null || typeof payload !== 'object' || Array.isArray(payload)) {
+    return new Response('Invalid JSON', { status: 400 });
+  }
+
   if (payload.delivery_id !== deliveryId) {
     return new Response('Delivery ID mismatch', { status: 400 });
   }
