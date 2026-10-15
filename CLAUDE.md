@@ -42,7 +42,7 @@ Base44 dev app: `Unicorn-maybe/flashfusion-web/` (Next.js 16, React 19, frontend
 ## Architecture
 
 - **Domains are routed, not inferred from paths.** `repository-registry.yaml` maps each path to a domain and status. `scripts/repo_integrity.py` enforces those invariants on every PR.
-- **Release lane.** The public site deploys to Cloudflare Pages from an exact source SHA (`.github/workflows/abstrekkt-cloudflare-pages.yml`, helpers in `scripts/release/`). `project/deploy/abstrekkt-com` is a generated package: change its source, not the package.
-- **Production trust.** `governance/trust/` holds the trust model, its tests, and the distribution-receipt emitter. IMPLEMENTED, VERIFIED, DEPLOYED and CERTIFIED are separate states. Do not claim one from another.
+- **Release lane.** The public site deploys to Cloudflare Pages from an exact source SHA (`.github/workflows/abstrekkt-cloudflare-pages.yml`, helpers in `scripts/release/`). `project/deploy/abstrekkt-com` is the release package, not the editing source: `scripts/repo_integrity.py` fails a PR that edits it directly.
+- **Production trust.** `governance/trust/` holds the receipt contracts, the conformance code, its tests, and the distribution-receipt emitter. `docs/PRODUCTION_TRUST_ARCHITECTURE.md` defines the maturity states. IMPLEMENTED, VERIFIED, DEPLOYED and CERTIFIED are separate states. Do not claim one from another.
 - **Integration surfaces.** MCP client configs live in `.github/mcp.json` and `tooling/mcp-clients/`. Outbound webhooks are HMAC-SHA256 signed (`.github/workflows/repository-webhooks.yml`, receiver in `tooling/webhook-receiver/`).
 - **Code limit.** Keep each code file under 400 lines (see `AGENTS.md`).
