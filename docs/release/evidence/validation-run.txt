@@ -1,5 +1,6 @@
 # Validation run 2026-10-15T20:15:38Z on 980fe6fa66ce5d329ae566b3f7d6c0b947c1eb70 (clean tree; commit on branch claude/pr133-copilot-followups)
 python 3.13.16, node v22.22.0 (PYTHONDONTWRITEBYTECODE=1; bytecode from py_compile deleted afterwards)
+# The node, json and repo_integrity blocks were rerun 2026-10-15T20:22Z on a clean worktree of the same commit: the first run checked only the first .mjs file, passed the second MCP file as json.tool's output path, and diffed HEAD against itself.
 
 $ python3 -m py_compile scripts/repo_integrity.py scripts/release/*.py
 exit=0
@@ -41,18 +42,19 @@ exit=0
 $ (cd project/proxy-deploy && npx --yes wrangler@4.126.0 deploy --dry-run --config wrangler.toml)
 exit=0
 
-$ node --check tooling/cloudflare/*.mjs
-ok compare-telemetry-dry-mode
-ok diagnose-mentor-proxy
-ok enable-mentor-proxy-observability
-ok telemetry
-ok verify-mentor-proxy
+$ for f in tooling/cloudflare/*.mjs; do node --check "$f" && echo "ok $f" || exit 1; done
+ok tooling/cloudflare/compare-telemetry-dry-mode.mjs
+ok tooling/cloudflare/diagnose-mentor-proxy.mjs
+ok tooling/cloudflare/enable-mentor-proxy-observability.mjs
+ok tooling/cloudflare/telemetry.mjs
+ok tooling/cloudflare/verify-mentor-proxy.mjs
 
-$ python3 -m json.tool .github/mcp.json tooling/mcp-clients/copilot/repository-mcp.json
-exit=0
+$ for f in .github/mcp.json tooling/mcp-clients/copilot/repository-mcp.json; do python3 -m json.tool "$f" >/dev/null && echo "ok $f"; done
+ok .github/mcp.json
+ok tooling/mcp-clients/copilot/repository-mcp.json
 
-$ python3 scripts/repo_integrity.py --base HEAD
-repo-integrity: PASS (0 changed paths checked)
+$ python3 scripts/repo_integrity.py --base 7b8d4d559df29adba8f6c87971d4a017b44d59d8   # merge-base of origin/main and the tested commit
+repo-integrity: PASS (5 changed paths checked)
 exit=0
 
 $ simulated release composition on a copy of project/deploy/abstrekkt-com, then verify
