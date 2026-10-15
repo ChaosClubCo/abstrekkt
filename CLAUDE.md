@@ -1,5 +1,7 @@
 # CLAUDE.md
 
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
 This repository is no longer governed as a standalone Claude Design handoff bundle.
 
 Claude Code must use the repository-wide authority model before reading legacy project-specific guidance:
@@ -18,3 +20,29 @@ Claude Code must use the repository-wide authority model before reading legacy p
 - Generated, archived, vendored, and historical paths must retain their provenance and lifecycle status.
 
 Legacy design-system and artifact-canonicality rules remain valid **inside their registered `project/` lanes**. They do not override repository-level ownership.
+
+## Commands
+
+Run from the repository root. These mirror the CI workflows in `.github/workflows/`.
+
+| Check | Command |
+|---|---|
+| Repository authority invariants | `python scripts/repo_integrity.py --base <base-sha>` (CI uses the PR base SHA) |
+| MCP config validity | `python -m json.tool .github/mcp.json` and `python -m json.tool tooling/mcp-clients/copilot/repository-mcp.json` |
+| Production-trust conformance suite | `node --test governance/trust/tests/*.test.mjs` |
+| One trust test | `node --test governance/trust/tests/<name>.test.mjs` |
+| GitBook docs drift | `node scripts/verify-gitbook-docs.mjs` (without `GITBOOK_TOKEN`, the live GitBook comparison is skipped) |
+| Launch-control status conformance | `node ops/launch-control/tests/status-conformance.mjs` (overwrites the committed CI evidence file `ops/launch-control/tests/conformance-report.json`; restore it with `git checkout` unless you mean to replace that evidence) |
+| Webhook receiver tests | `cd tooling/webhook-receiver && npm test` |
+
+Base44 dev app: `Unicorn-maybe/flashfusion-web/` (Next.js 16, React 19, frontend only) runs through `docker-compose.base44.yml` on port 3000. Verify with `curl -s -o /dev/null -w '%{http_code}' http://localhost:3000/` (expect `200`). See the Base44 section of `AGENTS.md`.
+
+`loxihart/pilot-console` has its own CI, but it is in the frozen Loxihart lane. Do not change it here.
+
+## Architecture
+
+- **Domains are routed, not inferred from paths.** `repository-registry.yaml` maps each path to a domain and status. `scripts/repo_integrity.py` enforces those invariants on every PR.
+- **Release lane.** The public site deploys to Cloudflare Pages from an exact source SHA (`.github/workflows/abstrekkt-cloudflare-pages.yml`, helpers in `scripts/release/`). `project/deploy/abstrekkt-com` is a generated package: change its source, not the package.
+- **Production trust.** `governance/trust/` holds the trust model, its tests, and the distribution-receipt emitter. IMPLEMENTED, VERIFIED, DEPLOYED and CERTIFIED are separate states. Do not claim one from another.
+- **Integration surfaces.** MCP client configs live in `.github/mcp.json` and `tooling/mcp-clients/`. Outbound webhooks are HMAC-SHA256 signed (`.github/workflows/repository-webhooks.yml`, receiver in `tooling/webhook-receiver/`).
+- **Code limit.** Keep each code file under 400 lines (see `AGENTS.md`).
