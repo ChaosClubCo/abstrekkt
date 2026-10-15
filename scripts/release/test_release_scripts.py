@@ -111,6 +111,13 @@ class HeaderCompositionTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             compose("/*\n  X-Abstrekkt-Release: spoofed\n", self.SHA)
 
+    def test_committed_removal_of_managed_header_fails_closed(self):
+        for rule in ("  !X-Frame-Options:", "  ! x-frame-options", "  ! X-Abstrekkt-Release:"):
+            with self.subTest(rule=rule), self.assertRaises(ValueError):
+                compose("/*\n" + rule + "\n", self.SHA)
+        out = compose("/assets/*\n  ! Link\n", self.SHA)
+        self.assertIn("! Link", out)
+
     def test_invalid_release_sha_rejected(self):
         with self.assertRaises(ValueError):
             compose("", "HEAD")
