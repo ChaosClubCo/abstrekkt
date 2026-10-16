@@ -41,6 +41,29 @@ class RepositoryAuthorityContractTests(unittest.TestCase):
         self.assertIn(HISTORICAL_LOXIHART_REPOSITORY, authority)
         self.assertIn("historical provenance", authority.lower())
 
+    def test_active_loxihart_routing_surfaces_use_current_owner(self) -> None:
+        current_surfaces = (
+            "README.md",
+            "AGENTS.md",
+            "CLAUDE.md",
+            ".github/copilot-instructions.md",
+            ".github/agents/repository-steward.agent.md",
+            "docs/user-flows/README.md",
+            "docs/user-flows/loxihart-pilot-operator-reference.md",
+            "docs/release/RELEASE_CHECKLIST.md",
+        )
+        for relative in current_surfaces:
+            with self.subTest(relative=relative):
+                text = (ROOT / relative).read_text(encoding="utf-8")
+                self.assertIn(CURRENT_LOXIHART_REPOSITORY, text)
+                self.assertNotIn(HISTORICAL_LOXIHART_REPOSITORY, text)
+
+        projects = json.loads(
+            (ROOT / "docs/gitbook/registry/project-bindings.json").read_text(encoding="utf-8")
+        )
+        systems = {item["system"]: item for item in projects["systems"]}
+        self.assertEqual(systems["Loxihart"]["repository"], CURRENT_LOXIHART_REPOSITORY)
+
     def test_root_authority_routes_current_abstrekkt_to_current_owner(self) -> None:
         authority = (ROOT / "REPOSITORY.md").read_text(encoding="utf-8")
         self.assertIn(
