@@ -72,8 +72,11 @@ class RepositoryAuthorityContractTests(unittest.TestCase):
 
     def test_active_abstrekkt_docs_do_not_claim_historical_owner_as_current(self) -> None:
         current_surfaces = (
+            ".github/agents/repository-steward.agent.md",
+            ".github/agents/security-reviewer.agent.md",
             "docs/gitbook/public/README.md",
             "governance/execution-architect/README.md",
+            "scripts/verify-gitbook-docs.mjs",
             "worlds/abstrekkt/entities/abstrekkt-documentation.md",
             "worlds/abstrekkt/entities/chaosclubco-abstrekkt-repository.md",
             "worlds/abstrekkt/relations/abstrekkt-repository-on-github.md",
