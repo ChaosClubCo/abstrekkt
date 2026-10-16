@@ -93,7 +93,7 @@ def check_root_authority(failures: list[str]) -> None:
     registry = read_text(ROOT / "repository-registry.yaml") or ""
     required_registry_fragments = (
         "schema: AbstrekktRepositoryRegistry/v1",
-        "owner_repository: Krosebrook/Loxihart",
+        "owner_repository: ChaosClubCo/Loxihart",
         "mutation_policy: migration_evidence_only",
         "status: UNKNOWN",
     )
@@ -106,7 +106,7 @@ def check_frozen_paths(paths: list[str], failures: list[str]) -> None:
     for path in paths:
         if path.startswith("loxihart/"):
             fail(
-                f"Loxihart source subtree is frozen in Abstrekkt; migrate in Krosebrook/Loxihart instead: {path}",
+                f"Loxihart source subtree is frozen in Abstrekkt; migrate in ChaosClubCo/Loxihart instead: {path}",
                 failures,
             )
         if path.startswith("project/deploy/abstrekkt-com/"):
