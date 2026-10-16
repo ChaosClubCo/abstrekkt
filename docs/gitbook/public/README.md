@@ -20,7 +20,7 @@ Abstrekkt provides the holding, publishing, and public-facing layer. Loxihart is
 
 ## Source contract
 
-- Repository: `Krosebrook/abstrekkt`
+- Repository: `ChaosClubCo/abstrekkt`
 - Branch: `main`
 - GitBook sync root: `docs/gitbook/public`
 - Initial sync direction: `GitHub -> GitBook`
