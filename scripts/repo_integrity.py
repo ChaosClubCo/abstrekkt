@@ -93,6 +93,8 @@ def check_root_authority(failures: list[str]) -> None:
     registry = read_text(ROOT / "repository-registry.yaml") or ""
     required_registry_fragments = (
         "schema: AbstrekktRepositoryRegistry/v1",
+        "repository: ChaosClubCo/abstrekkt",
+        "owner_repository: ChaosClubCo/abstrekkt",
         "owner_repository: ChaosClubCo/Loxihart",
         "mutation_policy: migration_evidence_only",
         "status: UNKNOWN",

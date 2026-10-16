@@ -4,7 +4,7 @@ This subtree is the canonical repository binding for the Abstrekkt Execution Arc
 
 ## Canonical binding
 
-- Repository: `Krosebrook/abstrekkt`
+- Repository: `ChaosClubCo/abstrekkt`
 - Path: `governance/execution-architect/`
 - Branch authority: `main`
 - Lifecycle: `ACTIVE`
