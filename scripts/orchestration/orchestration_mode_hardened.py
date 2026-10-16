@@ -33,7 +33,8 @@ from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from pathlib import Path
 
-import anthropic
+if __name__ != "__main__" or sys.argv[1:2] != ["--grep-worker"]:  # the isolated grep worker is stdlib-only
+    import anthropic
 
 DEFAULT_MODEL = "claude-opus-5-5"
 MIN_GRANT = 2048
@@ -298,7 +299,8 @@ class Orchestrator:
                 self.budget.settle(grant, grant)  # usage unknown: assume the whole grant was generated
                 return AgentResult(text, f"api error: {type(exc).__name__}")
             self.budget.settle(grant, resp.usage.output_tokens)
-            if resp.stop_reason == "max_tokens" and grant < self.per_call_max:
+            if resp.stop_reason == "max_tokens" and (
+                    grant < self.per_call_max or self.budget.snapshot()["output_tokens"] >= self.budget.max_out):
                 self.budget.mark_exhausted("max-output-tokens reached")  # cut off by the global cap
             log("call", agent=label, stop=resp.stop_reason, output_tokens=resp.usage.output_tokens)
             text = "".join(b.text for b in resp.content if b.type == "text") or text

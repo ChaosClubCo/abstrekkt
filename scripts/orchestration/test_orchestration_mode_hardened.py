@@ -2,6 +2,8 @@
 """Offline tests (fake client, no API key). Run: python3 scripts/orchestration/test_orchestration_mode_hardened.py"""
 from __future__ import annotations
 
+import json
+import subprocess
 import sys
 import tempfile
 import threading
@@ -132,6 +134,15 @@ class FsTests(unittest.TestCase):
         with mock.patch.object(om, "GREP_TIMEOUT", 2):
             with self.assertRaisesRegex(ValueError, "exceeded"):
                 self.fs.grep("(a+)+$", glob="bomb.txt")
+
+    def test_grep_worker_runs_without_the_sdk(self):
+        code = ("import runpy, sys; sys.modules['anthropic'] = None; sys.argv = ['w', '--grep-worker']; "
+                f"runpy.run_path({om.__file__!r}, run_name='__main__')")
+        request = json.dumps({"root": str(self.root), "deny": [], "pattern": "sleep", "path": ".", "glob": "*"})
+        done = subprocess.run([sys.executable, "-I", "-c", code], input=request,
+                              capture_output=True, text=True, timeout=30)
+        self.assertEqual(done.returncode, 0, done.stderr)
+        self.assertIn("tests/test_a.py:2", done.stdout)
 
     def test_bad_regex_is_a_tool_error(self):
         with self.assertRaises(ValueError):
@@ -289,6 +300,12 @@ class OrchestratorTests(unittest.TestCase):
     def test_truncation_by_global_cap_reports_budget_stop(self):
         client = FakeClient(lead=[([text("cut")], "max_tokens")])
         orch, budget = self.run_orch(client, om.Budget(80, 2_048, 2, lead_reserve_tokens=0))
+        orch.run("x")
+        self.assertEqual(budget.exhausted, "max-output-tokens reached")
+
+    def test_truncation_when_cap_equals_per_call_limit_reports_budget_stop(self):
+        client = FakeClient(lead=[([text("cut")], "max_tokens")], out_tokens=32_000)
+        orch, budget = self.run_orch(client, om.Budget(80, 32_000, 2, lead_reserve_tokens=0))
         orch.run("x")
         self.assertEqual(budget.exhausted, "max-output-tokens reached")
 
