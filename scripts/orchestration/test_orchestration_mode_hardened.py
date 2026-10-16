@@ -123,6 +123,38 @@ class FsTests(unittest.TestCase):
         with self.assertRaises(PermissionError):
             fs.read_file("alias.txt")
 
+    def test_double_slash_absolute_path_cannot_skip_the_name_check(self):
+        (self.root / "config.txt").write_text("harmless\n")
+        (self.root / ".env.local").symlink_to(self.root / "config.txt")
+        for bad in (f"/{self.root}/.env.local", f"//{str(self.root).lstrip('/')}/.env.local"):
+            with self.assertRaises(PermissionError, msg=bad):
+                self.fs.read_file(bad)
+
+    def test_concurrent_grep_processes_are_bounded(self):
+        import threading, time
+        live, peak, lock = 0, 0, threading.Lock()
+        real_run = om.subprocess.run
+
+        def slow_run(*args, **kwargs):
+            nonlocal live, peak
+            with lock:
+                live += 1
+                peak = max(peak, live)
+            time.sleep(0.05)
+            try:
+                return real_run(*args, **kwargs)
+            finally:
+                with lock:
+                    live -= 1
+        om.subprocess.run = slow_run
+        try:
+            threads = [threading.Thread(target=self.fs.grep, args=("sleep",)) for _ in range(12)]
+            [t.start() for t in threads]
+            [t.join() for t in threads]
+        finally:
+            om.subprocess.run = real_run
+        self.assertLessEqual(peak, 4)
+
     def test_git_credentials_file_is_denied_for_read_and_grep(self):
         (self.root / ".git-credentials").write_text("https://user:tok3n@example.com\n")
         with self.assertRaises(PermissionError):

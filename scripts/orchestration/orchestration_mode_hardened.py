@@ -42,6 +42,7 @@ MAX_RESULT_CHARS = 20_000
 SUBAGENT_RESULT_CHARS = 8_000
 MAX_FILE_BYTES = 1_000_000
 GREP_TIMEOUT = 10  # seconds; grep runs in a child process that is killed on expiry
+GREP_SLOTS = threading.BoundedSemaphore(4)  # at most 4 grep child processes at once
 SKIP_DIRS = frozenset({".git", "node_modules", "__pycache__", ".venv", "venv"})
 DENY_NAMES = (
     ".env", ".env.*", "*.env", "*-env.txt", "*.pem", "*.key", "*.p12", "*.pfx",
@@ -143,8 +144,13 @@ class ReadOnlyFS:
         target = (self.root / rel).resolve()
         if target != self.root and self.root not in target.parents:
             raise PermissionError("path escapes the allowed directory")
-        lexical = Path(os.path.normpath(self.root / rel))  # the name as requested, before symlinks
-        named = lexical.relative_to(self.root).parts if lexical.is_relative_to(self.root) else ()
+        asked = os.path.normpath(self.root / rel)  # the name as requested, before symlinks
+        if asked.startswith("//"):  # POSIX keeps a leading double slash; fold it to one
+            asked = asked[1:]
+        lexical = Path(asked)
+        if not lexical.is_relative_to(self.root):  # fail closed: never skip the name check
+            raise PermissionError("path must stay under the allowed directory")
+        named = lexical.relative_to(self.root).parts
         if self._denied(named) or self._denied(target.relative_to(self.root).parts):
             raise PermissionError("path is on the deny list")
         return target
@@ -193,8 +199,9 @@ class ReadOnlyFS:
         request = json.dumps({"root": str(self.root), "deny": list(self.extra_deny),
                               "pattern": pattern, "path": path, "glob": str(glob)})
         try:  # a thread cannot stop a running regex match; a child process can be killed
-            done = subprocess.run([sys.executable, "-I", os.path.abspath(__file__), "--grep-worker"],
-                                  input=request, capture_output=True, text=True, timeout=GREP_TIMEOUT)
+            with GREP_SLOTS:  # bound concurrent interpreters; the timeout starts once a slot is held
+                done = subprocess.run([sys.executable, "-I", os.path.abspath(__file__), "--grep-worker"],
+                                      input=request, capture_output=True, text=True, timeout=GREP_TIMEOUT)
         except subprocess.TimeoutExpired:
             raise ValueError(f"grep exceeded {GREP_TIMEOUT}s; use a simpler pattern") from None
         if done.returncode:
