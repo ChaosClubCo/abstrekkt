@@ -19,7 +19,9 @@ from pages_probe import RELEASE_HEADER, SECURITY_HEADERS
 
 SHA = re.compile(r"^[0-9a-f]{40}$")
 MANAGED = frozenset({*SECURITY_HEADERS, RELEASE_HEADER})
-HEADER_LINE = re.compile(r"^\s+([A-Za-z0-9-]+)\s*:")
+# A leading "!" is a Pages removal directive ("! X-Frame-Options", colon optional). It
+# must count as touching the header, or it could strip a managed header silently.
+HEADER_LINE = re.compile(r"^\s+(?:!\s*([A-Za-z0-9-]+)\s*(?::|$)|([A-Za-z0-9-]+)\s*:)")
 MANAGED_CACHE_RULES = (
     "/*.html\n"
     "  Cache-Control: public, max-age=0, must-revalidate\n"
@@ -46,8 +48,9 @@ def managed_conflicts(committed: str) -> list[str]:
     conflicts = []
     for number, line in enumerate(committed.splitlines(), start=1):
         match = HEADER_LINE.match(line)
-        if match and match.group(1).lower() in MANAGED:
-            conflicts.append(f"line {number}: {match.group(1)}")
+        name = match and (match.group(1) or match.group(2))
+        if name and name.lower() in MANAGED:
+            conflicts.append(f"line {number}: {line.strip()}")
     return conflicts
 
 

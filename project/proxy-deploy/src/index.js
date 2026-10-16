@@ -69,6 +69,9 @@ function upstream(target, env) {
 // Join base + path and refuse anything that leaves the base origin. Without this, a
 // path such as "@evil.example/x" turns "https://api.notion.com" into a URL whose host
 // is evil.example, and the injected upstream secret is sent there.
+// Contract: a non-empty path must start with "/". An omitted, null, or empty path is
+// the one exception and means the upstream root (the pre-hardening behaviour, kept so
+// existing root calls do not break).
 function upstreamUrl(base, path) {
   const suffix = path == null ? "" : String(path);
   if (suffix && !suffix.startsWith("/")) return null;
@@ -99,7 +102,7 @@ async function handle(request, env) {
     const u = upstream(req.target, env);
     if (!u || !u.base) return json({ error: "unknown target: " + req.target }, 400);
     targetUrl = upstreamUrl(u.base, req.path);
-    if (!targetUrl) return json({ error: "path must start with / and stay on the target origin" }, 400);
+    if (!targetUrl) return json({ error: "path must be omitted (upstream root) or start with / and stay on the target origin" }, 400);
     headers = { ...headers, ...u.inject };
   }
 
