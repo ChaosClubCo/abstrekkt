@@ -52,9 +52,10 @@ class RepositoryAuthorityContractTests(unittest.TestCase):
 
     def test_registry_routes_current_abstrekkt_domains_to_current_owner(self) -> None:
         registry = (ROOT / "repository-registry.yaml").read_text(encoding="utf-8")
-        self.assertIn(f"repository: {CURRENT_ABSTREKKT_REPOSITORY}", registry)
+        lines = registry.splitlines()
+        self.assertIn(f"repository: {CURRENT_ABSTREKKT_REPOSITORY}", lines)
         self.assertGreaterEqual(
-            registry.count(f"owner_repository: {CURRENT_ABSTREKKT_REPOSITORY}"),
+            lines.count(f"    owner_repository: {CURRENT_ABSTREKKT_REPOSITORY}"),
             4,
         )
 
