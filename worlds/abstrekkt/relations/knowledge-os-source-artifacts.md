@@ -4,7 +4,7 @@ kind: relation
 type: part_of
 status: draft
 members:
-  - { id: entities/krosebrook-abstrekkt-repository, role: part }
+  - { id: entities/chaosclubco-abstrekkt-repository, role: part }
   - { id: entities/abstrekkt-documentation, role: part }
   - { id: entities/abstrekkt-knowledge-operating-system, role: whole }
 ---
