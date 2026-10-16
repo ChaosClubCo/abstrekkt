@@ -7,6 +7,7 @@ import tempfile
 import threading
 import unittest
 from pathlib import Path
+from unittest import mock
 from types import SimpleNamespace as NS
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -110,6 +111,32 @@ class FsTests(unittest.TestCase):
             self.fs.grep("x" * 201)
         self.assertEqual(self.fs.grep("zzz_not_present"), "no matches")
 
+    def test_symlink_named_like_a_secret_is_denied_by_its_own_name(self):
+        (self.root / "config.txt").write_text("harmless\n")
+        (self.root / ".env.local").symlink_to(self.root / "config.txt")  # name is denied, target is not
+        with self.assertRaises(PermissionError):
+            self.fs.read_file(".env.local")
+        fs = om.ReadOnlyFS(self.root, ("config*",))
+        (self.root / "alias.txt").symlink_to(self.root / "config.txt")  # target denied, name is not
+        with self.assertRaises(PermissionError):
+            fs.read_file("alias.txt")
+
+    def test_git_credentials_file_is_denied_for_read_and_grep(self):
+        (self.root / ".git-credentials").write_text("https://user:tok3n@example.com\n")
+        with self.assertRaises(PermissionError):
+            self.fs.read_file(".git-credentials")
+        self.assertNotIn("tok3n", self.fs.grep("tok3n"))
+
+    def test_catastrophic_regex_is_killed_by_the_deadline(self):
+        (self.root / "bomb.txt").write_text("a" * 60 + "!\n")
+        with mock.patch.object(om, "GREP_TIMEOUT", 2):
+            with self.assertRaisesRegex(ValueError, "exceeded"):
+                self.fs.grep("(a+)+$", glob="bomb.txt")
+
+    def test_bad_regex_is_a_tool_error(self):
+        with self.assertRaises(ValueError):
+            self.fs.grep("(")
+
     def test_extra_exclude_glob(self):
         fs = om.ReadOnlyFS(self.root, ("main.*",))
         with self.assertRaises(PermissionError):
@@ -152,6 +179,10 @@ class BudgetTests(unittest.TestCase):
         with self.assertRaises(om.BudgetExceeded):
             budget.reserve(32_000, lead=False)
         self.assertEqual(budget.reserve(32_000, lead=True), 8_000)
+
+    def test_small_per_call_limit_is_honoured(self):
+        budget = om.Budget(10, 300_000, 3)
+        self.assertEqual(budget.reserve(1024, lead=False), 1024)
 
     def test_subagent_cap(self):
         budget = om.Budget(10, 100_000, max_subagents=2)
@@ -243,7 +274,29 @@ class OrchestratorTests(unittest.TestCase):
         orch, budget = self.run_orch(Boom(lead=[]))
         result = orch.run("x")
         self.assertTrue(result.stop.startswith("api error"))
-        self.assertEqual(budget.snapshot()["output_tokens"], 0)
+        self.assertEqual(budget.snapshot()["output_tokens"], 32_000)  # usage unknown: whole grant charged
+
+    def test_interrupted_stream_cannot_free_tokens_for_later_calls(self):
+        class Boom(FakeClient):
+            def stream(self, **kwargs):
+                raise om.anthropic.APIConnectionError(request=NS(url="x"))
+
+        budget = om.Budget(80, 40_000, 3, lead_reserve_tokens=0)
+        orch = om.Orchestrator(Boom(lead=[]), self.fs, budget)
+        orch.run("x")
+        self.assertEqual(budget.reserve(32_000, lead=True), 8_000)  # only what was never granted
+
+    def test_truncation_by_global_cap_reports_budget_stop(self):
+        client = FakeClient(lead=[([text("cut")], "max_tokens")])
+        orch, budget = self.run_orch(client, om.Budget(80, 2_048, 2, lead_reserve_tokens=0))
+        orch.run("x")
+        self.assertEqual(budget.exhausted, "max-output-tokens reached")
+
+    def test_truncation_by_per_call_limit_is_not_a_budget_stop(self):
+        client = FakeClient(lead=[([text("cut")], "max_tokens")])
+        orch, budget = self.run_orch(client)
+        self.assertEqual(orch.run("x").stop, "max_tokens")
+        self.assertIsNone(budget.exhausted)
 
 
 class CliTests(unittest.TestCase):
@@ -253,6 +306,19 @@ class CliTests(unittest.TestCase):
         self.assertEqual((args.max_subagents, args.max_calls, args.max_output_tokens), (12, 80, 300000))
         with self.assertRaises(SystemExit):
             om.parse_args(["--dir", ".", "--max-calls", "0", "t"])
+
+    def test_sdk_retries_are_disabled(self):
+        seen: dict = {}
+
+        class Stub:
+            def __init__(self, **kwargs):
+                seen.update(kwargs)
+
+        with tempfile.TemporaryDirectory() as tmp, \
+                mock.patch.object(om.anthropic, "Anthropic", Stub), \
+                mock.patch.object(om.Orchestrator, "run", return_value=om.AgentResult("x", "end_turn")):
+            self.assertEqual(om.main(["--dir", tmp, "t"]), 0)
+        self.assertEqual(seen, {"max_retries": 0})
 
     def test_missing_dir_exit_1(self):
         self.assertEqual(om.main(["--dir", "/nonexistent-dir-xyz", "t"]), 1)
