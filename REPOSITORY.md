@@ -32,7 +32,9 @@ Do not treat `project/CANON.md` as authority over Loxihart, INT/Intinc, external
 
 ### Loxihart
 
-`Krosebrook/Loxihart` owns Loxihart governance, product/runtime code, control plane, ChangeReceipt/canonical-truth implementation, Pilot Console, experiments, tests, migrations, release gates, and product evidence.
+`ChaosClubCo/Loxihart` owns Loxihart governance, product/runtime code, control plane, ChangeReceipt/canonical-truth implementation, Pilot Console, experiments, tests, migrations, release gates, and product evidence.
+
+Historical records that name `Krosebrook/Loxihart` retain that path where it was true at the time; current operational authority is `ChaosClubCo/Loxihart`, and historical provenance must not be rewritten.
 
 Existing `loxihart/` paths and Loxihart-specific branches in this repository are frozen migration sources or historical evidence. No feature, runtime, security, release, or product mutation should originate here.
 
