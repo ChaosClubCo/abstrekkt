@@ -1,0 +1,51 @@
+name: Knowledge Governance Conformance
+
+on:
+  pull_request:
+    paths:
+      - 'governance/knowledge-authority-registry.v1.json'
+      - 'governance/memory/**'
+      - 'scripts/verify_memory_candidate.py'
+      - '.github/workflows/knowledge-governance.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'governance/knowledge-authority-registry.v1.json'
+      - 'governance/memory/**'
+      - 'scripts/verify_memory_candidate.py'
+  schedule:
+    - cron: '17 13 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  conformance:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Parse governance JSON
+        run: |
+          python -m json.tool governance/knowledge-authority-registry.v1.json >/dev/null
+          python -m json.tool governance/memory/MemoryCandidate.v1.schema.json >/dev/null
+          python -m json.tool governance/memory/MemoryReceipt.v1.schema.json >/dev/null
+      - name: Run bounded verifier acceptance suite
+        run: python scripts/verify_memory_candidate.py --self-test
+      - name: Assert single canonical memory authority
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p = Path('governance/knowledge-authority-registry.v1.json')
+          data = json.loads(p.read_text())
+          assert data['canonical_memory_authority'] == 'Mem'
+          assert data['verification_authority'] == 'CanonicalMemoryVerifier/v1'
+          assert data['domains']['working_knowledge']['may_override_mem'] is False
+          assert data['domains']['portable_backup']['may_override_mem'] is False
+          assert data['domains']['documentation']['source_of_truth_for_governance'] is False
+          print('AUTHORITY_INVARIANTS_PASS')
+          PY
