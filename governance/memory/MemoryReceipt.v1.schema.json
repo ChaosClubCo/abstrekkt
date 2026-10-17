@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "MemoryReceipt/v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["receipt_id", "schema_version", "candidate_id", "decision", "proposal_hash", "executed_at", "reconciliation"],
+  "properties": {
+    "receipt_id": {"type": "string", "minLength": 1},
+    "schema_version": {"const": "MemoryReceipt/v1"},
+    "candidate_id": {"type": "string", "minLength": 1},
+    "decision": {"enum": ["ALLOW", "DENY", "REVIEW", "NOOP", "FAILED"]},
+    "reason_codes": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+    "proposal_hash": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"},
+    "canonical_note_id": {"type": ["string", "null"]},
+    "source_revision": {"type": ["string", "null"]},
+    "target_revision": {"type": ["string", "null"]},
+    "executed_at": {"type": "string", "format": "date-time"},
+    "evidence_refs": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+    "reconciliation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status"],
+      "properties": {
+        "status": {"enum": ["MATCH", "MISMATCH", "NOT_APPLICABLE"]},
+        "observed_hash": {"type": ["string", "null"], "pattern": "^sha256:[a-f0-9]{64}$"},
+        "details": {"type": ["string", "null"], "maxLength": 2000}
+      }
+    }
+  }
+}

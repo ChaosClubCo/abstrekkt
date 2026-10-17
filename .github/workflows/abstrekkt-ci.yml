@@ -17,7 +17,7 @@ concurrency:
 jobs:
   repository-integrity:
     name: Repository integrity
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
       - name: Checkout
@@ -48,7 +48,7 @@ jobs:
 
   automation-config:
     name: Automation configuration
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
       - name: Checkout
@@ -110,7 +110,7 @@ jobs:
 
   static-release-package:
     name: Static release package
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
       - name: Checkout
@@ -140,9 +140,16 @@ jobs:
             exit 1
           fi
 
+      - name: Test release tooling and gate the package
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/release/test_release_scripts.py
+          python3 scripts/release/verify_static_package.py project/deploy/abstrekkt-com
+
   cloudflare-worker-config:
     name: Cloudflare Worker config
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
       - name: Checkout
@@ -187,6 +194,10 @@ jobs:
           if (diagnostic.worker_observability_settings?.enabled !== false) throw new Error('historical top-level observability state drifted');
           if (diagnostic.worker_observability_settings?.traces?.enabled !== true) throw new Error('historical trace setting drifted');
           NODE
+
+      - name: Test mentor proxy request routing
+        working-directory: project/proxy-deploy
+        run: node --test test/index.test.mjs
 
       - name: Validate mentor proxy Worker with pinned Wrangler
         working-directory: project/proxy-deploy
