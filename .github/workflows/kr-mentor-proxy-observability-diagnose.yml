@@ -1,0 +1,52 @@
+name: KR Mentor Proxy Observability Diagnose
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - 'diagnose/kr-mentor-proxy-*'
+    paths:
+      - '.github/workflows/kr-mentor-proxy-observability-diagnose.yml'
+      - 'tooling/cloudflare/**'
+      - '.diagnostic-trigger'
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    name: Diagnose frozen Cloudflare telemetry window
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Query frozen BLOCKED window broadly
+        shell: bash
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          WORKER_NAME: kr-mentor-proxy
+          HISTORICAL_VERSION_ID: 00159066-098d-4d98-853d-5078a121f316
+          HISTORICAL_FROM_MS: '1787855830000'
+          HISTORICAL_TO_MS: '1787855906000'
+          DIAGNOSTIC_PATH: ${{ github.workspace }}/cloudflare-historical-telemetry-diagnostic.json
+        run: |
+          set -euo pipefail
+          node --check tooling/cloudflare/telemetry.mjs
+          node --check tooling/cloudflare/diagnose-mentor-proxy.mjs
+          node tooling/cloudflare/diagnose-mentor-proxy.mjs
+
+      - name: Upload historical telemetry diagnostic
+        uses: actions/upload-artifact@v4
+        with:
+          name: kr-mentor-proxy-historical-telemetry-diagnostic
+          path: cloudflare-historical-telemetry-diagnostic.json
+          if-no-files-found: error
+          retention-days: 90

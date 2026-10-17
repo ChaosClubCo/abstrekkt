@@ -2,7 +2,7 @@
 
 This repository is the governed source and preservation boundary for **Abstrekkt publishing, public-site source, approved editorial artifacts, portfolio/press evidence, and historical material retained for provenance**.
 
-It is **not** the canonical production repository for Loxihart runtime or product code. Loxihart operating/product ownership belongs in [`Krosebrook/Loxihart`](https://github.com/Krosebrook/Loxihart). Existing `loxihart/` paths in this repository are frozen historical/reference source until their migration and hash verification are complete.
+It is **not** the canonical production repository for Loxihart runtime or product code. Loxihart operating/product ownership belongs in [`ChaosClubCo/Loxihart`](https://github.com/ChaosClubCo/Loxihart). Existing `loxihart/` paths in this repository are frozen historical/reference source until their migration and hash verification are complete.
 
 ## Start here
 
@@ -20,11 +20,30 @@ Repository work must follow this authority order:
 | --- | --- | --- |
 | Abstrekkt public/editorial | Canonical | Publishing, public-site source, press/portfolio, approved derivatives |
 | `project/` design/content corpus | Canonical within its lane | Governed by `project/CANON.md` after repository-level routing |
-| Loxihart runtime/product | External canonical | Owned by `Krosebrook/Loxihart`; local copies are frozen reference/history |
+| Loxihart runtime/product | External canonical | Owned by `ChaosClubCo/Loxihart`; local copies are frozen reference/history |
 | FlashFusion historical material | Historical or subordinate-brand evidence | Classify by role and provenance, never by name alone |
 | INT/Intinc | Excluded | Separate operating lane; repository residence does not grant authority |
 | Private memoir/clinical/family source | Restricted | Never infer publication authority from presence in this repository |
 | Vendored/imported systems | Noncanonical | Preserve provenance; do not silently promote into Abstrekkt architecture |
+
+## Production trust status
+
+The production-trust layer uses strict maturity states. `IMPLEMENTED`, `VERIFIED`, `DEPLOYED`, and `CERTIFIED` are not synonyms and are never inferred from one another.
+
+Audit base for the first production-trust conformance build: `6fbfada9cfd164b08c6941622d882b07c8fde71f`.
+
+| Area | State | Current evidence boundary |
+| --- | --- | --- |
+| Durable verification-before-completion policy | IMPLEMENTED | Canonical policy, registry source, and acceptance suite under `governance/trust/` |
+| Deterministic behavioral evaluator | IMPLEMENTED | Provider-neutral evaluator with fail-closed revision/task/projection/provider binding |
+| Distribution conformance | IMPLEMENTED | Anthropic/OpenAI/Gemini adapter projections and deterministic receipt contract; exact-head CI evidence required for VERIFIED |
+| Live multi-provider behavioral execution | BLOCKED | No live provider execution receipt has been produced by this layer |
+| Production signing | BLOCKED | No external production KMS signature evidence exists in this layer |
+| Provenance service | BLOCKED | Read-only provenance runtime is not deployed by this layer |
+| Exact live runtime revision | INCONCLUSIVE | Existing deployment workflow is candidate-SHA-aware, but runtime read-back/version evidence is a separate gate |
+| Production certification | BLOCKED | Requires compatible live behavior, signing, provenance, and deployment evidence |
+
+See [`docs/PRODUCTION_TRUST_ARCHITECTURE.md`](docs/PRODUCTION_TRUST_ARCHITECTURE.md), [`docs/DOCUMENTATION_STANDARDS.md`](docs/DOCUMENTATION_STANDARDS.md), and [`ROADMAP.md`](ROADMAP.md).
 
 ## Mutation rule
 

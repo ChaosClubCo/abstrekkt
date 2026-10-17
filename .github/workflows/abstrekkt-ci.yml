@@ -17,7 +17,7 @@ concurrency:
 jobs:
   repository-integrity:
     name: Repository integrity
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
       - name: Checkout
@@ -48,7 +48,7 @@ jobs:
 
   automation-config:
     name: Automation configuration
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
       - name: Checkout
@@ -110,7 +110,7 @@ jobs:
 
   static-release-package:
     name: Static release package
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
       - name: Checkout
@@ -139,3 +139,72 @@ jobs:
             echo "STOP: credential-like file present in static release package"
             exit 1
           fi
+
+      - name: Test release tooling and gate the package
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/release/test_release_scripts.py
+          python3 scripts/release/verify_static_package.py project/deploy/abstrekkt-com
+
+  cloudflare-worker-config:
+    name: Cloudflare Worker config
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Validate observability control plane and frozen evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check tooling/cloudflare/telemetry.mjs
+          node --check tooling/cloudflare/diagnose-mentor-proxy.mjs
+          node --check tooling/cloudflare/enable-mentor-proxy-observability.mjs
+          node --check tooling/cloudflare/verify-mentor-proxy.mjs
+          test "$(wc -l < tooling/cloudflare/verify-mentor-proxy.mjs)" -le 400
+          node --input-type=module <<'NODE'
+          import { buildTelemetryQueryBody } from './tooling/cloudflare/telemetry.mjs';
+          const body = buildTelemetryQueryBody('traces', [], 1, 2, 200);
+          if (body.view !== 'traces') throw new Error('telemetry view must be top-level');
+          if (Object.hasOwn(body.parameters, 'view')) throw new Error('telemetry view must not be nested in parameters');
+          if (body.parameters.datasets.length !== 0) throw new Error('telemetry datasets must remain unscoped for broad diagnosis');
+          NODE
+          node <<'NODE'
+          const manifest = require('./project/proxy-deploy/deployment-manifest.json');
+          const blocked = require('./project/proxy-deploy/evidence/cloudflare-observability/33104318955-BLOCKED.json');
+          const diagnostic = require('./project/proxy-deploy/evidence/cloudflare-observability/33263624795-historical-diagnostic.json');
+          const sha = /^[0-9a-f]{40}$/;
+          if (manifest.schema !== 'KrMentorProxyDeploymentManifest/v1') throw new Error('manifest schema mismatch');
+          if (manifest.worker_name !== 'kr-mentor-proxy') throw new Error('manifest worker mismatch');
+          if (!sha.test(manifest.source_sha)) throw new Error('manifest source_sha invalid');
+          if (!sha.test(manifest.trigger_origin_sha)) throw new Error('manifest trigger_origin_sha invalid');
+          if (manifest.source_sha !== '093ee15501d0ae45a628b1efc13035a18f342dc1') throw new Error('exact source SHA drifted');
+          if (manifest.expected_tracing_enabled !== true) throw new Error('manifest tracing expectation invalid');
+          if (manifest.allowed_probe_host !== 'example.com') throw new Error('manifest probe host invalid');
+          if (blocked.verdict !== 'BLOCKED' || blocked.workflow.run_id !== '33104318955') throw new Error('frozen BLOCKED receipt mismatch');
+          if (diagnostic.classification !== 'zero_traces_global_in_window') throw new Error('historical diagnosis mismatch');
+          if (diagnostic.counts.broad_traces !== 0 || diagnostic.counts.broad_events !== 0) throw new Error('historical global-zero evidence drifted');
+          if (diagnostic.worker_observability_settings?.enabled !== false) throw new Error('historical top-level observability state drifted');
+          if (diagnostic.worker_observability_settings?.traces?.enabled !== true) throw new Error('historical trace setting drifted');
+          NODE
+
+      - name: Test mentor proxy request routing
+        working-directory: project/proxy-deploy
+        run: node --test test/index.test.mjs
+
+      - name: Validate mentor proxy Worker with pinned Wrangler
+        working-directory: project/proxy-deploy
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(node -p "require('./package.json').devDependencies.wrangler")" = "4.126.0"
+          grep -q '^\[observability\.traces\]$' wrangler.toml
+          grep -q '^enabled = true$' wrangler.toml
+          npx --yes wrangler@4.126.0 deploy --dry-run --config wrangler.toml

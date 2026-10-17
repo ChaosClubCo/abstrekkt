@@ -1,0 +1,130 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "kind": "SystemAuthorityRegistry",
+  "version": "v1",
+  "status": "FROZEN",
+  "effective_date": "2026-08-28",
+  "owner": "Abstrekkt",
+  "authority_model": "single-writer-per-domain",
+  "cross_system_execution_authority": "n8n/ACP/TESSA",
+  "invariants": [
+    "Only n8n/ACP/TESSA may coordinate consequential writes across more than one system.",
+    "Provider-native automation may emit events or perform narrowly local operations but may not establish a competing cross-system orchestration plane.",
+    "Every domain has exactly one canonical authority; all other systems receive projections, derived records, or channel-specific representations.",
+    "Cross-system mutations require validation, normalization, authorization, idempotency, bounded retries, evidence/receipt generation, and reconciliation.",
+    "Mem stores durable semantic knowledge only, never runtime locks, leases, retries, pending transactions, idempotency state, transactional authorization, secrets, or provider tokens.",
+    "Paid acquisition remains blocked until advertiser verification, measurement provisioning, a real bounded conversion, and Pixel+CAPI deduplication are evidenced."
+  ],
+  "domains": {
+    "cross_system_execution": {
+      "authority": "n8n/ACP/TESSA",
+      "adapters": ["provider-native triggers"],
+      "rule": "Only n8n/ACP/TESSA may coordinate multi-system writes."
+    },
+    "revenue_crm": {
+      "authority": "HubSpot",
+      "adapters": ["Folk", "Hunter", "Calendly"],
+      "rule": "HubSpot owns contacts, companies, deals, lifecycle, revenue, and sales activity."
+    },
+    "relationship_intelligence": {
+      "authority": "Folk",
+      "adapters": ["HubSpot projection"],
+      "rule": "Folk owns founder network, partners, warm relationships, and strategic context; it is not the revenue CRM."
+    },
+    "lead_enrichment": {
+      "authority": "Hunter",
+      "adapters": ["HubSpot"],
+      "rule": "Hunter discovers, verifies, and enriches; it never owns lifecycle or pipeline state."
+    },
+    "scheduling": {
+      "authority": "Calendly",
+      "adapters": ["HubSpot", "n8n"],
+      "rule": "Calendly owns availability and booking state; HubSpot receives sales/customer activity projections."
+    },
+    "durable_knowledge": {
+      "authority": "Mem",
+      "adapters": ["Context7", "source systems"],
+      "rule": "Mem owns architecture decisions, verified procedures, summaries, research, postmortems, and durable context only."
+    },
+    "technical_documentation_truth": {
+      "authority": "Context7 + official vendor docs",
+      "adapters": ["engineering workflows"],
+      "rule": "Documentation retrieval informs implementation but is not a runtime product authority."
+    },
+    "commerce": {
+      "authority": "Shopify when release-bound",
+      "adapters": ["Printify", "Etsy", "n8n"],
+      "rule": "Shopify becomes canonical for product, variant, SKU, price, cart, checkout, order, and merchant-facing commerce state only when commerce is explicitly promoted to release scope."
+    },
+    "fulfillment": {
+      "authority": "Printify",
+      "adapters": ["Shopify"],
+      "rule": "Printify owns manufacturing, provider, production, and fulfillment facts; it does not own the merchant catalog."
+    },
+    "marketplace_channel": {
+      "authority": "Etsy",
+      "adapters": ["Shopify", "n8n"],
+      "rule": "Etsy listings and receipts are channel projections normalized into canonical commerce/revenue events."
+    },
+    "corporate_product_marketing_web": {
+      "authority": "Wix",
+      "adapters": ["n8n"],
+      "rule": "Wix owns corporate/product marketing pages, landing pages, service pages, and conversion-oriented site experiences when promoted from draft."
+    },
+    "editorial_blog_publishing": {
+      "authority": "WordPress",
+      "adapters": ["n8n"],
+      "rule": "WordPress owns editorial/blog publishing and long-form research-derived articles."
+    },
+    "customer_conversation_runtime": {
+      "authority": "Botpress",
+      "adapters": ["n8n/ACP"],
+      "rule": "Botpress may collect intent and present responses; consequential external actions must route through ACP authorization."
+    },
+    "advertising_measurement": {
+      "authority": "OpenAI Ads",
+      "adapters": ["THE VERDICT", "n8n evidence"],
+      "rule": "Pixel and CAPI measure confirmed success boundaries; paid acquisition remains gated on verification and deduplication proof."
+    },
+    "typography_discovery": {
+      "authority": "MyFonts",
+      "adapters": ["brand system"],
+      "rule": "Typeface research is advisory; approved typography decisions must be persisted as brand artifacts."
+    },
+    "audio_derivatives": {
+      "authority": "Speechify",
+      "adapters": ["source content systems"],
+      "rule": "Speechify creates downstream narration/accessibility derivatives and never owns source content."
+    }
+  },
+  "boundaries": {
+    "wix_vs_wordpress": {
+      "wix": "Corporate/product marketing, landing pages, service pages, conversion-oriented web experiences.",
+      "wordpress": "Editorial/blog publishing and long-form research-derived articles.",
+      "prohibited_overlap": "The same canonical page/article must not be independently authored in both systems; cross-publishing must originate from one canonical content object and be treated as an explicit projection."
+    },
+    "botpress": "Botpress may read approved context and collect structured intent but may not independently mutate HubSpot, Shopify, Calendly, email, billing, fulfillment, or other consequential systems.",
+    "mem": {
+      "allowed": ["ArchitectureDecision", "SystemSummary", "ProjectContext", "ResearchFinding", "CustomerContext", "Postmortem", "VerifiedProcedure", "GovernancePolicy", "ReleaseEvidenceSummary"],
+      "prohibited": ["WorkflowLock", "Lease", "RetryCounter", "PendingTransaction", "IdempotencyState", "EphemeralAuthorization", "RuntimeSecret", "ProviderToken"]
+    }
+  },
+  "integration_event_contract": {
+    "kind": "IntegrationEvent",
+    "version": "v1",
+    "required_fields": ["event_id", "event_type", "occurred_at", "source", "subject_type", "subject_id", "correlation_id", "causation_id", "schema_version", "actor", "consent_context", "payload", "evidence_refs"],
+    "pipeline": ["validate", "normalize", "authorize", "execute", "receipt", "reconcile"]
+  },
+  "the_verdict_paid_acquisition_gate": [
+    "Advertiser identity verification approved.",
+    "Conversion Source / Pixel provisioned.",
+    "Same Pixel ID bound to browser Pixel and server CAPI.",
+    "One deterministic event_id generated per logical conversion and reused by Pixel and CAPI.",
+    "Consent and privacy gates verified.",
+    "One real bounded conversion executed.",
+    "Recent conversion events inspected and duplicate transports proven to deduplicate into one logical conversion.",
+    "Evidence preserved in ADS-001 or successor receipt.",
+    "Paid acquisition activation permitted only after all previous gates pass."
+  ],
+  "change_control": "Any authority change requires a new versioned governance decision. Connector convenience is never sufficient reason to silently change domain ownership."
+}

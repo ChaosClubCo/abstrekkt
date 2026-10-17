@@ -1,0 +1,266 @@
+name: KR Mentor Proxy Deploy
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - deploy/kr-mentor-proxy
+    paths:
+      - '.github/workflows/kr-mentor-proxy-deploy.yml'
+      - 'project/proxy-deploy/**'
+      - 'tooling/cloudflare/**'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kr-mentor-proxy-production
+  cancel-in-progress: false
+
+env:
+  WRANGLER_VERSION: '4.126.0'
+  WORKER_NAME: kr-mentor-proxy
+
+jobs:
+  deploy:
+    name: Deploy and verify traced mentor proxy
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+
+    steps:
+      - name: Checkout control plane
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set up Node 22
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+
+      - name: Resolve exact source and trigger provenance
+        shell: bash
+        run: |
+          set -euo pipefail
+          MANIFEST='project/proxy-deploy/deployment-manifest.json'
+          test -s "$MANIFEST"
+          SOURCE_SHA="$(node -p "require('./$MANIFEST').source_sha")"
+          TRIGGER_ORIGIN_SHA="$(node -p "require('./$MANIFEST').trigger_origin_sha")"
+          MANIFEST_WORKER="$(node -p "require('./$MANIFEST').worker_name")"
+          [[ "$SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]] || { echo 'STOP: invalid source_sha'; exit 1; }
+          [[ "$TRIGGER_ORIGIN_SHA" =~ ^[0-9a-f]{40}$ ]] || { echo 'STOP: invalid trigger_origin_sha'; exit 1; }
+          test "$MANIFEST_WORKER" = "$WORKER_NAME"
+          git cat-file -e "${SOURCE_SHA}^{commit}"
+          git cat-file -e "${TRIGGER_ORIGIN_SHA}^{commit}"
+          git merge-base --is-ancestor "$SOURCE_SHA" "$GITHUB_SHA"
+          git merge-base --is-ancestor "$TRIGGER_ORIGIN_SHA" "$GITHUB_SHA"
+
+          PARENT_COUNT="$(git rev-list --parents -n 1 "$GITHUB_SHA" | awk '{print NF-1}')"
+          if [ "$PARENT_COUNT" -ge 2 ]; then
+            CONTROL_PLANE_SHA="$(git rev-parse "$GITHUB_SHA^1")"
+          else
+            CONTROL_PLANE_SHA="$GITHUB_SHA"
+          fi
+
+          echo "SOURCE_SHA=$SOURCE_SHA" >> "$GITHUB_ENV"
+          echo "TRIGGER_ORIGIN_SHA=$TRIGGER_ORIGIN_SHA" >> "$GITHUB_ENV"
+          echo "CONTROL_PLANE_SHA=$CONTROL_PLANE_SHA" >> "$GITHUB_ENV"
+          echo "EXECUTION_SHA=$GITHUB_SHA" >> "$GITHUB_ENV"
+
+          rm -rf candidate
+          GIT_LFS_SKIP_SMUDGE=1 git worktree add --detach candidate "$SOURCE_SHA"
+          test "$(git -C candidate rev-parse HEAD)" = "$SOURCE_SHA"
+          echo 'CANDIDATE_READY=1' >> "$GITHUB_ENV"
+
+      - name: Require Cloudflare credentials and establish disposable bearer
+        shell: bash
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          STABLE_PROXY_TOKEN: ${{ secrets.KR_MENTOR_PROXY_TOKEN }}
+        run: |
+          set -euo pipefail
+          test -n "${CLOUDFLARE_API_TOKEN:-}" || { echo 'STOP: CLOUDFLARE_API_TOKEN is not configured'; exit 1; }
+          test -n "${CLOUDFLARE_ACCOUNT_ID:-}" || { echo 'STOP: CLOUDFLARE_ACCOUNT_ID is not configured'; exit 1; }
+          if [ -n "${STABLE_PROXY_TOKEN:-}" ]; then
+            PROXY_TOKEN="$STABLE_PROXY_TOKEN"
+            PROXY_TOKEN_MODE='stable_repository_secret'
+          else
+            PROXY_TOKEN="$(openssl rand -hex 32)"
+            PROXY_TOKEN_MODE='ephemeral_verification_only'
+          fi
+          echo "::add-mask::$PROXY_TOKEN"
+          echo "PROXY_TOKEN=$PROXY_TOKEN" >> "$GITHUB_ENV"
+          echo "PROXY_TOKEN_MODE=$PROXY_TOKEN_MODE" >> "$GITHUB_ENV"
+
+      - name: Verify exact candidate and verifier syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check tooling/cloudflare/telemetry.mjs
+          node --check tooling/cloudflare/enable-mentor-proxy-observability.mjs
+          node --check tooling/cloudflare/verify-mentor-proxy.mjs
+          cd candidate/project/proxy-deploy
+          test "$(node -p "require('./package.json').devDependencies.wrangler")" = "$WRANGLER_VERSION"
+          grep -q '^\[observability\.traces\]$' wrangler.toml
+          grep -q '^enabled = true$' wrangler.toml
+          npx --yes wrangler@${WRANGLER_VERSION} deploy --dry-run --config wrangler.toml
+
+      - name: Capture pre-deployment Cloudflare state
+        working-directory: candidate/project/proxy-deploy
+        shell: bash
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          VERSIONS="${RUNNER_TEMP}/kr-mentor-pre-versions.json"
+          DEPLOYMENTS="${RUNNER_TEMP}/kr-mentor-pre-deployments.json"
+          npx --yes wrangler@${WRANGLER_VERSION} versions list --name "$WORKER_NAME" --json --config wrangler.toml > "$VERSIONS" 2>/dev/null || printf '[]\n' > "$VERSIONS"
+          npx --yes wrangler@${WRANGLER_VERSION} deployments list --name "$WORKER_NAME" --json --config wrangler.toml > "$DEPLOYMENTS" 2>/dev/null || printf '[]\n' > "$DEPLOYMENTS"
+          echo "PRE_VERSIONS_PATH=$VERSIONS" >> "$GITHUB_ENV"
+          echo "PRE_DEPLOYMENTS_PATH=$DEPLOYMENTS" >> "$GITHUB_ENV"
+
+      - name: Deploy Worker shell
+        working-directory: candidate/project/proxy-deploy
+        shell: bash
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          npx --yes wrangler@${WRANGLER_VERSION} deploy --config wrangler.toml
+
+      - name: Install proxy bearer secret
+        working-directory: candidate/project/proxy-deploy
+        shell: bash
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          printf '%s' "$PROXY_TOKEN" | npx --yes wrangler@${WRANGLER_VERSION} secret put PROXY_TOKEN --config wrangler.toml
+          echo 'PROXY_SECRET_INSTALLED=1' >> "$GITHUB_ENV"
+
+      - name: Deploy final exact-source traced version
+        working-directory: candidate/project/proxy-deploy
+        shell: bash
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          WRANGLER_OUTPUT_FILE_PATH: ${{ runner.temp }}/kr-mentor-proxy-deploy.ndjson
+        run: |
+          set -euo pipefail
+          test "$(git -C ../.. rev-parse HEAD)" = "$SOURCE_SHA"
+          npx --yes wrangler@${WRANGLER_VERSION} deploy --config wrangler.toml
+          echo "DEPLOY_LOG=$WRANGLER_OUTPUT_FILE_PATH" >> "$GITHUB_ENV"
+
+      - name: Enable proven provider observability gate
+        shell: bash
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          PRE="${RUNNER_TEMP}/kr-mentor-observability-pre.json"
+          POST="${RUNNER_TEMP}/kr-mentor-observability-post.json"
+          echo "OBSERVABILITY_PRE_SETTINGS_PATH=$PRE" >> "$GITHUB_ENV"
+          echo "OBSERVABILITY_POST_SETTINGS_PATH=$POST" >> "$GITHUB_ENV"
+          export OBSERVABILITY_PRE_SETTINGS_PATH="$PRE"
+          export OBSERVABILITY_POST_SETTINGS_PATH="$POST"
+          node tooling/cloudflare/enable-mentor-proxy-observability.mjs
+
+      - name: Capture traced deployment state
+        working-directory: candidate/project/proxy-deploy
+        shell: bash
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          VERSIONS="${RUNNER_TEMP}/kr-mentor-post-versions.json"
+          DEPLOYMENTS="${RUNNER_TEMP}/kr-mentor-post-deployments.json"
+          npx --yes wrangler@${WRANGLER_VERSION} versions list --name "$WORKER_NAME" --json --config wrangler.toml > "$VERSIONS"
+          npx --yes wrangler@${WRANGLER_VERSION} deployments list --name "$WORKER_NAME" --json --config wrangler.toml > "$DEPLOYMENTS"
+          echo "POST_VERSIONS_PATH=$VERSIONS" >> "$GITHUB_ENV"
+          echo "POST_DEPLOYMENTS_PATH=$DEPLOYMENTS" >> "$GITHUB_ENV"
+
+      - name: Probe runtime and verify Cloudflare trace
+        shell: bash
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          RECEIPT_PATH: ${{ github.workspace }}/cloudflare-observability-receipt.json
+          HISTORICAL_DIAGNOSTIC_PATH: ${{ github.workspace }}/project/proxy-deploy/evidence/cloudflare-observability/33263624795-historical-diagnostic.json
+        run: |
+          set -euo pipefail
+          export TRACE_FROM_MS="$(date +%s%3N)"
+          node tooling/cloudflare/verify-mentor-proxy.mjs verify
+
+      - name: Remove ephemeral proxy secret
+        if: ${{ always() }}
+        shell: bash
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          if [ "${PROXY_TOKEN_MODE:-}" = 'ephemeral_verification_only' ] && [ "${PROXY_SECRET_INSTALLED:-}" = '1' ]; then
+            if [ ! -d candidate/project/proxy-deploy ]; then
+              echo 'STOP: proxy secret was installed but candidate config is unavailable for cleanup'
+              exit 1
+            fi
+            cd candidate/project/proxy-deploy
+            printf '{"PROXY_TOKEN":null}\n' | npx --yes wrangler@${WRANGLER_VERSION} secret bulk --config wrangler.toml
+            echo 'PROXY_SECRET_CLEANUP_STATUS=deleted_ephemeral_secret' >> "$GITHUB_ENV"
+          elif [ "${CANDIDATE_READY:-}" != '1' ]; then
+            echo 'PROXY_SECRET_CLEANUP_STATUS=not_required_no_candidate' >> "$GITHUB_ENV"
+          else
+            echo 'PROXY_SECRET_CLEANUP_STATUS=not_required' >> "$GITHUB_ENV"
+          fi
+
+      - name: Capture final fail-closed state
+        if: ${{ always() }}
+        shell: bash
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          VERSIONS="${RUNNER_TEMP}/kr-mentor-final-versions.json"
+          DEPLOYMENTS="${RUNNER_TEMP}/kr-mentor-final-deployments.json"
+          if [ -d candidate/project/proxy-deploy ]; then
+            cd candidate/project/proxy-deploy
+            npx --yes wrangler@${WRANGLER_VERSION} versions list --name "$WORKER_NAME" --json --config wrangler.toml > "$VERSIONS" 2>/dev/null || printf '[]\n' > "$VERSIONS"
+            npx --yes wrangler@${WRANGLER_VERSION} deployments list --name "$WORKER_NAME" --json --config wrangler.toml > "$DEPLOYMENTS" 2>/dev/null || printf '[]\n' > "$DEPLOYMENTS"
+          else
+            printf '[]\n' > "$VERSIONS"
+            printf '[]\n' > "$DEPLOYMENTS"
+          fi
+          echo "FINAL_VERSIONS_PATH=$VERSIONS" >> "$GITHUB_ENV"
+          echo "FINAL_DEPLOYMENTS_PATH=$DEPLOYMENTS" >> "$GITHUB_ENV"
+
+      - name: Finalize observability receipt
+        if: ${{ always() }}
+        shell: bash
+        env:
+          RECEIPT_PATH: ${{ github.workspace }}/cloudflare-observability-receipt.json
+        run: |
+          set -euo pipefail
+          if [ -s "$RECEIPT_PATH" ]; then
+            node tooling/cloudflare/verify-mentor-proxy.mjs finalize
+          fi
+
+      - name: Upload observability evidence
+        if: ${{ always() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: kr-mentor-proxy-cloudflare-observability-receipt
+          path: |
+            cloudflare-observability-receipt.json
+            project/proxy-deploy/evidence/cloudflare-observability/33263624795-historical-diagnostic.json
+            ${{ runner.temp }}/kr-mentor-observability-pre.json
+            ${{ runner.temp }}/kr-mentor-observability-post.json
+          if-no-files-found: warn
+          retention-days: 90
