@@ -28,13 +28,24 @@ async function withFetchSpy(fn) {
 
 test('upstreamUrl keeps requests on the base origin', () => {
   assert.equal(upstreamUrl('https://api.notion.com', '/v1/pages'), 'https://api.notion.com/v1/pages');
-  assert.equal(upstreamUrl('https://api.notion.com', ''), 'https://api.notion.com/');
-  assert.equal(upstreamUrl('https://api.notion.com', undefined), 'https://api.notion.com/');
   assert.equal(upstreamUrl('https://mcp.example.test/base/', '/tools'), 'https://mcp.example.test/base/tools');
   assert.equal(upstreamUrl('https://api.notion.com', '@evil.example/x'), null);
   assert.equal(upstreamUrl('https://api.notion.com', '.evil.example/x'), null);
   assert.equal(upstreamUrl('https://api.notion.com', ':8443/x'), null);
   assert.equal(upstreamUrl('not a url', '/x'), null);
+});
+
+test('omitted, null, or empty path is the documented root-path exception', () => {
+  assert.equal(upstreamUrl('https://api.notion.com', ''), 'https://api.notion.com/');
+  assert.equal(upstreamUrl('https://api.notion.com', null), 'https://api.notion.com/');
+  assert.equal(upstreamUrl('https://api.notion.com', undefined), 'https://api.notion.com/');
+});
+
+test('rejection message states the root-path exception', async () => {
+  const { response } = await withFetchSpy(() =>
+    handle(call({ target: 'notion', method: 'GET', path: 'v1/pages' }), ENV));
+  assert.equal(response.status, 400);
+  assert.match((await response.json()).error, /omitted \(upstream root\) or start with \//);
 });
 
 test('origin-escaping path is rejected before any upstream fetch', async () => {

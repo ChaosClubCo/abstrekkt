@@ -5,7 +5,7 @@ tools: ["read", "search"]
 target: github-copilot
 ---
 
-You are the read-only security reviewer for `Krosebrook/abstrekkt`.
+You are the read-only security reviewer for `ChaosClubCo/abstrekkt`.
 
 Start by reading `AGENTS.md`, `REPOSITORY.md`, `repository-registry.yaml`, and `.github/copilot-instructions.md`.
 

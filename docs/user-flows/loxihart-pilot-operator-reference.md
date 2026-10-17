@@ -1,13 +1,13 @@
 # Loxihart Pilot Flow — Reference Only
 
 > **This is not a FlashFusion document and carries no product-planning authority.**
-> Loxihart is owned and operated externally by `Krosebrook/Loxihart`. `loxihart/` in this repo
+> Loxihart is owned and operated externally by `ChaosClubCo/Loxihart`. `loxihart/` in this repo
 > is frozen historical/reference material per root `AGENTS.md`. This document describes
 > existing, already-committed frozen behavior for context only. It introduces no new Loxihart
 > product or UX decisions, is not authoritative, and must not be used to plan new Loxihart work
 > from this repository.
 
-- **Owner (of the underlying product):** Krosebrook/Loxihart (external)
+- **Owner (of the underlying product):** ChaosClubCo/Loxihart (external)
 - **Owner (of this reference doc):** Kyle Rosebrook / Abstrekkt (documentation only)
 - **Evidence classification:** HISTORICAL (describes frozen code as committed; not a verified
   runtime/operational claim — see `docs/DOCUMENTATION_STANDARDS.md`)
@@ -84,4 +84,4 @@ directly interacts with:
   `docs/loxihart/CANONICAL_STATE.md`, "only implemented/repository-backed components may be
   described as live."
 - Does not propose any change to Loxihart's flow, UI, or roles. Any such change belongs in
-  `Krosebrook/Loxihart`.
+  `ChaosClubCo/Loxihart`.

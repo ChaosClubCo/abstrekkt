@@ -1,0 +1,55 @@
+# SUPERSEDED as pass evidence by validation-run.txt: this run used uncommitted working-tree changes and cannot be reproduced from a SHA. Kept only as the record of the 156 repo-integrity failures cited by R-CI-01.
+# Validation run 2026-10-09T18:44:12Z on d981a1d9c882640b60cb64003def0b14f897328f + working-tree changes (branch claude/confident-sagan-5vzoe1)
+python 3.13.16, node v22.22.0
+
+$ python3 -m py_compile scripts/repo_integrity.py scripts/release/*.py
+exit=0
+
+$ python3 scripts/release/test_release_scripts.py
+----------------------------------------------------------------------
+Ran 14 tests in 0.016s
+
+OK
+exit=0
+
+$ python3 scripts/release/verify_static_package.py project/deploy/abstrekkt-com
+{
+  "failures": [],
+  "fileCount": 9,
+  "status": "PASS",
+  "warnings": [
+    "unresolved internal link in index.html: Corridor Archive Manifest.html",
+    "unresolved internal link in index.html: Kyle Rosebrook Home.html",
+    "unresolved internal link in index.html: Load-Bearing Home.html"
+  ]
+}
+exit=0
+
+$ (cd tooling/webhook-receiver && npm test)
+# tests 10
+# pass 10
+# fail 0
+# skipped 0
+
+$ (cd project/proxy-deploy && node --test test/index.test.mjs)
+# tests 4
+# pass 4
+# fail 0
+# skipped 0
+
+$ (cd project/proxy-deploy && npx --yes wrangler@4.126.0 deploy --dry-run --config wrangler.toml)
+exit=0
+
+$ node --check tooling/cloudflare/*.mjs
+ok telemetry
+ok diagnose-mentor-proxy
+ok enable-mentor-proxy-observability
+ok verify-mentor-proxy
+
+$ python3 -m json.tool .github/mcp.json tooling/mcp-clients/copilot/repository-mcp.json
+exit=0
+
+$ python3 scripts/repo_integrity.py --base HEAD  (tracked-ignored failures summarized)
+exit=1
+repo-integrity: FAIL
+failure lines: 156; all under Unicorn-maybe/flashfusion-web/.next/dev/: 0 outside
