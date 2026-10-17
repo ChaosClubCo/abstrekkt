@@ -13,7 +13,7 @@ Claude Code must use the repository-wide authority model before reading legacy p
 
 ## Critical boundary
 
-- **Do not implement or evolve Loxihart runtime/product code in this repository.** `Krosebrook/Loxihart` is the operating/product owner.
+- **Do not implement or evolve Loxihart runtime/product code in this repository.** `ChaosClubCo/Loxihart` is the operating/product owner.
 - Existing `loxihart/` paths here are frozen historical/reference material pending verified migration and later archival cleanup.
 - INT/Intinc is a separate operating lane and is not authorized by repository residence.
 - Private memoir, clinical, family, or other sensitive source material does not become publishable because it exists in the tree.
@@ -37,7 +37,7 @@ Run from the repository root. These mirror the CI workflows in `.github/workflow
 
 Base44 dev app: `Unicorn-maybe/flashfusion-web/` (Next.js 16, React 19, frontend only) runs through `docker-compose.base44.yml` on port 3000. Verify with `curl -s -o /dev/null -w '%{http_code}' http://localhost:3000/` (expect `200`). See the Base44 section of `AGENTS.md`.
 
-`loxihart/pilot-console` has its own CI, but it is in the frozen Loxihart lane. Do not change it here.
+`loxihart/pilot-console` is frozen historical/reference source in this repository. Do not change it here; active Pilot Console work belongs in `ChaosClubCo/Loxihart`.
 
 ## Architecture
 
