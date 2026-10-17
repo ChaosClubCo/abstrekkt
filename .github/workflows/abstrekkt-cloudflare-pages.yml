@@ -4,12 +4,16 @@ on:
   workflow_dispatch:
     inputs:
       candidate_sha:
-        description: Exact commit SHA to deploy
+        description: Exact 40-character commit SHA on main to deploy
         required: true
       project_name:
-        description: Existing Cloudflare Pages project name
+        description: Cloudflare Pages project (only "abstrekkt" is accepted)
         required: true
         default: abstrekkt
+      accept_challenged_apex:
+        description: Deploy even if abstrekkt.com answers CI with a Cloudflare challenge (receipt cannot be CERTIFIED)
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -22,10 +26,29 @@ concurrency:
 jobs:
   deploy:
     name: Deploy exact SHA to Cloudflare Pages
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
+    # Production credentials are only reachable from main. Configure the
+    # "production" environment to allow only main and hold the Pages-scoped token.
+    if: github.ref == 'refs/heads/main'
+    environment: production
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      CANDIDATE_SHA: ${{ inputs.candidate_sha }}
+      PROJECT_NAME: ${{ inputs.project_name }}
+      ACCEPT_CHALLENGED_APEX: ${{ inputs.accept_challenged_apex }}
+      SITE_ORIGIN: https://abstrekkt.com
+      PACKAGE_ROOT: candidate/project/deploy/abstrekkt-com
+      RELEASE_TOOLS: automation/scripts/release
+      WRANGLER_VERSION: "4.137.0"
 
     steps:
+      - name: Validate dispatch inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$CANDIDATE_SHA" =~ ^[0-9a-f]{40}$ ]] || { echo "STOP: candidate_sha must be a lowercase 40-character SHA"; exit 1; }
+          [[ "$PROJECT_NAME" == "abstrekkt" ]] || { echo "STOP: project_name must be abstrekkt"; exit 1; }
+
       - name: Require Cloudflare credentials
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -42,6 +65,7 @@ jobs:
           ref: ${{ github.sha }}
           fetch-depth: 1
           path: automation
+          persist-credentials: false
 
       - name: Checkout exact release candidate
         uses: actions/checkout@v4
@@ -49,14 +73,16 @@ jobs:
           ref: ${{ inputs.candidate_sha }}
           fetch-depth: 0
           path: candidate
+          persist-credentials: false
 
-      - name: Verify exact candidate SHA
+      - name: Verify exact candidate SHA is on main
         shell: bash
         run: |
           set -euo pipefail
           ACTUAL="$(git -C candidate rev-parse HEAD)"
-          test "$ACTUAL" = "${{ inputs.candidate_sha }}" || {
-            echo "STOP: checked out $ACTUAL, expected ${{ inputs.candidate_sha }}"
+          test "$ACTUAL" = "$CANDIDATE_SHA" || { echo "STOP: checked out $ACTUAL, expected $CANDIDATE_SHA"; exit 1; }
+          git -C candidate merge-base --is-ancestor "$CANDIDATE_SHA" refs/remotes/origin/main || {
+            echo "STOP: $CANDIDATE_SHA is not an ancestor of origin/main; only reviewed commits may deploy"
             exit 1
           }
 
@@ -69,7 +95,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python -m py_compile automation/scripts/repo_integrity.py
+          python -m py_compile automation/scripts/repo_integrity.py "$RELEASE_TOOLS"/*.py
+          python "$RELEASE_TOOLS/test_release_scripts.py"
           python -m json.tool automation/.github/mcp.json >/dev/null
           test -s automation/.github/copilot-instructions.md
           test -s automation/.github/workflows/repository-webhooks.yml
@@ -83,30 +110,11 @@ jobs:
           cp automation/scripts/repo_integrity.py candidate/.release-tools/repo_integrity.py
           python candidate/.release-tools/repo_integrity.py --base "$BASE_SHA"
 
-      - name: Validate static release package
+      - name: Generate crawler discovery files
         shell: bash
         run: |
           set -euo pipefail
-          ROOT="candidate/project/deploy/abstrekkt-com"
-          test -s "$ROOT/index.html" || { echo "STOP: missing root index.html"; exit 1; }
-          test -s "$ROOT/founder/index.html" || { echo "STOP: missing /founder"; exit 1; }
-          test -s "$ROOT/pillars/index.html" || { echo "STOP: missing /pillars"; exit 1; }
-          test -s "$ROOT/contact/index.html" || { echo "STOP: missing /contact"; exit 1; }
-          test -s "$ROOT/404.html" || { echo "STOP: missing 404.html"; exit 1; }
-          if find "$ROOT" -type f \( -name '.env' -o -name '.env.*' -o -name '*.pem' -o -name '*.key' -o -name 'id_rsa*' \) -print -quit | grep -q .; then
-            echo "STOP: credential-like file present in static release package"
-            exit 1
-          fi
-
-      - name: Generate and validate crawler discovery files
-        shell: bash
-        env:
-          SITE_ORIGIN: https://abstrekkt.com
-        run: |
-          set -euo pipefail
-          ROOT="candidate/project/deploy/abstrekkt-com"
-
-          python - "$ROOT" "$SITE_ORIGIN" <<'PY'
+          python - "$PACKAGE_ROOT" "$SITE_ORIGIN" <<'PY'
           from __future__ import annotations
 
           import sys
@@ -134,34 +142,27 @@ jobs:
               loc_node = ET.SubElement(url_node, f"{{{namespace}}}loc")
               loc_node.text = url
 
-          sitemap_path = root / "sitemap.xml"
           ET.ElementTree(urlset).write(
-              sitemap_path,
+              root / "sitemap.xml",
               encoding="utf-8",
               xml_declaration=True,
               short_empty_elements=True,
           )
-
-          robots_path = root / "robots.txt"
-          robots_path.write_text(
+          (root / "robots.txt").write_text(
               "User-agent: *\n"
               "Allow: /\n"
               f"Sitemap: {origin}/sitemap.xml\n",
               encoding="utf-8",
           )
-
           print(f"Generated sitemap.xml with {len(page_urls)} canonical URL entries")
-          for url in page_urls:
-              print(f"  {url}")
           PY
 
-          python - "$ROOT/sitemap.xml" <<'PY'
+          python - "$PACKAGE_ROOT/sitemap.xml" <<'PY'
           import sys
           import xml.etree.ElementTree as ET
 
-          path = sys.argv[1]
           namespace = {"sm": "http://www.sitemaps.org/schemas/sitemap/0.9"}
-          root = ET.parse(path).getroot()
+          root = ET.parse(sys.argv[1]).getroot()
           if root.tag != "{http://www.sitemaps.org/schemas/sitemap/0.9}urlset":
               raise SystemExit("STOP: sitemap root must be <urlset> in the Sitemaps namespace")
           locations = [node.text for node in root.findall("sm:url/sm:loc", namespace)]
@@ -170,7 +171,7 @@ jobs:
           print(f"Validated sitemap.xml with {len(locations)} URL entries")
           PY
 
-          grep -Fxq 'Sitemap: https://abstrekkt.com/sitemap.xml' "$ROOT/robots.txt" || {
+          grep -Fxq 'Sitemap: https://abstrekkt.com/sitemap.xml' "$PACKAGE_ROOT/robots.txt" || {
             echo "STOP: robots.txt does not reference the canonical sitemap"
             exit 1
           }
@@ -179,80 +180,136 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          cat > candidate/project/deploy/abstrekkt-com/_headers <<'EOF'
-          /*
-            X-Content-Type-Options: nosniff
-            X-Frame-Options: DENY
-            Referrer-Policy: strict-origin-when-cross-origin
-            Permissions-Policy: camera=(), microphone=(), geolocation=()
+          # X-Abstrekkt-Release lets the apex read-back prove which release is serving.
+          # Committed package rules (e.g. the homepage Link header) are preserved after
+          # the managed block; a committed rule that sets a managed header stops the release.
+          python "$RELEASE_TOOLS/compose_headers.py" "$PACKAGE_ROOT" --release-sha "$CANDIDATE_SHA"
+          cat "$PACKAGE_ROOT/_headers"
 
-          /*.html
-            Cache-Control: public, max-age=0, must-revalidate
+      - name: Gate the exact upload directory
+        shell: bash
+        run: |
+          set -euo pipefail
+          python "$RELEASE_TOOLS/verify_static_package.py" "$PACKAGE_ROOT" --json-out "$RUNNER_TEMP/package.json"
 
-          /sitemap.xml
-            Content-Type: application/xml; charset=utf-8
-            Cache-Control: public, max-age=300
-
-          /robots.txt
-            Content-Type: text/plain; charset=utf-8
-            Cache-Control: public, max-age=300
-          EOF
+      - name: Pre-flight production apex
+        shell: bash
+        run: |
+          set -euo pipefail
+          set +e
+          python "$RELEASE_TOOLS/pages_probe.py" apex --phase preflight --base "$SITE_ORIGIN" \
+            --root "$PACKAGE_ROOT" --json-out "$RUNNER_TEMP/preflight.json"
+          CODE=$?
+          set -e
+          if [[ "$CODE" -eq 2 && "$ACCEPT_CHALLENGED_APEX" == "true" ]]; then
+            echo "::warning::abstrekkt.com challenged CI; continuing on operator acknowledgement. Receipt cannot be CERTIFIED."
+          elif [[ "$CODE" -ne 0 ]]; then
+            echo "STOP: abstrekkt.com is not serving this Pages project (see preflight.json). Deploying would not change production."
+            exit 1
+          fi
 
       - name: Deploy to Cloudflare Pages
-        uses: cloudflare/wrangler-action@v3
+        id: deploy
+        # v4.1.2 (node24), pinned by commit for a credential-bearing step.
+        uses: cloudflare/wrangler-action@25853364521e0d392ece9b0c1e97a4b37b638087
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           gitHubToken: ${{ secrets.GITHUB_TOKEN }}
-          command: pages deploy candidate/project/deploy/abstrekkt-com --project-name="${{ inputs.project_name }}" --branch=main --commit-hash="${{ inputs.candidate_sha }}"
+          wranglerVersion: ${{ env.WRANGLER_VERSION }}
+          command: pages deploy ${{ env.PACKAGE_ROOT }} --project-name=abstrekkt --branch=main --commit-hash=${{ env.CANDIDATE_SHA }}
 
-      - name: Verify public sitemap and robots.txt
+      - name: Record deployment time
+        id: deployed
+        shell: bash
+        run: echo "at=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
+
+      - name: Read back immutable deployment URL
+        id: readback
+        continue-on-error: true
+        env:
+          DEPLOYMENT_URL: ${{ steps.deploy.outputs.deployment-url }}
         shell: bash
         run: |
           set -euo pipefail
-          curl --fail --silent --show-error --location --retry 6 --retry-delay 5 \
-            https://abstrekkt.com/sitemap.xml -o /tmp/abstrekkt-sitemap.xml
-          curl --fail --silent --show-error --location --retry 6 --retry-delay 5 \
-            https://abstrekkt.com/robots.txt -o /tmp/abstrekkt-robots.txt
+          test -n "$DEPLOYMENT_URL" || { echo "STOP: wrangler reported no deployment URL"; exit 1; }
+          python "$RELEASE_TOOLS/pages_probe.py" readback --base "$DEPLOYMENT_URL" --root "$PACKAGE_ROOT" \
+            --release-sha "$CANDIDATE_SHA" --wait-seconds 90 --json-out "$RUNNER_TEMP/readback.json"
 
-          python - /tmp/abstrekkt-sitemap.xml <<'PY'
-          import sys
-          import xml.etree.ElementTree as ET
-
-          namespace = {"sm": "http://www.sitemaps.org/schemas/sitemap/0.9"}
-          root = ET.parse(sys.argv[1]).getroot()
-          locations = [node.text for node in root.findall("sm:url/sm:loc", namespace)]
-          required = {
-              "https://abstrekkt.com/",
-              "https://abstrekkt.com/founder/",
-              "https://abstrekkt.com/pillars/",
-              "https://abstrekkt.com/contact/",
-          }
-          missing = sorted(required - set(locations))
-          if missing:
-              raise SystemExit(f"STOP: live sitemap is missing required canonical URLs: {missing}")
-          print(f"Live sitemap verified with {len(locations)} URL entries")
-          PY
-
-          grep -Fxq 'Sitemap: https://abstrekkt.com/sitemap.xml' /tmp/abstrekkt-robots.txt || {
-            echo "STOP: live robots.txt does not reference the sitemap"
-            exit 1
-          }
-
-      - name: Record release summary
-        if: success()
+      - name: Read back production apex
+        id: apex
+        continue-on-error: true
         shell: bash
         run: |
+          set -euo pipefail
+          python "$RELEASE_TOOLS/pages_probe.py" apex --phase postdeploy --base "$SITE_ORIGIN" --root "$PACKAGE_ROOT" \
+            --release-sha "$CANDIDATE_SHA" --wait-seconds 180 --json-out "$RUNNER_TEMP/apex.json"
+
+      - name: Write release receipt
+        id: receipt
+        if: always() && steps.deploy.outcome == 'success'
+        env:
+          DEPLOYMENT_URL: ${{ steps.deploy.outputs.deployment-url }}
+          DEPLOYMENT_ID: ${{ steps.deploy.outputs.pages-deployment-id }}
+          DEPLOYED_AT: ${{ steps.deployed.outputs.at }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          RECEIPT="$RUNNER_TEMP/abstrekkt-release-receipt-${CANDIDATE_SHA:0:7}.json"
+          python "$RELEASE_TOOLS/write_receipt.py" --root "$PACKAGE_ROOT" \
+            --repository "$GITHUB_REPOSITORY" --candidate-sha "$CANDIDATE_SHA" --automation-sha "$GITHUB_SHA" \
+            --project-name abstrekkt --public-url "$SITE_ORIGIN/" --deployment-id "$DEPLOYMENT_ID" \
+            --deployment-url "$DEPLOYMENT_URL" --deployed-at "$DEPLOYED_AT" --wrangler-version "$WRANGLER_VERSION" \
+            --package "$RUNNER_TEMP/package.json" --preflight "$RUNNER_TEMP/preflight.json" \
+            --readback "$RUNNER_TEMP/readback.json" --apex "$RUNNER_TEMP/apex.json" \
+            --out "$RECEIPT" | tee "$RUNNER_TEMP/receipt.out"
+          cat "$RUNNER_TEMP/receipt.out" >> "$GITHUB_OUTPUT"
+
+      - name: Upload release evidence
+        if: always() && steps.deploy.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: abstrekkt-release-${{ inputs.candidate_sha }}
+          path: |
+            ${{ runner.temp }}/abstrekkt-release-receipt-*.json
+            ${{ runner.temp }}/package.json
+            ${{ runner.temp }}/preflight.json
+            ${{ runner.temp }}/readback.json
+            ${{ runner.temp }}/apex.json
+          retention-days: 90
+          if-no-files-found: warn
+
+      - name: Record release summary
+        if: always()
+        env:
+          DEPLOYMENT_URL: ${{ steps.deploy.outputs.deployment-url }}
+          DEPLOYMENT_ID: ${{ steps.deploy.outputs.pages-deployment-id }}
+          OVERALL: ${{ steps.receipt.outputs.overall_status }}
+          RECEIPT_SHA: ${{ steps.receipt.outputs.receipt_sha256 }}
+          READBACK: ${{ steps.readback.outcome }}
+          APEX: ${{ steps.apex.outcome }}
+        shell: bash
+        run: |
+          # shellcheck disable=SC2016  # backticks are literal Markdown, never executed
           {
-            echo "## Abstrekkt Cloudflare Pages release"
-            echo
-            echo "- Candidate SHA: `${{ inputs.candidate_sha }}`"
-            echo "- Trusted automation SHA: `${{ github.sha }}`"
-            echo "- Pages project: `${{ inputs.project_name }}`"
-            echo "- Static package: `project/deploy/abstrekkt-com`"
-            echo "- Repository authority checks: trusted checker applied to exact candidate"
-            echo "- sitemap.xml: generated from public index.html routes and validated"
-            echo "- robots.txt: generated with canonical Sitemap directive"
-            echo "- Public read-back: sitemap.xml and robots.txt verified on abstrekkt.com"
-            echo "- Independent Agent Ready scan remains separate release evidence."
+            printf '## Abstrekkt Cloudflare Pages release\n\n'
+            printf -- '- Candidate SHA: `%s`\n' "$CANDIDATE_SHA"
+            printf -- '- Trusted automation SHA: `%s`\n' "$GITHUB_SHA"
+            printf -- '- Pages deployment: `%s` (%s)\n' "${DEPLOYMENT_ID:-none}" "${DEPLOYMENT_URL:-none}"
+            printf -- '- Deployment URL read-back: %s\n' "${READBACK:-skipped}"
+            printf -- '- Production apex read-back: %s\n' "${APEX:-skipped}"
+            printf -- '- Receipt status: **%s**, sha256 `%s`\n' "${OVERALL:-not written}" "${RECEIPT_SHA:-n/a}"
+            printf -- '- Commit the receipt under `evidence/releases/abstrekkt/` via PR; this workflow never pushes.\n'
           } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Require a certified release
+        if: always() && steps.deploy.outcome == 'success'
+        env:
+          OVERALL: ${{ steps.receipt.outputs.overall_status }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$OVERALL" = "CERTIFIED" || {
+            echo "STOP: release receipt is ${OVERALL:-missing}, not CERTIFIED. Roll back in the Pages dashboard if production regressed."
+            exit 1
+          }
