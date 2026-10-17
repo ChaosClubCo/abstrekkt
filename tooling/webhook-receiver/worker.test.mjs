@@ -133,3 +133,10 @@ test('rejects oversized bodies', async () => {
   const response = await handleWebhook(request, env());
   assert.equal(response.status, 413);
 });
+
+test('rejects signed non-object JSON instead of throwing', async () => {
+  for (const body of ['null', '[]', '"text"', '42']) {
+    const response = await handleWebhook(await signedRequest(body), env());
+    assert.equal(response.status, 400, body);
+  }
+});

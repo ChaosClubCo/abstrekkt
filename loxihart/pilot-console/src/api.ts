@@ -1,3 +1,5 @@
+import { clearConsoleToken, readConsoleToken } from './consoleToken';
+
 export type ProxyOperation =
   | 'health'
   | 'pilot.read'
@@ -26,15 +28,20 @@ export class ControlApiError extends Error {
   }
 }
 
+function consoleHeaders(extra: Record<string, string>): Record<string, string> {
+  const token = readConsoleToken();
+  return token ? { ...extra, Authorization: `Bearer ${token}` } : extra;
+}
+
 async function request<T>(operation: ProxyOperation, payload?: Record<string, unknown>): Promise<T> {
   const isRead = ['health', 'pilot.read', 'stream.head', 'stream.read'].includes(operation) && !payload;
   const response = await fetch(
     isRead ? `/api/loxihart?operation=${encodeURIComponent(operation)}` : '/api/loxihart',
     isRead
-      ? { method: 'GET', headers: { Accept: 'application/json' } }
+      ? { method: 'GET', headers: consoleHeaders({ Accept: 'application/json' }) }
       : {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+          headers: consoleHeaders({ 'Content-Type': 'application/json', Accept: 'application/json' }),
           body: JSON.stringify({ operation, ...(payload ?? {}) }),
         },
   );
@@ -44,6 +51,7 @@ async function request<T>(operation: ProxyOperation, payload?: Record<string, un
   try { body = raw ? JSON.parse(raw) : null; } catch { body = raw; }
 
   if (!response.ok) {
+    if (response.status === 401) clearConsoleToken();
     throw new ControlApiError(
       body?.error?.message ?? `Control API returned ${response.status}`,
       response.status,
