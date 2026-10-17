@@ -68,3 +68,7 @@ POST {proxyUrl}
   body: { "target": "notion", "method": "POST", "path": "/v1/pages", "body": { ... } }
 ```
 `target: "url"` does an arbitrary passthrough with no secret injection.
+
+`path` contract for named targets: a non-empty `path` must start with `/` and must
+resolve on the target's origin, or the proxy answers 400 before any upstream call.
+The one exception: an omitted, `null`, or empty `path` means the upstream root.

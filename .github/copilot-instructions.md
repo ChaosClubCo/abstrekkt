@@ -14,7 +14,7 @@ Before making changes:
 
 ## Hard boundaries
 
-- Do not add, edit, or delete runtime/product files under `loxihart/`. Canonical Loxihart product/runtime ownership is `Krosebrook/Loxihart`.
+- Do not add, edit, or delete runtime/product files under `loxihart/`. Canonical Loxihart product/runtime ownership is `ChaosClubCo/Loxihart`.
 - INT/Intinc material is excluded from Abstrekkt authority.
 - Private memoir, clinical, family, custody, or similar restricted source is not public by default.
 - Vendored/imported code is noncanonical unless an explicit authority decision promotes it.
