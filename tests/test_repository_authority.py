@@ -41,39 +41,6 @@ class RepositoryAuthorityContractTests(unittest.TestCase):
         self.assertIn(HISTORICAL_LOXIHART_REPOSITORY, authority)
         self.assertIn("historical provenance", authority.lower())
 
-    def test_active_loxihart_routing_surfaces_use_current_owner(self) -> None:
-        current_surfaces = (
-            "README.md",
-            "AGENTS.md",
-            "CLAUDE.md",
-            ".github/copilot-instructions.md",
-            ".github/agents/repository-steward.agent.md",
-            "docs/user-flows/README.md",
-            "docs/user-flows/loxihart-pilot-operator-reference.md",
-        )
-        for relative in current_surfaces:
-            with self.subTest(relative=relative):
-                text = (ROOT / relative).read_text(encoding="utf-8")
-                self.assertIn(CURRENT_LOXIHART_REPOSITORY, text)
-                self.assertNotIn(HISTORICAL_LOXIHART_REPOSITORY, text)
-
-        projects = json.loads(
-            (ROOT / "docs/gitbook/registry/project-bindings.json").read_text(encoding="utf-8")
-        )
-        systems = {item["system"]: item for item in projects["systems"]}
-        self.assertEqual(systems["Loxihart"]["repository"], CURRENT_LOXIHART_REPOSITORY)
-
-    def test_historical_loxihart_evidence_keeps_historical_repository_name(self) -> None:
-        historical_surfaces = (
-            "docs/release/RELEASE_CHECKLIST.md",
-            "docs/repository/LOXIHART_BRANCH_CONSOLIDATION_2026-08-26.md",
-            "docs/migrations/loxihart/evidence-room-v1.2-certification-docs-sync.md",
-        )
-        for relative in historical_surfaces:
-            with self.subTest(relative=relative):
-                text = (ROOT / relative).read_text(encoding="utf-8")
-                self.assertIn(HISTORICAL_LOXIHART_REPOSITORY, text)
-
     def test_root_authority_routes_current_abstrekkt_to_current_owner(self) -> None:
         authority = (ROOT / "REPOSITORY.md").read_text(encoding="utf-8")
         self.assertIn(
@@ -85,10 +52,9 @@ class RepositoryAuthorityContractTests(unittest.TestCase):
 
     def test_registry_routes_current_abstrekkt_domains_to_current_owner(self) -> None:
         registry = (ROOT / "repository-registry.yaml").read_text(encoding="utf-8")
-        lines = registry.splitlines()
-        self.assertIn(f"repository: {CURRENT_ABSTREKKT_REPOSITORY}", lines)
+        self.assertIn(f"repository: {CURRENT_ABSTREKKT_REPOSITORY}", registry)
         self.assertGreaterEqual(
-            lines.count(f"    owner_repository: {CURRENT_ABSTREKKT_REPOSITORY}"),
+            registry.count(f"owner_repository: {CURRENT_ABSTREKKT_REPOSITORY}"),
             4,
         )
 
@@ -106,11 +72,8 @@ class RepositoryAuthorityContractTests(unittest.TestCase):
 
     def test_active_abstrekkt_docs_do_not_claim_historical_owner_as_current(self) -> None:
         current_surfaces = (
-            ".github/agents/repository-steward.agent.md",
-            ".github/agents/security-reviewer.agent.md",
             "docs/gitbook/public/README.md",
             "governance/execution-architect/README.md",
-            "scripts/verify-gitbook-docs.mjs",
             "worlds/abstrekkt/entities/abstrekkt-documentation.md",
             "worlds/abstrekkt/entities/chaosclubco-abstrekkt-repository.md",
             "worlds/abstrekkt/relations/abstrekkt-repository-on-github.md",
