@@ -10,6 +10,7 @@ const CLAIM_STATES = new Set([
 ]);
 const REPO_STATES = new Set(["VERIFIED", "UNKNOWN", "NOT_APPLICABLE"]);
 const PORTFOLIO_STATES = new Set(["ACTIVE", "REFERENCE_ONLY", "HISTORICAL", "PROVISIONAL", "EXCLUDED"]);
+const VISIBILITY_STATES = new Set(["PUBLIC", "PRIVATE", "MIXED"]);
 const SHA40 = /^[0-9a-f]{40}$/;
 
 export function loadRegistry(file = REGISTRY) {
@@ -37,6 +38,10 @@ export function validateRegistry(data) {
 
     if (!PORTFOLIO_STATES.has(entity.portfolio_state)) {
       errors.push(`${at}.portfolio_state is invalid`);
+    }
+
+    if (!VISIBILITY_STATES.has(entity.visibility)) {
+      errors.push(`${at}.visibility must be PUBLIC, PRIVATE, or MIXED`);
     }
 
     const repo = entity.repository ?? {};
