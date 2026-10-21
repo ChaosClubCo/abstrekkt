@@ -68,6 +68,7 @@ class RepositoryAuthorityContractTests(unittest.TestCase):
         self.assertEqual(binding["repository"]["full_name"], CURRENT_ABSTREKKT_REPOSITORY)
         systems = {item["system"]: item for item in projects["systems"]}
         self.assertEqual(systems["Abstrekkt"]["repository"], CURRENT_ABSTREKKT_REPOSITORY)
+        self.assertEqual(systems["Loxihart"]["repository"], CURRENT_LOXIHART_REPOSITORY)
         self.assertEqual(systems["Execution Architect"]["repository"], CURRENT_ABSTREKKT_REPOSITORY)
 
     def test_active_abstrekkt_docs_do_not_claim_historical_owner_as_current(self) -> None:
