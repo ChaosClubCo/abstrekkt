@@ -30,10 +30,14 @@ class ExtractionBoundaryTests(unittest.TestCase):
         (self.root / "project/public/index.txt").write_text("safe", encoding="utf-8")
         self.target = Path(self.temp.name) / "staged"
 
-    def run_script(self, *sources: str, dry_run: bool = False) -> subprocess.CompletedProcess[str]:
+    def run_script(
+        self, *sources: str, dry_run: bool = False, private_archive: bool = False,
+    ) -> subprocess.CompletedProcess[str]:
         args = [sys.executable, str(self.root / "scripts/extract_subtree.py")]
         if dry_run:
             args.append("--dry-run")
+        if private_archive:
+            args.append("--private-archive")
         return subprocess.run(
             [*args, *sources, str(self.target)], cwd=self.root,
             capture_output=True, text=True, check=False,
@@ -110,6 +114,47 @@ class ExtractionBoundaryTests(unittest.TestCase):
     def test_repository_root_is_not_extractable(self) -> None:
         result = self.run_script(".")
         self.assertNotEqual(result.returncode, 0)
+        self.assertFalse(self.target.exists())
+
+    def write_sectioned_denylist(self) -> None:
+        (self.root / "docs/decomposition/never-extract.denylist").write_text(
+            "# --- Live/possible credentials ---\nmemoir/api-token.txt\n"
+            "# --- Private / restricted lane: memoir ---\nmemoir/**\n"
+            "# --- INT / Intinc: excluded lane ---\n**/*intinc*/**\n"
+            "# --- Archive-only: never extract ---\nproject/uploads/**\n",
+            encoding="utf-8",
+        )
+        (self.root / "memoir").mkdir()
+        (self.root / "memoir/chapter.txt").write_text("private", encoding="utf-8")
+
+    def test_private_archive_lifts_private_and_archive_sections(self) -> None:
+        self.write_sectioned_denylist()
+        result = self.run_script("memoir", "project/uploads", private_archive=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertTrue((self.target / "memoir/chapter.txt").is_file())
+        self.assertTrue((self.target / "project/uploads/secret.txt").is_file())
+        self.assertIn("must be private", result.stderr)
+
+    def test_private_archive_never_lifts_credential_or_int_sections(self) -> None:
+        self.write_sectioned_denylist()
+        (self.root / "memoir/api-token.txt").write_text("placeholder", encoding="utf-8")
+        result = self.run_script("memoir", private_archive=True)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("memoir/api-token.txt", result.stderr)
+        self.assertFalse(self.target.exists())
+        (self.root / "memoir/api-token.txt").unlink()
+        (self.root / "memoir/old_intinc_notes").mkdir()
+        (self.root / "memoir/old_intinc_notes/a.txt").write_text("int", encoding="utf-8")
+        result = self.run_script("memoir", private_archive=True)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("intinc", result.stderr)
+        self.assertFalse(self.target.exists())
+
+    def test_private_sections_stay_denied_without_flag(self) -> None:
+        self.write_sectioned_denylist()
+        result = self.run_script("memoir")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("memoir/**", result.stderr)
         self.assertFalse(self.target.exists())
 
 

@@ -123,19 +123,38 @@ def extract(files: list[Path], target: Path) -> None:
         raise
 
 
+# Sections a private-to-private archive move may copy. Credentials, INT and Loxihart never lift.
+PRIVATE_ARCHIVE_SECTIONS = ("# --- Private / restricted lane", "# --- Archive-only")
+
+
+def load_patterns(text: str, private_archive: bool) -> list[str]:
+    patterns: list[str] = []
+    lifted = False
+    for line in text.splitlines():
+        stripped = line.strip()
+        if stripped.startswith("# ---"):
+            lifted = private_archive and stripped.startswith(PRIVATE_ARCHIVE_SECTIONS)
+        elif stripped and not stripped.startswith("#") and not lifted:
+            patterns.append(stripped)
+    return patterns
+
+
 def main(argv: list[str]) -> int:
     dry_run = "--dry-run" in argv
-    args = [item for item in argv if item != "--dry-run"]
+    private_archive = "--private-archive" in argv
+    args = [item for item in argv if item not in ("--dry-run", "--private-archive")]
     if len(args) < 2 or any(item.startswith("--") for item in args):
-        print("Usage: extract-subtree.sh [--dry-run] <source> ... <target>", file=sys.stderr)
+        print(
+            "Usage: extract-subtree.sh [--dry-run] [--private-archive] <source> ... <target>",
+            file=sys.stderr,
+        )
         return 2
     try:
         if not DENYLIST.is_file():
             raise ExtractionError("Denylist missing: refusing extraction")
-        patterns = [
-            line.strip() for line in DENYLIST.read_text(encoding="utf-8").splitlines()
-            if line.strip() and not line.lstrip().startswith("#")
-        ]
+        patterns = load_patterns(DENYLIST.read_text(encoding="utf-8"), private_archive)
+        if private_archive:
+            print("PRIVATE ARCHIVE: target repository must be private", file=sys.stderr)
         if not patterns:
             raise ExtractionError("Empty denylist: refusing extraction")
         files = gather_sources(args[:-1], patterns)
