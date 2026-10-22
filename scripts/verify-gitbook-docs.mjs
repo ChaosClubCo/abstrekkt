@@ -67,7 +67,7 @@ async function gitBookFetch(path, token, baseUrl) {
 
 async function verifyLocal(binding, projects) {
   assert(binding.schema === 'GitBookBindingRegistry/v1', 'unexpected GitBook binding schema');
-  assert(binding.repository?.full_name === 'Krosebrook/abstrekkt', 'GitBook source repository drifted');
+  assert(binding.repository?.full_name === 'ChaosClubCo/abstrekkt', 'GitBook source repository drifted');
   assert(binding.repository?.branch === 'main', 'GitBook source branch drifted');
   assert(binding.repository?.project_directory === 'docs/gitbook/public', 'GitBook project directory must remain docs/gitbook/public');
   assert(binding.gitbook?.site_id === 'site_oM8h8', 'GitBook site binding drifted');
@@ -120,7 +120,7 @@ async function verifyLocal(binding, projects) {
 
   assert(projects.schema === 'ProjectRepositoryRegistry/v1', 'unexpected project repository registry schema');
   const executionArchitect = projects.systems.find((item) => item.system === 'Execution Architect');
-  assert(executionArchitect?.repository === 'Krosebrook/abstrekkt', 'Execution Architect canonical repository is unresolved or drifted');
+  assert(executionArchitect?.repository === 'ChaosClubCo/abstrekkt', 'Execution Architect canonical repository is unresolved or drifted');
   assert(executionArchitect?.path === 'governance/execution-architect/', 'Execution Architect canonical path drifted');
   assert(executionArchitect?.authority === 'CANONICAL', 'Execution Architect must remain explicitly canonical');
 

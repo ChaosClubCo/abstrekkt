@@ -23,7 +23,9 @@ env:
 jobs:
   bind:
     name: Bind and verify abstrekkt.com
-    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    environment: production
+    runs-on: ubuntu-24.04
     timeout-minutes: 12
 
     steps:
@@ -63,6 +65,37 @@ jobs:
               raise SystemExit(f"Candidate SHA mismatch: {meta.get('commit_hash')}")
           if row.get('url') != os.environ['DEPLOYMENT_URL']:
               raise SystemExit(f"Deployment URL mismatch: {row.get('url')}")
+          PY
+
+      - name: Refuse conflicting apex DNS before any mutation
+        shell: bash
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          DNS_API="https://api.cloudflare.com/client/v4/zones/$ZONE_ID/dns_records"
+          curl --fail-with-body --silent --show-error \
+            --header "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+            "$DNS_API?name=$CUSTOM_DOMAIN&per_page=100" > /tmp/dns-preflight.json
+          python <<'PY'
+          import json, os
+          from pathlib import Path
+          response = json.loads(Path('/tmp/dns-preflight.json').read_text(encoding='utf-8'))
+          if not response.get('success'):
+              raise SystemExit('STOP: DNS API preflight failed; no records changed')
+          records = response.get('result') or []
+          total = int((response.get('result_info') or {}).get('total_count', len(records)))
+          if total > len(records):
+              raise SystemExit('STOP: paginated DNS response requires manual inspection')
+          current = [row for row in records if row.get('name') == os.environ['CUSTOM_DOMAIN']]
+          conflicting = [row for row in current if row.get('type') in {'A', 'AAAA'}]
+          if conflicting:
+              raise SystemExit('STOP: existing apex A/AAAA records need a reviewed, recoverable manual cutover')
+          cnames = [row for row in current if row.get('type') == 'CNAME']
+          if len(cnames) > 1:
+              raise SystemExit('STOP: duplicate apex CNAME records need manual repair')
+          if cnames and cnames[0].get('content') != os.environ['DNS_TARGET']:
+              raise SystemExit('STOP: existing apex CNAME target differs; refusing automatic overwrite')
           PY
 
       - name: Add custom domain when absent
@@ -128,13 +161,8 @@ jobs:
           PY
 
           if [[ -s /tmp/conflict-ids ]]; then
-            while IFS= read -r RECORD_ID; do
-              [[ -n "$RECORD_ID" ]] || continue
-              curl --fail-with-body --silent --show-error \
-                --request DELETE \
-                --header "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
-                "$DNS_API/$RECORD_ID" > /tmp/dns-delete.json
-            done < /tmp/conflict-ids
+            echo "::error::STOP: conflicting apex DNS records appeared after preflight; refusing deletion."
+            exit 1
           fi
 
           if [[ -s /tmp/cname-id ]]; then

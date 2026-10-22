@@ -32,6 +32,15 @@ SECRET_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
     ("bearer token", re.compile(r"(?i)authorization\s*[:=]\s*bearer\s+[A-Za-z0-9._~+/=-]{20,}")),
 )
 
+# Tracked files that match .gitignore are forbidden: that is how credential files
+# (Infinite-heroes-env.txt, Backup-codes-*) re-entered HEAD after earlier purges.
+# Only these reviewed, non-secret files are exempt.
+TRACKED_IGNORED_ALLOWLIST = frozenset({
+    "Unicorn-maybe/flashfusion-web/tsconfig.tsbuildinfo",
+    "a2alayer/a2a-layer/cards/n8n-credential-unlocker.json",
+    "a2alayer/a2a-layer/cards/secret-scanner.json",
+})
+
 CODE_EXTENSIONS = {
     ".c", ".cc", ".cpp", ".cs", ".go", ".java", ".js", ".jsx", ".kt",
     ".mjs", ".mts", ".py", ".rb", ".rs", ".sh", ".swift", ".ts", ".tsx",
@@ -53,11 +62,92 @@ def git(*args: str) -> str:
     return completed.stdout
 
 
-def changed_paths(base: str | None) -> list[str]:
+def git_bytes(*args: str) -> bytes:
+    completed = subprocess.run(
+        ["git", *args],
+        cwd=ROOT,
+        check=True,
+        capture_output=True,
+    )
+    return completed.stdout
+
+
+def parse_name_status_z(output: bytes) -> list[tuple[str, list[str]]]:
+    fields = [field.decode("utf-8", "surrogateescape") for field in output.split(b"\x00") if field]
+    entries: list[tuple[str, list[str]]] = []
+    i = 0
+    while i < len(fields):
+        status = fields[i]
+        i += 1
+        path_count = 2 if status[:1] in {"R", "C"} else 1
+        entries.append((status, fields[i:i + path_count]))
+        i += path_count
+    return entries
+
+
+def ls_tree_blobs(revision: str, paths: list[str] | None = None) -> dict[str, str]:
+    entries: dict[str, str] = {}
+    args = ["ls-tree", "-r", "-z", revision]
+    if paths:
+        args.extend(["--", *paths])
+    for record in git_bytes(*args).split(b"\x00"):
+        if not record:
+            continue
+        metadata, path = record.split(b"\t", 1)
+        entries[path.decode("utf-8", "surrogateescape")] = metadata.decode().split()[2]
+    return entries
+
+
+def batched(items: list[str], size: int) -> list[list[str]]:
+    return [items[index:index + size] for index in range(0, len(items), size)]
+
+
+def changed_path_statuses(base: str | None) -> dict[str, str]:
     if not base or set(base) == {"0"}:
-        return []
-    output = git("diff", "--name-only", f"{base}...HEAD")
-    return [line.strip() for line in output.splitlines() if line.strip()]
+        return {}
+    output = git_bytes("diff", "--name-status", "-z", f"{base}...HEAD")
+    statuses: dict[str, str] = {}
+    for status, paths in parse_name_status_z(output):
+        statuses[paths[-1]] = status
+    return statuses
+
+
+def exact_restorations(base: str | None, statuses: dict[str, str]) -> set[str]:
+    if not base or set(base) == {"0"}:
+        return set()
+
+    added_paths = sorted(path for path, status in statuses.items() if status.startswith("A"))
+    if not added_paths:
+        return set()
+
+    restored: set[str] = set()
+    for chunk in batched(added_paths, 512):
+        base_blobs = ls_tree_blobs(base, chunk)
+        candidate_paths = [path for path in chunk if path not in base_blobs]
+        if not candidate_paths:
+            continue
+        head_blobs = ls_tree_blobs("HEAD", candidate_paths)
+        history = git(
+            "log",
+            "--format=",
+            "--raw",
+            "--abbrev=40",
+            "--full-history",
+            "--no-renames",
+            base,
+            "--",
+            *candidate_paths,
+        )
+        for line in history.splitlines():
+            if "\t" not in line:
+                continue
+            metadata, path = line.split("\t", 1)
+            parts = metadata.split()
+            if len(parts) < 4:
+                continue
+            if head_blobs.get(path) == parts[3]:
+                restored.add(path)
+    return restored
 
 
 def read_text(path: Path) -> str | None:
@@ -84,7 +174,9 @@ def check_root_authority(failures: list[str]) -> None:
     registry = read_text(ROOT / "repository-registry.yaml") or ""
     required_registry_fragments = (
         "schema: AbstrekktRepositoryRegistry/v1",
-        "owner_repository: Krosebrook/Loxihart",
+        "repository: ChaosClubCo/abstrekkt",
+        "owner_repository: ChaosClubCo/abstrekkt",
+        "owner_repository: ChaosClubCo/Loxihart",
         "mutation_policy: migration_evidence_only",
         "status: UNKNOWN",
     )
@@ -93,11 +185,13 @@ def check_root_authority(failures: list[str]) -> None:
             fail(f"repository registry missing required authority fragment: {fragment}", failures)
 
 
-def check_frozen_paths(paths: list[str], failures: list[str]) -> None:
+def check_frozen_paths(paths: list[str], restored_paths: set[str], failures: list[str]) -> None:
     for path in paths:
+        if path in restored_paths:
+            continue
         if path.startswith("loxihart/"):
             fail(
-                f"Loxihart source subtree is frozen in Abstrekkt; migrate in Krosebrook/Loxihart instead: {path}",
+                f"Loxihart source subtree is frozen in Abstrekkt; migrate in ChaosClubCo/Loxihart instead: {path}",
                 failures,
             )
         if path.startswith("project/deploy/abstrekkt-com/"):
@@ -107,8 +201,17 @@ def check_frozen_paths(paths: list[str], failures: list[str]) -> None:
             )
 
 
-def check_changed_secrets(paths: list[str], failures: list[str]) -> None:
+def check_tracked_ignored(failures: list[str]) -> None:
+    output = git("ls-files", "-z", "--cached", "--ignored", "--exclude-standard")
+    for relative in filter(None, output.split("\0")):
+        if relative not in TRACKED_IGNORED_ALLOWLIST:
+            fail(f"tracked file matches .gitignore (possible credential); untrack it: {relative}", failures)
+
+
+def check_changed_secrets(paths: list[str], restored_paths: set[str], failures: list[str]) -> None:
     for relative in paths:
+        if relative in restored_paths:
+            continue
         path = ROOT / relative
         if not path.is_file() or path.stat().st_size > 1_000_000:
             continue
@@ -120,8 +223,10 @@ def check_changed_secrets(paths: list[str], failures: list[str]) -> None:
                 fail(f"possible {label} in changed file: {relative}", failures)
 
 
-def check_changed_loc(paths: list[str], failures: list[str]) -> None:
+def check_changed_loc(paths: list[str], restored_paths: set[str], failures: list[str]) -> None:
     for relative in paths:
+        if relative in restored_paths:
+            continue
         path = ROOT / relative
         if not path.is_file() or path.suffix.lower() not in CODE_EXTENSIONS:
             continue
@@ -141,11 +246,14 @@ def main() -> int:
     failures: list[str] = []
     check_required_files(failures)
     check_root_authority(failures)
+    check_tracked_ignored(failures)
 
-    paths = changed_paths(args.base)
-    check_frozen_paths(paths, failures)
-    check_changed_secrets(paths, failures)
-    check_changed_loc(paths, failures)
+    statuses = changed_path_statuses(args.base)
+    paths = sorted(statuses)
+    restored_paths = exact_restorations(args.base, statuses)
+    check_frozen_paths(paths, restored_paths, failures)
+    check_changed_secrets(paths, restored_paths, failures)
+    check_changed_loc(paths, restored_paths, failures)
 
     if failures:
         print("repo-integrity: FAIL", file=sys.stderr)

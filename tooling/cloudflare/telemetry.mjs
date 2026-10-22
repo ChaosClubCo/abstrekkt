@@ -29,21 +29,25 @@ async function api(path, init = {}) {
   return payload.result ?? payload;
 }
 
+export function buildTelemetryQueryBody(view, filters, from, to, limit = 200) {
+  return {
+    queryId: `kr-mentor-proxy-${view}-${Date.now()}`,
+    timeframe: { from, to },
+    limit,
+    dry: true,
+    view,
+    parameters: {
+      datasets: [],
+      filterCombination: 'and',
+      filters,
+    },
+  };
+}
+
 export async function queryTelemetry(view, filters, from, to, limit = 200) {
   return api('/workers/observability/telemetry/query', {
     method: 'POST',
-    body: JSON.stringify({
-      queryId: `kr-mentor-proxy-${view}-${Date.now()}`,
-      timeframe: { from, to },
-      limit,
-      dry: true,
-      parameters: {
-        datasets: [],
-        filterCombination: 'and',
-        filters,
-        view,
-      },
-    }),
+    body: JSON.stringify(buildTelemetryQueryBody(view, filters, from, to, limit)),
   });
 }
 

@@ -1,0 +1,64 @@
+{
+  "$id": "KnowledgeAuthorityRegistry/v1",
+  "status": "FROZEN_CANDIDATE",
+  "effective_date": "2026-08-29",
+  "owner": "Abstrekkt",
+  "authority_model": "single-writer-per-domain",
+  "canonical_memory_authority": "Mem",
+  "verification_authority": "CanonicalMemoryVerifier/v1",
+  "domains": {
+    "working_knowledge": {
+      "authority": "Notion",
+      "state": "BLOCKED_AUTH",
+      "purpose": ["capture", "drafts", "research queues", "meeting notes", "human review queues"],
+      "may_promote_to": "Mem",
+      "may_override_mem": false
+    },
+    "durable_semantic_memory": {
+      "authority": "Mem",
+      "state": "ACTIVE",
+      "purpose": ["architecture decisions", "governance", "verified procedures", "project context", "research findings", "postmortems", "release evidence summaries"],
+      "runtime_state_allowed": false
+    },
+    "documentation": {
+      "authority": "GitBook",
+      "state": "ACTIVE",
+      "purpose": ["approved architecture", "standards", "contracts", "operating manuals", "public or internal human-readable documentation"],
+      "source_of_truth_for_governance": false,
+      "projection_source": "Mem"
+    },
+    "portable_backup": {
+      "authority": "Basic Memory Cloud",
+      "state": "PARKED_SUBSCRIPTION_EXPIRED",
+      "mode": "one-way cold projection",
+      "direction": "Mem -> Basic Memory Cloud",
+      "may_override_mem": false
+    }
+  },
+  "promotion_pipeline": [
+    "capture_candidate",
+    "normalize",
+    "schema_validate",
+    "classify_sensitivity",
+    "resolve_authoritative_source",
+    "detect_duplicate_or_contradiction",
+    "check_freshness_and_version",
+    "compute_proposal_hash",
+    "authorize",
+    "write_mem",
+    "readback",
+    "reconcile",
+    "emit_memory_receipt",
+    "project_approved_documentation"
+  ],
+  "invariants": [
+    "No automatic bidirectional synchronization between memory systems.",
+    "Notion content is non-canonical until explicitly promoted through CanonicalMemoryVerifier/v1.",
+    "GitBook documents approved truth but does not silently mutate canonical memory.",
+    "Basic Memory Cloud is recovery/export only and cannot become a competing authority.",
+    "CanonicalMemoryVerifier/v1 validates and authorizes memory mutations but never stores canonical truth itself.",
+    "Consequential cross-system writes remain under n8n/ACP/TESSA authority per SystemAuthorityRegistry/v1.",
+    "Runtime locks, leases, retries, idempotency state, secrets, tokens, and pending transaction state are forbidden in Mem."
+  ],
+  "change_control": "Any authority change requires a new versioned governance decision."
+}
