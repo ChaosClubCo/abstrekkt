@@ -201,6 +201,13 @@ def check_frozen_paths(paths: list[str], restored_paths: set[str], failures: lis
             )
 
 
+def check_tracked_ignored(failures: list[str]) -> None:
+    output = git("ls-files", "-z", "--cached", "--ignored", "--exclude-standard")
+    for relative in filter(None, output.split("\0")):
+        if relative not in TRACKED_IGNORED_ALLOWLIST:
+            fail(f"tracked file matches .gitignore (possible credential); untrack it: {relative}", failures)
+
+
 def check_changed_secrets(paths: list[str], restored_paths: set[str], failures: list[str]) -> None:
     for relative in paths:
         if relative in restored_paths:
