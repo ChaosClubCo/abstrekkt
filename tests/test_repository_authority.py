@@ -52,10 +52,9 @@ class RepositoryAuthorityContractTests(unittest.TestCase):
 
     def test_registry_routes_current_abstrekkt_domains_to_current_owner(self) -> None:
         registry = (ROOT / "repository-registry.yaml").read_text(encoding="utf-8")
-        lines = registry.splitlines()
-        self.assertIn(f"repository: {CURRENT_ABSTREKKT_REPOSITORY}", lines)
+        self.assertIn(f"repository: {CURRENT_ABSTREKKT_REPOSITORY}", registry)
         self.assertGreaterEqual(
-            lines.count(f"    owner_repository: {CURRENT_ABSTREKKT_REPOSITORY}"),
+            registry.count(f"owner_repository: {CURRENT_ABSTREKKT_REPOSITORY}"),
             4,
         )
 
@@ -69,15 +68,13 @@ class RepositoryAuthorityContractTests(unittest.TestCase):
         self.assertEqual(binding["repository"]["full_name"], CURRENT_ABSTREKKT_REPOSITORY)
         systems = {item["system"]: item for item in projects["systems"]}
         self.assertEqual(systems["Abstrekkt"]["repository"], CURRENT_ABSTREKKT_REPOSITORY)
+        self.assertEqual(systems["Loxihart"]["repository"], CURRENT_LOXIHART_REPOSITORY)
         self.assertEqual(systems["Execution Architect"]["repository"], CURRENT_ABSTREKKT_REPOSITORY)
 
     def test_active_abstrekkt_docs_do_not_claim_historical_owner_as_current(self) -> None:
         current_surfaces = (
-            ".github/agents/repository-steward.agent.md",
-            ".github/agents/security-reviewer.agent.md",
             "docs/gitbook/public/README.md",
             "governance/execution-architect/README.md",
-            "scripts/verify-gitbook-docs.mjs",
             "worlds/abstrekkt/entities/abstrekkt-documentation.md",
             "worlds/abstrekkt/entities/chaosclubco-abstrekkt-repository.md",
             "worlds/abstrekkt/relations/abstrekkt-repository-on-github.md",

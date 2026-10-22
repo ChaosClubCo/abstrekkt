@@ -62,3 +62,21 @@ exit=0
 $ python3 scripts/release/verify_static_package.py <copy>
 status=PASS failures=[] fileCount=9
 exit=0
+
+# Rerun 2026-10-15T20:22Z on a clean worktree of 980fe6fa66ce5d329ae566b3f7d6c0b947c1eb70 (appended; the original receipt above is kept unchanged)
+# Supersedes three blocks above: `node --check tooling/cloudflare/*.mjs` checked only the first .mjs file, `json.tool` took the second MCP file as its output path, and `repo_integrity.py --base HEAD` diffed HEAD against itself.
+
+$ for f in tooling/cloudflare/*.mjs; do node --check "$f" && echo "ok $f" || exit 1; done
+ok tooling/cloudflare/compare-telemetry-dry-mode.mjs
+ok tooling/cloudflare/diagnose-mentor-proxy.mjs
+ok tooling/cloudflare/enable-mentor-proxy-observability.mjs
+ok tooling/cloudflare/telemetry.mjs
+ok tooling/cloudflare/verify-mentor-proxy.mjs
+
+$ for f in .github/mcp.json tooling/mcp-clients/copilot/repository-mcp.json; do python3 -m json.tool "$f" >/dev/null && echo "ok $f"; done
+ok .github/mcp.json
+ok tooling/mcp-clients/copilot/repository-mcp.json
+
+$ python3 scripts/repo_integrity.py --base 7b8d4d559df29adba8f6c87971d4a017b44d59d8   # merge-base of origin/main and the tested commit
+repo-integrity: PASS (5 changed paths checked)
+exit=0

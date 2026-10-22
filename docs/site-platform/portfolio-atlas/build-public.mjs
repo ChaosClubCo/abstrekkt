@@ -16,7 +16,7 @@ export function buildPublicProjection(registry) {
     entities: registry.entities
       .filter((entity) =>
         entity.portfolio_state === "ACTIVE" &&
-        entity.visibility !== "PRIVATE"
+        ["PUBLIC", "MIXED"].includes(entity.visibility)
       )
       .map((entity) => ({
         id: entity.id,
