@@ -10,7 +10,9 @@
 Guarantees (enforced in code, not by prompt):
   * Tools are read-only (list_dir, read_file, grep). No shell, no writes, no network.
   * Every path is resolved and must stay inside --dir; symlink escapes, .git and
-    credential-like files are refused.
+    credential-like files are refused (checked on the requested name and the resolved target).
+  * Regex search runs in a child process killed after GREP_TIMEOUT, so a catastrophic
+    pattern cannot stall the run. SDK retries are off: each API request is counted once.
   * --max-calls caps API requests across lead + subagents; --max-output-tokens caps
     output tokens (reserved up front, so parallel subagents cannot overshoot);
     --max-subagents caps spawns. The lead keeps a reserve so it can always synthesize.
@@ -24,24 +26,28 @@ import fnmatch
 import json
 import os
 import re
+import subprocess
 import sys
 import threading
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from pathlib import Path
 
-import anthropic
+if __name__ != "__main__" or sys.argv[1:2] != ["--grep-worker"]:  # the isolated grep worker is stdlib-only
+    import anthropic
 
 DEFAULT_MODEL = "claude-opus-5-5"
 MIN_GRANT = 2048
 MAX_RESULT_CHARS = 20_000
 SUBAGENT_RESULT_CHARS = 8_000
 MAX_FILE_BYTES = 1_000_000
+GREP_TIMEOUT = 10  # seconds; grep runs in a child process that is killed on expiry
+GREP_SLOTS = threading.BoundedSemaphore(4)  # at most 4 grep child processes at once
 SKIP_DIRS = frozenset({".git", "node_modules", "__pycache__", ".venv", "venv"})
 DENY_NAMES = (
     ".env", ".env.*", "*.env", "*-env.txt", "*.pem", "*.key", "*.p12", "*.pfx",
     "id_rsa*", "id_ed25519*", "id_ecdsa*", ".netrc", ".npmrc", ".pypirc",
-    "credentials*", "*secret*", "Backup-codes-*", "*.kdbx",
+    "*credentials*", "*secret*", "Backup-codes-*", "*.kdbx",
 )
 
 LEAD_SYSTEM = """You are the lead of a read-only code investigation. You can read files \
@@ -89,7 +95,7 @@ class Budget:
             grant = min(want, self.max_out - self.out_used - self.out_reserved - tok_floor)
             if self.calls >= self.max_calls - call_floor:
                 reason = "max-calls reached"
-            elif grant < MIN_GRANT:
+            elif grant < min(MIN_GRANT, want):
                 reason = "max-output-tokens reached"
             if reason:
                 self.exhausted = self.exhausted or reason
@@ -102,6 +108,10 @@ class Budget:
         with self._lock:
             self.out_reserved -= grant
             self.out_used += used
+
+    def mark_exhausted(self, reason: str) -> None:
+        with self._lock:
+            self.exhausted = self.exhausted or reason
 
     def claim_subagent(self) -> bool:
         with self._lock:
@@ -121,6 +131,7 @@ class Budget:
 class ReadOnlyFS:
     def __init__(self, root: Path, extra_deny: tuple[str, ...] = ()):
         self.root = root.resolve()
+        self.extra_deny = extra_deny
         self.deny = DENY_NAMES + extra_deny
 
     def _denied(self, rel_parts: tuple[str, ...]) -> bool:
@@ -133,7 +144,14 @@ class ReadOnlyFS:
         target = (self.root / rel).resolve()
         if target != self.root and self.root not in target.parents:
             raise PermissionError("path escapes the allowed directory")
-        if self._denied(target.relative_to(self.root).parts):
+        asked = os.path.normpath(self.root / rel)  # the name as requested, before symlinks
+        if asked.startswith("//"):  # POSIX keeps a leading double slash; fold it to one
+            asked = asked[1:]
+        lexical = Path(asked)
+        if not lexical.is_relative_to(self.root):  # fail closed: never skip the name check
+            raise PermissionError("path must stay under the allowed directory")
+        named = lexical.relative_to(self.root).parts
+        if self._denied(named) or self._denied(target.relative_to(self.root).parts):
             raise PermissionError("path is on the deny list")
         return target
 
@@ -178,6 +196,19 @@ class ReadOnlyFS:
     def grep(self, pattern: object, path: object = ".", glob: object = "*") -> str:
         if not isinstance(pattern, str) or not 0 < len(pattern) <= 200:
             raise ValueError("pattern must be 1-200 characters")
+        request = json.dumps({"root": str(self.root), "deny": list(self.extra_deny),
+                              "pattern": pattern, "path": path, "glob": str(glob)})
+        try:  # a thread cannot stop a running regex match; a child process can be killed
+            with GREP_SLOTS:  # bound concurrent interpreters; the timeout starts once a slot is held
+                done = subprocess.run([sys.executable, "-I", os.path.abspath(__file__), "--grep-worker"],
+                                      input=request, capture_output=True, text=True, timeout=GREP_TIMEOUT)
+        except subprocess.TimeoutExpired:
+            raise ValueError(f"grep exceeded {GREP_TIMEOUT}s; use a simpler pattern") from None
+        if done.returncode:
+            raise ValueError(done.stderr.strip()[-300:] or "grep failed")
+        return done.stdout
+
+    def grep_local(self, pattern: str, path: object, glob: object) -> str:
         regex = re.compile(pattern)
         base, hits = self.resolve(path), []
         for file in self._walk(base):
@@ -272,9 +303,12 @@ class Orchestrator:
                         system=system, tools=tools, messages=messages, **extra) as stream:
                     resp = stream.get_final_message()
             except anthropic.APIError as exc:
-                self.budget.settle(grant, 0)
+                self.budget.settle(grant, grant)  # usage unknown: assume the whole grant was generated
                 return AgentResult(text, f"api error: {type(exc).__name__}")
             self.budget.settle(grant, resp.usage.output_tokens)
+            if resp.stop_reason == "max_tokens" and (
+                    grant < self.per_call_max or self.budget.snapshot()["output_tokens"] >= self.budget.max_out):
+                self.budget.mark_exhausted("max-output-tokens reached")  # cut off by the global cap
             log("call", agent=label, stop=resp.stop_reason, output_tokens=resp.usage.output_tokens)
             text = "".join(b.text for b in resp.content if b.type == "text") or text
             if resp.stop_reason != "tool_use":
@@ -316,13 +350,26 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     return p.parse_args(argv)
 
 
+def grep_worker() -> int:
+    req = json.loads(sys.stdin.read())
+    try:
+        fs = ReadOnlyFS(Path(req["root"]), tuple(req["deny"]))
+        sys.stdout.write(fs.grep_local(req["pattern"], req["path"], req["glob"]))
+    except (OSError, ValueError, re.error) as exc:
+        print(f"{type(exc).__name__}: {exc}", file=sys.stderr)
+        return 1
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
+    if (sys.argv[1:] if argv is None else argv)[:1] == ["--grep-worker"]:
+        return grep_worker()
     args = parse_args(argv)
     if not args.dir.is_dir():
         print(f"error: --dir is not a directory: {args.dir}", file=sys.stderr)
         return 1
     try:
-        client = anthropic.Anthropic()
+        client = anthropic.Anthropic(max_retries=0)  # SDK retries would bypass --max-calls
     except TypeError:
         print("error: no Anthropic credentials found (set ANTHROPIC_API_KEY or run `ant auth login`).",
               file=sys.stderr)

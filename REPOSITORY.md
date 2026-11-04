@@ -2,7 +2,9 @@
 
 ## Purpose
 
-`Krosebrook/abstrekkt` is the canonical repository for Abstrekkt publishing/public-site source, approved editorial artifacts, portfolio and press evidence, repository-level governance, and historical material retained for provenance.
+`ChaosClubCo/abstrekkt` is the canonical repository for Abstrekkt publishing/public-site source, approved editorial artifacts, portfolio and press evidence, repository-level governance, and historical material retained for provenance.
+
+Historical records that name `Krosebrook/abstrekkt` retain that path where it was true at the time; current operational authority is `ChaosClubCo/abstrekkt`, and historical provenance must not be rewritten.
 
 It is also a preservation corpus. Repository residence alone does **not** make a file current, canonical, publishable, production-ready, or owned by Abstrekkt.
 

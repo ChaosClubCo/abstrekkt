@@ -23,7 +23,7 @@ Per `docs/DOCUMENTATION_STANDARDS.md`, these documents are **HISTORICAL / UNVERI
   `[INFERRED]` in each document, distinct from content pulled directly from a source doc.
 - The Loxihart reference diagram is sourced from existing frozen code/docs only. It documents
   what the software currently does, not a verified operational runbook, and carries no
-  product-decision authority over `Krosebrook/Loxihart`.
+  product-decision authority over `ChaosClubCo/Loxihart`.
 
 ## Provenance tags (inherited from source docs)
 
@@ -46,12 +46,12 @@ Per `docs/DOCUMENTATION_STANDARDS.md`, these documents are **HISTORICAL / UNVERI
 ## Boundary notice — Loxihart
 
 Per root `AGENTS.md` / `CLAUDE.md`: Loxihart is owned and operated externally by
-`Krosebrook/Loxihart`. `loxihart/` in this repo is frozen historical/reference material. The
+`ChaosClubCo/Loxihart`. `loxihart/` in this repo is frozen historical/reference material. The
 Loxihart document in this directory:
 
 - documents existing, already-committed frozen behavior only;
 - introduces no new Loxihart product or UX decisions;
-- is not authoritative — `Krosebrook/Loxihart` is;
+- is not authoritative — `ChaosClubCo/Loxihart` is;
 - must not be used to plan new Loxihart work from this repo.
 
 ## Out of scope

@@ -23,6 +23,7 @@ Applies to every EXTRACT row in `01-DECOMPOSITION_PLAN.md`. Follow `repository-r
 - In `--dry-run` mode: lists what would be copied and exits 0 without touching disk.
 - In normal mode: copies files (not a `git` operation — no history is carried) and writes `MANIFEST.sha256`.
 - Makes no network calls, pushes nothing, deletes nothing, and never touches paths outside the given source list and the target staging directory.
+- With `--private-archive`, lifts only the private-lane and archive-only denylist sections, for copies into private archive repos (see `08-DOWNLOAD-AND-ARCHIVE-SPLIT.md`).
 - Is under 400 LOC per `AGENTS.md:50` / `REPOSITORY.md:96`.
 
 ## Verification per extraction

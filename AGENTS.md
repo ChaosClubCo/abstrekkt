@@ -17,7 +17,7 @@ Before changing anything in this repository:
 
 Do not add, edit, or delete runtime/product files under `loxihart/` in this repository.
 
-Canonical Loxihart product/runtime ownership is `Krosebrook/Loxihart`.
+Canonical Loxihart product/runtime ownership is `ChaosClubCo/Loxihart`.
 
 Allowed work here is limited to migration/evidence artifacts outside the frozen subtree, such as `docs/migrations/loxihart/`, source/target hash receipts, and later separately reviewed archive/removal changes after migration verification.
 

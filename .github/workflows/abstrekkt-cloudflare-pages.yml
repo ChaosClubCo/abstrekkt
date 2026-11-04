@@ -30,7 +30,7 @@ jobs:
     # "production" environment to allow only main and hold the Pages-scoped token.
     if: github.ref == 'refs/heads/main'
     environment: production
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     env:
       CANDIDATE_SHA: ${{ inputs.candidate_sha }}
@@ -40,6 +40,8 @@ jobs:
       PACKAGE_ROOT: candidate/project/deploy/abstrekkt-com
       RELEASE_TOOLS: automation/scripts/release
       WRANGLER_VERSION: "4.137.0"
+      # Skip large, unrelated LFS media at both checkouts; release only the gated static package.
+      GIT_LFS_SKIP_SMUDGE: "1"
 
     steps:
       - name: Validate dispatch inputs
@@ -66,6 +68,7 @@ jobs:
           fetch-depth: 1
           path: automation
           persist-credentials: false
+          lfs: false
 
       - name: Checkout exact release candidate
         uses: actions/checkout@v4
@@ -74,6 +77,7 @@ jobs:
           fetch-depth: 0
           path: candidate
           persist-credentials: false
+          lfs: false
 
       - name: Verify exact candidate SHA is on main
         shell: bash
