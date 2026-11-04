@@ -50,4 +50,35 @@ assert.ok(validateRegistry(badPublicClaim).some((error) =>
   error.includes("public claim must be VERIFIED or SUPPORTED")
 ));
 
+
+for (const visibility of [undefined, "PUBIC", "private", "", null, 123]) {
+  const altered = structuredClone(registry);
+  if (visibility === undefined) delete altered.entities[0].visibility;
+  else altered.entities[0].visibility = visibility;
+  assert.ok(
+    validateRegistry(altered).some((error) => error.includes(".visibility")),
+    `Invalid visibility ${String(visibility)} must fail validation`
+  );
+  assert.throws(() => buildPublicProjection(altered), /Registry invalid/);
+}
+
+for (const visibility of ["PUBLIC", "MIXED"]) {
+  const altered = structuredClone(registry);
+  altered.entities[0].visibility = visibility;
+  assert.deepEqual(validateRegistry(altered), []);
+  assert.equal(
+    buildPublicProjection(altered).entities.some((entity) => entity.id === altered.entities[0].id),
+    true,
+    `${visibility} active entities with supported public claims must remain publishable`
+  );
+}
+
+const privateEntity = structuredClone(registry);
+privateEntity.entities[0].visibility = "PRIVATE";
+assert.deepEqual(validateRegistry(privateEntity), []);
+assert.equal(
+  buildPublicProjection(privateEntity).entities.some((entity) => entity.id === privateEntity.entities[0].id),
+  false
+);
+
 console.log("PASS: Portfolio Atlas contract, ownership boundary, privacy projection, and fail-closed tests.");
